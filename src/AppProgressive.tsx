@@ -11,6 +11,13 @@ import { InferSeoMetaPlugin } from '@unhead/addons';
 import { Suspense } from 'react';
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import Index from "./pages/Index";
+import CreateReview from "./pages/CreateReview";
+import Dashboard from "./pages/Dashboard";
+import ReviewDetail from "./pages/ReviewDetail";
+import Settings from "./pages/Settings";
+import { PhotoUploadDemo } from "./pages/PhotoUploadDemo";
+import { GpsCorrectionDemo } from "./pages/GpsCorrectionDemo";
+import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -55,7 +62,13 @@ export function AppProgressive() {
                   <BrowserRouter>
                     <Routes>
                       <Route path="/" element={<Index />} />
-                      <Route path="*" element={<div>Page not found</div>} />
+                      <Route path="/create-review" element={<CreateReview />} />
+                      <Route path="/dashboard" element={<Dashboard />} />
+                      <Route path="/review/:naddr" element={<ReviewDetail />} />
+                      <Route path="/settings" element={<Settings />} />
+                      <Route path="/photo-upload-demo" element={<PhotoUploadDemo />} />
+                      <Route path="/gps-correction-demo" element={<GpsCorrectionDemo />} />
+                      <Route path="*" element={<NotFound />} />
                     </Routes>
                   </BrowserRouter>
                 </Suspense>
