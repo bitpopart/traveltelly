@@ -1,21 +1,18 @@
-import { useSeoMeta } from '@unhead/react';
+// import { useSeoMeta } from '@unhead/react';
 import { LoginArea } from "@/components/auth/LoginArea";
-import { RelaySelector } from "@/components/RelaySelector";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ReviewFeed } from "@/components/ReviewFeed";
-import { ReviewsMap } from "@/components/ReviewsMap";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { MapPin, Star, Camera, Zap, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 
-const Index = () => {
+const IndexMinimal = () => {
   const { user } = useCurrentUser();
 
-  useSeoMeta({
-    title: 'Reviewstr - Location-Based Reviews on Nostr',
-    description: 'Share your experiences and discover amazing places on the Nostr network. Upload photos, rate locations, and earn Lightning tips.',
-  });
+  // useSeoMeta({
+  //   title: 'Reviewstr - Location-Based Reviews on Nostr',
+  //   description: 'Share your experiences and discover amazing places on the Nostr network. Upload photos, rate locations, and earn Lightning tips.',
+  // });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100 dark:from-gray-900 dark:to-gray-800">
@@ -60,19 +57,6 @@ const Index = () => {
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Reviews Map */}
-          <div className="mb-12">
-            <div className="text-center mb-6">
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                🗺️ Explore Reviews
-              </h2>
-              <p className="text-gray-600 dark:text-gray-300">
-                Discover amazing places near you with interactive map markers
-              </p>
-            </div>
-            <ReviewsMap />
           </div>
 
           {/* Features Grid */}
@@ -134,59 +118,20 @@ const Index = () => {
             </Card>
           </div>
 
-          {/* Lightning Tips Info */}
-          {user && (
-            <Card className="mb-8 border-yellow-200 dark:border-yellow-800 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-yellow-500 rounded-full">
-                      <Zap className="w-6 h-6 text-white fill-current" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        ⚡ Lightning Tips Enabled!
-                      </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">
-                        Support great reviewers with instant Bitcoin tips. Look for the ⚡ icon on reviews.
-                      </p>
-                    </div>
-                  </div>
-                  <Link to="/settings">
-                    <Button variant="outline" className="border-yellow-400 text-yellow-700 hover:bg-yellow-100">
-                      Setup Tips
-                    </Button>
-                  </Link>
+          {/* Status */}
+          <Card className="mb-8">
+            <CardContent className="py-12 px-8 text-center">
+              <div className="max-w-sm mx-auto space-y-6">
+                <MapPin className="w-12 h-12 text-green-500 mx-auto" />
+                <div>
+                  <p className="text-lg font-medium text-green-700 dark:text-green-300">
+                    ✅ Minimal Page Working
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    This page loads successfully. The issue is likely with the ReviewsMap or ReviewFeed components.
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Recent Reviews */}
-          <div className="mb-8">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Recent Reviews
-              </h2>
-              <Link to="/dashboard">
-                <Button variant="outline">
-                  View Dashboard
-                </Button>
-              </Link>
-            </div>
-            <ReviewFeed />
-          </div>
-
-          {/* Relay Configuration */}
-          <Card className="mb-8 border-orange-200 dark:border-orange-800">
-            <CardHeader>
-              <CardTitle>Relay Configuration</CardTitle>
-              <CardDescription>
-                Choose your preferred Nostr relay to discover reviews from different communities
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <RelaySelector className="w-full max-w-md" />
+              </div>
             </CardContent>
           </Card>
 
@@ -210,4 +155,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default IndexMinimal;

@@ -4,12 +4,11 @@ import { RelaySelector } from "@/components/RelaySelector";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReviewFeed } from "@/components/ReviewFeed";
-import { ReviewsMap } from "@/components/ReviewsMap";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { MapPin, Star, Camera, Zap, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 
-const Index = () => {
+const IndexNoMap = () => {
   const { user } = useCurrentUser();
 
   useSeoMeta({
@@ -62,17 +61,24 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Reviews Map */}
+          {/* Map Placeholder */}
           <div className="mb-12">
             <div className="text-center mb-6">
               <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
                 🗺️ Explore Reviews
               </h2>
               <p className="text-gray-600 dark:text-gray-300">
-                Discover amazing places near you with interactive map markers
+                Map temporarily disabled for debugging
               </p>
             </div>
-            <ReviewsMap />
+            <Card>
+              <CardContent className="py-12 px-8 text-center">
+                <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-muted-foreground">
+                  Interactive map will be restored once debugging is complete.
+                </p>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Features Grid */}
@@ -210,4 +216,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default IndexNoMap;

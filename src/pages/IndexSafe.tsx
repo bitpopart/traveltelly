@@ -3,13 +3,57 @@ import { LoginArea } from "@/components/auth/LoginArea";
 import { RelaySelector } from "@/components/RelaySelector";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ReviewFeed } from "@/components/ReviewFeed";
-import { ReviewsMap } from "@/components/ReviewsMap";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { MapPin, Star, Camera, Zap, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Suspense, lazy } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const Index = () => {
+// Lazy load components that might cause issues
+const ReviewsMap = lazy(() => import("@/components/ReviewsMap").then(module => ({ default: module.ReviewsMap })));
+const ReviewFeed = lazy(() => import("@/components/ReviewFeed").then(module => ({ default: module.ReviewFeed })));
+
+// Error boundary component (for future use)
+// function ErrorFallback({ error, resetError }: { error: Error; resetError: () => void }) {
+//   return (
+//     <Card className="border-red-200 dark:border-red-800">
+//       <CardContent className="py-12 px-8 text-center">
+//         <div className="max-w-sm mx-auto space-y-6">
+//           <div className="text-red-500">⚠️</div>
+//           <div>
+//             <p className="text-lg font-medium text-red-700 dark:text-red-300">
+//               Something went wrong
+//             </p>
+//             <p className="text-sm text-muted-foreground mt-2">
+//               {error.message}
+//             </p>
+//           </div>
+//           <Button onClick={resetError} variant="outline">
+//             Try again
+//           </Button>
+//         </div>
+//       </CardContent>
+//     </Card>
+//   );
+// }
+
+// Safe wrapper component
+function SafeComponent({ children, fallback }: { children: React.ReactNode; fallback?: React.ReactNode }) {
+  try {
+    return <>{children}</>;
+  } catch (error) {
+    console.error('Component error:', error);
+    return fallback || (
+      <Card className="border-dashed">
+        <CardContent className="py-12 px-8 text-center">
+          <p className="text-muted-foreground">Component temporarily unavailable</p>
+        </CardContent>
+      </Card>
+    );
+  }
+}
+
+const IndexSafe = () => {
   const { user } = useCurrentUser();
 
   useSeoMeta({
@@ -72,7 +116,11 @@ const Index = () => {
                 Discover amazing places near you with interactive map markers
               </p>
             </div>
-            <ReviewsMap />
+            <SafeComponent>
+              <Suspense fallback={<Skeleton className="w-full h-96 rounded-lg" />}>
+                <ReviewsMap />
+              </Suspense>
+            </SafeComponent>
           </div>
 
           {/* Features Grid */}
@@ -174,7 +222,29 @@ const Index = () => {
                 </Button>
               </Link>
             </div>
-            <ReviewFeed />
+            <SafeComponent>
+              <Suspense fallback={
+                <div className="space-y-4">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Card key={i}>
+                      <CardContent className="p-6">
+                        <div className="flex items-center space-x-4 mb-4">
+                          <Skeleton className="h-10 w-10 rounded-full" />
+                          <div className="space-y-2">
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-3 w-24" />
+                          </div>
+                        </div>
+                        <Skeleton className="h-4 w-full mb-2" />
+                        <Skeleton className="h-4 w-3/4" />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              }>
+                <ReviewFeed />
+              </Suspense>
+            </SafeComponent>
           </div>
 
           {/* Relay Configuration */}
@@ -210,4 +280,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default IndexSafe;

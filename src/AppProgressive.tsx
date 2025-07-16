@@ -1,24 +1,16 @@
-// NOTE: This file should normally not be modified unless you are adding a new provider.
-// To add new routes, edit the AppRouter.tsx file.
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { AppProvider } from '@/components/AppProvider';
+import { AppConfig } from '@/contexts/AppContext';
+import { NostrLoginProvider } from '@nostrify/react/login';
+import NostrProvider from '@/components/NostrProvider';
 import { createHead, UnheadProvider } from '@unhead/react/client';
 import { InferSeoMetaPlugin } from '@unhead/addons';
 import { Suspense } from 'react';
-import NostrProvider from '@/components/NostrProvider';
-import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { NostrLoginProvider } from '@nostrify/react/login';
-import { AppProvider } from '@/components/AppProvider';
-import { AppConfig } from '@/contexts/AppContext';
-import AppRouter from './AppRouter';
-
-const head = createHead({
-  plugins: [
-    InferSeoMetaPlugin(),
-  ],
-});
+import Index from "./pages/Index";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -43,7 +35,13 @@ const presetRelays = [
   { url: 'wss://relay.primal.net', name: 'Primal' },
 ];
 
-export function App() {
+const head = createHead({
+  plugins: [
+    InferSeoMetaPlugin(),
+  ],
+});
+
+export function AppProgressive() {
   return (
     <UnheadProvider head={head}>
       <AppProvider storageKey="nostr:app-config" defaultConfig={defaultConfig} presetRelays={presetRelays}>
@@ -54,7 +52,12 @@ export function App() {
                 <Toaster />
                 <Sonner />
                 <Suspense>
-                  <AppRouter />
+                  <BrowserRouter>
+                    <Routes>
+                      <Route path="/" element={<Index />} />
+                      <Route path="*" element={<div>Page not found</div>} />
+                    </Routes>
+                  </BrowserRouter>
                 </Suspense>
               </TooltipProvider>
             </NostrProvider>
@@ -65,4 +68,4 @@ export function App() {
   );
 }
 
-export default App;
+export default AppProgressive;

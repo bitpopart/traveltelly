@@ -1,12 +1,15 @@
 import { createContext } from "react";
 
 export type Theme = "dark" | "light" | "system";
+export type MapProvider = "openstreetmap" | "satellite";
 
 export interface AppConfig {
   /** Current theme */
   theme: Theme;
   /** Selected relay URL */
   relayUrl: string;
+  /** Map provider for location displays */
+  mapProvider: MapProvider;
 }
 
 export interface AppContextType {
