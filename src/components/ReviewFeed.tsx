@@ -7,13 +7,15 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
-import { MapPin, Star, Calendar, Camera } from 'lucide-react';
+import { MapPin, Star, Calendar, Camera, MessageCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { Link } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
 import { ZapButton } from '@/components/ZapButton';
 import { getShortNpub } from '@/lib/nostrUtils';
+import { useReviewComments } from '@/hooks/useReviewComments';
+import { useBlockedUsers } from '@/hooks/useBlockedUsers';
 
 // Helper function to truncate text and show summary
 function truncateText(text: string, maxLength: number = 120): string {
@@ -57,6 +59,14 @@ function ReviewCard({ review }: { review: ReviewEvent }) {
 
   const displayName = metadata?.name || genUserName(review.pubkey);
   const profileImage = metadata?.picture;
+
+  const naddr = nip19.naddrEncode({
+    identifier: review.tags.find(([name]) => name === 'd')?.[1] || '',
+    pubkey: review.pubkey,
+    kind: 34879,
+  });
+
+  const { data: comments } = useReviewComments(naddr);
 
   const categoryEmojis: Record<string, string> = {
     'grocery-store': '🛒',
@@ -102,12 +112,6 @@ function ReviewCard({ review }: { review: ReviewEvent }) {
     'synagogue': '✡️',
     'shrine': '⛩️'
   };
-
-  const naddr = nip19.naddrEncode({
-    identifier: review.tags.find(([name]) => name === 'd')?.[1] || '',
-    pubkey: review.pubkey,
-    kind: 34879,
-  });
 
   return (
     <Card className="hover:shadow-lg transition-shadow">
@@ -189,6 +193,12 @@ function ReviewCard({ review }: { review: ReviewEvent }) {
                 View Details
               </Button>
             </Link>
+            {comments && comments.length > 0 && (
+              <Button variant="ghost" size="sm" className="h-8 px-2 text-xs text-muted-foreground hover:text-blue-600">
+                <MessageCircle className="w-3 h-3 mr-1" />
+                {comments.length} comment{comments.length !== 1 ? 's' : ''}
+              </Button>
+            )}
           </div>
 
           <Badge variant="outline" className="capitalize">
@@ -240,13 +250,17 @@ function ReviewSkeleton() {
 
 export function ReviewFeed() {
   const { nostr } = useNostr();
+  const { isUserBlocked } = useBlockedUsers();
 
   const { data: reviews, isLoading, error } = useQuery({
     queryKey: ['reviews', 'v2'], // Updated query key to force refresh
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
       const events = await nostr.query([{ kinds: [34879], limit: 20 }], { signal });
-      return events.filter(validateReviewEvent).sort((a, b) => b.created_at - a.created_at);
+      return events
+        .filter(validateReviewEvent)
+        .filter(event => !isUserBlocked(event.pubkey)) // Filter out blocked users
+        .sort((a, b) => b.created_at - a.created_at);
     },
   });
 

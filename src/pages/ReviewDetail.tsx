@@ -18,6 +18,7 @@ import type { NostrEvent } from '@nostrify/nostrify';
 
 import { ZapAuthorButton } from '@/components/ZapAuthorButton';
 import { ZapButton } from '@/components/ZapButton';
+import { CommentSection } from '@/components/CommentSection';
 import { getShortNpub, getFullNpub } from '@/lib/nostrUtils';
 import * as geohash from 'ngeohash';
 import { trackCoordinates } from '@/lib/coordinateVerification';
@@ -100,7 +101,7 @@ const ReviewDetail = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#def5ff' }}>
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-4xl mx-auto">
             <Card className="border-dashed">
@@ -397,7 +398,8 @@ const ReviewDetail = () => {
             </CardContent>
           </Card>
 
-
+          {/* Comment Section */}
+          <CommentSection review={review} />
         </div>
       </div>
     </div>

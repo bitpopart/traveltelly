@@ -5,12 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReviewFeed } from "@/components/ReviewFeed";
 import { ReviewsMap } from "@/components/ReviewsMap";
+import { AdminDebugInfo } from "@/components/AdminDebugInfo";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { MapPin, Star, Camera, Zap, Settings } from "lucide-react";
+import { useReviewPermissions } from "@/hooks/useReviewPermissions";
+import { MapPin, Star, Camera, Zap, Settings, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Index = () => {
   const { user } = useCurrentUser();
+  const { isAdmin, isCheckingPermission } = useReviewPermissions();
 
   useSeoMeta({
     title: 'Reviewstr - Location-Based Reviews on Nostr',
@@ -18,11 +21,18 @@ const Index = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#def5ff' }}>
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="text-center mb-12">
+            <div className="mb-6">
+              <img
+                src="https://cdn.nostrcheck.me/7d33ba57d8a6e8869a1f1d5215254597594ac0dbfeb01b690def8c461b82db35/242071910e7862cf2cccde9c1992fe22eac59229e18ca408d4ee7d9c0316c930.webp"
+                alt="Reviewstr - Location-Based Reviews on Nostr"
+                className="mx-auto max-w-md w-full h-auto rounded-lg"
+              />
+            </div>
             <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">
               📍 Reviewstr
             </h1>
@@ -45,6 +55,32 @@ const Index = () => {
                       Settings
                     </Button>
                   </Link>
+
+                  {/* Debug info for admin detection */}
+                  {import.meta.env.DEV && (
+                    <div className="w-full text-center text-xs text-muted-foreground bg-gray-100 dark:bg-gray-800 p-2 rounded">
+                      Debug: isAdmin={String(isAdmin)}, isChecking={String(isCheckingPermission)}, userPubkey={user.pubkey?.slice(0, 8)}...
+                    </div>
+                  )}
+
+                  {isAdmin && (
+                    <Link to="/admin">
+                      <Button variant="outline" size="lg" className="border-orange-300 text-orange-700 hover:bg-orange-50">
+                        <Shield className="w-4 h-4 mr-2" />
+                        Admin Panel
+                      </Button>
+                    </Link>
+                  )}
+
+                  {/* Always show admin test link for debugging */}
+                  {import.meta.env.DEV && (
+                    <Link to="/admin-test">
+                      <Button variant="outline" size="lg" className="border-blue-300 text-blue-700 hover:bg-blue-50">
+                        <Shield className="w-4 h-4 mr-2" />
+                        Admin Test Page
+                      </Button>
+                    </Link>
+                  )}
                   <Link to="/photo-upload-demo">
                     <Button variant="outline" size="lg">
                       <Camera className="w-4 h-4 mr-2" />
@@ -61,6 +97,9 @@ const Index = () => {
               )}
             </div>
           </div>
+
+          {/* Admin Debug Info (Development Only) */}
+          <AdminDebugInfo />
 
           {/* Reviews Map */}
           <div className="mb-12">

@@ -12,6 +12,14 @@ import CreateReview from "./pages/CreateReview";
 import Dashboard from "./pages/Dashboard";
 import ReviewDetail from "./pages/ReviewDetail";
 import Settings from "./pages/Settings";
+import AdminPanel from "./pages/AdminPanel";
+import AdminTest from "./pages/AdminTest";
+import AdminDebug from "./pages/AdminDebug";
+import AdminSimple from "./pages/AdminSimple";
+import RouteTest from "./pages/RouteTest";
+import AdminBasic from "./pages/AdminBasic";
+import RemoveReviews from "./pages/RemoveReviews";
+import HideReviews from "./pages/HideReviews";
 import { PhotoUploadDemo } from "./pages/PhotoUploadDemo";
 import { GpsCorrectionDemo } from "./pages/GpsCorrectionDemo";
 import NotFound from "./pages/NotFound";
@@ -32,8 +40,21 @@ export function AppRouter() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/review/:naddr" element={<ReviewDetail />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/admin" element={<AdminPanel />} />
+        <Route path="/admin-test" element={<AdminTest />} />
+        <Route path="/admin-debug" element={<AdminDebug />} />
+        <Route path="/admin-simple" element={<AdminSimple />} />
+        <Route path="/admin-basic" element={<AdminBasic />} />
+        <Route path="/remove-reviews" element={<RemoveReviews />} />
+        <Route path="/hide-reviews" element={<HideReviews />} />
+        <Route path="/route-test" element={<RouteTest />} />
         <Route path="/photo-upload-demo" element={<PhotoUploadDemo />} />
         <Route path="/gps-correction-demo" element={<GpsCorrectionDemo />} />
+        {/* Explicit admin routes for better debugging */}
+        <Route path="/admin/*" element={<AdminPanel />} />
+        <Route path="/admin-test/*" element={<AdminTest />} />
+        <Route path="/admin-debug/*" element={<AdminDebug />} />
+        <Route path="/admin-simple/*" element={<AdminSimple />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>

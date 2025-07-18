@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { useUploadFile } from '@/hooks/useUploadFile';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
+import { PermissionGate } from '@/components/PermissionGate';
 import { Camera, MapPin, Star, Upload, Loader2, Zap } from 'lucide-react';
 import { LocationMap } from '@/components/LocationMap';
 import { extractGPSFromImage, canContainEXIF } from '@/lib/exifUtils';
@@ -107,7 +108,7 @@ function encodeGeohash(lat: number, lng: number, precision = 8): string {
   }
 }
 
-export function CreateReviewForm() {
+function CreateReviewFormContent() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [location, setLocation] = useState<LocationData | null>(null);
@@ -776,5 +777,13 @@ export function CreateReviewForm() {
       {/* Debug tool for development */}
       {import.meta.env.DEV && <GPSDebugger />}
     </form>
+  );
+}
+
+export function CreateReviewForm() {
+  return (
+    <PermissionGate>
+      <CreateReviewFormContent />
+    </PermissionGate>
   );
 }

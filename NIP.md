@@ -43,7 +43,7 @@ The `category` tag should use one of these standardized values:
 
 **🛍️ Shops & Stores**
 - `grocery-store`
-- `clothing-store` 
+- `clothing-store`
 - `electronics-store`
 - `convenience-store`
 
@@ -129,6 +129,90 @@ The `category` tag should use one of these standardized values:
   "id": "..."
 }
 ```
+
+## Comments
+
+Reviews support comments using NIP-22 Comment events (`kind:1111`). Comments reference the review using the `A` tag with the review's naddr (NIP-19 addressable event identifier).
+
+### Comment Structure
+
+Comments on reviews follow the NIP-22 specification:
+
+```json
+{
+  "kind": 1111,
+  "content": "Great review! I had a similar experience there.",
+  "tags": [
+    ["A", "34879:pubkey:review-id"],
+    ["K", "34879"],
+    ["P", "review-author-pubkey"],
+    ["a", "34879:pubkey:review-id"],
+    ["e", "review-event-id"],
+    ["k", "34879"],
+    ["p", "review-author-pubkey"],
+    ["alt", "Comment on review: Place Name"]
+  ]
+}
+```
+
+### Querying Comments
+
+To query comments for a specific review:
+```
+["REQ", "review-comments", {"kinds": [1111], "#A": ["34879:pubkey:review-id"], "limit": 100}]
+```
+
+## Permission System
+
+This application implements a permission system to control who can post reviews. Only authorized users can create review events.
+
+### Permission Events
+
+**Permission Request (`kind:31491`)**
+Users can request permission to post reviews:
+
+```json
+{
+  "kind": 31491,
+  "content": "I'm a travel blogger with 5 years of experience...",
+  "tags": [
+    ["d", "review-permission-1234567890"],
+    ["request_type", "review_permission"],
+    ["alt", "Request for review posting permission"]
+  ]
+}
+```
+
+**Permission Grant (`kind:30383`)**
+Admin can grant or block permissions:
+
+```json
+{
+  "kind": 30383,
+  "content": "Review posting permission granted",
+  "tags": [
+    ["d", "review-grant-pubkey"],
+    ["grant_type", "review_permission"],
+    ["p", "user-pubkey"],
+    ["e", "request-event-id"],
+    ["alt", "Review permission granted"]
+  ]
+}
+```
+
+### Admin Authority
+
+The admin npub `npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642` has exclusive authority to:
+- Grant review posting permissions
+- Block permission requests
+- Access the admin panel
+
+### Permission Workflow
+
+1. **Request**: User submits permission request with reason
+2. **Review**: Admin reviews request in admin panel
+3. **Decision**: Admin grants permission or blocks request
+4. **Access**: Granted users can post reviews
 
 ## Lightning Zaps
 

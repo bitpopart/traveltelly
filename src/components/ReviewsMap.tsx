@@ -158,7 +158,7 @@ const createCustomIcon = (rating: number, precision?: number, upgraded?: boolean
         <circle cx="12.5" cy="12.5" r="8" fill="white"/>
         <text x="12.5" y="17" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="${color}">${rating}</text>
         ${indicator}
-      </svg>`.replace(/\s+/g, ' ').replace(/[^\x00-\x7F]/g, '').trim();
+      </svg>`.replace(/\s+/g, ' ').replace(/[^\x20-\x7E]/g, '').trim();
 
   try {
     const encodedSvg = btoa(svgString);
