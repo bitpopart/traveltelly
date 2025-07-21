@@ -16,6 +16,7 @@ import { ZapButton } from '@/components/ZapButton';
 import { getShortNpub } from '@/lib/nostrUtils';
 import { useReviewComments } from '@/hooks/useReviewComments';
 import { useBlockedUsers } from '@/hooks/useBlockedUsers';
+import { useAuthorizedReviewers } from '@/hooks/useAuthorizedReviewers';
 
 // Helper function to truncate text and show summary
 function truncateText(text: string, maxLength: number = 120): string {
@@ -251,17 +252,28 @@ function ReviewSkeleton() {
 export function ReviewFeed() {
   const { nostr } = useNostr();
   const { isUserBlocked } = useBlockedUsers();
+  const { data: authorizedReviewers, isLoading: isLoadingAuth } = useAuthorizedReviewers();
 
   const { data: reviews, isLoading, error } = useQuery({
-    queryKey: ['reviews', 'v2'], // Updated query key to force refresh
+    queryKey: ['reviews', 'v4'], // Updated query key to force refresh
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      const events = await nostr.query([{ kinds: [34879], limit: 20 }], { signal });
+
+      // Query specifically for authorized reviewers' posts
+      const authorizedAuthors = Array.from(authorizedReviewers || []);
+      const events = await nostr.query([{
+        kinds: [34879],
+        authors: authorizedAuthors, // Only query for authorized authors
+        limit: 50
+      }], { signal });
+
       return events
         .filter(validateReviewEvent)
         .filter(event => !isUserBlocked(event.pubkey)) // Filter out blocked users
-        .sort((a, b) => b.created_at - a.created_at);
+        .sort((a, b) => b.created_at - a.created_at)
+        .slice(0, 20); // Limit to 20 after sorting
     },
+    enabled: !!authorizedReviewers && authorizedReviewers.size > 0, // Only run when we have authorized reviewers
   });
 
   if (error) {
@@ -279,7 +291,7 @@ export function ReviewFeed() {
     );
   }
 
-  if (isLoading) {
+  if (isLoading || isLoadingAuth) {
     return (
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 6 }, (_, i) => (
