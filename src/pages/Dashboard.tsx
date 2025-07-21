@@ -10,6 +10,7 @@ import { genUserName } from '@/lib/genUserName';
 import { LightningTipButton } from '@/components/LightningTipButton';
 import { Trophy, Star, MapPin, TrendingUp } from 'lucide-react';
 import type { NostrEvent } from '@nostrify/nostrify';
+import { useAuthorizedReviewers } from '@/hooks/useAuthorizedReviewers';
 
 interface ReviewEvent extends NostrEvent {
   kind: 34879;
@@ -142,6 +143,7 @@ function TopReviewerSkeleton() {
 
 const Dashboard = () => {
   const { nostr } = useNostr();
+  const { data: authorizedReviewers, isLoading: isLoadingAuth } = useAuthorizedReviewers();
 
   useSeoMeta({
     title: 'Dashboard - Top Reviewers | Reviewstr',
@@ -149,12 +151,21 @@ const Dashboard = () => {
   });
 
   const { data: reviews, isLoading, error } = useQuery({
-    queryKey: ['all-reviews-stats', 'v2'], // Updated query key to force refresh
+    queryKey: ['all-reviews-stats', 'v3'], // Updated query key to force refresh
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(10000)]);
-      const events = await nostr.query([{ kinds: [34879], limit: 1000 }], { signal });
+
+      // Query specifically for authorized reviewers' posts
+      const authorizedAuthors = Array.from(authorizedReviewers || []);
+      const events = await nostr.query([{
+        kinds: [34879],
+        authors: authorizedAuthors, // Only query for authorized authors
+        limit: 1000
+      }], { signal });
+
       return events.filter(validateReviewEvent);
     },
+    enabled: !!authorizedReviewers && authorizedReviewers.size > 0, // Only run when we have authorized reviewers
   });
 
   const topReviewers = reviews ? (() => {
@@ -295,7 +306,7 @@ const Dashboard = () => {
               </Card>
 
               <div className="space-y-4">
-                {isLoading ? (
+                {isLoading || isLoadingAuth ? (
                   Array.from({ length: 10 }, (_, i) => (
                     <TopReviewerSkeleton key={i} />
                   ))
@@ -330,7 +341,7 @@ const Dashboard = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {isLoading ? (
+                  {isLoading || isLoadingAuth ? (
                     <>
                       <div className="flex justify-between">
                         <Skeleton className="h-4 w-20" />
@@ -370,7 +381,7 @@ const Dashboard = () => {
                   <CardTitle>Top Categories</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {isLoading ? (
+                  {isLoading || isLoadingAuth ? (
                     Array.from({ length: 5 }, (_, i) => (
                       <div key={i} className="flex justify-between items-center">
                         <div className="flex items-center gap-2">
