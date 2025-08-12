@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { useUploadFile } from '@/hooks/useUploadFile';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
+import { useReviewCategories } from '@/hooks/useReviewCategories';
 import { PermissionGate } from '@/components/PermissionGate';
 import { Camera, MapPin, Star, Upload, Loader2, Zap } from 'lucide-react';
 import { LocationMap } from '@/components/LocationMap';
@@ -35,7 +36,7 @@ const reviewSchema = z.object({
   lightning: z.boolean().default(false),
 });
 
-type ReviewFormData = z.infer<typeof reviewSchema>;
+type _ReviewFormData = z.infer<typeof reviewSchema>;
 
 interface LocationData {
   lat: number;
@@ -43,59 +44,7 @@ interface LocationData {
   address?: string;
 }
 
-const categories = [
-  { value: 'grocery-store', label: '🛒 Grocery Store', group: 'Shops & Stores' },
-  { value: 'clothing-store', label: '👕 Clothing Store', group: 'Shops & Stores' },
-  { value: 'electronics-store', label: '📱 Electronics Store', group: 'Shops & Stores' },
-  { value: 'convenience-store', label: '🏪 Convenience Store', group: 'Shops & Stores' },
 
-  { value: 'restaurant', label: '🍽️ Restaurant', group: 'Food & Drink' },
-  { value: 'cafe', label: '☕ Café', group: 'Food & Drink' },
-  { value: 'fast-food', label: '🍔 Fast Food', group: 'Food & Drink' },
-  { value: 'bar-pub', label: '🍺 Bar / Pub', group: 'Food & Drink' },
-
-  { value: 'hotel', label: '🏨 Hotel', group: 'Places' },
-  { value: 'motel', label: '🏨 Motel', group: 'Places' },
-  { value: 'hostel', label: '🏠 Hostel', group: 'Places' },
-  { value: 'landmarks', label: '🏛️ Landmarks', group: 'Places' },
-
-  { value: 'bank', label: '🏦 Bank', group: 'Services' },
-  { value: 'salon-spa', label: '💅 Salon / Spa', group: 'Services' },
-  { value: 'car-repair', label: '🔧 Car Repair', group: 'Services' },
-  { value: 'laundry', label: '🧺 Laundry', group: 'Services' },
-
-  { value: 'hospital', label: '🏥 Hospital', group: 'Health' },
-  { value: 'clinic', label: '🏥 Clinic', group: 'Health' },
-  { value: 'pharmacy', label: '💊 Pharmacy', group: 'Health' },
-  { value: 'dentist', label: '🦷 Dentist', group: 'Health' },
-
-  { value: 'park', label: '🌳 Park', group: 'Outdoor & Fun' },
-  { value: 'beach', label: '🏖️ Beach', group: 'Outdoor & Fun' },
-  { value: 'playground', label: '🛝 Playground', group: 'Outdoor & Fun' },
-  { value: 'hiking-trail', label: '🥾 Hiking Trail', group: 'Outdoor & Fun' },
-  { value: 'cycling-trail', label: '🚴 Cycling Trail', group: 'Outdoor & Fun' },
-
-  { value: 'museum', label: '🏛️ Museum', group: 'Entertainment' },
-  { value: 'movie-theater', label: '🎬 Movie Theater', group: 'Entertainment' },
-  { value: 'zoo', label: '🦁 Zoo', group: 'Entertainment' },
-  { value: 'music-venue', label: '🎵 Music Venue', group: 'Entertainment' },
-
-  { value: 'school', label: '🏫 School', group: 'Education & Public' },
-  { value: 'library', label: '📚 Library', group: 'Education & Public' },
-  { value: 'post-office', label: '📮 Post Office', group: 'Education & Public' },
-  { value: 'police-station', label: '👮 Police Station', group: 'Education & Public' },
-
-  { value: 'gas-station', label: '⛽ Gas Station', group: 'Transport' },
-  { value: 'bus-stop', label: '🚌 Bus Stop', group: 'Transport' },
-  { value: 'train-station', label: '🚂 Train Station', group: 'Transport' },
-  { value: 'parking-lot', label: '🅿️ Parking Lot', group: 'Transport' },
-
-  { value: 'church', label: '⛪ Church', group: 'Religious' },
-  { value: 'mosque', label: '🕌 Mosque', group: 'Religious' },
-  { value: 'temple', label: '🛕 Temple', group: 'Religious' },
-  { value: 'synagogue', label: '✡️ Synagogue', group: 'Religious' },
-  { value: 'shrine', label: '⛩️ Shrine', group: 'Religious' },
-];
 
 function encodeGeohash(lat: number, lng: number, precision = 8): string {
   try {
@@ -115,6 +64,9 @@ function CreateReviewFormContent() {
   const [showMap, setShowMap] = useState(false);
   const [extractingLocation, setExtractingLocation] = useState(false);
 
+  // Load dynamic categories
+  const { data: categories = [], isLoading: categoriesLoading } = useReviewCategories();
+
   // Test geohash accuracy in development
   React.useEffect(() => {
     if (import.meta.env.DEV) {
@@ -129,7 +81,7 @@ function CreateReviewFormContent() {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const form = useForm<ReviewFormData>({
+  const form = useForm({
     resolver: zodResolver(reviewSchema),
     defaultValues: {
       rating: 5,
@@ -246,7 +198,7 @@ function CreateReviewFormContent() {
       .catch(console.warn);
   }, [form]);
 
-  const onSubmit = async (data: ReviewFormData) => {
+  const onSubmit = async (data: z.infer<typeof reviewSchema>) => {
     try {
       let imageUrl = '';
 
@@ -329,53 +281,13 @@ function CreateReviewFormContent() {
       });
 
       // Also create a regular Nostr note (kind 1) for visibility on standard clients
-      const categoryEmojis: Record<string, string> = {
-        'grocery-store': '🛒',
-        'clothing-store': '👕',
-        'electronics-store': '📱',
-        'convenience-store': '🏪',
-        'restaurant': '🍽️',
-        'cafe': '☕',
-        'fast-food': '🍔',
-        'bar-pub': '🍺',
-        'hotel': '🏨',
-        'motel': '🏨',
-        'hostel': '🏠',
-        'landmarks': '🏛️',
-        'bank': '🏦',
-        'salon-spa': '💅',
-        'car-repair': '🔧',
-        'laundry': '🧺',
-        'hospital': '🏥',
-        'clinic': '🏥',
-        'pharmacy': '💊',
-        'dentist': '🦷',
-        'park': '🌳',
-        'beach': '🏖️',
-        'playground': '🛝',
-        'hiking-trail': '🥾',
-        'cycling-trail': '🚴',
-        'museum': '🏛️',
-        'movie-theater': '🎬',
-        'zoo': '🦁',
-        'music-venue': '🎵',
-        'school': '🏫',
-        'library': '📚',
-        'post-office': '📮',
-        'police-station': '👮',
-        'gas-station': '⛽',
-        'bus-stop': '🚌',
-        'train-station': '🚂',
-        'parking-lot': '🅿️',
-        'church': '⛪',
-        'mosque': '🕌',
-        'temple': '🛕',
-        'synagogue': '✡️',
-        'shrine': '⛩️'
-      };
+      // Find the selected category to get its emoji
+      const selectedCategory = categories.find(cat => cat.value === data.category);
+      const categoryLabel = selectedCategory?.label || data.category;
 
-      // Create a human-readable note content
-      const emoji = categoryEmojis[data.category] || '📍';
+      // Extract emoji from label if it exists (labels are formatted like "🍽️ Restaurant")
+      const emojiMatch = categoryLabel.match(/^(\p{Emoji}+)\s*/u);
+      const emoji = emojiMatch ? emojiMatch[1] : '📍';
       const stars = '⭐'.repeat(data.rating);
       const locationText = data.location ? ` in ${data.location}` : '';
 
@@ -640,34 +552,49 @@ function CreateReviewFormContent() {
 
           <div>
             <Label htmlFor="category">Category *</Label>
-            <Select onValueChange={(value) => form.setValue('category', value)}>
+            <Select onValueChange={(value) => form.setValue('category', value)} disabled={categoriesLoading}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a category" />
+                <SelectValue placeholder={categoriesLoading ? "Loading categories..." : "Select a category"} />
               </SelectTrigger>
               <SelectContent>
-                {Object.entries(
-                  categories.reduce((groups, category) => {
-                    const group = category.group;
-                    if (!groups[group]) groups[group] = [];
-                    groups[group].push(category);
-                    return groups;
-                  }, {} as Record<string, typeof categories>)
-                ).map(([group, items]) => (
-                  <div key={group}>
-                    <div className="px-2 py-1 text-sm font-semibold text-muted-foreground">
-                      {group}
-                    </div>
-                    {items.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
+                {categoriesLoading ? (
+                  <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+                    Loading categories...
                   </div>
-                ))}
+                ) : categories.length === 0 ? (
+                  <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+                    No categories available
+                  </div>
+                ) : (
+                  Object.entries(
+                    categories.reduce((groups, category) => {
+                      const group = category.group;
+                      if (!groups[group]) groups[group] = [];
+                      groups[group].push(category);
+                      return groups;
+                    }, {} as Record<string, typeof categories>)
+                  ).map(([group, items]) => (
+                    <div key={group}>
+                      <div className="px-2 py-1 text-sm font-semibold text-muted-foreground">
+                        {group}
+                      </div>
+                      {items.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </div>
+                  ))
+                )}
               </SelectContent>
             </Select>
             {form.formState.errors.category && (
               <p className="text-sm text-red-500 mt-1">{form.formState.errors.category.message}</p>
+            )}
+            {!categoriesLoading && categories.length === 0 && (
+              <p className="text-sm text-orange-600 mt-1">
+                No categories available. Contact an admin to add categories.
+              </p>
             )}
           </div>
 

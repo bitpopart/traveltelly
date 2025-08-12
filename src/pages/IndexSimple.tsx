@@ -7,10 +7,10 @@ const IndexSimple = () => {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">
-              📍 Reviewstr
+              🌍 Traveltelly
             </h1>
             <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
-              Share your experiences and discover amazing places on Nostr
+              Nostr Powered Travel Community
             </p>
             <div className="text-center">
               <p>Simple test page - if you see this, the basic routing works!</p>

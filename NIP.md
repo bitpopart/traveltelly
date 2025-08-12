@@ -1,236 +1,691 @@
-NIP-Reviewstr
-=============
+# Nostr Review and Media Marketplace Platform Implementation
 
-Location-Based Reviews
-----------------------
+This project implements a decentralized review platform and digital media marketplace using existing Nostr NIPs with Lightning payment support and comprehensive permission systems.
 
-`draft` `optional`
+## Implementation Overview
 
-This NIP defines `kind:34879`: an addressable event for location-based reviews that allow users to share their experiences and provide feedback on places they've visited.
+This platform leverages existing Nostr standards with minimal custom event kinds:
 
-## Review Events
+- **Custom Review System**: Using kind `34879` for location-based reviews
+- **NIP-99 (Classified Listings)**: For digital media marketplace listings using kind `30402`
+- **NIP-52 (Calendar Events)**: For event management using kinds `31922` and `31923`
+- **NIP-57 (Lightning Zaps)**: For Lightning payments via Bitcoin
+- **NIP-04 (Encrypted Direct Messages)**: For communication between users
+- **NIP-15 (Nostr Marketplace)**: Reference implementation for marketplace message types
+- **Custom Permission System**: For managing review and media upload permissions (kinds `31492`, `30384`)
 
-Review events are addressable events that contain structured metadata about a location review including ratings, categories, location data, and optional Lightning payment preferences.
+## Review System (Custom Kind 34879)
 
-### Content
-
-The `.content` field should contain the review text/comment in Markdown format. This field is required but can be an empty string if only a rating is provided.
-
-### Author
-
-The `.pubkey` field represents the reviewer who created the review.
-
-### Required Tags
-
-- `d` (required) - unique identifier for the review, typically a random string
-- `title` (required) - title/name of the place being reviewed
-- `rating` (required) - star rating from 1-5 as a string
-- `category` (required) - category of the place (see categories below)
-
-### Optional Tags
-
-- `description` (optional) - brief description/summary of the place
-- `location` (optional) - human-readable location string
-- `g` (optional) - geohash for precise location coordinates
-- `image` (optional) - URL to uploaded photo of the place
-- `lightning` (optional) - "yes" or "no" to indicate if Lightning tips are accepted
-- `published_at` (optional) - unix timestamp when first published
-- `t` (optional, repeated) - hashtags for additional categorization
-
-### Categories
-
-The `category` tag should use one of these standardized values:
-
-**🛍️ Shops & Stores**
-- `grocery-store`
-- `clothing-store`
-- `electronics-store`
-- `convenience-store`
-
-**🍽️ Food & Drink**
-- `restaurant`
-- `cafe`
-- `fast-food`
-- `bar-pub`
-
-**🏨 Places**
-- `hotel`
-- `motel`
-- `hostel`
-- `landmarks`
-
-**🧰 Services**
-- `bank`
-- `salon-spa`
-- `car-repair`
-- `laundry`
-
-**🏥 Health**
-- `hospital`
-- `clinic`
-- `pharmacy`
-- `dentist`
-
-**🏞️ Outdoor & Fun**
-- `park`
-- `beach`
-- `playground`
-- `hiking-trail`
-- `cycling-trail`
-
-**🎭 Entertainment**
-- `museum`
-- `movie-theater`
-- `zoo`
-- `music-venue`
-
-**🏫 Education & Public**
-- `school`
-- `library`
-- `post-office`
-- `police-station`
-
-**🚗 Transport**
-- `gas-station`
-- `bus-stop`
-- `train-station`
-- `parking-lot`
-
-**🛐 Religious**
-- `church`
-- `mosque`
-- `temple`
-- `synagogue`
-- `shrine`
-
-## Example Event
+Location-based reviews are published using custom kind `34879` with the following structure:
 
 ```json
 {
   "kind": 34879,
-  "created_at": 1675642635,
-  "content": "Great coffee and friendly staff! The atmosphere is perfect for working or meeting friends. Highly recommend the cappuccino.",
+  "content": "Review content and experience details",
   "tags": [
-    ["d", "cafe-review-abc123"],
+    ["d", "review-unique-id"],
     ["title", "Blue Bottle Coffee"],
     ["rating", "5"],
     ["category", "cafe"],
-    ["description", "Specialty coffee shop in downtown"],
     ["location", "123 Main St, San Francisco, CA"],
-    ["g", "9q8yy"],
-    ["image", "https://example.com/photo.jpg"],
-    ["lightning", "yes"],
-    ["published_at", "1675642635"],
-    ["t", "coffee"],
-    ["t", "downtown"],
+    ["g", "geohash-encoded-location"],
+    ["image", "photo_url"],
     ["alt", "Review of Blue Bottle Coffee - 5 stars"]
+  ]
+}
+```
+
+## Digital Media Marketplace (NIP-99)
+
+Digital media assets are published as NIP-99 classified listings (kind `30402`) with the following required tags:
+
+```json
+{
+  "kind": 30402,
+  "content": "Digital media description and usage rights",
+  "tags": [
+    ["d", "media_unique_id"],
+    ["title", "Sunset Over Mountains - 4K Photo"],
+    ["summary", "High-resolution landscape photography"],
+    ["price", "25", "USD"],
+    ["t", "photos"],
+    ["status", "active"],
+    ["published_at", "unix_timestamp"],
+    ["location", "Yosemite National Park"],
+    ["image", "preview_image_url"]
+  ]
+}
+```
+
+### Supported Media Types
+
+- **Photos**: High-resolution stock photography, artistic images, portraits
+- **Videos**: Stock footage, animations, motion graphics, promotional videos
+- **Audio**: Music tracks, sound effects, ambient audio, voice recordings
+- **Graphics**: Illustrations, icons, logos, vector graphics
+- **Templates**: Design templates, presentation layouts, document templates
+- **3D Models**: 3D assets, textures, materials
+- **Fonts**: Typography, custom fonts, font families
+- **Presets**: Photo presets, video LUTs, audio effects
+
+### Supported Currencies
+
+- **Lightning**: `BTC`, `SATS` - Paid via NIP-57 Lightning Zaps
+- **Fiat**: `USD`, `EUR`, `GBP`, `CAD`, `AUD` - Paid via Stripe integration
+
+## Payment Methods
+
+### Lightning Payments (NIP-57)
+
+For digital media priced in `BTC` or `SATS`:
+
+1. Buyer creates a zap request (kind `9734`) with license details
+2. Payment flows through standard Lightning Network via NIP-57
+3. Zap receipt (kind `9735`) serves as payment confirmation
+4. Creator receives notification via Lightning wallet
+
+### Fiat Payments (Stripe)
+
+For digital media priced in fiat currencies:
+
+1. Buyer initiates Stripe payment flow
+2. Payment processed via Stripe API
+3. Confirmation sent to creator via encrypted DM
+4. Traditional payment receipt via email
+
+## License Communication (NIP-04)
+
+License orders are communicated via encrypted direct messages (kind `4`) following NIP-15 message structure:
+
+```json
+{
+  "type": 0,
+  "id": "license_unique_id",
+  "name": "buyer_name",
+  "message": "licensing_questions",
+  "contact": {
+    "nostr": "buyer_pubkey",
+    "email": "buyer_email"
+  },
+  "items": [
+    {
+      "media_id": "media_unique_id",
+      "quantity": 1
+    }
   ],
-  "pubkey": "...",
-  "id": "..."
+  "payment_method": "lightning|stripe",
+  "amount": 25,
+  "currency": "USD"
 }
 ```
 
-## Comments
+## Security Considerations
 
-Reviews support comments using NIP-22 Comment events (`kind:1111`). Comments reference the review using the `A` tag with the review's naddr (NIP-19 addressable event identifier).
+- **Encryption**: All license details encrypted using NIP-44 (preferred) or NIP-04 (fallback)
+- **Authentication**: Buyers and creators authenticated via Nostr key pairs
+- **Payment Security**: Lightning payments are cryptographically secure; Stripe provides traditional payment security
+- **License Delivery**: Digital files delivered via encrypted download links
+- **Dispute Resolution**: Handled through direct Nostr communication between parties
 
-### Comment Structure
+## Integration Requirements
 
-Comments on reviews follow the NIP-22 specification:
+### Lightning Setup
+- Creators need Lightning addresses (lud16 or lud06) in their profiles
+- Buyers need Lightning wallets or WebLN extensions
+
+### Stripe Setup
+- Creators need Stripe accounts for fiat payments
+- Environment variable `VITE_STRIPE_PUBLISHABLE_KEY` required
+- Backend API endpoint `/api/create-payment-intent` needed for production
+
+## Advantages of This Approach
+
+1. **Standards Compliance**: Uses existing, well-tested Nostr NIPs
+2. **Interoperability**: Compatible with other NIP-99 marketplace clients
+3. **Dual Payment Support**: Supports both crypto and fiat payments
+4. **Decentralized**: No central marketplace authority required
+5. **Instant Delivery**: Digital assets delivered immediately after payment
+6. **Creator Focused**: Built specifically for digital media creators
+7. **Review Integration**: Combines location reviews with media marketplace
+
+## Permission Systems
+
+The platform implements dual permission systems for quality control:
+
+### Review Permission System
+
+To maintain quality and prevent spam in reviews:
+
+#### Permission Request (Kind 31492)
+
+Users request permission to create reviews via addressable events:
 
 ```json
 {
-  "kind": 1111,
-  "content": "Great review! I had a similar experience there.",
+  "kind": 31492,
+  "content": "Reason for requesting review permission",
   "tags": [
-    ["A", "34879:pubkey:review-id"],
-    ["K", "34879"],
-    ["P", "review-author-pubkey"],
-    ["a", "34879:pubkey:review-id"],
-    ["e", "review-event-id"],
-    ["k", "34879"],
-    ["p", "review-author-pubkey"],
-    ["alt", "Comment on review: Place Name"]
-  ]
-}
-```
-
-### Querying Comments
-
-To query comments for a specific review:
-```
-["REQ", "review-comments", {"kinds": [1111], "#A": ["34879:pubkey:review-id"], "limit": 100}]
-```
-
-## Permission System
-
-This application implements a permission system to control who can post reviews. Only authorized users can create review events.
-
-### Permission Events
-
-**Permission Request (`kind:31491`)**
-Users can request permission to post reviews:
-
-```json
-{
-  "kind": 31491,
-  "content": "I'm a travel blogger with 5 years of experience...",
-  "tags": [
-    ["d", "review-permission-1234567890"],
+    ["d", "review-permission-timestamp"],
     ["request_type", "review_permission"],
-    ["alt", "Request for review posting permission"]
+    ["experience", "Travel blogger with 3 years experience"],
+    ["alt", "Request for review creation permission"]
   ]
 }
 ```
 
-**Permission Grant (`kind:30383`)**
-Admin can grant or block permissions:
+### Media Upload Permission System
+
+To maintain quality and prevent spam in the media marketplace:
+
+#### Permission Request (Kind 31492)
+
+Users request permission to upload digital media via addressable events:
 
 ```json
 {
-  "kind": 30383,
-  "content": "Review posting permission granted",
+  "kind": 31492,
+  "content": "Reason for requesting media upload permission",
   "tags": [
-    ["d", "review-grant-pubkey"],
-    ["grant_type", "review_permission"],
-    ["p", "user-pubkey"],
-    ["e", "request-event-id"],
-    ["alt", "Review permission granted"]
+    ["d", "media-permission-timestamp"],
+    ["request_type", "stock_media_permission"],
+    ["portfolio", "https://photographer-portfolio.com"],
+    ["experience", "Professional photographer with 5 years experience"],
+    ["alt", "Request for media upload permission"]
   ]
 }
 ```
 
-### Admin Authority
+#### Permission Grant (Kind 30384)
 
-The admin npub `npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642` has exclusive authority to:
-- Grant review posting permissions
+Admins grant permissions via replaceable events:
+
+```json
+{
+  "kind": 30384,
+  "content": "Media upload permission granted",
+  "tags": [
+    ["d", "media-grant-user_pubkey"],
+    ["grant_type", "stock_media_permission"],
+    ["p", "user_pubkey"],
+    ["e", "original_request_id"],
+    ["alt", "Media upload permission granted"]
+  ]
+}
+```
+
+#### Permission Blocking (Kind 30384)
+
+Admins can block users from uploading media:
+
+```json
+{
+  "kind": 30384,
+  "content": "Reason for blocking",
+  "tags": [
+    ["d", "media-block-user_pubkey"],
+    ["grant_type", "stock_media_permission_blocked"],
+    ["p", "user_pubkey"],
+    ["e", "original_request_id"],
+    ["block_reason", "Inappropriate content"],
+    ["alt", "Media upload permission blocked"]
+  ]
+}
+```
+
+### Admin Configuration
+
+The system recognizes a specific admin npub: `npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642`
+
+Only this admin can:
+- Grant review creation permissions
+- Grant media upload permissions
 - Block permission requests
+- Revoke existing permissions
+- Manage review categories
+- **Manage all reviews (edit/delete)**
 - Access the admin panel
 
-### Permission Workflow
+## Review Category Management System
 
-1. **Request**: User submits permission request with reason
-2. **Review**: Admin reviews request in admin panel
-3. **Decision**: Admin grants permission or blocks request
-4. **Access**: Granted users can post reviews
+The application includes a dynamic category management system for review classifications using custom Nostr events.
 
-## Lightning Zaps
+### Category Definition (Kind 37539)
 
-Reviews can be zapped using NIP-57 Lightning Zaps. When `lightning` tag is set to "yes", the review indicates the reviewer accepts Lightning tips for their review.
+Review categories are stored as addressable events that can be updated by administrators:
 
-## Querying Reviews
-
-To query reviews for a specific category:
-```
-["REQ", "reviews", {"kinds": [34879], "#t": ["cafe"], "limit": 50}]
-```
-
-To query reviews by location (using geohash):
-```
-["REQ", "local-reviews", {"kinds": [34879], "#g": ["9q8yy"], "limit": 50}]
+```json
+{
+  "kind": 37539,
+  "content": "[{\"value\":\"restaurant\",\"label\":\"🍽️ Restaurant\",\"group\":\"Food & Drink\"},{\"value\":\"hotel\",\"label\":\"🏨 Hotel\",\"group\":\"Places\"}]",
+  "tags": [
+    ["d", "review-categories"],
+    ["title", "Review Categories"],
+    ["alt", "Review category definitions for the review system"]
+  ]
+}
 ```
 
-To query reviews by a specific author:
+### Category Structure
+
+Each category object contains:
+- **value**: Unique identifier (lowercase, hyphens allowed)
+- **label**: Display name with optional emoji
+- **group**: Category grouping for UI organization
+
+### Admin Category Management
+
+Administrators can:
+- Add new categories via the admin panel
+- Remove existing categories
+- Organize categories into groups
+- Update category labels and emojis
+
+### Integration with Reviews
+
+The review system (kind 34879) references categories via the `category` tag, using the category's `value` field. The CreateReviewForm dynamically loads available categories and displays them grouped by category group.
+
+## Calendar Events System (NIP-52)
+
+The platform implements a comprehensive calendar events system using NIP-52 standard for both date-based and time-based events.
+
+### Date-Based Events (Kind 31922)
+
+All-day events that span one or more full days:
+
+```json
+{
+  "kind": 31922,
+  "content": "Annual tech conference featuring the latest innovations",
+  "tags": [
+    ["d", "tech-conf-2024"],
+    ["title", "Tech Innovation Conference 2024"],
+    ["summary", "Three-day conference on emerging technologies"],
+    ["start", "2024-09-15"],
+    ["end", "2024-09-17"],
+    ["location", "San Francisco Convention Center"],
+    ["image", "https://example.com/conference-banner.jpg"],
+    ["t", "technology"],
+    ["t", "conference"],
+    ["alt", "Tech Innovation Conference 2024 - September 15-17"]
+  ]
+}
 ```
-["REQ", "user-reviews", {"kinds": [34879], "authors": ["pubkey..."], "limit": 50}]
+
+### Time-Based Events (Kind 31923)
+
+Events with specific start and end times:
+
+```json
+{
+  "kind": 31923,
+  "content": "Weekly team standup meeting to discuss project progress",
+  "tags": [
+    ["d", "team-standup-weekly"],
+    ["title", "Weekly Team Standup"],
+    ["summary", "Project updates and planning session"],
+    ["start", "1726574400"],
+    ["end", "1726576200"],
+    ["start_tzid", "America/New_York"],
+    ["end_tzid", "America/New_York"],
+    ["location", "https://meet.google.com/abc-defg-hij"],
+    ["t", "meeting"],
+    ["t", "work"],
+    ["alt", "Weekly Team Standup - recurring meeting"]
+  ]
+}
 ```
+
+### Event Features
+
+- **Dual Event Types**: Support for both all-day (date-based) and timed events
+- **Rich Metadata**: Title, summary, description, location, and images
+- **Categorization**: Hashtag-based event categorization using `t` tags
+- **Participants**: Support for event participants via `p` tags
+- **Time Zones**: Timezone support for time-based events
+- **Search & Filter**: Advanced filtering by type, date, and categories
+- **Admin Controls**: Enhanced admin interface for event management
+
+### Event Management Interface
+
+The platform provides two interfaces for calendar events:
+
+1. **Public Events Page** (`/events`): Browse and create events with basic filtering
+2. **Admin Events Page** (`/admin/events`): Advanced event management with:
+   - Comprehensive search functionality
+   - Advanced filtering (all events, my events, by type)
+   - Event statistics and analytics
+   - Enhanced creation form with validation
+
+### Event Validation
+
+All calendar events are validated to ensure NIP-52 compliance:
+
+- Required tags: `d`, `title`, `start`
+- Date format validation for date-based events (YYYY-MM-DD)
+- Unix timestamp validation for time-based events
+- End time must be after start time
+- Proper timezone handling for time-based events
+
+### Event Status Tracking
+
+The system automatically determines event status:
+
+- **Upcoming**: Events that haven't started yet
+- **Active**: Events currently happening
+- **Past**: Events that have ended
+
+### Integration with Existing Systems
+
+Calendar events integrate seamlessly with the platform's existing features:
+
+- **User Authentication**: Events require login to create
+- **Relay Management**: Events are published to configured relays
+- **Theme Support**: Full light/dark mode compatibility
+- **Responsive Design**: Mobile-optimized event interfaces
+
+## Review Management System
+
+The platform includes comprehensive review management capabilities for administrators to maintain content quality and handle moderation.
+
+### Admin Review Management
+
+The admin panel provides a dedicated "Manage Reviews" tab with the following features:
+
+#### **Review Overview Dashboard**
+- **Statistics Cards**: Total reviews, average rating, unique authors, categories count
+- **Real-time Metrics**: Live updates of review statistics and trends
+- **Visual Analytics**: Rating distribution and category breakdown
+
+#### **Advanced Search and Filtering**
+- **Full-text Search**: Search across review titles, content, and locations
+- **Category Filtering**: Filter by specific review categories
+- **Rating Filtering**: Filter by star ratings (1-5 stars)
+- **Multi-criteria Sorting**: Sort by newest, oldest, or rating
+
+#### **Review Management Actions**
+- **Edit Reviews**: Comprehensive edit form with all review fields
+- **Delete Reviews**: Safe deletion using NIP-09 deletion events
+- **Bulk Operations**: Manage multiple reviews efficiently
+- **Real-time Updates**: Automatic refresh after modifications
+
+### Review Editing System
+
+#### **Edit Review Form**
+The edit form preserves all original review metadata while allowing updates:
+
+```json
+{
+  "kind": 34879,
+  "content": "Updated review content",
+  "tags": [
+    ["d", "original-review-id"], // Preserved for replacement
+    ["title", "Updated Business Name"],
+    ["rating", "4"],
+    ["category", "updated-category"],
+    ["location", "Updated Address"],
+    ["more_info_url", "https://updated-website.com"],
+    ["image", "preserved-image-url"], // Preserved from original
+    ["g", "preserved-geohash"], // Preserved from original
+    ["t", "updated-hashtag"],
+    ["alt", "Updated review description"]
+  ]
+}
+```
+
+#### **Edit Form Features**
+- **Field Preservation**: Maintains existing images and geohash data
+- **Category Management**: Dynamic category selection with grouping
+- **Hashtag System**: Add/remove hashtags with visual management
+- **Rating Interface**: Interactive star rating selector
+- **Validation**: Comprehensive form validation with error handling
+- **Auto-save**: Preserves original metadata while updating content
+
+### Review Deletion System
+
+#### **NIP-09 Deletion Events**
+Reviews are deleted using standard Nostr deletion events:
+
+```json
+{
+  "kind": 5,
+  "content": "Review deleted by admin",
+  "tags": [
+    ["e", "review-event-id"],
+    ["a", "34879:author-pubkey:review-d-tag"]
+  ]
+}
+```
+
+#### **Deletion Features**
+- **Confirmation Dialog**: Prevents accidental deletions
+- **Audit Trail**: Deletion events provide moderation transparency
+- **Immediate Effect**: Reviews are marked for deletion across relays
+- **Reversible**: Deletion events can be countered if needed
+
+### Review Display and Management
+
+#### **Enhanced Review Cards**
+Each review in the admin interface displays:
+- **Complete Metadata**: Title, rating, category, location, timestamps
+- **Author Information**: Profile data with avatar and display name
+- **Content Preview**: Truncated content with full view option
+- **Action Buttons**: Direct edit and delete controls
+- **Visual Indicators**: Rating stars, category emojis, hashtags
+
+#### **Responsive Grid Layout**
+- **Adaptive Columns**: 1-3 columns based on screen size
+- **Loading States**: Skeleton loading for better UX
+- **Empty States**: Helpful messages with relay selector
+- **Error Handling**: Graceful error display with retry options
+
+### Security and Permissions
+
+#### **Admin-Only Access**
+- **Authentication Required**: Must be logged in as admin
+- **Permission Verification**: Double-checks admin status
+- **Secure Operations**: All edit/delete operations require admin privileges
+- **Audit Logging**: All admin actions are recorded on Nostr
+
+#### **Data Integrity**
+- **Validation**: All edits validated before publishing
+- **Preservation**: Critical metadata (images, geohash) preserved
+- **Replacement Logic**: Uses addressable event replacement (same d-tag)
+- **Error Recovery**: Graceful handling of failed operations
+
+### Integration with Existing Systems
+
+The review management system integrates with:
+
+- **Permission System**: Respects existing review permissions
+- **Category Management**: Uses dynamic category system
+- **User Management**: Integrates with user profiles and authentication
+- **Relay Management**: Works with configured relay settings
+- **Theme System**: Full light/dark mode support
+
+## Unified Search System
+
+The platform features a comprehensive search system that allows users to search across all content types from a single interface on the homepage.
+
+### Search Functionality
+
+#### **Unified Search Bar**
+Located prominently on the homepage above the world map, the search bar provides:
+
+- **Cross-Content Search**: Searches reviews, stories, and stock media simultaneously
+- **Tag-Based Search**: Primary focus on searching hashtags (`t` tags) across all content
+- **Multi-field Search**: Searches titles, content, locations, and categories
+- **Real-time Results**: Live search results as you type
+- **Keyboard Navigation**: Full keyboard support with arrow keys and enter
+
+#### **Search Scope**
+The search system covers three main content types:
+
+**Reviews (Kind 34879)**
+- Searches: title, content, hashtags, category, location
+- Filters: Only authorized reviewers' content
+- Results: Shows rating, category, location, author info
+
+**Stories (Kind 30023)**
+- Searches: title, content, hashtags
+- Filters: Only admin-published stories
+- Results: Shows summary, publication date, author info
+
+**Stock Media (Kind 30402)**
+- Searches: title, description, hashtags, location
+- Filters: Only authorized uploaders' content, excludes deleted items
+- Results: Shows price, currency, location, preview images
+
+### Search Interface Features
+
+#### **Smart Search Results**
+- **Type Indicators**: Visual icons distinguish between reviews, stories, and media
+- **Rich Previews**: Shows relevant metadata for each content type
+- **Author Information**: Profile pictures and display names
+- **Relevance Ranking**: Prioritizes exact matches, then tag matches, then recency
+- **Fully Clickable Items**: Entire search result area is clickable to navigate to content
+- **Clickable Tags**: Individual tags in results are clickable for refined searches
+- **Interactive Results**: Hover effects, chevron indicators, and visual feedback for better UX
+- **Visual Cues**: Helpful hints and indicators show users what's clickable
+
+#### **Search Suggestions**
+- **Popular Tags**: Shows trending hashtags when search is empty
+- **Clickable Suggestions**: One-click search by clicking any suggested tag
+- **Auto-complete**: Suggests tags as you type
+- **Tag Discovery**: Helps users discover content categories
+- **Show More/Less**: Expandable suggestion list for extensive tag collections
+
+#### **Responsive Design**
+- **Mobile Optimized**: Works seamlessly on all screen sizes
+- **Keyboard Shortcuts**: Full keyboard navigation support
+- **Loading States**: Skeleton loading for better perceived performance
+- **Error Handling**: Graceful handling of search failures
+- **Visual Feedback**: Hover effects, tooltips, chevron indicators, and transition animations
+- **Accessibility**: Proper ARIA labels and keyboard navigation
+- **Touch Friendly**: Large click areas and touch-optimized interactions
+
+### Technical Implementation
+
+#### **Search Hook (`useUnifiedSearch`)**
+```typescript
+// Searches across all content types
+const { data: searchResults, isLoading } = useUnifiedSearch(query);
+
+// Returns unified SearchResult interface
+interface SearchResult {
+  id: string;
+  type: 'review' | 'story' | 'media';
+  title: string;
+  content: string;
+  tags: string[];
+  author: string;
+  createdAt: number;
+  event: NostrEvent;
+  // Type-specific fields
+  rating?: number;
+  category?: string;
+  location?: string;
+  price?: string;
+  currency?: string;
+  images?: string[];
+}
+```
+
+#### **Search Suggestions Hook (`useSearchSuggestions`)**
+```typescript
+// Provides popular tags for auto-complete
+const { data: suggestions } = useSearchSuggestions();
+// Returns array of popular hashtags across all content
+```
+
+#### **Search Performance**
+- **Efficient Queries**: Separate queries for each content type with appropriate filters
+- **Caching**: 30-second stale time for search results
+- **Debouncing**: Only searches when query is 2+ characters
+- **Timeout Protection**: 5-second timeout for all search queries
+
+### Search Result Navigation
+
+#### **Smart Navigation**
+When users select search results, they're taken to the appropriate page:
+
+- **Reviews**: Direct link to review detail page using `naddr` identifier
+- **Stories**: Navigate to stories page where they can find the specific story
+- **Media**: Navigate to marketplace where they can find the specific item
+
+#### **Search-to-Action Flow**
+1. User types search query on homepage
+2. Real-time results appear with rich previews
+3. User selects result or presses enter
+4. Navigates to appropriate content page
+5. Content is highlighted or filtered based on search context
+
+### Search Integration Points
+
+#### **Homepage Integration**
+- **Prominent Placement**: Featured section above the world map
+- **Clear Call-to-Action**: "Search Everything" heading with descriptive text
+- **Visual Hierarchy**: Properly integrated with existing homepage sections
+- **Interactive Onboarding**: Helpful tips and visual cues for first-time users
+
+#### **Cross-Platform Consistency**
+- **Unified Interface**: Same search experience across all devices
+- **Theme Support**: Full light/dark mode compatibility
+- **Accessibility**: Screen reader friendly with proper ARIA labels
+
+### Enhanced Search Interaction
+
+#### **Full-Item Clickability**
+The search results are designed for maximum usability:
+
+- **Entire Result Clickable**: Users can click anywhere on a search result to navigate to that content
+- **Visual Indicators**: Chevron arrows appear on hover to indicate clickability
+- **Hover Effects**: Subtle background changes and shadows provide visual feedback
+- **Touch Optimization**: Large click areas work well on mobile devices
+
+#### **Dual-Action Interface**
+Each search result supports two types of interactions:
+
+1. **Main Click**: Click anywhere on the result to view the full content
+2. **Tag Click**: Click specific hashtags to search for related content
+
+#### **User Experience Enhancements**
+- **Visual Hints**: "Click any result to view • Click tags to search" guidance
+- **Smooth Animations**: 200ms transitions for all hover effects
+- **Keyboard Navigation**: Arrow keys work seamlessly with mouse interactions
+- **Event Handling**: Proper event propagation prevents conflicts between main and tag clicks
+
+### Search Analytics and Insights
+
+The search system provides insights into:
+- **Popular Search Terms**: Most frequently searched hashtags
+- **Content Discovery**: Which content types are most searched
+- **User Behavior**: Search patterns and result selection rates
+- **Tag Popularity**: Trending hashtags across all content types
+
+## Future Enhancements
+
+- **Multi-signature Escrow**: Using Bitcoin multi-sig for high-value licenses
+- **Reputation System**: Using NIP-58 badges for creator/buyer ratings
+- **Advanced Licensing**: Extended usage rights and commercial licenses
+- **AI Tagging**: Automatic content tagging and categorization
+- **Royalty Tracking**: Revenue sharing for collaborative works
+- **Portfolio Analytics**: Advanced creator dashboard with sales insights
+- **Decentralized Moderation**: Community-based content moderation system
+- **Category Permissions**: Allow specific users to manage certain category groups
+- **Category Analytics**: Track usage statistics for different categories
+- **Event RSVPs**: Implement NIP-52 RSVP system (kind 31925)
+- **Event Calendars**: Support for calendar collections (kind 31924)
+- **Recurring Events**: Client-side recurring event management
+- **Event Notifications**: Push notifications for upcoming events
+- **Event Integration**: Link events with reviews and marketplace listings
+- **Review Analytics**: Advanced analytics dashboard for review trends
+- **Automated Moderation**: AI-powered content moderation assistance
+- **Review Versioning**: Track edit history for reviews
+- **Bulk Review Operations**: Mass edit/delete capabilities
+- **Review Export**: Export review data for analysis
+- **Advanced Search**: Elasticsearch integration for complex queries
+- **Search Analytics**: Detailed search metrics and popular query tracking
+- **Search Filters**: Advanced filtering options within search results
+- **Search History**: Personal search history and saved searches
+- **Global Search**: Search across multiple relays simultaneously
+- **Semantic Search**: AI-powered semantic search capabilities

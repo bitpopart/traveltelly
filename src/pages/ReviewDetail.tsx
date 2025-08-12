@@ -95,8 +95,8 @@ const ReviewDetail = () => {
   const metadata = author.data?.metadata;
 
   useSeoMeta({
-    title: review ? `${review.tags.find(([name]) => name === 'title')?.[1]} - Review | Reviewstr` : 'Review | Reviewstr',
-    description: review ? `Review by ${metadata?.name || 'Anonymous'}: ${review.content.slice(0, 160)}` : 'View detailed review on Reviewstr',
+    title: review ? `${review.tags.find(([name]) => name === 'title')?.[1]} - Review | Traveltelly` : 'Review | Traveltelly',
+    description: review ? `Review by ${metadata?.name || 'Anonymous'}: ${review.content.slice(0, 160)}` : 'View detailed review on Traveltelly',
   });
 
   if (error) {

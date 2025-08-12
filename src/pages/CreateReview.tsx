@@ -1,6 +1,11 @@
 import { useSeoMeta } from '@unhead/react';
+import { Navigation } from '@/components/Navigation';
 import { CreateReviewForm } from '@/components/CreateReviewForm';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useReviewPermissions } from '@/hooks/useReviewPermissions';
+import { Button } from '@/components/ui/button';
+import { Settings } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { LoginArea } from '@/components/auth/LoginArea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Camera } from 'lucide-react';
@@ -8,15 +13,17 @@ import { CoordinateDebugger } from '@/components/CoordinateDebugger';
 
 const CreateReview = () => {
   const { user } = useCurrentUser();
+  const { isAdmin } = useReviewPermissions();
 
   useSeoMeta({
-    title: 'Create Review - Reviewstr',
+    title: 'Create Review - Traveltelly',
     description: 'Share your experience and create a location-based review on Nostr.',
   });
 
   if (!user) {
     return (
       <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#def5ff' }}>
+        <Navigation />
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-2xl mx-auto">
             <Card>
@@ -41,9 +48,21 @@ const CreateReview = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100 dark:from-gray-900 dark:to-gray-800">
+      <Navigation />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <div></div>
+              {isAdmin && (
+                <Link to="/category-test">
+                  <Button variant="outline" size="sm">
+                    <Settings className="w-4 h-4 mr-2" />
+                    Manage Categories
+                  </Button>
+                </Link>
+              )}
+            </div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
               Create a Review
             </h1>

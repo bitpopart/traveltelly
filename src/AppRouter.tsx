@@ -22,6 +22,21 @@ import RemoveReviews from "./pages/RemoveReviews";
 import HideReviews from "./pages/HideReviews";
 import { PhotoUploadDemo } from "./pages/PhotoUploadDemo";
 import { GpsCorrectionDemo } from "./pages/GpsCorrectionDemo";
+import Marketplace from "./pages/Marketplace";
+import MarketplaceOrders from "./pages/MarketplaceOrders";
+import MarketplacePortfolio from "./pages/MarketplacePortfolio";
+import MediaPreview from "./pages/MediaPreview";
+import DownloadPage from "./pages/DownloadPage";
+
+import Stories from "./pages/Stories";
+import Reviews from "./pages/Reviews";
+import CategoryTest from "./pages/CategoryTest";
+import StockMediaPermissions from "./pages/StockMediaPermissions";
+import MediaManagementPage from "./pages/MediaManagementPage";
+import { Events } from "./pages/Events";
+import { AdminEvents } from "./pages/AdminEvents";
+import SearchTest from "./pages/SearchTest";
+import { SimpleMapDemoPage } from "./pages/SimpleMapDemo";
 import NotFound from "./pages/NotFound";
 
 export function AppRouter() {
@@ -36,6 +51,8 @@ export function AppRouter() {
         <Route path="/nomap" element={<IndexNoMap />} />
         <Route path="/simple" element={<IndexSimple />} />
         <Route path="/full" element={<Index />} />
+        <Route path="/stories" element={<Stories />} />
+        <Route path="/reviews" element={<Reviews />} />
         <Route path="/create-review" element={<CreateReview />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/review/:naddr" element={<ReviewDetail />} />
@@ -50,6 +67,19 @@ export function AppRouter() {
         <Route path="/route-test" element={<RouteTest />} />
         <Route path="/photo-upload-demo" element={<PhotoUploadDemo />} />
         <Route path="/gps-correction-demo" element={<GpsCorrectionDemo />} />
+        <Route path="/marketplace" element={<Marketplace />} />
+        <Route path="/marketplace/orders" element={<MarketplaceOrders />} />
+        <Route path="/marketplace/portfolio" element={<MarketplacePortfolio />} />
+        <Route path="/media/preview/:naddr" element={<MediaPreview />} />
+        <Route path="/download/:orderId" element={<DownloadPage />} />
+        <Route path="/category-test" element={<CategoryTest />} />
+        <Route path="/stock-media-permissions" element={<StockMediaPermissions />} />
+        <Route path="/media-management" element={<MediaManagementPage />} />
+        <Route path="/events" element={<Events />} />
+        <Route path="/admin/events" element={<AdminEvents />} />
+        <Route path="/search-test" element={<SearchTest />} />
+        <Route path="/simple-map-demo" element={<SimpleMapDemoPage />} />
+        {/* <Route path="/world-map" element={<WorldMap />} /> */}
         {/* Explicit admin routes for better debugging */}
         <Route path="/admin/*" element={<AdminPanel />} />
         <Route path="/admin-test/*" element={<AdminTest />} />

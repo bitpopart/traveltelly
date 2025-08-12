@@ -5,12 +5,12 @@ const IndexBasic = () => {
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          📍 Reviewstr - Basic Version
+          🌍 Traveltelly - Basic Version
         </h1>
         <p className="text-lg text-gray-600 mb-8">
           This is a basic version to test if the page loads correctly.
         </p>
-        
+
         <div className="bg-white p-6 rounded-lg shadow-md mb-6">
           <h2 className="text-2xl font-semibold mb-4">Status Check</h2>
           <ul className="space-y-2">

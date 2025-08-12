@@ -146,8 +146,8 @@ const Dashboard = () => {
   const { data: authorizedReviewers, isLoading: isLoadingAuth } = useAuthorizedReviewers();
 
   useSeoMeta({
-    title: 'Dashboard - Top Reviewers | Reviewstr',
-    description: 'Discover the top reviewers on Reviewstr and see trending locations.',
+    title: 'Dashboard - Top Reviewers | Traveltelly',
+    description: 'Discover the top reviewers on Traveltelly and see trending locations.',
   });
 
   const { data: reviews, isLoading, error } = useQuery({
@@ -289,7 +289,7 @@ const Dashboard = () => {
               📊 Dashboard
             </h1>
             <p className="text-xl text-gray-600 dark:text-gray-300">
-              Top reviewers and trending categories on Reviewstr
+              Top reviewers and trending categories on Traveltelly
             </p>
           </div>
 

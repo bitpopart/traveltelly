@@ -1,14 +1,16 @@
 import { useSeoMeta } from '@unhead/react';
+import { Navigation as NavigationComponent } from "@/components/Navigation";
 import { LoginArea } from "@/components/auth/LoginArea";
 import { RelaySelector } from "@/components/RelaySelector";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ReviewFeed } from "@/components/ReviewFeed";
-import { ReviewsMap } from "@/components/ReviewsMap";
+import { LoadMoreReviewFeed } from "@/components/LoadMoreReviewFeed";
+import { AllAdminReviewsMap } from "@/components/AllAdminReviewsMap";
 import { AdminDebugInfo } from "@/components/AdminDebugInfo";
+import { UnifiedSearchBar } from "@/components/UnifiedSearchBar";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useReviewPermissions } from "@/hooks/useReviewPermissions";
-import { MapPin, Star, Camera, Zap, Settings, Shield } from "lucide-react";
+import { MapPin, Star, Camera, Zap, Shield, BookOpen, Search, Navigation } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Index = () => {
@@ -16,31 +18,80 @@ const Index = () => {
   const { isAdmin, isCheckingPermission } = useReviewPermissions();
 
   useSeoMeta({
-    title: 'Reviewstr - Location-Based Reviews on Nostr',
-    description: 'Share your experiences and discover amazing places on the Nostr network. Upload photos, rate locations, and earn Lightning tips.',
+    title: 'Traveltelly - Nostr Powered Travel Community',
+    description: 'Nostr Powered Travel Community. Upload photos, rate locations, and earn Lightning tips.',
   });
 
   return (
     <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#def5ff' }}>
+      <NavigationComponent />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="text-center mb-12">
-            <div className="mb-6">
-              <img
-                src="https://cdn.nostrcheck.me/7d33ba57d8a6e8869a1f1d5215254597594ac0dbfeb01b690def8c461b82db35/242071910e7862cf2cccde9c1992fe22eac59229e18ca408d4ee7d9c0316c930.webp"
-                alt="Reviewstr - Location-Based Reviews on Nostr"
-                className="mx-auto max-w-md w-full h-auto rounded-lg"
-              />
-            </div>
             <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">
-              📍 Reviewstr
+              🌍 Traveltelly
             </h1>
             <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
-              Share your experiences and discover amazing places on Nostr
+              Nostr Powered Travel Community
             </p>
-            <div className="flex flex-col items-center gap-4">
-              <LoginArea className="max-w-60" />
+            <div className="flex flex-col items-center gap-6">
+              {!user && <LoginArea className="max-w-60" />}
+
+              {/* Feature Cards */}
+              <div className="grid gap-6 md:grid-cols-3 w-full max-w-4xl">
+                <Card className="text-center hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <Star className="w-12 h-12 mx-auto text-orange-600 mb-2" />
+                    <CardTitle>Share Reviews</CardTitle>
+                    <CardDescription>
+                      Rate and review amazing places you've visited
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Link to="/reviews">
+                      <Button className="w-full">
+                        Explore Reviews
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+
+                <Card className="text-center hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <BookOpen className="w-12 h-12 mx-auto text-blue-600 mb-2" />
+                    <CardTitle>Travel Stories</CardTitle>
+                    <CardDescription>
+                      Discover inspiring travel adventures and experiences
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Link to="/stories">
+                      <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                        Read Stories
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+
+                <Card className="text-center hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <Camera className="w-12 h-12 mx-auto text-green-600 mb-2" />
+                    <CardTitle>Stock Media</CardTitle>
+                    <CardDescription>
+                      Buy and sell high-quality travel photography
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Link to="/marketplace">
+                      <Button className="w-full bg-green-600 hover:bg-green-700">
+                        Browse Photos
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              </div>
+
               {user && (
                 <div className="flex flex-wrap justify-center gap-3">
                   <Link to="/create-review">
@@ -49,10 +100,10 @@ const Index = () => {
                       Create Review
                     </Button>
                   </Link>
-                  <Link to="/settings">
+                  <Link to="/stock-media-permissions">
                     <Button variant="outline" size="lg">
-                      <Settings className="w-4 h-4 mr-2" />
-                      Settings
+                      <Camera className="w-4 h-4 mr-2" />
+                      Upload Permissions
                     </Button>
                   </Link>
 
@@ -93,6 +144,12 @@ const Index = () => {
                       GPS Correction
                     </Button>
                   </Link>
+                  <Link to="/search-test">
+                    <Button variant="outline" size="lg">
+                      <Search className="w-4 h-4 mr-2" />
+                      Search Test
+                    </Button>
+                  </Link>
                 </div>
               )}
             </div>
@@ -101,17 +158,34 @@ const Index = () => {
           {/* Admin Debug Info (Development Only) */}
           <AdminDebugInfo />
 
+          {/* Search Bar */}
+          <div className="mb-12">
+            <div className="text-center mb-6">
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                🔍 Search Everything
+              </h2>
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
+                Find reviews, stories, and media by tags, locations, or keywords
+              </p>
+            </div>
+            <UnifiedSearchBar className="mb-8" />
+          </div>
+
           {/* Reviews Map */}
           <div className="mb-12">
             <div className="text-center mb-6">
               <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                🗺️ Explore Reviews
+                🗺️ Explore Reviews Worldwide
               </h2>
-              <p className="text-gray-600 dark:text-gray-300">
-                Discover amazing places near you with interactive map markers
+              <p className="text-gray-600 dark:text-gray-300 mb-4">
+                Discover amazing places with our interactive map. Navigate to any country or region instantly!
               </p>
+              <div className="flex items-center justify-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                <Navigation className="w-4 h-4" />
+                <span>Use the navigation panel to explore different regions</span>
+              </div>
             </div>
-            <ReviewsMap />
+            <AllAdminReviewsMap />
           </div>
 
           {/* Features Grid */}
@@ -213,7 +287,7 @@ const Index = () => {
                 </Button>
               </Link>
             </div>
-            <ReviewFeed />
+            <LoadMoreReviewFeed />
           </div>
 
           {/* Relay Configuration */}

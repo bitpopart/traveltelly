@@ -23,10 +23,10 @@ const IndexNoMap = () => {
           {/* Header */}
           <div className="text-center mb-12">
             <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">
-              📍 Reviewstr
+              🌍 Traveltelly
             </h1>
             <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
-              Share your experiences and discover amazing places on Nostr
+              Nostr Powered Travel Community
             </p>
             <div className="flex flex-col items-center gap-4">
               <LoginArea className="max-w-60" />
