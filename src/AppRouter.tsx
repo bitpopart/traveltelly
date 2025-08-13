@@ -41,7 +41,7 @@ import NotFound from "./pages/NotFound";
 
 export function AppRouter() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/traveltelly/">
       <ScrollToTop />
       <Routes>
         <Route path="/" element={<Index />} />
