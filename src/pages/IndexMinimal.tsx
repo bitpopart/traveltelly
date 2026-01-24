@@ -23,13 +23,14 @@ const IndexMinimal = () => {
             <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">
               🌍 Traveltelly
             </h1>
-            <div className="mb-8">
-              <Link to="/what-is-nostr" className="inline-block hover:opacity-80 transition-opacity">
-                <img 
-                  src="/traveltelly-slogan.png" 
-                  alt="Nostr Powered Travel Community" 
-                  className="h-8 w-auto mx-auto"
-                />
+            <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
+              <Link to="/what-is-nostr">
+                <Button 
+                  className="rounded-full font-semibold text-white hover:opacity-90 transition-opacity text-xs md:text-sm px-4 md:px-6 py-2 md:py-3 h-auto"
+                  style={{ backgroundColor: '#b700d7' }}
+                >
+                  NOSTR POWERED TRAVEL COMMUNITY
+                </Button>
               </Link>
             </div>
             <div className="flex flex-col items-center gap-4">

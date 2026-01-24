@@ -33,17 +33,18 @@ const Index = () => {
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="text-center mb-6 md:mb-10">
-            <h1 className="mb-6 md:mb-8 px-4">
-              <Link to="/what-is-nostr" className="inline-block hover:opacity-80 transition-opacity">
-                <img 
-                  src="/traveltelly-slogan.png" 
-                  alt="Nostr Powered Travel Community" 
-                  className="h-8 md:h-12 w-auto mx-auto"
-                />
+            <div className="flex flex-wrap items-center justify-center gap-3 mb-6 md:mb-8 px-4">
+              <Link to="/what-is-nostr">
+                <Button 
+                  className="rounded-full font-semibold text-white hover:opacity-90 transition-opacity text-xs md:text-sm px-4 md:px-6 py-2 md:py-3 h-auto"
+                  style={{ backgroundColor: '#b700d7' }}
+                >
+                  NOSTR POWERED TRAVEL COMMUNITY
+                </Button>
               </Link>
-            </h1>
-            <div className="flex flex-col items-center gap-4 md:gap-6">
               {!user && <LoginArea className="max-w-60" />}
+            </div>
+            <div className="flex flex-col items-center gap-4 md:gap-6">
 
               {/* Feature Cards */}
               <div className="grid gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-3 w-full max-w-6xl">
