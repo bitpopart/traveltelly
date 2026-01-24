@@ -10,9 +10,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useMapProvider } from '@/hooks/useMapProvider';
 import { useAllAdminReviews } from '@/hooks/useAdminReviews';
+import { useMarketplaceProducts } from '@/hooks/useMarketplaceProducts';
 import { genUserName } from '@/lib/genUserName';
 import { MapNavigationControls, type MapLocation } from '@/components/MapNavigationControls';
-import { Star, MapPin, RefreshCw, Loader2, AlertCircle, Layers, Maximize2, Minimize2 } from 'lucide-react';
+import { Star, MapPin, RefreshCw, Loader2, AlertCircle, Layers, Maximize2, Minimize2, Camera } from 'lucide-react';
 import { nip19 } from 'nostr-tools';
 import * as geohash from 'ngeohash';
 import { upgradeMultipleReviews, applyPrecisionUpgrades, getUpgradeStats } from '@/lib/precisionMigration';
@@ -62,6 +63,7 @@ interface ReviewLocation {
   upgraded?: boolean;
   gpsCorreected?: boolean;
   correctionConfidence?: number;
+  type?: 'review' | 'stock-media'; // To distinguish between reviews and stock media
 }
 
 function decodeGeohash(geohashStr: string): { lat: number; lng: number; precision: number; accuracy: string } {
@@ -98,20 +100,28 @@ function decodeGeohash(geohashStr: string): { lat: number; lng: number; precisio
 }
 
 // Custom marker icon with precision indicator
-const createCustomIcon = (rating: number, precision?: number, upgraded?: boolean, gpsCorreected?: boolean) => {
-  const color = rating >= 4 ? '#22c55e' : rating >= 3 ? '#eab308' : '#ef4444';
+const createCustomIcon = (rating: number, precision?: number, upgraded?: boolean, gpsCorreected?: boolean, type?: 'review' | 'stock-media') => {
+  // Stock media scenic spots get blue color
+  const color = type === 'stock-media' ? '#3b82f6' : rating >= 4 ? '#22c55e' : rating >= 3 ? '#eab308' : '#ef4444';
 
   // Add visual indicator for low precision (old reviews) or upgraded reviews
   const isLowPrecision = precision && precision <= 5;
   const isUpgraded = upgraded === true;
   const isGpsCorrected = gpsCorreected === true;
+  const isScenicSpot = type === 'stock-media';
 
   let strokeColor = color;
   let strokeWidth = '0';
   let strokeDasharray = 'none';
   let indicator = '';
 
-  if (isGpsCorrected) {
+  if (isScenicSpot) {
+    // Scenic spots (stock media) get a camera icon
+    strokeColor = '#3b82f6';
+    strokeWidth = '2';
+    strokeDasharray = 'none';
+    indicator = `<circle cx="20" cy="8" r="4" fill="#3b82f6"/><text x="20" y="11" text-anchor="middle" font-family="Arial" font-size="7" font-weight="bold" fill="white">📷</text>`;
+  } else if (isGpsCorrected) {
     // GPS corrected reviews get a green indicator with camera icon
     strokeColor = '#10b981';
     strokeWidth = '2';
@@ -184,6 +194,8 @@ function ReviewMarker({ review }: { review: ReviewLocation }) {
   const author = useAuthor(review.authorPubkey);
   const metadata = author.data?.metadata;
   const displayName = metadata?.name || genUserName(review.authorPubkey);
+  
+  const isScenicSpot = review.type === 'stock-media';
 
   const categoryEmojis: Record<string, string> = {
     'grocery-store': '🛒',
@@ -233,51 +245,58 @@ function ReviewMarker({ review }: { review: ReviewLocation }) {
   return (
     <Marker
       position={[review.lat, review.lng]}
-      icon={createCustomIcon(review.rating, review.precision, review.upgraded, review.gpsCorreected)}
+      icon={createCustomIcon(review.rating, review.precision, review.upgraded, review.gpsCorreected, review.type)}
     >
-      <Popup className="review-popup" maxWidth={300}>
+      <Popup maxWidth={250} minWidth={200}>
         <div className="p-2">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-lg">{categoryEmojis[review.category] || '📍'}</span>
+            <span className="text-lg">{isScenicSpot ? '📸' : (categoryEmojis[review.category] || '📍')}</span>
             <h3 className="font-bold text-sm">{review.title}</h3>
           </div>
 
-          <div className="flex items-center mb-2">
-            {Array.from({ length: 5 }, (_, i) => (
-              <Star
-                key={i}
-                className={`w-3 h-3 ${
-                  i < review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
-                }`}
-              />
-            ))}
-            <span className="text-xs text-gray-600 ml-1">({review.rating}/5)</span>
-          </div>
+          {!isScenicSpot && (
+            <div className="flex items-center mb-2">
+              {Array.from({ length: 5 }, (_, i) => (
+                <Star
+                  key={i}
+                  className={`w-3 h-3 ${
+                    i < review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                  }`}
+                />
+              ))}
+              <span className="text-xs text-gray-600 ml-1">({review.rating}/5)</span>
+            </div>
+          )}
 
           <p className="text-xs text-gray-600 mb-2">
-            Reviewed by {displayName} (Traveltelly Admin)
+            {isScenicSpot ? `Scenic Spot by ${displayName}` : `Reviewed by ${displayName} (Traveltelly Admin)`}
           </p>
 
           <div className="flex gap-2 mb-3 flex-wrap">
             <Badge variant="outline" className="text-xs">
               {review.category.replace('-', ' ')}
             </Badge>
-            {review.gpsCorreected && (
+            {isScenicSpot && (
+              <Badge variant="default" className="text-xs bg-blue-500">
+                📷 Stock Media Available
+              </Badge>
+            )}
+            {review.gpsCorreected && !isScenicSpot && (
               <Badge variant="default" className="text-xs bg-green-500">
                 📷 GPS Corrected ({review.accuracy})
               </Badge>
             )}
-            {!review.gpsCorreected && review.upgraded && (
+            {!review.gpsCorreected && review.upgraded && !isScenicSpot && (
               <Badge variant="default" className="text-xs bg-blue-500">
                 ↑ Upgraded ({review.accuracy})
               </Badge>
             )}
-            {!review.gpsCorreected && !review.upgraded && review.precision && review.precision <= 5 && (
+            {!review.gpsCorreected && !review.upgraded && review.precision && review.precision <= 5 && !isScenicSpot && (
               <Badge variant="destructive" className="text-xs">
                 Low precision ({review.accuracy})
               </Badge>
             )}
-            {!review.gpsCorreected && !review.upgraded && review.precision && review.precision > 5 && (
+            {!review.gpsCorreected && !review.upgraded && review.precision && review.precision > 5 && !isScenicSpot && (
               <Badge variant="secondary" className="text-xs">
                 {review.accuracy}
               </Badge>
@@ -295,9 +314,9 @@ function ReviewMarker({ review }: { review: ReviewLocation }) {
           <Button
             size="sm"
             className="w-full text-xs"
-            onClick={() => navigate(`/review/${review.naddr}`)}
+            onClick={() => navigate(isScenicSpot ? `/media/preview/${review.naddr}` : `/review/${review.naddr}`)}
           >
-            View Review
+            {isScenicSpot ? 'View Media' : 'View Details'}
           </Button>
         </div>
       </Popup>
@@ -320,6 +339,9 @@ export function AllAdminReviewsMap() {
     error,
     refetch,
   } = useAllAdminReviews();
+  
+  // Also fetch stock media for scenic spots
+  const { data: stockMediaProducts } = useMarketplaceProducts();
 
   // Auto-load all pages
   useEffect(() => {
@@ -329,7 +351,7 @@ export function AllAdminReviewsMap() {
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  // Process all admin reviews from all pages into map locations
+  // Process all admin reviews and stock media into map locations
   const { reviewLocations, totalReviews, reviewsWithoutLocation } = useMemo(() => {
     if (!data?.pages) return { reviewLocations: [], totalReviews: 0, reviewsWithoutLocation: [] };
 
@@ -425,12 +447,60 @@ export function AllAdminReviewsMap() {
 
     console.log(`✅ Final admin locations with upgrades: ${upgradedLocations.length}`);
 
+    // Add stock media as scenic spots
+    if (stockMediaProducts) {
+      console.log(`📸 Processing ${stockMediaProducts.length} stock media products for map`);
+      
+      for (const product of stockMediaProducts) {
+        // Check for geohash tag
+        const geohashTag = product.event.tags.find(([name]) => name === 'g')?.[1];
+        
+        if (geohashTag) {
+          try {
+            const coordinates = decodeGeohash(geohashTag);
+            
+            // Validate coordinates
+            if (coordinates.lat >= -90 && coordinates.lat <= 90 &&
+                coordinates.lng >= -180 && coordinates.lng <= 180) {
+              
+              const naddr = nip19.naddrEncode({
+                identifier: product.id,
+                pubkey: product.seller.pubkey,
+                kind: 30402,
+              });
+              
+              upgradedLocations.push({
+                id: product.event.id,
+                lat: coordinates.lat,
+                lng: coordinates.lng,
+                title: product.title,
+                rating: 5, // Stock media gets 5 stars as scenic spots
+                category: '📸 Scenic Spot',
+                authorPubkey: product.seller.pubkey,
+                naddr,
+                image: product.images[0],
+                precision: coordinates.precision,
+                accuracy: coordinates.accuracy,
+                type: 'stock-media',
+              });
+              
+              console.log(`📸 Added stock media to map: ${product.title}`);
+            }
+          } catch (error) {
+            console.error('Error decoding stock media geohash:', product.id, error);
+          }
+        }
+      }
+      
+      console.log(`✅ Total locations (reviews + stock media): ${upgradedLocations.length}`);
+    }
+
     return {
       reviewLocations: upgradedLocations,
       totalReviews: allReviews.length,
       reviewsWithoutLocation: withoutLocation,
     };
-  }, [data]);
+  }, [data, stockMediaProducts]);
 
   const handleLocationSelect = (location: MapLocation) => {
     setTargetLocation(location);
