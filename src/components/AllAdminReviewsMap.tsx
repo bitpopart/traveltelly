@@ -496,11 +496,13 @@ export function AllAdminReviewsMap() {
 
     console.log(`✅ Final admin locations with upgrades: ${upgradedLocations.length}`);
 
+    // Track counts for logging
+    let stockMediaCount = 0;
+    let storyCount = 0;
+
     // Add stock media as scenic spots
     if (stockMediaProducts) {
       console.log(`📸 Processing ${stockMediaProducts.length} stock media products for map`);
-      
-      let addedCount = 0;
       for (const product of stockMediaProducts) {
         // Check for geohash tag
         const geohashTag = product.event.tags.find(([name]) => name === 'g')?.[1];
@@ -540,7 +542,7 @@ export function AllAdminReviewsMap() {
                 type: 'stock-media',
               });
               
-              addedCount++;
+              stockMediaCount++;
               console.log(`✅ Added stock media to map: ${product.title} at [${coordinates.lat}, ${coordinates.lng}]`);
             }
           } catch (error) {
@@ -551,14 +553,12 @@ export function AllAdminReviewsMap() {
         }
       }
       
-      console.log(`✅ Total locations: ${upgradedLocations.length} (${allReviews.length} reviews + ${addedCount} stock media)`);
+      console.log(`✅ After stock media: ${upgradedLocations.length} total locations`);
     }
 
     // Add stories (NIP-23 articles) as story spots
     if (stories) {
       console.log(`📖 Processing ${stories.length} stories for map`);
-      
-      let storyCount = 0;
       for (const story of stories) {
         // Check for geohash tag
         const geohashTag = story.tags.find(([name]) => name === 'g')?.[1];
