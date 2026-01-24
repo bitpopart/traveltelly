@@ -19,13 +19,13 @@ export function useLatestReview() {
   return useQuery({
     queryKey: ['latest-review-with-image'],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(2000)]);
       
       const authorizedAuthors = Array.from(authorizedReviewers || []);
       const events = await nostr.query([{
         kinds: [34879],
         authors: authorizedAuthors,
-        limit: 50
+        limit: 20
       }], { signal });
 
       // Find the first review with an image
@@ -61,6 +61,8 @@ export function useLatestReview() {
       };
     },
     enabled: !!authorizedReviewers && authorizedReviewers.size > 0,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 }
 
@@ -73,13 +75,13 @@ export function useLatestStory() {
   return useQuery({
     queryKey: ['latest-story-with-image'],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(2000)]);
       
       // Query for articles (kind 30023) from admin
       const events = await nostr.query([{
         kinds: [30023],
         authors: [ADMIN_HEX],
-        limit: 20
+        limit: 10
       }], { signal });
 
       // Find the first story with an image
@@ -112,6 +114,8 @@ export function useLatestStory() {
         event: storyWithImage,
       };
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 }
 
@@ -125,13 +129,13 @@ export function useLatestStockMedia() {
   return useQuery({
     queryKey: ['latest-stock-media-with-image'],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(2000)]);
       
       const authorizedAuthors = Array.from(authorizedUploaders || []);
       const events = await nostr.query([{
         kinds: [30402],
         authors: authorizedAuthors,
-        limit: 30
+        limit: 15
       }], { signal });
 
       // Find the first product with an image
@@ -173,5 +177,7 @@ export function useLatestStockMedia() {
       };
     },
     enabled: !!authorizedUploaders && authorizedUploaders.size > 0,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 }
