@@ -68,8 +68,12 @@ export function Navigation({ className }: NavigationProps) {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 font-bold text-xl text-orange-600">
-            📍 Traveltelly
+          <Link to="/" className="flex items-center gap-2">
+            <img 
+              src="/traveltelly-logo.png" 
+              alt="Traveltelly" 
+              className="h-8 md:h-10 w-auto dark:invert"
+            />
           </Link>
 
           {/* Desktop Navigation */}
