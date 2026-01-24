@@ -369,15 +369,16 @@ export function UnifiedSearchBar({
   return (
     <div className={`relative w-full max-w-2xl mx-auto ${className}`}>
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
         <Input
           ref={inputRef}
           type="text"
           placeholder={placeholder}
           value={query}
           onChange={(e) => handleInputChange(e.target.value)}
-          onFocus={() => query.length >= 2 && setIsOpen(true)}
-          className="pl-10 pr-20 h-12 text-base"
+          onFocus={() => setIsOpen(true)}
+          onClick={() => setIsOpen(true)}
+          className="pl-10 pr-20 h-12 text-base rounded-full cursor-pointer"
         />
         <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center space-x-1">
           {query && (
@@ -385,7 +386,7 @@ export function UnifiedSearchBar({
               variant="ghost"
               size="sm"
               onClick={clearSearch}
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 rounded-full"
             >
               <X className="h-4 w-4" />
             </Button>
@@ -393,7 +394,7 @@ export function UnifiedSearchBar({
           <Button
             onClick={handleSearch}
             disabled={!query.trim()}
-            className="h-8"
+            className="h-8 rounded-full"
           >
             Search
           </Button>
@@ -466,7 +467,7 @@ export function UnifiedSearchBar({
                         variant="outline"
                         size="sm"
                         onClick={() => handleSuggestionClick(suggestion)}
-                        className="h-7 text-xs hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-all duration-200 hover:shadow-sm hover:scale-105 cursor-pointer"
+                        className="h-7 text-xs rounded-full hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-all duration-200 hover:shadow-sm hover:scale-105 cursor-pointer"
                         title={`Click to go to first result for #${suggestion}`}
                       >
                         <Hash className="h-3 w-3 mr-1" />
@@ -478,7 +479,7 @@ export function UnifiedSearchBar({
                         variant="ghost"
                         size="sm"
                         onClick={() => setShowAllSuggestions(true)}
-                        className="h-7 text-xs text-muted-foreground hover:text-primary"
+                        className="h-7 text-xs rounded-full text-muted-foreground hover:text-primary"
                       >
                         +{suggestions.length - 12} more
                       </Button>
@@ -488,7 +489,7 @@ export function UnifiedSearchBar({
                         variant="ghost"
                         size="sm"
                         onClick={() => setShowAllSuggestions(false)}
-                        className="h-7 text-xs text-muted-foreground hover:text-primary"
+                        className="h-7 text-xs rounded-full text-muted-foreground hover:text-primary"
                       >
                         Show less
                       </Button>

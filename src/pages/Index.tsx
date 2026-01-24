@@ -120,13 +120,13 @@ const Index = () => {
               {user && (
                 <div className="flex flex-wrap justify-center gap-2 md:gap-3">
                   <Link to="/create-review">
-                    <Button size="lg" className="bg-orange-600 hover:bg-orange-700 text-sm md:text-base">
+                    <Button size="lg" className="rounded-full bg-orange-600 hover:bg-orange-700 text-sm md:text-base">
                       <Camera className="w-4 h-4 mr-2" />
                       Create Review
                     </Button>
                   </Link>
                   <Link to="/stock-media-permissions">
-                    <Button variant="outline" size="lg" className="text-sm md:text-base">
+                    <Button variant="outline" size="lg" className="rounded-full text-sm md:text-base">
                       <Camera className="w-4 h-4 mr-2" />
                       <span className="hidden sm:inline">Upload Permissions</span>
                       <span className="sm:hidden">Permissions</span>
@@ -142,7 +142,7 @@ const Index = () => {
 
                   {isAdmin && (
                     <Link to="/admin">
-                      <Button variant="outline" size="lg" className="border-orange-300 text-orange-700 hover:bg-orange-50 text-sm md:text-base">
+                      <Button variant="outline" size="lg" className="rounded-full border-orange-300 text-orange-700 hover:bg-orange-50 text-sm md:text-base">
                         <Shield className="w-4 h-4 mr-2" />
                         Admin Panel
                       </Button>
@@ -152,7 +152,7 @@ const Index = () => {
                   {/* Always show admin test link for debugging */}
                   {import.meta.env.DEV && (
                     <Link to="/admin-test">
-                      <Button variant="outline" size="lg" className="border-blue-300 text-blue-700 hover:bg-blue-50 text-sm md:text-base">
+                      <Button variant="outline" size="lg" className="rounded-full border-blue-300 text-blue-700 hover:bg-blue-50 text-sm md:text-base">
                         <Shield className="w-4 h-4 mr-2" />
                         <span className="hidden sm:inline">Admin Test Page</span>
                         <span className="sm:hidden">Admin Test</span>
@@ -160,20 +160,20 @@ const Index = () => {
                     </Link>
                   )}
                   <Link to="/photo-upload-demo">
-                    <Button variant="outline" size="lg" className="text-sm md:text-base">
+                    <Button variant="outline" size="lg" className="rounded-full text-sm md:text-base">
                       <Camera className="w-4 h-4 mr-2" />
                       Photo Demo
                     </Button>
                   </Link>
                   <Link to="/gps-correction-demo">
-                    <Button variant="outline" size="lg" className="text-sm md:text-base">
+                    <Button variant="outline" size="lg" className="rounded-full text-sm md:text-base">
                       <MapPin className="w-4 h-4 mr-2" />
                       <span className="hidden sm:inline">GPS Correction</span>
                       <span className="sm:hidden">GPS Fix</span>
                     </Button>
                   </Link>
                   <Link to="/search-test">
-                    <Button variant="outline" size="lg" className="text-sm md:text-base">
+                    <Button variant="outline" size="lg" className="rounded-full text-sm md:text-base">
                       <Search className="w-4 h-4 mr-2" />
                       Search Test
                     </Button>
@@ -295,7 +295,7 @@ const Index = () => {
                     </div>
                   </div>
                   <Link to="/settings">
-                    <Button variant="outline" className="border-yellow-400 text-yellow-700 hover:bg-yellow-100 text-sm md:text-base w-full sm:w-auto">
+                    <Button variant="outline" className="rounded-full border-yellow-400 text-yellow-700 hover:bg-yellow-100 text-sm md:text-base w-full sm:w-auto">
                       Setup Tips
                     </Button>
                   </Link>
@@ -311,7 +311,7 @@ const Index = () => {
                 Recent Reviews
               </h2>
               <Link to="/dashboard">
-                <Button variant="outline" className="text-sm md:text-base w-full sm:w-auto">
+                <Button variant="outline" className="rounded-full text-sm md:text-base w-full sm:w-auto">
                   View Dashboard
                 </Button>
               </Link>
