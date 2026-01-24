@@ -72,7 +72,7 @@ export function Navigation({ className }: NavigationProps) {
             <img 
               src="/traveltelly-logo.png" 
               alt="Traveltelly" 
-              className="h-8 md:h-10 w-auto dark:invert"
+              className="h-5 md:h-6 w-auto dark:invert"
             />
           </Link>
 
