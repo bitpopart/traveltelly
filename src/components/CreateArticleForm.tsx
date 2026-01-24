@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { PhotoUpload, type UploadedPhoto } from '@/components/PhotoUpload';
+import { MarkdownEditor } from '@/components/MarkdownEditor';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
@@ -17,10 +17,7 @@ import 'leaflet/dist/leaflet.css';
 import {
   BookOpen,
   Send,
-  Eye,
-  EyeOff,
   Calendar,
-  FileText,
   AlertCircle,
   MapPin
 } from 'lucide-react';
@@ -42,7 +39,6 @@ export function CreateArticleForm() {
   const { user } = useCurrentUser();
   const { mutate: createEvent, isPending } = useNostrPublish();
   const { toast } = useToast();
-  const [showPreview, setShowPreview] = useState(false);
   const [gpsCoordinates, setGpsCoordinates] = useState<GPSCoordinates | null>(null);
   const [uploadedPhotos, setUploadedPhotos] = useState<UploadedPhoto[]>([]);
 
@@ -154,7 +150,6 @@ export function CreateArticleForm() {
         });
         setGpsCoordinates(null);
         setUploadedPhotos([]);
-        setShowPreview(false);
       },
       onError: () => {
         toast({
@@ -324,46 +319,13 @@ export function CreateArticleForm() {
 
           {/* Content */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <Label htmlFor="content">
-                Article Content (Markdown) <span className="text-red-500">*</span>
-              </Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setShowPreview(!showPreview)}
-              >
-                {showPreview ? (
-                  <>
-                    <EyeOff className="w-4 h-4 mr-1" />
-                    Edit
-                  </>
-                ) : (
-                  <>
-                    <Eye className="w-4 h-4 mr-1" />
-                    Preview
-                  </>
-                )}
-              </Button>
-            </div>
-
-            {showPreview ? (
-              <div className="border rounded-md p-4 min-h-[300px] bg-gray-50 dark:bg-gray-900">
-                <div className="prose prose-sm max-w-none dark:prose-invert">
-                  {formData.content ? (
-                    <div className="whitespace-pre-wrap">{formData.content}</div>
-                  ) : (
-                    <p className="text-muted-foreground italic">Content preview will appear here...</p>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <Textarea
-                id="content"
-                value={formData.content}
-                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                placeholder="Write your article content in Markdown format...
+            <Label htmlFor="content" className="mb-3 block">
+              Article Content (Markdown) <span className="text-red-500">*</span>
+            </Label>
+            <MarkdownEditor
+              value={formData.content}
+              onChange={(content) => setFormData({ ...formData, content })}
+              placeholder="Write your article content in Markdown format...
 
 # Heading 1
 ## Heading 2
@@ -375,30 +337,9 @@ export function CreateArticleForm() {
 
 [Link text](https://example.com)
 
-> Quote text
-
-```
-Code block
-```"
-                className="mt-1 min-h-[300px] font-mono"
-                required
-              />
-            )}
-          </div>
-
-          {/* Markdown Help */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-            <h4 className="font-medium text-sm mb-2 flex items-center gap-1">
-              <FileText className="w-4 h-4" />
-              Markdown Formatting Tips
-            </h4>
-            <div className="text-xs text-muted-foreground space-y-1">
-              <p>• Use # for headings (# H1, ## H2, ### H3)</p>
-              <p>• **bold** and *italic* text formatting</p>
-              <p>• [Link text](URL) for links</p>
-              <p>• &gt; for quotes, - for bullet points</p>
-              <p>• ``` for code blocks</p>
-            </div>
+> Quote text"
+              minHeight="500px"
+            />
           </div>
 
           {/* Submit Button */}
