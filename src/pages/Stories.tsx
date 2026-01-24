@@ -304,38 +304,7 @@ export default function Stories() {
             </p>
           </div>
 
-          {/* Admin Info Card */}
-          <Card className="mb-6 bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border-orange-200 dark:border-orange-800">
-            <CardContent className="py-6">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-orange-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-                  T
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-orange-900 dark:text-orange-100">
-                    Official NIP-23 Articles
-                  </h3>
-                  <p className="text-sm text-orange-700 dark:text-orange-300 mb-2">
-                    Long-form travel articles using the NIP-23 standard with Markdown formatting
-                  </p>
-                  <div className="flex items-center gap-4 text-xs text-orange-600 dark:text-orange-400">
-                    <span className="flex items-center gap-1">
-                      <BookOpen className="w-3 h-3" />
-                      Kind 30023
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <MapPin className="w-3 h-3" />
-                      Addressable Events
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Camera className="w-3 h-3" />
-                      Markdown Content
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+
 
           {/* Main Content Tabs */}
           <Tabs defaultValue="articles" className="w-full">
