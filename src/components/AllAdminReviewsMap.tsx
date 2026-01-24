@@ -308,7 +308,7 @@ function ReviewMarker({ review }: { review: ReviewLocation }) {
 export function AllAdminReviewsMap() {
   const { mapProvider } = useMapProvider();
   const [targetLocation, setTargetLocation] = useState<MapLocation | null>(null);
-  const [showControls, setShowControls] = useState(true);
+  const [showControls, setShowControls] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<string>('World View');
 
   const {
