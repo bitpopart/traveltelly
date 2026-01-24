@@ -33,12 +33,14 @@ const Index = () => {
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="text-center mb-6 md:mb-10">
-            <h1 className="text-2xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6 md:mb-8 px-4">
-              <Link to="/what-is-nostr" className="underline decoration-2 underline-offset-4 hover:opacity-80" style={{ color: '#393636' }}>
-                Nostr Powered
+            <h1 className="mb-6 md:mb-8 px-4">
+              <Link to="/what-is-nostr" className="inline-block hover:opacity-80 transition-opacity">
+                <img 
+                  src="/traveltelly-slogan.png" 
+                  alt="Nostr Powered Travel Community" 
+                  className="h-8 md:h-12 w-auto mx-auto"
+                />
               </Link>
-              <br className="md:hidden" />{' '}
-              <span className="md:inline">Travel Community</span>
             </h1>
             <div className="flex flex-col items-center gap-4 md:gap-6">
               {!user && <LoginArea className="max-w-60" />}

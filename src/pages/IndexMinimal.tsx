@@ -23,9 +23,15 @@ const IndexMinimal = () => {
             <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">
               🌍 Traveltelly
             </h1>
-            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
-              Nostr Powered Travel Community
-            </p>
+            <div className="mb-8">
+              <Link to="/what-is-nostr" className="inline-block hover:opacity-80 transition-opacity">
+                <img 
+                  src="/traveltelly-slogan.png" 
+                  alt="Nostr Powered Travel Community" 
+                  className="h-8 w-auto mx-auto"
+                />
+              </Link>
+            </div>
             <div className="flex flex-col items-center gap-4">
               <LoginArea className="max-w-60" />
               {user && (
