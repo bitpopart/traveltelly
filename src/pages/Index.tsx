@@ -34,10 +34,11 @@ const Index = () => {
           {/* Header */}
           <div className="text-center mb-6 md:mb-10">
             <h1 className="text-2xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6 md:mb-8 px-4">
-              <Link to="/what-is-nostr" className="text-orange-600 hover:text-orange-700 underline decoration-2 underline-offset-4">
+              <Link to="/what-is-nostr" className="underline decoration-2 underline-offset-4 hover:opacity-80" style={{ color: '#393636' }}>
                 Nostr Powered
-              </Link>{' '}
-              Travel Community
+              </Link>
+              <br className="md:hidden" />{' '}
+              <span className="md:inline">Travel Community</span>
             </h1>
             <div className="flex flex-col items-center gap-4 md:gap-6">
               {!user && <LoginArea className="max-w-60" />}
@@ -120,7 +121,7 @@ const Index = () => {
               {user && (
                 <div className="flex flex-wrap justify-center gap-2 md:gap-3">
                   <Link to="/create-review">
-                    <Button size="lg" className="rounded-full bg-orange-600 hover:bg-orange-700 text-sm md:text-base">
+                    <Button size="lg" className="rounded-full text-white text-sm md:text-base" style={{ backgroundColor: '#393636' }}>
                       <Camera className="w-4 h-4 mr-2" />
                       Create Review
                     </Button>
@@ -142,7 +143,7 @@ const Index = () => {
 
                   {isAdmin && (
                     <Link to="/admin">
-                      <Button variant="outline" size="lg" className="rounded-full border-orange-300 text-orange-700 hover:bg-orange-50 text-sm md:text-base">
+                      <Button variant="outline" size="lg" className="rounded-full text-sm md:text-base" style={{ borderColor: '#393636', color: '#393636' }}>
                         <Shield className="w-4 h-4 mr-2" />
                         Admin Panel
                       </Button>
@@ -198,11 +199,11 @@ const Index = () => {
 
           {/* Lightning Tips Info */}
           {user && (
-            <Card className="mb-6 md:mb-8 border-yellow-200 dark:border-yellow-800 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20">
+            <Card className="mb-6 md:mb-8 border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-700/50">
               <CardContent className="p-4 md:p-6">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-3 md:gap-4">
-                    <div className="p-2 md:p-3 bg-yellow-500 rounded-full flex-shrink-0">
+                    <div className="p-2 md:p-3 rounded-full flex-shrink-0" style={{ backgroundColor: '#393636' }}>
                       <Zap className="w-5 h-5 md:w-6 md:h-6 text-white fill-current" />
                     </div>
                     <div>
@@ -215,7 +216,7 @@ const Index = () => {
                     </div>
                   </div>
                   <Link to="/settings">
-                    <Button variant="outline" className="rounded-full border-yellow-400 text-yellow-700 hover:bg-yellow-100 text-sm md:text-base w-full sm:w-auto">
+                    <Button variant="outline" className="rounded-full text-sm md:text-base w-full sm:w-auto" style={{ borderColor: '#393636', color: '#393636' }}>
                       Setup Tips
                     </Button>
                   </Link>
@@ -240,7 +241,7 @@ const Index = () => {
           </div>
 
           {/* Relay Configuration */}
-          <Card className="mb-6 md:mb-8 border-orange-200 dark:border-orange-800">
+          <Card className="mb-6 md:mb-8 border-gray-200 dark:border-gray-700">
             <CardHeader className="px-4 md:px-6">
               <CardTitle className="text-base md:text-lg">Relay Configuration</CardTitle>
               <CardDescription className="text-sm">
@@ -260,7 +261,8 @@ const Index = () => {
                 href="https://soapbox.pub/mkstack"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-orange-600 dark:text-orange-400 hover:underline"
+                className="hover:underline"
+                style={{ color: '#393636' }}
               >
                 MKStack
               </a>

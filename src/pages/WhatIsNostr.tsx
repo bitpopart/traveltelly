@@ -62,11 +62,11 @@ export default function WhatIsNostr() {
               Why Nostr?
             </h2>
             <div className="grid sm:grid-cols-2 gap-4 md:gap-6">
-              <Card className="border-orange-200 dark:border-orange-800">
+              <Card className="border-gray-200 dark:border-gray-700">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-3 text-lg md:text-xl">
-                    <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-                      <Key className="w-5 h-5 text-orange-600" />
+                    <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                      <Key className="w-5 h-5" style={{ color: '#393636' }} />
                     </div>
                     You Own Your Identity
                   </CardTitle>
@@ -133,7 +133,7 @@ export default function WhatIsNostr() {
           </div>
 
           {/* How to Join */}
-          <Card className="mb-8 md:mb-12 border-orange-200 dark:border-orange-800">
+          <Card className="mb-8 md:mb-12 border-gray-200 dark:border-gray-700">
             <CardHeader>
               <CardTitle className="text-2xl md:text-3xl text-center">
                 How to Join Nostr
@@ -144,7 +144,7 @@ export default function WhatIsNostr() {
                 {/* Step 1 */}
                 <div className="flex gap-4">
                   <div className="flex-shrink-0">
-                    <div className="w-10 h-10 rounded-full bg-orange-600 text-white flex items-center justify-center font-bold">
+                    <div className="w-10 h-10 rounded-full text-white flex items-center justify-center font-bold" style={{ backgroundColor: '#393636' }}>
                       1
                     </div>
                   </div>
@@ -157,14 +157,15 @@ export default function WhatIsNostr() {
                     </p>
                     <div className="space-y-2 ml-4">
                       <div className="flex items-start gap-2">
-                        <ArrowRight className="w-4 h-4 mt-1 text-orange-600 flex-shrink-0" />
+                        <ArrowRight className="w-4 h-4 mt-1 flex-shrink-0" style={{ color: '#393636' }} />
                         <div>
                           <strong>Browser Extension:</strong> Install{' '}
                           <a 
                             href="https://getalby.com" 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className="text-orange-600 hover:underline"
+                            className="hover:underline"
+                            style={{ color: '#393636' }}
                           >
                             Alby
                           </a>,{' '}
@@ -172,7 +173,8 @@ export default function WhatIsNostr() {
                             href="https://www.getflamingo.org" 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className="text-orange-600 hover:underline"
+                            className="hover:underline"
+                            style={{ color: '#393636' }}
                           >
                             Flamingo
                           </a>, or{' '}
@@ -180,21 +182,23 @@ export default function WhatIsNostr() {
                             href="https://github.com/fiatjaf/nos2x" 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className="text-orange-600 hover:underline"
+                            className="hover:underline"
+                            style={{ color: '#393636' }}
                           >
                             nos2x
                           </a>
                         </div>
                       </div>
                       <div className="flex items-start gap-2">
-                        <ArrowRight className="w-4 h-4 mt-1 text-orange-600 flex-shrink-0" />
+                        <ArrowRight className="w-4 h-4 mt-1 flex-shrink-0" style={{ color: '#393636' }} />
                         <div>
                           <strong>Mobile App:</strong> Download{' '}
                           <a 
                             href="https://damus.io" 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className="text-orange-600 hover:underline"
+                            className="hover:underline"
+                            style={{ color: '#393636' }}
                           >
                             Damus
                           </a>{' '}
@@ -203,7 +207,8 @@ export default function WhatIsNostr() {
                             href="https://github.com/vitorpamplona/amethyst" 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className="text-orange-600 hover:underline"
+                            className="hover:underline"
+                            style={{ color: '#393636' }}
                           >
                             Amethyst
                           </a>{' '}
@@ -211,7 +216,7 @@ export default function WhatIsNostr() {
                         </div>
                       </div>
                       <div className="flex items-start gap-2">
-                        <ArrowRight className="w-4 h-4 mt-1 text-orange-600 flex-shrink-0" />
+                        <ArrowRight className="w-4 h-4 mt-1 flex-shrink-0" style={{ color: '#393636' }} />
                         <div>
                           <strong>Quick Start:</strong> Create an account directly on Traveltelly using the login button
                         </div>
@@ -223,7 +228,7 @@ export default function WhatIsNostr() {
                 {/* Step 2 */}
                 <div className="flex gap-4">
                   <div className="flex-shrink-0">
-                    <div className="w-10 h-10 rounded-full bg-orange-600 text-white flex items-center justify-center font-bold">
+                    <div className="w-10 h-10 rounded-full text-white flex items-center justify-center font-bold" style={{ backgroundColor: '#393636' }}>
                       2
                     </div>
                   </div>
@@ -246,7 +251,7 @@ export default function WhatIsNostr() {
                 {/* Step 3 */}
                 <div className="flex gap-4">
                   <div className="flex-shrink-0">
-                    <div className="w-10 h-10 rounded-full bg-orange-600 text-white flex items-center justify-center font-bold">
+                    <div className="w-10 h-10 rounded-full text-white flex items-center justify-center font-bold" style={{ backgroundColor: '#393636' }}>
                       3
                     </div>
                   </div>
@@ -265,7 +270,7 @@ export default function WhatIsNostr() {
           </Card>
 
           {/* Benefits */}
-          <Card className="mb-8 md:mb-12 bg-gradient-to-br from-orange-50 to-blue-50 dark:from-orange-900/20 dark:to-blue-900/20 border-orange-200 dark:border-orange-800">
+          <Card className="mb-8 md:mb-12 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-700/50 border-gray-200 dark:border-gray-700">
             <CardContent className="p-6 md:p-8">
               <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">
                 What Makes Nostr Special?
@@ -359,7 +364,7 @@ export default function WhatIsNostr() {
 
           {/* CTA */}
           <div className="text-center">
-            <Card className="bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border-orange-200 dark:border-orange-700">
+            <Card className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-700/50 border-gray-200 dark:border-gray-700">
               <CardContent className="p-6 md:p-8">
                 <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-4">
                   Ready to Get Started?
@@ -380,7 +385,7 @@ export default function WhatIsNostr() {
                   ) : (
                     <>
                       <Link to="/create-review">
-                        <Button className="rounded-full bg-orange-600 hover:bg-orange-700">
+                        <Button className="rounded-full text-white" style={{ backgroundColor: '#393636' }}>
                           Create Your First Review
                         </Button>
                       </Link>
@@ -404,7 +409,8 @@ export default function WhatIsNostr() {
                 href="https://soapbox.pub/mkstack"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-orange-600 dark:text-orange-400 hover:underline"
+                className="hover:underline"
+                style={{ color: '#393636' }}
               >
                 MKStack
               </a>

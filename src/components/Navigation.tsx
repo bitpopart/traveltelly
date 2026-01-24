@@ -52,10 +52,13 @@ export function Navigation({ className }: NavigationProps) {
       <Button
         variant={isActive(path) ? "default" : "ghost"}
         className={cn(
-          "flex items-center gap-2",
+          "flex items-center gap-2 rounded-full",
           mobile ? "w-full justify-start" : "",
-          isActive(path) && "bg-orange-600 hover:bg-orange-700 text-white"
+          isActive(path) && "text-white"
         )}
+        style={isActive(path) ? { backgroundColor: '#393636' } : {}}
+        onMouseEnter={(e) => isActive(path) && (e.currentTarget.style.backgroundColor = '#2a2828')}
+        onMouseLeave={(e) => isActive(path) && (e.currentTarget.style.backgroundColor = '#393636')}
       >
         <Icon className="w-4 h-4" />
         {label}
@@ -93,14 +96,14 @@ export function Navigation({ className }: NavigationProps) {
             {user ? (
               <>
                 <Link to="/settings">
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className="rounded-full">
                     <Settings className="w-4 h-4 mr-2" />
                     Settings
                   </Button>
                 </Link>
                 {isAdmin && (
                   <Link to="/admin">
-                    <Button variant="outline" size="sm" className="border-orange-300 text-orange-700 hover:bg-orange-50">
+                    <Button variant="outline" size="sm" className="rounded-full" style={{ borderColor: '#393636', color: '#393636' }}>
                       <Shield className="w-4 h-4 mr-2" />
                       Admin
                     </Button>
@@ -145,14 +148,14 @@ export function Navigation({ className }: NavigationProps) {
               {user ? (
                 <>
                   <Link to="/settings" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start">
+                    <Button variant="ghost" className="w-full justify-start rounded-full">
                       <Settings className="w-4 h-4 mr-2" />
                       Settings
                     </Button>
                   </Link>
                   {isAdmin && (
                     <Link to="/admin" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button variant="outline" className="w-full justify-start border-orange-300 text-orange-700 hover:bg-orange-50">
+                      <Button variant="outline" className="w-full justify-start rounded-full" style={{ borderColor: '#393636', color: '#393636' }}>
                         <Shield className="w-4 h-4 mr-2" />
                         Admin Panel
                       </Button>
