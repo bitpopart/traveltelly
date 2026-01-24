@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/useToast';
+import { convertToSats } from '@/lib/priceConversion';
 import { Zap, Loader2, CheckCircle, Copy, ExternalLink } from 'lucide-react';
 import type { MarketplaceProduct } from '@/hooks/useMarketplaceProducts';
 
@@ -43,12 +44,8 @@ export function LightningMarketplacePayment({ product, onSuccess: _onSuccess }: 
 
   const { toast } = useToast();
 
-  // Convert price to satoshis
-  const amountSats = product.currency === 'SATS'
-    ? parseInt(product.price)
-    : product.currency === 'BTC'
-    ? Math.round(parseFloat(product.price) * 100000000)
-    : Math.round(parseFloat(product.price) * 2000); // Rough USD to sats conversion (assuming $50k BTC)
+  // Convert price to satoshis using the conversion utility
+  const amountSats = convertToSats(parseFloat(product.price), product.currency) || 0;
 
   // Lightning address for TravelTelly
   const LIGHTNING_ADDRESS = 'traveltelly@primal.net';

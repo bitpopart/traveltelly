@@ -8,6 +8,7 @@ import { RobustImage } from '@/components/RobustImage';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { genUserName } from '@/lib/genUserName';
+import { formatPriceWithSats } from '@/lib/priceConversion';
 import { MapPin, User, ShoppingCart, Zap, CreditCard, Download, Eye, Camera, Video, Music, Palette } from 'lucide-react';
 import type { MarketplaceProduct } from '@/hooks/useMarketplaceProducts';
 import { Link } from 'react-router-dom';
@@ -46,16 +47,7 @@ export function ProductCard({ product }: ProductCardProps) {
   // Don't show buy button for own products
   const isOwnProduct = user && user.pubkey === product.seller.pubkey;
 
-  const formatPrice = (price: string, currency: string) => {
-    const amount = parseFloat(price);
-    if (currency === 'BTC' || currency === 'SATS') {
-      return `${amount.toLocaleString()} ${currency}`;
-    }
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-    }).format(amount);
-  };
+  const priceInfo = formatPriceWithSats(product.price, product.currency);
 
   const getCurrencyIcon = (currency: string) => {
     if (currency === 'BTC' || currency === 'SATS') {
@@ -184,11 +176,19 @@ export function ProductCard({ product }: ProductCardProps) {
             <h3 className="font-semibold text-lg line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
               {product.title}
             </h3>
-            <div className="flex items-center gap-2">
-              {getCurrencyIcon(product.currency)}
-              <span className="text-xl font-bold text-green-600 dark:text-green-400">
-                {formatPrice(product.price, product.currency)}
-              </span>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                {getCurrencyIcon(product.currency)}
+                <span className="text-xl font-bold text-green-600 dark:text-green-400">
+                  {priceInfo.primary}
+                </span>
+              </div>
+              {priceInfo.sats && (
+                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                  <Zap className="w-3 h-3 text-yellow-500" />
+                  <span>{priceInfo.sats}</span>
+                </div>
+              )}
             </div>
           </div>
 

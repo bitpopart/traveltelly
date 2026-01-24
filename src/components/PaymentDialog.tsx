@@ -7,8 +7,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { LightningMarketplacePayment } from '@/components/LightningMarketplacePayment';
 import { useAuthor } from '@/hooks/useAuthor';
-
 import { genUserName } from '@/lib/genUserName';
+import { formatPriceWithSats } from '@/lib/priceConversion';
 import { Zap, CreditCard, ShoppingCart, User, MapPin, Package } from 'lucide-react';
 import type { MarketplaceProduct } from '@/hooks/useMarketplaceProducts';
 
@@ -26,16 +26,7 @@ export function PaymentDialog({ isOpen, onClose, product }: PaymentDialogProps) 
   const displayName = metadata?.name || genUserName(product.seller.pubkey);
   const profileImage = metadata?.picture;
 
-  const formatPrice = (price: string, currency: string) => {
-    const amount = parseFloat(price);
-    if (currency === 'BTC' || currency === 'SATS') {
-      return `${amount.toLocaleString()} ${currency}`;
-    }
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-    }).format(amount);
-  };
+  const priceInfo = formatPriceWithSats(product.price, product.currency);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -88,8 +79,14 @@ export function PaymentDialog({ isOpen, onClose, product }: PaymentDialogProps) 
                     {/* Price */}
                     <div className="text-right">
                       <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                        {formatPrice(product.price, product.currency)}
+                        {priceInfo.primary}
                       </div>
+                      {priceInfo.sats && (
+                        <div className="flex items-center justify-end gap-1 text-sm text-muted-foreground mt-1">
+                          <Zap className="w-3 h-3 text-yellow-500" />
+                          <span>{priceInfo.sats}</span>
+                        </div>
+                      )}
                       <Badge variant="secondary" className="mt-1 capitalize">
                         {product.category}
                       </Badge>

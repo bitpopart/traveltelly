@@ -17,6 +17,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useMarketplaceProducts } from "@/hooks/useMarketplaceProducts";
 import { useAuthor } from "@/hooks/useAuthor";
 import { genUserName } from "@/lib/genUserName";
+import { formatPriceWithSats } from "@/lib/priceConversion";
 import {
   ArrowLeft,
   Download,
@@ -105,16 +106,7 @@ const MediaPreview = () => {
     });
   }
 
-  const formatPrice = (price: string, currency: string) => {
-    const amount = parseFloat(price);
-    if (currency === 'BTC' || currency === 'SATS') {
-      return `${amount.toLocaleString()} ${currency}`;
-    }
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-    }).format(amount);
-  };
+  const priceInfo = product ? formatPriceWithSats(product.price, product.currency) : null;
 
   const getCurrencyIcon = (currency: string) => {
     if (currency === 'BTC' || currency === 'SATS') {
@@ -435,11 +427,19 @@ const MediaPreview = () => {
                           )}
                         </div>
                         <CardTitle className="text-2xl">{product.title}</CardTitle>
-                        <div className="flex items-center gap-2">
-                          {getCurrencyIcon(product.currency)}
-                          <span className="text-2xl font-bold text-green-600 dark:text-green-400">
-                            {formatPrice(product.price, product.currency)}
-                          </span>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            {getCurrencyIcon(product.currency)}
+                            <span className="text-2xl font-bold text-green-600 dark:text-green-400">
+                              {priceInfo?.primary}
+                            </span>
+                          </div>
+                          {priceInfo?.sats && (
+                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <Zap className="w-3 h-3 text-yellow-500" />
+                              <span>{priceInfo.sats}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
