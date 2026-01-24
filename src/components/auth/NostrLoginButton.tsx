@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { useLoginActions } from '@/hooks/useLoginActions';
 import { Button } from '@/components/ui/button';
 import { LogIn } from 'lucide-react';
-import 'nostr-login/dist/style.css';
 
 interface NostrLoginButtonProps {
   onLogin?: () => void;
@@ -16,6 +15,9 @@ export function NostrLoginButton({ onLogin, className = '' }: NostrLoginButtonPr
     // Dynamically import and initialize nostr-login
     const initNostrLogin = async () => {
       try {
+        // Load CSS
+        await import('nostr-login/dist/style.css');
+        
         const { init } = await import('nostr-login');
         
         // Initialize nostr-login with configuration
