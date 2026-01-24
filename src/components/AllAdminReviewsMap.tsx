@@ -11,12 +11,19 @@ import { useAuthor } from '@/hooks/useAuthor';
 import { useMapProvider } from '@/hooks/useMapProvider';
 import { useAllAdminReviews } from '@/hooks/useAdminReviews';
 import { useMarketplaceProducts } from '@/hooks/useMarketplaceProducts';
+import { useNostr } from '@nostrify/react';
+import { useQuery } from '@tanstack/react-query';
 import { genUserName } from '@/lib/genUserName';
 import { MapNavigationControls, type MapLocation } from '@/components/MapNavigationControls';
-import { Star, MapPin, RefreshCw, Loader2, AlertCircle, Layers, Maximize2, Minimize2, Camera } from 'lucide-react';
+import { Star, MapPin, RefreshCw, Loader2, AlertCircle, Layers, Maximize2, Minimize2, Camera, BookOpen } from 'lucide-react';
 import { nip19 } from 'nostr-tools';
 import * as geohash from 'ngeohash';
 import { upgradeMultipleReviews, applyPrecisionUpgrades, getUpgradeStats } from '@/lib/precisionMigration';
+import type { NostrEvent } from '@nostrify/nostrify';
+
+// The Traveltelly admin npub for stories
+const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642';
+const ADMIN_HEX = nip19.decode(ADMIN_NPUB).data as string;
 
 // Fix for Leaflet default markers in bundled applications
 import L from 'leaflet';
@@ -63,7 +70,7 @@ interface ReviewLocation {
   upgraded?: boolean;
   gpsCorreected?: boolean;
   correctionConfidence?: number;
-  type?: 'review' | 'stock-media'; // To distinguish between reviews and stock media
+  type?: 'review' | 'stock-media' | 'story'; // To distinguish between reviews, stock media, and stories
 }
 
 function decodeGeohash(geohashStr: string): { lat: number; lng: number; precision: number; accuracy: string } {
@@ -100,22 +107,31 @@ function decodeGeohash(geohashStr: string): { lat: number; lng: number; precisio
 }
 
 // Custom marker icon with precision indicator
-const createCustomIcon = (rating: number, precision?: number, upgraded?: boolean, gpsCorreected?: boolean, type?: 'review' | 'stock-media') => {
-  // Stock media scenic spots get blue color
-  const color = type === 'stock-media' ? '#3b82f6' : rating >= 4 ? '#22c55e' : rating >= 3 ? '#eab308' : '#ef4444';
+const createCustomIcon = (rating: number, precision?: number, upgraded?: boolean, gpsCorreected?: boolean, type?: 'review' | 'stock-media' | 'story') => {
+  // Different colors for different types
+  const color = type === 'stock-media' ? '#3b82f6' 
+    : type === 'story' ? '#8b5cf6' 
+    : rating >= 4 ? '#22c55e' : rating >= 3 ? '#eab308' : '#ef4444';
 
   // Add visual indicator for low precision (old reviews) or upgraded reviews
   const isLowPrecision = precision && precision <= 5;
   const isUpgraded = upgraded === true;
   const isGpsCorrected = gpsCorreected === true;
   const isScenicSpot = type === 'stock-media';
+  const isStory = type === 'story';
 
   let strokeColor = color;
   let strokeWidth = '0';
   let strokeDasharray = 'none';
   let indicator = '';
 
-  if (isScenicSpot) {
+  if (isStory) {
+    // Stories get a book icon
+    strokeColor = '#8b5cf6';
+    strokeWidth = '2';
+    strokeDasharray = 'none';
+    indicator = `<circle cx="20" cy="8" r="4" fill="#8b5cf6"/><text x="20" y="11" text-anchor="middle" font-family="Arial" font-size="7" font-weight="bold" fill="white">📖</text>`;
+  } else if (isScenicSpot) {
     // Scenic spots (stock media) get a camera icon
     strokeColor = '#3b82f6';
     strokeWidth = '2';
@@ -196,6 +212,7 @@ function ReviewMarker({ review }: { review: ReviewLocation }) {
   const displayName = metadata?.name || genUserName(review.authorPubkey);
   
   const isScenicSpot = review.type === 'stock-media';
+  const isStory = review.type === 'story';
 
   const categoryEmojis: Record<string, string> = {
     'grocery-store': '🛒',
@@ -250,11 +267,13 @@ function ReviewMarker({ review }: { review: ReviewLocation }) {
       <Popup maxWidth={250} minWidth={200}>
         <div className="p-2">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-lg">{isScenicSpot ? '📸' : (categoryEmojis[review.category] || '📍')}</span>
+            <span className="text-lg">
+              {isStory ? '📖' : isScenicSpot ? '📸' : (categoryEmojis[review.category] || '📍')}
+            </span>
             <h3 className="font-bold text-sm">{review.title}</h3>
           </div>
 
-          {!isScenicSpot && (
+          {!isScenicSpot && !isStory && (
             <div className="flex items-center mb-2">
               {Array.from({ length: 5 }, (_, i) => (
                 <Star
@@ -269,34 +288,39 @@ function ReviewMarker({ review }: { review: ReviewLocation }) {
           )}
 
           <p className="text-xs text-gray-600 mb-2">
-            {isScenicSpot ? `Scenic Spot by ${displayName}` : `Reviewed by ${displayName} (Traveltelly Admin)`}
+            {isStory ? `Travel Story by ${displayName}` : isScenicSpot ? `Scenic Spot by ${displayName}` : `Reviewed by ${displayName} (Traveltelly Admin)`}
           </p>
 
           <div className="flex gap-2 mb-3 flex-wrap">
             <Badge variant="outline" className="text-xs">
               {review.category.replace('-', ' ')}
             </Badge>
+            {isStory && (
+              <Badge variant="default" className="text-xs bg-purple-500">
+                📖 Travel Article
+              </Badge>
+            )}
             {isScenicSpot && (
               <Badge variant="default" className="text-xs bg-blue-500">
                 📷 Stock Media Available
               </Badge>
             )}
-            {review.gpsCorreected && !isScenicSpot && (
+            {review.gpsCorreected && !isScenicSpot && !isStory && (
               <Badge variant="default" className="text-xs bg-green-500">
                 📷 GPS Corrected ({review.accuracy})
               </Badge>
             )}
-            {!review.gpsCorreected && review.upgraded && !isScenicSpot && (
+            {!review.gpsCorreected && review.upgraded && !isScenicSpot && !isStory && (
               <Badge variant="default" className="text-xs bg-blue-500">
                 ↑ Upgraded ({review.accuracy})
               </Badge>
             )}
-            {!review.gpsCorreected && !review.upgraded && review.precision && review.precision <= 5 && !isScenicSpot && (
+            {!review.gpsCorreected && !review.upgraded && review.precision && review.precision <= 5 && !isScenicSpot && !isStory && (
               <Badge variant="destructive" className="text-xs">
                 Low precision ({review.accuracy})
               </Badge>
             )}
-            {!review.gpsCorreected && !review.upgraded && review.precision && review.precision > 5 && !isScenicSpot && (
+            {!review.gpsCorreected && !review.upgraded && review.precision && review.precision > 5 && !isScenicSpot && !isStory && (
               <Badge variant="secondary" className="text-xs">
                 {review.accuracy}
               </Badge>
@@ -314,14 +338,36 @@ function ReviewMarker({ review }: { review: ReviewLocation }) {
           <Button
             size="sm"
             className="w-full text-xs"
-            onClick={() => navigate(isScenicSpot ? `/media/preview/${review.naddr}` : `/review/${review.naddr}`)}
+            onClick={() => navigate(
+              isStory ? `/stories` : isScenicSpot ? `/media/preview/${review.naddr}` : `/review/${review.naddr}`
+            )}
           >
-            {isScenicSpot ? 'View Media' : 'View Details'}
+            {isStory ? 'Read Story' : isScenicSpot ? 'View Media' : 'View Details'}
           </Button>
         </div>
       </Popup>
     </Marker>
   );
+}
+
+// Hook to fetch stories (NIP-23 articles)
+function useStories() {
+  const { nostr } = useNostr();
+
+  return useQuery({
+    queryKey: ['traveltelly-stories-map', ADMIN_HEX],
+    queryFn: async (c) => {
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      const events = await nostr.query([
+        {
+          kinds: [30023], // NIP-23 Long-form content
+          authors: [ADMIN_HEX], // Only from Traveltelly admin
+          limit: 50,
+        }
+      ], { signal });
+      return events;
+    },
+  });
 }
 
 export function AllAdminReviewsMap() {
@@ -342,6 +388,9 @@ export function AllAdminReviewsMap() {
   
   // Also fetch stock media for scenic spots
   const { data: stockMediaProducts } = useMarketplaceProducts();
+  
+  // Fetch stories (NIP-23 articles)
+  const { data: stories } = useStories();
 
   // Auto-load all pages
   useEffect(() => {
@@ -505,12 +554,74 @@ export function AllAdminReviewsMap() {
       console.log(`✅ Total locations: ${upgradedLocations.length} (${allReviews.length} reviews + ${addedCount} stock media)`);
     }
 
+    // Add stories (NIP-23 articles) as story spots
+    if (stories) {
+      console.log(`📖 Processing ${stories.length} stories for map`);
+      
+      let storyCount = 0;
+      for (const story of stories) {
+        // Check for geohash tag
+        const geohashTag = story.tags.find(([name]) => name === 'g')?.[1];
+        const title = story.tags.find(([name]) => name === 'title')?.[1];
+        const image = story.tags.find(([name]) => name === 'image')?.[1];
+        const d = story.tags.find(([name]) => name === 'd')?.[1];
+        
+        console.log(`📖 Story "${title}":`, {
+          hasGeohash: !!geohashTag,
+          geohash: geohashTag,
+          hasTitle: !!title,
+          hasIdentifier: !!d,
+        });
+        
+        if (geohashTag && title && d) {
+          try {
+            const coordinates = decodeGeohash(geohashTag);
+            
+            // Validate coordinates
+            if (coordinates.lat >= -90 && coordinates.lat <= 90 &&
+                coordinates.lng >= -180 && coordinates.lng <= 180) {
+              
+              const naddr = nip19.naddrEncode({
+                identifier: d,
+                pubkey: story.pubkey,
+                kind: 30023,
+              });
+              
+              upgradedLocations.push({
+                id: story.id,
+                lat: coordinates.lat,
+                lng: coordinates.lng,
+                title,
+                rating: 5, // Stories get 5 stars as featured content
+                category: '📖 Story',
+                authorPubkey: story.pubkey,
+                naddr,
+                image,
+                precision: coordinates.precision,
+                accuracy: coordinates.accuracy,
+                type: 'story',
+              });
+              
+              storyCount++;
+              console.log(`✅ Added story to map: ${title} at [${coordinates.lat}, ${coordinates.lng}]`);
+            }
+          } catch (error) {
+            console.error('❌ Error decoding story geohash:', story.id, error);
+          }
+        } else {
+          console.log(`⚠️ Story "${title || 'untitled'}" has no geohash tag - won't appear on map`);
+        }
+      }
+      
+      console.log(`✅ Total locations: ${upgradedLocations.length} (${allReviews.length} reviews + ${addedCount} stock media + ${storyCount} stories)`);
+    }
+
     return {
       reviewLocations: upgradedLocations,
       totalReviews: allReviews.length,
       reviewsWithoutLocation: withoutLocation,
     };
-  }, [data, stockMediaProducts]);
+  }, [data, stockMediaProducts, stories]);
 
   const handleLocationSelect = (location: MapLocation) => {
     setTargetLocation(location);
