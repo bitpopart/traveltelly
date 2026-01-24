@@ -44,7 +44,7 @@ const Index = () => {
               {!user && <LoginArea className="max-w-60" />}
 
               {/* Feature Cards */}
-              <div className="grid gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-3 w-full max-w-4xl">
+              <div className="grid gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-3 w-full max-w-6xl">
                 {/* Share Reviews Card */}
                 <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
                   <Link to="/reviews" className="block relative">
