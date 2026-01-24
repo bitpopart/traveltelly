@@ -195,6 +195,7 @@ export function UnifiedSearchBar({
   const [pendingSuggestionNavigation, setPendingSuggestionNavigation] = useState(false);
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { data: searchResults, isLoading } = useUnifiedSearch(query);
   const { data: suggestions } = useSearchSuggestions();
@@ -302,7 +303,14 @@ export function UnifiedSearchBar({
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (inputRef.current && !inputRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      // Check if click is outside both input and dropdown
+      if (
+        inputRef.current && 
+        !inputRef.current.contains(target) &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(target)
+      ) {
         setIsOpen(false);
       }
     };
@@ -423,7 +431,7 @@ export function UnifiedSearchBar({
 
       {/* Search Results Dropdown */}
       {isOpen && (
-        <Card className="absolute top-full left-0 right-0 mt-2 z-50 max-h-96 overflow-hidden shadow-lg">
+        <Card ref={dropdownRef} className="absolute top-full left-0 right-0 mt-2 z-50 max-h-96 overflow-hidden shadow-lg">
           <CardContent className="p-0">
             {isLoading ? (
               <div className="p-4 space-y-3">
