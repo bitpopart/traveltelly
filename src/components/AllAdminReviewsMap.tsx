@@ -496,7 +496,7 @@ export function AllAdminReviewsMap() {
 
     console.log(`✅ Final admin locations with upgrades: ${upgradedLocations.length}`);
 
-    // Track counts for logging
+    // Track counts for content types on map
     let stockMediaCount = 0;
     let storyCount = 0;
 
