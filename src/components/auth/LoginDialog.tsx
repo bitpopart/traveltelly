@@ -2,7 +2,7 @@
 // It is important that all functionality in this file is preserved, and should only be modified if explicitly requested.
 
 import React, { useRef, useState } from 'react';
-import { Shield, Upload } from 'lucide-react';
+import { Shield, Upload, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button.tsx';
 import { Input } from '@/components/ui/input.tsx';
 import {
@@ -105,9 +105,10 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
         </DialogHeader>
 
         <div className='px-6 py-8 space-y-6'>
-          <Tabs defaultValue={'nostr' in window ? 'extension' : 'key'} className='w-full'>
-            <TabsList className='grid grid-cols-3 mb-6'>
+          <Tabs defaultValue={'nostr' in window ? 'extension' : 'primal'} className='w-full'>
+            <TabsList className='grid grid-cols-4 mb-6'>
               <TabsTrigger value='extension'>Extension</TabsTrigger>
+              <TabsTrigger value='primal'>Primal</TabsTrigger>
               <TabsTrigger value='key'>Nsec</TabsTrigger>
               <TabsTrigger value='bunker'>Bunker</TabsTrigger>
             </TabsList>
@@ -125,6 +126,45 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
                 >
                   {isLoading ? 'Logging in...' : 'Login with Extension'}
                 </Button>
+              </div>
+            </TabsContent>
+
+            <TabsContent value='primal' className='space-y-4'>
+              <div className='text-center p-4 rounded-lg bg-gray-50 dark:bg-gray-800'>
+                <Zap className='w-12 h-12 mx-auto mb-3 text-primary' />
+                <p className='text-sm text-gray-600 dark:text-gray-300 mb-4'>
+                  Login with Primal remote signer - scan QR code or paste connection URI
+                </p>
+                <div className='space-y-3'>
+                  <a
+                    href="https://primal.net/settings/nsec-login"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Button
+                      variant="outline"
+                      className='w-full rounded-full py-6'
+                    >
+                      Get Primal Connection URI
+                    </Button>
+                  </a>
+                  <div className='space-y-2'>
+                    <Input
+                      id='primalBunker'
+                      value={bunkerUri}
+                      onChange={(e) => setBunkerUri(e.target.value)}
+                      className='rounded-lg border-gray-300 dark:border-gray-700 focus-visible:ring-primary'
+                      placeholder='bunker://...'
+                    />
+                  </div>
+                  <Button
+                    className='w-full rounded-full py-6'
+                    onClick={handleBunkerLogin}
+                    disabled={isLoading || !bunkerUri.trim() || !bunkerUri.startsWith('bunker://')}
+                  >
+                    {isLoading ? 'Connecting...' : 'Login with Primal'}
+                  </Button>
+                </div>
               </div>
             </TabsContent>
 
