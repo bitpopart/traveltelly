@@ -155,25 +155,26 @@ function StoryItem({ story, onReadMore }: StoryItemProps) {
             <Button
               variant="ghost"
               size="sm"
-              className={reactions?.userReaction === '+' ? 'text-red-600' : ''}
+              className={`rounded-full ${reactions?.userReaction === '+' ? 'text-red-600' : ''}`}
             >
               <Heart className={`w-4 h-4 mr-1 ${reactions?.userReaction === '+' ? 'fill-current' : ''}`} />
               {reactions?.likes || 0}
             </Button>
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" className="rounded-full">
               <MessageCircle className="w-4 h-4 mr-1" />
               {comments?.length || 0}
             </Button>
             <Button
               variant="outline"
               size="sm"
+              className="rounded-full"
               onClick={() => onReadMore(story)}
             >
               <BookOpen className="w-4 h-4 mr-1" />
               Read Full Article
             </Button>
           </div>
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" className="rounded-full">
             <Share className="w-4 h-4 mr-1" />
             Share
           </Button>
