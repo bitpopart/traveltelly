@@ -47,7 +47,7 @@ const Index = () => {
                 {/* Share Reviews Card */}
                 <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
                   <Link to="/reviews" className="block relative">
-                    <div className="aspect-video overflow-hidden">
+                    <div className="aspect-video md:aspect-[4/5] overflow-hidden">
                       {latestReview ? (
                         <img
                           src={latestReview.image}
@@ -56,7 +56,7 @@ const Index = () => {
                         />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
-                          <Star className="w-16 h-16 text-white opacity-50" />
+                          <Star className="w-16 h-16 md:w-24 md:h-24 text-white opacity-50" />
                         </div>
                       )}
                       <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors flex items-center justify-center">
@@ -71,7 +71,7 @@ const Index = () => {
                 {/* Travel Stories Card */}
                 <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
                   <Link to="/stories" className="block relative">
-                    <div className="aspect-video overflow-hidden">
+                    <div className="aspect-video md:aspect-[4/5] overflow-hidden">
                       {latestStory ? (
                         <img
                           src={latestStory.image}
@@ -80,7 +80,7 @@ const Index = () => {
                         />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-                          <BookOpen className="w-16 h-16 text-white opacity-50" />
+                          <BookOpen className="w-16 h-16 md:w-24 md:h-24 text-white opacity-50" />
                         </div>
                       )}
                       <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors flex items-center justify-center">
@@ -95,7 +95,7 @@ const Index = () => {
                 {/* Stock Media Card */}
                 <Card className="overflow-hidden hover:shadow-lg transition-shadow group sm:col-span-2 md:col-span-1">
                   <Link to="/marketplace" className="block relative">
-                    <div className="aspect-video overflow-hidden">
+                    <div className="aspect-video md:aspect-[4/5] overflow-hidden">
                       {latestStockMedia ? (
                         <img
                           src={latestStockMedia.image}
@@ -104,7 +104,7 @@ const Index = () => {
                         />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
-                          <Camera className="w-16 h-16 text-white opacity-50" />
+                          <Camera className="w-16 h-16 md:w-24 md:h-24 text-white opacity-50" />
                         </div>
                       )}
                       <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors flex items-center justify-center">
