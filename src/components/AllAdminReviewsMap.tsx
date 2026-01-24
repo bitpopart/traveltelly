@@ -375,6 +375,28 @@ export function AllAdminReviewsMap() {
   const [targetLocation, setTargetLocation] = useState<MapLocation | null>(null);
   const [showControls, setShowControls] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<string>('World View');
+  const [initialCenter, setInitialCenter] = useState<[number, number]>([20, 0]);
+  const [initialZoom, setInitialZoom] = useState(2);
+
+  // Detect user's location on mount
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          console.log('📍 User location detected:', latitude, longitude);
+          setInitialCenter([latitude, longitude]);
+          setInitialZoom(5); // Zoom to region level
+          setCurrentLocation('Your Region');
+        },
+        (error) => {
+          console.log('ℹ️ Geolocation not available, using world view:', error.message);
+          // Keep default world view
+        },
+        { timeout: 5000, maximumAge: 600000 } // 5s timeout, cache for 10 minutes
+      );
+    }
+  }, []);
 
   const {
     data,
@@ -657,10 +679,6 @@ export function AllAdminReviewsMap() {
     );
   }
 
-  // Use world center for homepage view
-  const centerLat = 20; // World center latitude
-  const centerLng = 0;  // World center longitude
-
   const tileConfig = getTileLayerConfig(mapProvider);
 
   return (
@@ -726,8 +744,12 @@ export function AllAdminReviewsMap() {
             <CardContent className="p-0">
               <div className="h-[60vh] md:h-96 w-full rounded-lg overflow-hidden touch-pan-x touch-pan-y">
                 <MapContainer
-                  center={[centerLat, centerLng]}
-                  zoom={2}
+                  center={initialCenter}
+                  zoom={initialZoom}
+                  minZoom={2}
+                  maxZoom={18}
+                  maxBounds={[[-90, -180], [90, 180]]}
+                  maxBoundsViscosity={1.0}
                   style={{ height: '100%', width: '100%' }}
                   className="z-0"
                   zoomControl={true}
