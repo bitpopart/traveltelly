@@ -7,10 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { PhotoUpload } from '@/components/PhotoUpload';
+import { PhotoUpload, type UploadedPhoto } from '@/components/PhotoUpload';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
+import { type GPSCoordinates } from '@/lib/exifUtils';
+import * as geohash from 'ngeohash';
 import { Plus, Loader2, Package, DollarSign, MapPin } from 'lucide-react';
 
 interface CreateProductDialogProps {
@@ -70,6 +72,7 @@ const CURRENCIES = [
 export function CreateProductDialog({ children }: CreateProductDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [gpsCoordinates, setGpsCoordinates] = useState<GPSCoordinates | null>(null);
   const [formData, setFormData] = useState<ProductFormData>({
     title: '',
     description: '',
@@ -89,9 +92,14 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handlePhotosChange = (photos: { uploaded: boolean; url?: string }[]) => {
+  const handlePhotosChange = (photos: UploadedPhoto[]) => {
     const imageUrls = photos.filter(photo => photo.uploaded && photo.url).map(photo => photo.url!);
     setFormData(prev => ({ ...prev, images: imageUrls }));
+  };
+
+  const handleGPSExtracted = (coordinates: GPSCoordinates) => {
+    setGpsCoordinates(coordinates);
+    console.log('📍 GPS coordinates extracted from photo:', coordinates);
   };
 
   const validateForm = (): string | null => {
@@ -151,6 +159,13 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
         tags.push(['location', formData.location.trim()]);
       }
 
+      // Add geohash if GPS coordinates are available
+      if (gpsCoordinates) {
+        const hash = geohash.encode(gpsCoordinates.latitude, gpsCoordinates.longitude, 8);
+        tags.push(['g', hash]);
+        console.log('📍 Adding geohash to stock media:', hash, gpsCoordinates);
+      }
+
       // Add image tags
       formData.images.forEach(imageUrl => {
         tags.push(['image', imageUrl]);
@@ -179,6 +194,7 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
         location: '',
         images: [],
       });
+      setGpsCoordinates(null);
       setIsOpen(false);
     } catch (error) {
       console.error('Error creating product:', error);
@@ -359,11 +375,17 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
             <CardContent>
               <PhotoUpload
                 onPhotosChange={handlePhotosChange}
+                onGPSExtracted={handleGPSExtracted}
                 maxPhotos={5}
                 className="w-full"
               />
               <p className="text-xs text-muted-foreground mt-2">
                 Upload preview images and media files. First image will be used as the main preview.
+                {gpsCoordinates && (
+                  <span className="block mt-1 text-green-600">
+                    📍 GPS location detected: {gpsCoordinates.latitude.toFixed(6)}, {gpsCoordinates.longitude.toFixed(6)}
+                  </span>
+                )}
               </p>
             </CardContent>
           </Card>
