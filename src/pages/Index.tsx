@@ -50,7 +50,7 @@ const Index = () => {
                 {/* Share Reviews Card */}
                 <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
                   <Link to="/reviews" className="block relative">
-                    <div className="aspect-video md:aspect-[4/5] overflow-hidden">
+                    <div className="aspect-video md:aspect-[4/5] overflow-hidden relative">
                       {latestReview ? (
                         <img
                           src={latestReview.image}
@@ -62,9 +62,12 @@ const Index = () => {
                           <Star className="w-16 h-16 md:w-24 md:h-24 text-white opacity-50" />
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                        <Button className="rounded-full px-6 py-2 bg-white/95 text-gray-900 hover:bg-white font-medium shadow-lg backdrop-blur-sm">
-                          Explore Reviews
+                      <div className="absolute inset-x-0 bottom-0 p-4">
+                        <Button 
+                          className="w-full rounded-full font-medium shadow-lg text-white hover:opacity-90 transition-opacity" 
+                          style={{ backgroundColor: '#27b0ff' }}
+                        >
+                          Reviews
                         </Button>
                       </div>
                     </div>
@@ -74,7 +77,7 @@ const Index = () => {
                 {/* Travel Stories Card */}
                 <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
                   <Link to="/stories" className="block relative">
-                    <div className="aspect-video md:aspect-[4/5] overflow-hidden">
+                    <div className="aspect-video md:aspect-[4/5] overflow-hidden relative">
                       {latestStory ? (
                         <img
                           src={latestStory.image}
@@ -86,9 +89,12 @@ const Index = () => {
                           <BookOpen className="w-16 h-16 md:w-24 md:h-24 text-white opacity-50" />
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                        <Button className="rounded-full px-6 py-2 bg-white/95 text-gray-900 hover:bg-white font-medium shadow-lg backdrop-blur-sm">
-                          Read Stories
+                      <div className="absolute inset-x-0 bottom-0 p-4">
+                        <Button 
+                          className="w-full rounded-full font-medium shadow-lg text-white hover:opacity-90 transition-opacity" 
+                          style={{ backgroundColor: '#b2d235' }}
+                        >
+                          Stories
                         </Button>
                       </div>
                     </div>
@@ -98,7 +104,7 @@ const Index = () => {
                 {/* Stock Media Card */}
                 <Card className="overflow-hidden hover:shadow-lg transition-shadow group sm:col-span-2 md:col-span-1">
                   <Link to="/marketplace" className="block relative">
-                    <div className="aspect-video md:aspect-[4/5] overflow-hidden">
+                    <div className="aspect-video md:aspect-[4/5] overflow-hidden relative">
                       {latestStockMedia ? (
                         <img
                           src={latestStockMedia.image}
@@ -110,8 +116,11 @@ const Index = () => {
                           <Camera className="w-16 h-16 md:w-24 md:h-24 text-white opacity-50" />
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                        <Button className="rounded-full px-6 py-2 bg-white/95 text-gray-900 hover:bg-white font-medium shadow-lg backdrop-blur-sm">
+                      <div className="absolute inset-x-0 bottom-0 p-4">
+                        <Button 
+                          className="w-full rounded-full font-medium shadow-lg text-white hover:opacity-90 transition-opacity" 
+                          style={{ backgroundColor: '#ec1a58' }}
+                        >
                           Stock Media
                         </Button>
                       </div>
