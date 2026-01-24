@@ -613,7 +613,7 @@ export function AllAdminReviewsMap() {
         }
       }
       
-      console.log(`✅ Total locations: ${upgradedLocations.length} (${allReviews.length} reviews + ${addedCount} stock media + ${storyCount} stories)`);
+      console.log(`✅ Total locations: ${upgradedLocations.length} (${allReviews.length} reviews + ${stockMediaCount} stock media + ${storyCount} stories)`);
     }
 
     return {
@@ -735,7 +735,6 @@ export function AllAdminReviewsMap() {
                   doubleClickZoom={true}
                   scrollWheelZoom={true}
                   dragging={true}
-                  tap={true}
                 >
                   <TileLayer
                     attribution={tileConfig.attribution}

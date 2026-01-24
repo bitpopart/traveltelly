@@ -477,7 +477,6 @@ export function ReviewsMap() {
             doubleClickZoom={true}
             scrollWheelZoom={true}
             dragging={true}
-            tap={true}
           >
             <TileLayer
               attribution={tileConfig.attribution}
