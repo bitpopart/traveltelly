@@ -137,7 +137,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
                 </p>
                 <div className='space-y-3'>
                   <a
-                    href="https://primal.net/settings/nsec-login"
+                    href="https://primal.net/settings"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -145,9 +145,12 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
                       variant="outline"
                       className='w-full rounded-full py-6'
                     >
-                      Get Primal Connection URI
+                      Open Primal Settings
                     </Button>
                   </a>
+                  <p className='text-xs text-muted-foreground'>
+                    Go to Settings → Nostr Address → Login Credentials to get your bunker connection URI
+                  </p>
                   <div className='space-y-2'>
                     <Input
                       id='primalBunker'
