@@ -1,19 +1,19 @@
 {
-  "name": "Reviewstr",
-  "short_name": "Reviewstr",
-  "description": "Location-based reviews on Nostr",
+  "name": "TravelTelly - Nostr Powered Travel Community",
+  "short_name": "TravelTelly",
+  "description": "Share your travel experiences and discover amazing places on Nostr",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ea580c",
+  "background_color": "#f4f4f5",
+  "theme_color": "#b700d7",
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "/traveltelly-logo.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/traveltelly-logo.png",
       "sizes": "512x512",
       "type": "image/png"
     }
