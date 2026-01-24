@@ -44,88 +44,76 @@ const Index = () => {
 
               {/* Feature Cards */}
               <div className="grid gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-3 w-full max-w-4xl">
-                <Card className="text-center hover:shadow-lg transition-shadow overflow-hidden">
-                  {latestReview && (
-                    <Link to={`/review/${latestReview.naddr}`} className="block">
-                      <div className="aspect-video overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
+                {/* Share Reviews Card */}
+                <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
+                  <Link to="/reviews" className="block relative">
+                    <div className="aspect-video overflow-hidden">
+                      {latestReview ? (
                         <img
                           src={latestReview.image}
                           alt={latestReview.title}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
+                          <Star className="w-16 h-16 text-white opacity-50" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                        <Button className="rounded-full px-6 py-2 bg-white text-gray-900 hover:bg-white/90 font-medium shadow-lg">
+                          Explore Reviews
+                        </Button>
                       </div>
-                    </Link>
-                  )}
-                  <CardHeader className="pb-3">
-                    <Star className="w-10 h-10 md:w-12 md:h-12 mx-auto text-orange-600 mb-2" />
-                    <CardTitle className="text-base md:text-lg">Share Reviews</CardTitle>
-                    <CardDescription className="text-sm">
-                      Rate and review amazing places you've visited
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <Link to="/reviews">
-                      <Button className="w-full">
-                        Explore Reviews
-                      </Button>
-                    </Link>
-                  </CardContent>
+                    </div>
+                  </Link>
                 </Card>
 
-                <Card className="text-center hover:shadow-lg transition-shadow overflow-hidden">
-                  {latestStory && (
-                    <Link to={`/stories#${latestStory.naddr}`} className="block">
-                      <div className="aspect-video overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
+                {/* Travel Stories Card */}
+                <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
+                  <Link to="/stories" className="block relative">
+                    <div className="aspect-video overflow-hidden">
+                      {latestStory ? (
                         <img
                           src={latestStory.image}
                           alt={latestStory.title}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                          <BookOpen className="w-16 h-16 text-white opacity-50" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                        <Button className="rounded-full px-6 py-2 bg-white text-gray-900 hover:bg-white/90 font-medium shadow-lg">
+                          Read Stories
+                        </Button>
                       </div>
-                    </Link>
-                  )}
-                  <CardHeader className="pb-3">
-                    <BookOpen className="w-10 h-10 md:w-12 md:h-12 mx-auto text-blue-600 mb-2" />
-                    <CardTitle className="text-base md:text-lg">Travel Stories</CardTitle>
-                    <CardDescription className="text-sm">
-                      Discover inspiring travel adventures and experiences
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <Link to="/stories">
-                      <Button className="w-full bg-blue-600 hover:bg-blue-700">
-                        Read Stories
-                      </Button>
-                    </Link>
-                  </CardContent>
+                    </div>
+                  </Link>
                 </Card>
 
-                <Card className="text-center hover:shadow-lg transition-shadow overflow-hidden sm:col-span-2 md:col-span-1">
-                  {latestStockMedia && (
-                    <Link to={`/media/preview/${latestStockMedia.naddr}`} className="block">
-                      <div className="aspect-video overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
+                {/* Stock Media Card */}
+                <Card className="overflow-hidden hover:shadow-lg transition-shadow group sm:col-span-2 md:col-span-1">
+                  <Link to="/marketplace" className="block relative">
+                    <div className="aspect-video overflow-hidden">
+                      {latestStockMedia ? (
                         <img
                           src={latestStockMedia.image}
                           alt={latestStockMedia.title}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
+                          <Camera className="w-16 h-16 text-white opacity-50" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                        <Button className="rounded-full px-6 py-2 bg-white text-gray-900 hover:bg-white/90 font-medium shadow-lg">
+                          Stock Media
+                        </Button>
                       </div>
-                    </Link>
-                  )}
-                  <CardHeader className="pb-3">
-                    <Camera className="w-10 h-10 md:w-12 md:h-12 mx-auto text-green-600 mb-2" />
-                    <CardTitle className="text-base md:text-lg">Stock Media</CardTitle>
-                    <CardDescription className="text-sm">
-                      Buy and sell high-quality travel photography
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <Link to="/marketplace">
-                      <Button className="w-full bg-green-600 hover:bg-green-700">
-                        Browse Photos
-                      </Button>
-                    </Link>
-                  </CardContent>
+                    </div>
+                  </Link>
                 </Card>
               </div>
 
