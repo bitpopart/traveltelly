@@ -45,13 +45,13 @@ export default function Reviews() {
             {user && (
               <div className="flex justify-center gap-3 mb-6">
                 <Link to="/create-review">
-                  <Button className="bg-orange-600 hover:bg-orange-700">
+                  <Button className="bg-orange-600 hover:bg-orange-700 rounded-full">
                     <Plus className="w-4 h-4 mr-2" />
                     Write Review
                   </Button>
                 </Link>
                 <Link to="/marketplace">
-                  <Button variant="outline">
+                  <Button variant="outline" className="rounded-full">
                     <Camera className="w-4 h-4 mr-2" />
                     Browse Photos
                   </Button>
