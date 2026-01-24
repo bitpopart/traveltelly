@@ -37,7 +37,7 @@ export function ZapButton({
       <Button
         variant={variant === 'prominent' ? 'default' : 'outline'}
         size={size}
-        className={`${sizeClasses} ${baseClasses} transition-all duration-200 ${className}`}
+        className={`rounded-full ${sizeClasses} ${baseClasses} transition-all duration-200 ${className}`}
       >
         <Zap className={`${size === 'lg' ? 'w-5 h-5' : 'w-4 h-4'} mr-2 fill-current`} />
         ⚡ Zap

@@ -195,7 +195,7 @@ function ReviewCard({ review }: { review: ReviewEvent }) {
               {category.replace('-', ' ')}
             </Badge>
             <Link to={`/review/${naddr}`}>
-              <Button size="sm" variant="outline" className="text-xs">
+              <Button size="sm" variant="outline" className="rounded-full text-xs">
                 View Details
               </Button>
             </Link>

@@ -190,7 +190,7 @@ function ReviewCard({ review }: { review: ReviewEvent }) {
               event={review}
             />
             <Link to={`/review/${naddr}`}>
-              <Button variant="ghost" size="sm" className="h-8 px-3 text-gray-600 hover:text-gray-700">
+              <Button variant="ghost" size="sm" className="rounded-full h-8 px-3 text-gray-600 hover:text-gray-700">
                 View Details
               </Button>
             </Link>
