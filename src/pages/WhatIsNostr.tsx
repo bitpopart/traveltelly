@@ -27,7 +27,7 @@ export default function WhatIsNostr() {
   });
 
   return (
-    <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#def5ff' }}>
+    <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#e8e8e8' }}>
       <Navigation />
       <div className="container mx-auto px-3 md:px-4 py-6 md:py-12">
         <div className="max-w-4xl mx-auto">
