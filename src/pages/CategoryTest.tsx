@@ -14,7 +14,7 @@ export default function CategoryTest() {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
 
   return (
-    <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#e8e8e8' }}>
+    <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#f4f4f5' }}>
       <Navigation />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">

@@ -101,7 +101,7 @@ const ReviewDetail = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#e8e8e8' }}>
+      <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#f4f4f5' }}>
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-4xl mx-auto">
             <Card className="border-dashed">
@@ -125,7 +125,7 @@ const ReviewDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#e8e8e8' }}>
+      <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#f4f4f5' }}>
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-4xl mx-auto space-y-6">
             <Skeleton className="h-8 w-32" />
@@ -161,7 +161,7 @@ const ReviewDetail = () => {
 
   if (!review) {
     return (
-      <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#e8e8e8' }}>
+      <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#f4f4f5' }}>
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-4xl mx-auto">
             <Card className="border-dashed">
@@ -242,7 +242,7 @@ const ReviewDetail = () => {
   };
 
   return (
-    <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#e8e8e8' }}>
+    <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#f4f4f5' }}>
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           {/* Back Button */}

@@ -23,32 +23,7 @@ const Settings = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#e8e8e8' }}>
-        <Navigation />
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-2xl mx-auto">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <SettingsIcon className="w-5 h-5" />
-                  Settings
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-center py-8">
-                <p className="text-muted-foreground mb-6">
-                  You need to be logged in to access settings.
-                </p>
-                <LoginArea className="max-w-60 mx-auto" />
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#e8e8e8' }}>
+      <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#f4f4f5' }}>
       <Navigation />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
