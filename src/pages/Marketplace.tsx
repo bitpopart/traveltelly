@@ -65,10 +65,10 @@ const Marketplace = () => {
             <div className="mb-6">
               <Store className="w-16 h-16 mx-auto text-blue-600 dark:text-blue-400 mb-4" />
               <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">
-                🎨 Nostr Media Marketplace
+                Nostr Travel Media Marketplace
               </h1>
               <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
-                Decentralized marketplace for digital media, creative assets & content with Lightning ⚡ payments
+                Decentralized marketplace for digital travel media with Lightning ⚡ payments
               </p>
             </div>
 
@@ -100,7 +100,7 @@ const Marketplace = () => {
           </div>
 
           {/* Media Types Grid */}
-          <div className="grid md:grid-cols-4 gap-6 mb-12">
+          <div className="grid md:grid-cols-2 gap-6 mb-12 max-w-3xl mx-auto">
             <Card className="border-purple-200 dark:border-purple-800 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20">
               <CardContent className="p-6 text-center">
                 <div className="p-3 bg-purple-500 rounded-full w-fit mx-auto mb-3">
@@ -110,7 +110,7 @@ const Marketplace = () => {
                   📸 Photos
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                  High-quality stock photos, portraits, and artistic photography
+                  High-quality travel photography and stock photos
                 </p>
               </CardContent>
             </Card>
@@ -124,35 +124,7 @@ const Marketplace = () => {
                   🎥 Videos
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Stock footage, animations, and professional video content
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-green-200 dark:border-green-800 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20">
-              <CardContent className="p-6 text-center">
-                <div className="p-3 bg-green-500 rounded-full w-fit mx-auto mb-3">
-                  <Music className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                  🎵 Audio
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Music tracks, sound effects, and audio loops
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-blue-200 dark:border-blue-800 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20">
-              <CardContent className="p-6 text-center">
-                <div className="p-3 bg-blue-500 rounded-full w-fit mx-auto mb-3">
-                  <Palette className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                  🎨 Graphics
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Illustrations, icons, templates, and design assets
+                  Travel video footage and cinematic content
                 </p>
               </CardContent>
             </Card>
@@ -209,7 +181,7 @@ const Marketplace = () => {
               <div className="grid md:grid-cols-5 gap-4">
                 <div className="md:col-span-2">
                   <Input
-                    placeholder="Search photos, videos, audio, graphics..."
+                    placeholder="Search travel photos and videos..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full"
@@ -223,13 +195,6 @@ const Marketplace = () => {
                     <SelectItem value="all">All Media Types</SelectItem>
                     <SelectItem value="photos">📸 Photos</SelectItem>
                     <SelectItem value="videos">🎥 Videos</SelectItem>
-                    <SelectItem value="audio">🎵 Audio</SelectItem>
-                    <SelectItem value="graphics">🎨 Graphics</SelectItem>
-                    <SelectItem value="illustrations">✏️ Illustrations</SelectItem>
-                    <SelectItem value="templates">📄 Templates</SelectItem>
-                    <SelectItem value="3d">🧊 3D Models</SelectItem>
-                    <SelectItem value="fonts">🔤 Fonts</SelectItem>
-                    <SelectItem value="presets">⚙️ Presets</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>

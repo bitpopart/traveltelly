@@ -222,13 +222,6 @@ export function EditMediaDialog({ isOpen, onClose, product, onUpdate }: EditMedi
                   <SelectContent>
                     <SelectItem value="photos">📸 Photos</SelectItem>
                     <SelectItem value="videos">🎥 Videos</SelectItem>
-                    <SelectItem value="audio">🎵 Audio</SelectItem>
-                    <SelectItem value="graphics">🎨 Graphics</SelectItem>
-                    <SelectItem value="illustrations">✏️ Illustrations</SelectItem>
-                    <SelectItem value="templates">📄 Templates</SelectItem>
-                    <SelectItem value="3d">🧊 3D Models</SelectItem>
-                    <SelectItem value="fonts">🔤 Fonts</SelectItem>
-                    <SelectItem value="presets">⚙️ Presets</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

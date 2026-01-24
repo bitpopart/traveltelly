@@ -31,14 +31,6 @@ interface ProductFormData {
 const MEDIA_TYPES = [
   'photos',
   'videos',
-  'audio',
-  'graphics',
-  'illustrations',
-  'templates',
-  '3d',
-  'fonts',
-  'presets',
-  'other',
 ];
 
 const CATEGORIES = [
