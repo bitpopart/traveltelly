@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { ShareButton } from '@/components/ShareButton';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useInfiniteReviews } from '@/hooks/useInfiniteReviews';
 import { genUserName } from '@/lib/genUserName';
@@ -194,6 +195,15 @@ function ReviewCard({ review }: { review: ReviewEvent }) {
             <Badge variant="outline" className="capitalize text-xs">
               {category.replace('-', ' ')}
             </Badge>
+            <ShareButton
+              url={`/review/${naddr}`}
+              title={title}
+              description={review.content || `${rating}/5 stars - ${location}`}
+              image={image}
+              variant="ghost"
+              size="sm"
+              className="text-xs"
+            />
             <Link to={`/review/${naddr}`}>
               <Button size="sm" variant="outline" className="rounded-full text-xs">
                 View Details

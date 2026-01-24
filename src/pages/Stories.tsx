@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RelaySelector } from '@/components/RelaySelector';
+import { ShareButton } from '@/components/ShareButton';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
@@ -21,7 +22,6 @@ import {
   Calendar,
   Heart,
   MessageCircle,
-  Share,
   MapPin,
   Camera,
   Plus,
@@ -174,10 +174,14 @@ function StoryItem({ story, onReadMore }: StoryItemProps) {
               Read Full Article
             </Button>
           </div>
-          <Button variant="ghost" size="sm" className="rounded-full">
-            <Share className="w-4 h-4 mr-1" />
-            Share
-          </Button>
+          <ShareButton
+            url={`/stories#${nip19.naddrEncode({ identifier, pubkey: story.pubkey, kind: 30023 })}`}
+            title={title}
+            description={summary || contentPreview.slice(0, 200)}
+            image={image}
+            variant="ghost"
+            size="sm"
+          />
         </div>
       </CardContent>
     </Card>
