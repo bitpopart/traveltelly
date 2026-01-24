@@ -2,7 +2,7 @@
 // It is important that all functionality in this file is preserved, and should only be modified if explicitly requested.
 
 import React, { useRef, useState } from 'react';
-import { Shield, Upload, Zap } from 'lucide-react';
+import { Shield, Upload, Zap, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button.tsx';
 import { Input } from '@/components/ui/input.tsx';
 import {
@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog.tsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.tsx';
+import { NostrLoginButton } from './NostrLoginButton';
 import { useLoginActions } from '@/hooks/useLoginActions';
 
 interface LoginDialogProps {
@@ -105,13 +106,43 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
         </DialogHeader>
 
         <div className='px-6 py-8 space-y-6'>
-          <Tabs defaultValue={'nostr' in window ? 'extension' : 'primal'} className='w-full'>
-            <TabsList className='grid grid-cols-4 mb-6'>
-              <TabsTrigger value='extension'>Extension</TabsTrigger>
-              <TabsTrigger value='primal'>Primal</TabsTrigger>
+          <Tabs defaultValue='nostr-login' className='w-full'>
+            <TabsList className='grid grid-cols-5 mb-6'>
+              <TabsTrigger value='nostr-login'>
+                <LogIn className='w-3 h-3 sm:mr-1' />
+                <span className='hidden sm:inline'>Login</span>
+              </TabsTrigger>
+              <TabsTrigger value='extension'>
+                <Shield className='w-3 h-3 sm:mr-1' />
+                <span className='hidden sm:inline'>Extension</span>
+              </TabsTrigger>
+              <TabsTrigger value='primal'>
+                <Zap className='w-3 h-3 sm:mr-1' />
+                <span className='hidden sm:inline'>Primal</span>
+              </TabsTrigger>
               <TabsTrigger value='key'>Nsec</TabsTrigger>
               <TabsTrigger value='bunker'>Bunker</TabsTrigger>
             </TabsList>
+
+            <TabsContent value='nostr-login' className='space-y-4'>
+              <div className='text-center p-6 rounded-lg bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20'>
+                <LogIn className='w-16 h-16 mx-auto mb-4 text-purple-600 dark:text-purple-400' />
+                <h3 className='text-lg font-bold mb-2'>Recommended Login Method</h3>
+                <p className='text-sm text-gray-600 dark:text-gray-300 mb-6'>
+                  The easiest way to login - works with browser extensions, nsec.app, and all NIP-46 signers. Supports OAuth-like flow for seamless sign up!
+                </p>
+                <NostrLoginButton 
+                  onLogin={() => {
+                    onLogin();
+                    onClose();
+                  }}
+                  className='w-full text-lg py-6'
+                />
+                <p className='text-xs text-muted-foreground mt-4'>
+                  ✨ Powered by nostr-login - secure, easy, and works everywhere
+                </p>
+              </div>
+            </TabsContent>
 
             <TabsContent value='extension' className='space-y-4'>
               <div className='text-center p-4 rounded-lg bg-gray-50 dark:bg-gray-800'>
