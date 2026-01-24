@@ -60,8 +60,8 @@ const Index = () => {
                           <Star className="w-16 h-16 md:w-24 md:h-24 text-white opacity-50" />
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                        <Button className="rounded-full px-6 py-2 bg-white text-gray-900 hover:bg-white/90 font-medium shadow-lg">
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <Button className="rounded-full px-6 py-2 bg-white/95 text-gray-900 hover:bg-white font-medium shadow-lg backdrop-blur-sm">
                           Explore Reviews
                         </Button>
                       </div>
@@ -84,8 +84,8 @@ const Index = () => {
                           <BookOpen className="w-16 h-16 md:w-24 md:h-24 text-white opacity-50" />
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                        <Button className="rounded-full px-6 py-2 bg-white text-gray-900 hover:bg-white/90 font-medium shadow-lg">
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <Button className="rounded-full px-6 py-2 bg-white/95 text-gray-900 hover:bg-white font-medium shadow-lg backdrop-blur-sm">
                           Read Stories
                         </Button>
                       </div>
@@ -108,8 +108,8 @@ const Index = () => {
                           <Camera className="w-16 h-16 md:w-24 md:h-24 text-white opacity-50" />
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                        <Button className="rounded-full px-6 py-2 bg-white text-gray-900 hover:bg-white/90 font-medium shadow-lg">
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <Button className="rounded-full px-6 py-2 bg-white/95 text-gray-900 hover:bg-white font-medium shadow-lg backdrop-blur-sm">
                           Stock Media
                         </Button>
                       </div>

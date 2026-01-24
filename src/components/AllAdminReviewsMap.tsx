@@ -662,11 +662,7 @@ export function AllAdminReviewsMap() {
         </div>
       </div>
 
-      {!hasNextPage && totalReviews > 0 && (
-        <div className="text-center text-sm text-gray-500 py-4">
-          ✅ All admin reviews loaded ({totalReviews} total, {reviewLocations.length} with locations)
-        </div>
-      )}
+
     </div>
   );
 }
