@@ -174,14 +174,6 @@ function StoryItem({ story, onReadMore }: StoryItemProps) {
               Read Full Article
             </Button>
           </div>
-          <ShareButton
-            url={`/stories#${nip19.naddrEncode({ identifier, pubkey: story.pubkey, kind: 30023 })}`}
-            title={title}
-            description={summary || contentPreview.slice(0, 200)}
-            image={image}
-            variant="ghost"
-            size="sm"
-          />
         </div>
       </CardContent>
     </Card>

@@ -225,38 +225,28 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
         </CardContent>
 
-        <CardFooter className="p-4 pt-0 flex flex-col gap-2">
-          <div className="flex gap-2 w-full">
-            {isOwnProduct ? (
-              <Button variant="outline" className="flex-1" disabled>
-                Your Media
-              </Button>
-            ) : product.status === 'sold' ? (
-              <Button variant="outline" className="flex-1" disabled>
-                Sold Out
-              </Button>
-            ) : product.status === 'inactive' ? (
-              <Button variant="outline" className="flex-1" disabled>
-                Unavailable
-              </Button>
-            ) : (
-              <Button
-                className="flex-1 bg-blue-600 hover:bg-blue-700"
-                onClick={() => setShowPaymentDialog(true)}
-              >
-                <Download className="w-4 h-4 mr-2" />
-                License & Download
-              </Button>
-            )}
-            <ShareButton
-              url={`/media/preview/${generateProductNaddr()}`}
-              title={product.title}
-              description={product.description || `Stock media - ${priceInfo.primary}`}
-              image={product.images[0]}
-              variant="outline"
-              size="default"
-            />
-          </div>
+        <CardFooter className="p-4 pt-0">
+          {isOwnProduct ? (
+            <Button variant="outline" className="w-full" disabled>
+              Your Media
+            </Button>
+          ) : product.status === 'sold' ? (
+            <Button variant="outline" className="w-full" disabled>
+              Sold Out
+            </Button>
+          ) : product.status === 'inactive' ? (
+            <Button variant="outline" className="w-full" disabled>
+              Unavailable
+            </Button>
+          ) : (
+            <Button
+              className="w-full bg-blue-600 hover:bg-blue-700"
+              onClick={() => setShowPaymentDialog(true)}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              License & Download
+            </Button>
+          )}
         </CardFooter>
       </Card>
 

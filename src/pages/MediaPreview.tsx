@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ShareButton } from "@/components/ShareButton";
 import { PaymentDialog } from "@/components/PaymentDialog";
 import { MediaReviews } from "@/components/MediaReviews";
 import { EditMediaDialog } from "@/components/EditMediaDialog";
@@ -23,7 +24,6 @@ import {
   Download,
   Eye,
   Heart,
-  Share2,
   MapPin,
   User,
   Zap,
@@ -521,10 +521,15 @@ const MediaPreview = () => {
                           <Heart className="w-4 h-4 mr-2" />
                           Save
                         </Button>
-                        <Button variant="outline" size="sm" className="flex-1">
-                          <Share2 className="w-4 h-4 mr-2" />
-                          Share
-                        </Button>
+                        <ShareButton
+                          url={`/media/preview/${naddr}`}
+                          title={product.title}
+                          description={product.description || `Stock media - ${priceInfo.primary}`}
+                          image={product.images[0]}
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                        />
                       </div>
                     </div>
 

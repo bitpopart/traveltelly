@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ShareButton } from '@/components/ShareButton';
 import { useArticleReactions, useReactToArticle } from '@/hooks/useArticleReactions';
 import { useArticleComments, useCommentOnArticle } from '@/hooks/useArticleComments';
 import { useAuthor } from '@/hooks/useAuthor';
@@ -14,7 +15,6 @@ import { useToast } from '@/hooks/useToast';
 import {
   Heart,
   MessageCircle,
-  Share,
   X,
   Send,
   Calendar,
@@ -23,6 +23,7 @@ import {
   ThumbsDown
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { nip19 } from 'nostr-tools';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 interface FullArticleViewProps {
@@ -189,34 +190,12 @@ export function FullArticleView({ article, isOpen, onClose }: FullArticleViewPro
     });
   };
 
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: title,
-          text: summary || 'Check out this travel article on Traveltelly',
-          url: window.location.href,
-        });
-      } catch {
-        // User cancelled sharing
-      }
-    } else {
-      // Fallback: copy to clipboard
-      try {
-        await navigator.clipboard.writeText(window.location.href);
-        toast({
-          title: 'Link copied!',
-          description: 'Article link has been copied to clipboard.',
-        });
-      } catch {
-        toast({
-          title: 'Failed to copy link',
-          description: 'Please copy the URL manually.',
-          variant: 'destructive',
-        });
-      }
-    }
-  };
+  // Generate naddr for sharing
+  const articleNaddr = nip19.naddrEncode({
+    identifier,
+    pubkey: article.pubkey,
+    kind: 30023,
+  });
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -315,10 +294,14 @@ export function FullArticleView({ article, isOpen, onClose }: FullArticleViewPro
               {reactionsLoading ? '...' : reactions?.dislikes || 0}
             </Button>
 
-            <Button variant="ghost" size="sm" onClick={handleShare}>
-              <Share className="w-4 h-4 mr-1" />
-              Share
-            </Button>
+            <ShareButton
+              url={`/stories#${articleNaddr}`}
+              title={title}
+              description={summary || article.content.slice(0, 200)}
+              image={image}
+              variant="ghost"
+              size="sm"
+            />
 
             <div className="flex items-center gap-1 text-sm text-muted-foreground ml-auto">
               <MessageCircle className="w-4 h-4" />

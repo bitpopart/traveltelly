@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ShareButton } from '@/components/ShareButton';
 import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
 import { LocationMap } from '@/components/LocationMap';
@@ -346,12 +347,20 @@ const ReviewDetail = () => {
                 </div>
               )}
 
-              {/* Zap Button - positioned prominently after content */}
+              {/* Action Buttons - positioned prominently after content */}
               <div className="flex items-center gap-3 pt-4">
                 <ZapButton
                   authorPubkey={review.pubkey}
                   event={review}
                   variant="prominent"
+                  size="default"
+                />
+                <ShareButton
+                  url={`/review/${naddr}`}
+                  title={title}
+                  description={review.content || `${rating}/5 stars - ${location || 'Review'}`}
+                  image={image}
+                  variant="outline"
                   size="default"
                 />
               </div>

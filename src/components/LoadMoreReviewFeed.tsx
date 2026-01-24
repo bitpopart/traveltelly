@@ -195,15 +195,6 @@ function ReviewCard({ review }: { review: ReviewEvent }) {
             <Badge variant="outline" className="capitalize text-xs">
               {category.replace('-', ' ')}
             </Badge>
-            <ShareButton
-              url={`/review/${naddr}`}
-              title={title}
-              description={review.content || `${rating}/5 stars - ${location}`}
-              image={image}
-              variant="ghost"
-              size="sm"
-              className="text-xs"
-            />
             <Link to={`/review/${naddr}`}>
               <Button size="sm" variant="outline" className="rounded-full text-xs">
                 View Details
