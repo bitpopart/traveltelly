@@ -20,16 +20,16 @@ export function NostrLoginButton({ onLogin, className = '' }: NostrLoginButtonPr
         
         // Initialize nostr-login with configuration
         init({
-          bunkers: ['nsec.app', 'highlighter.com'],
+          bunkers: 'nsec.app,highlighter.com',
           darkMode: document.documentElement.classList.contains('dark'),
-          methods: ['connect', 'extension', 'readOnly'],
+          methods: 'connect,extension,readOnly',
           theme: 'default',
           noBanner: true, // We'll trigger it manually
-          onAuth: async (npub: string, options) => {
+          onAuth: async (npub: string, options: any) => {
             console.log('✅ Nostr-login successful:', npub, options);
             
             // Check if window.nostr is available (nostr-login sets this up)
-            if (window.nostr) {
+            if ((window as any).nostr) {
               try {
                 loginActions.extension();
                 onLogin?.();
@@ -44,7 +44,7 @@ export function NostrLoginButton({ onLogin, className = '' }: NostrLoginButtonPr
         document.addEventListener('nlAuth', (e: any) => {
           console.log('nlAuth event:', e.detail);
           if (e.detail.type === 'login' || e.detail.type === 'signup') {
-            if (window.nostr) {
+            if ((window as any).nostr) {
               loginActions.extension();
               onLogin?.();
             }

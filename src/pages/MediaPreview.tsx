@@ -524,7 +524,7 @@ const MediaPreview = () => {
                         <ShareButton
                           url={`/media/preview/${naddr}`}
                           title={product.title}
-                          description={product.description || `Stock media - ${priceInfo.primary}`}
+                          description={product.description || `Stock media - ${priceInfo?.primary || 'Available'}`}
                           image={product.images[0]}
                           variant="outline"
                           size="sm"
