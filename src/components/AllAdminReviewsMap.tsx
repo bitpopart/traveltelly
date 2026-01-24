@@ -451,9 +451,16 @@ export function AllAdminReviewsMap() {
     if (stockMediaProducts) {
       console.log(`📸 Processing ${stockMediaProducts.length} stock media products for map`);
       
+      let addedCount = 0;
       for (const product of stockMediaProducts) {
         // Check for geohash tag
         const geohashTag = product.event.tags.find(([name]) => name === 'g')?.[1];
+        
+        console.log(`📸 Stock media "${product.title}":`, {
+          hasGeohash: !!geohashTag,
+          geohash: geohashTag,
+          allTags: product.event.tags,
+        });
         
         if (geohashTag) {
           try {
@@ -484,15 +491,18 @@ export function AllAdminReviewsMap() {
                 type: 'stock-media',
               });
               
-              console.log(`📸 Added stock media to map: ${product.title}`);
+              addedCount++;
+              console.log(`✅ Added stock media to map: ${product.title} at [${coordinates.lat}, ${coordinates.lng}]`);
             }
           } catch (error) {
-            console.error('Error decoding stock media geohash:', product.id, error);
+            console.error('❌ Error decoding stock media geohash:', product.id, error);
           }
+        } else {
+          console.log(`⚠️ Stock media "${product.title}" has no geohash tag - won't appear on map`);
         }
       }
       
-      console.log(`✅ Total locations (reviews + stock media): ${upgradedLocations.length}`);
+      console.log(`✅ Total locations: ${upgradedLocations.length} (${allReviews.length} reviews + ${addedCount} stock media)`);
     }
 
     return {
