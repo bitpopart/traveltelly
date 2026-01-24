@@ -450,28 +450,34 @@ export function ReviewsMap() {
 
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">Review Locations</CardTitle>
+      <CardHeader className="pb-3 px-3 md:px-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <CardTitle className="text-base md:text-lg">Review Locations</CardTitle>
           <Button
             variant="outline"
             size="sm"
             onClick={handleRefresh}
             disabled={isLoading}
-            className="h-8 px-3"
+            className="h-8 px-2 md:px-3 w-full sm:w-auto"
           >
-            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh
+            <RefreshCw className={`w-4 h-4 md:mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            <span className="hidden md:inline">Refresh</span>
           </Button>
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="h-96 w-full rounded-lg overflow-hidden">
+        <div className="h-[60vh] md:h-96 w-full rounded-lg overflow-hidden touch-pan-x touch-pan-y">
           <MapContainer
             center={[centerLat, centerLng]}
             zoom={2}
             style={{ height: '100%', width: '100%' }}
             className="z-0"
+            zoomControl={true}
+            touchZoom={true}
+            doubleClickZoom={true}
+            scrollWheelZoom={true}
+            dragging={true}
+            tap={true}
           >
             <TileLayer
               attribution={tileConfig.attribution}
@@ -482,42 +488,44 @@ export function ReviewsMap() {
             ))}
           </MapContainer>
         </div>
-        <div className="p-4 bg-gray-50 dark:bg-gray-800">
-          <div className="flex items-center justify-between mb-3">
+        <div className="p-3 md:p-4 bg-gray-50 dark:bg-gray-800">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-3">
             <div className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-gray-600" />
-              <span className="text-sm text-gray-600 dark:text-gray-300">
+              <MapPin className="w-4 h-4 text-gray-600 flex-shrink-0" />
+              <span className="text-xs md:text-sm text-gray-600 dark:text-gray-300">
                 {reviewLocations.length} review{reviewLocations.length !== 1 ? 's' : ''} with locations
               </span>
             </div>
             <div className="flex items-center gap-2 text-xs text-gray-500">
               {reviewLocations.filter(r => r.upgraded).length > 0 && (
                 <span className="text-blue-600 font-medium">
-                  {reviewLocations.filter(r => r.upgraded).length} upgraded to high precision
+                  {reviewLocations.filter(r => r.upgraded).length} upgraded
                 </span>
               )}
             </div>
           </div>
-          <div className="flex items-center gap-4 text-xs text-gray-500 flex-wrap">
+          <div className="flex items-center gap-2 md:gap-4 text-[10px] md:text-xs text-gray-500 flex-wrap">
               <div className="flex items-center gap-1">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <span>4-5 stars</span>
+                <div className="w-2.5 h-2.5 md:w-3 md:h-3 bg-green-500 rounded-full flex-shrink-0"></div>
+                <span>4-5★</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                <span>3 stars</span>
+                <div className="w-2.5 h-2.5 md:w-3 md:h-3 bg-yellow-500 rounded-full flex-shrink-0"></div>
+                <span>3★</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                <span>1-2 stars</span>
+                <div className="w-2.5 h-2.5 md:w-3 md:h-3 bg-red-500 rounded-full flex-shrink-0"></div>
+                <span>1-2★</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-3 h-3 border-2 border-blue-500 rounded-full bg-blue-100"></div>
-                <span>Upgraded precision</span>
+                <div className="w-2.5 h-2.5 md:w-3 md:h-3 border-2 border-blue-500 rounded-full bg-blue-100 flex-shrink-0"></div>
+                <span className="hidden sm:inline">Upgraded</span>
+                <span className="sm:hidden">Upg</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-3 h-3 border-2 border-red-400 border-dashed rounded-full"></div>
-                <span>Low precision</span>
+                <div className="w-2.5 h-2.5 md:w-3 md:h-3 border-2 border-red-400 border-dashed rounded-full flex-shrink-0"></div>
+                <span className="hidden sm:inline">Low precision</span>
+                <span className="sm:hidden">Low</span>
               </div>
             </div>
         </div>
