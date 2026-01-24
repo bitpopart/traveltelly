@@ -230,14 +230,34 @@ export function UnifiedSearchBar({
         }
         case 'story': {
           const dTag = result.event.tags.find(([name]) => name === 'd')?.[1];
-          console.log('Navigating to stories:', dTag ? `/stories#${dTag}` : '/stories');
-          navigate(dTag ? `/stories#${dTag}` : '/stories');
+          if (!dTag) {
+            console.warn('Story missing d tag, navigating to stories page');
+            navigate('/stories');
+            return;
+          }
+          const naddr = nip19.naddrEncode({
+            identifier: dTag,
+            pubkey: result.author,
+            kind: 30023,
+          });
+          console.log('Navigating to story:', `/stories#${naddr}`);
+          navigate(`/stories#${naddr}`);
           break;
         }
         case 'media': {
           const dTag = result.event.tags.find(([name]) => name === 'd')?.[1];
-          console.log('Navigating to marketplace:', dTag ? `/marketplace#${dTag}` : '/marketplace');
-          navigate(dTag ? `/marketplace#${dTag}` : '/marketplace');
+          if (!dTag) {
+            console.warn('Media missing d tag, navigating to marketplace');
+            navigate('/marketplace');
+            return;
+          }
+          const naddr = nip19.naddrEncode({
+            identifier: dTag,
+            pubkey: result.author,
+            kind: 30402,
+          });
+          console.log('Navigating to media preview:', `/media/preview/${naddr}`);
+          navigate(`/media/preview/${naddr}`);
           break;
         }
         default:
