@@ -10,12 +10,16 @@ import { AdminDebugInfo } from "@/components/AdminDebugInfo";
 import { UnifiedSearchBar } from "@/components/UnifiedSearchBar";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useReviewPermissions } from "@/hooks/useReviewPermissions";
+import { useLatestReview, useLatestStory, useLatestStockMedia } from "@/hooks/useLatestItems";
 import { MapPin, Star, Camera, Zap, Shield, BookOpen, Search, Navigation } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Index = () => {
   const { user } = useCurrentUser();
   const { isAdmin, isCheckingPermission } = useReviewPermissions();
+  const { data: latestReview } = useLatestReview();
+  const { data: latestStory } = useLatestStory();
+  const { data: latestStockMedia } = useLatestStockMedia();
 
   useSeoMeta({
     title: 'Traveltelly - Nostr Powered Travel Community',
@@ -40,7 +44,18 @@ const Index = () => {
 
               {/* Feature Cards */}
               <div className="grid gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-3 w-full max-w-4xl">
-                <Card className="text-center hover:shadow-lg transition-shadow">
+                <Card className="text-center hover:shadow-lg transition-shadow overflow-hidden">
+                  {latestReview && (
+                    <Link to={`/review/${latestReview.naddr}`} className="block">
+                      <div className="aspect-video overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
+                        <img
+                          src={latestReview.image}
+                          alt={latestReview.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    </Link>
+                  )}
                   <CardHeader className="pb-3">
                     <Star className="w-10 h-10 md:w-12 md:h-12 mx-auto text-orange-600 mb-2" />
                     <CardTitle className="text-base md:text-lg">Share Reviews</CardTitle>
@@ -57,7 +72,18 @@ const Index = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="text-center hover:shadow-lg transition-shadow">
+                <Card className="text-center hover:shadow-lg transition-shadow overflow-hidden">
+                  {latestStory && (
+                    <Link to={`/stories#${latestStory.naddr}`} className="block">
+                      <div className="aspect-video overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
+                        <img
+                          src={latestStory.image}
+                          alt={latestStory.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    </Link>
+                  )}
                   <CardHeader className="pb-3">
                     <BookOpen className="w-10 h-10 md:w-12 md:h-12 mx-auto text-blue-600 mb-2" />
                     <CardTitle className="text-base md:text-lg">Travel Stories</CardTitle>
@@ -74,7 +100,18 @@ const Index = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="text-center hover:shadow-lg transition-shadow sm:col-span-2 md:col-span-1">
+                <Card className="text-center hover:shadow-lg transition-shadow overflow-hidden sm:col-span-2 md:col-span-1">
+                  {latestStockMedia && (
+                    <Link to={`/media/preview/${latestStockMedia.naddr}`} className="block">
+                      <div className="aspect-video overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
+                        <img
+                          src={latestStockMedia.image}
+                          alt={latestStockMedia.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    </Link>
+                  )}
                   <CardHeader className="pb-3">
                     <Camera className="w-10 h-10 md:w-12 md:h-12 mx-auto text-green-600 mb-2" />
                     <CardTitle className="text-base md:text-lg">Stock Media</CardTitle>
