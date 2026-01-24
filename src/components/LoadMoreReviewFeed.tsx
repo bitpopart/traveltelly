@@ -157,14 +157,16 @@ function ReviewCard({ review }: { review: ReviewEvent }) {
         </div>
 
         {image && (
-          <div className="relative">
-            <img
-              src={image}
-              alt={title}
-              className="w-full h-48 object-cover rounded-lg"
-              loading="lazy"
-            />
-          </div>
+          <Link to={`/review/${naddr}`} className="block">
+            <div className="relative rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
+              <img
+                src={image}
+                alt={title}
+                className="w-full h-48 object-cover"
+                loading="lazy"
+              />
+            </div>
+          </Link>
         )}
 
         {review.content && (

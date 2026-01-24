@@ -46,6 +46,7 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { nip19 } from 'nostr-tools';
+import { Link } from 'react-router-dom';
 
 interface ReviewCardProps {
   review: NostrEvent;
@@ -88,13 +89,15 @@ function ReviewCard({ review, onEdit, onDelete }: ReviewCardProps) {
   return (
     <Card className="overflow-hidden">
       {image && (
-        <div className="aspect-video overflow-hidden">
-          <img
-            src={image}
-            alt={title}
-            className="w-full h-full object-cover"
-          />
-        </div>
+        <Link to={`/review/${naddr}`} className="block">
+          <div className="aspect-video overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
+            <img
+              src={image}
+              alt={title}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        </Link>
       )}
 
       <CardHeader className="pb-3">
