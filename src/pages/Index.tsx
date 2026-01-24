@@ -32,7 +32,7 @@ const Index = () => {
       <div className="container mx-auto px-3 md:px-4 py-4 md:py-8">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <div className="text-center mb-8 md:mb-12">
+          <div className="text-center mb-6 md:mb-10">
             <h1 className="text-3xl md:text-5xl font-bold text-gray-900 dark:text-white mb-3 md:mb-4">
               🌍 Traveltelly
             </h1>
@@ -188,92 +188,12 @@ const Index = () => {
 
           {/* Search Bar */}
           <div className="mb-8 md:mb-12">
-            <div className="text-center mb-4 md:mb-6 px-4">
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                🔍 Search Everything
-              </h2>
-              <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mb-4 md:mb-6">
-                Find reviews, stories, and media by tags, locations, or keywords
-              </p>
-            </div>
-            <UnifiedSearchBar className="mb-6 md:mb-8" />
+            <UnifiedSearchBar />
           </div>
 
           {/* Reviews Map */}
           <div className="mb-8 md:mb-12">
-            <div className="text-center mb-4 md:mb-6 px-4">
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                🗺️ Explore Reviews Worldwide
-              </h2>
-              <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mb-3 md:mb-4">
-                Discover amazing places with our interactive map. Navigate to any country or region instantly!
-              </p>
-              <div className="flex items-center justify-center gap-2 text-xs md:text-sm text-gray-600 dark:text-gray-400">
-                <Navigation className="w-4 h-4 flex-shrink-0" />
-                <span className="hidden sm:inline">Use the navigation panel to explore different regions</span>
-                <span className="sm:hidden">Explore regions with navigation</span>
-              </div>
-            </div>
             <AllAdminReviewsMap />
-          </div>
-
-          {/* Features Grid */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8 md:mb-12">
-            <Card className="border-orange-200 dark:border-orange-800">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-orange-700 dark:text-orange-300 text-base md:text-lg">
-                  <Camera className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
-                  Photo Reviews
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-sm">
-                  Upload photos and extract GPS location automatically from EXIF data.
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="border-orange-200 dark:border-orange-800">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-orange-700 dark:text-orange-300 text-base md:text-lg">
-                  <MapPin className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
-                  Location Mapping
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-sm">
-                  View locations on OpenStreetMap with precise pinpoint accuracy.
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="border-orange-200 dark:border-orange-800">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-orange-700 dark:text-orange-300 text-base md:text-lg">
-                  <Star className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
-                  Star Ratings
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-sm">
-                  Rate places from 1-5 stars across multiple categories and services.
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="border-orange-200 dark:border-orange-800">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-orange-700 dark:text-orange-300 text-base md:text-lg">
-                  <Zap className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
-                  Lightning Tips
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-sm">
-                  Support reviewers with Lightning zaps for helpful reviews.
-                </CardDescription>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Lightning Tips Info */}
@@ -305,8 +225,8 @@ const Index = () => {
           )}
 
           {/* Recent Reviews */}
-          <div className="mb-6 md:mb-8">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 md:mb-6">
+          <div className="mb-8 md:mb-12">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
               <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
                 Recent Reviews
               </h2>
