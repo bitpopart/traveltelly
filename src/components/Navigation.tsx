@@ -35,20 +35,22 @@ export function Navigation({ className }: NavigationProps) {
   };
 
   const allNavItems = [
-    { path: '/', label: 'Home', icon: Home },
-    { path: '/stories', label: 'Stories', icon: BookOpen },
-    { path: '/reviews', label: 'Reviews', icon: Star },
-    { path: '/simple-map-demo', label: 'Map', icon: Map, adminOnly: true },
-    { path: '/marketplace', label: 'Marketplace', icon: Store },
+    { path: '/', label: 'Home', icon: Home, color: '#393636', hoverColor: '#2a2828' },
+    { path: '/reviews', label: 'Reviews', icon: Star, color: '#27b0ff', hoverColor: '#1a9fe6' },
+    { path: '/stories', label: 'Stories', icon: BookOpen, color: '#b2d235', hoverColor: '#9dbf2e' },
+    { path: '/marketplace', label: 'Marketplace', icon: Store, color: '#ec1a58', hoverColor: '#d3164d' },
+    { path: '/simple-map-demo', label: 'Map', icon: Map, adminOnly: true, color: '#393636', hoverColor: '#2a2828' },
   ];
 
   // Filter nav items based on admin status
   const navItems = allNavItems.filter(item => !item.adminOnly || isAdmin);
 
-  const NavButton = ({ path, label, icon: Icon, mobile = false }: {
+  const NavButton = ({ path, label, icon: Icon, color, hoverColor, mobile = false }: {
     path: string;
     label: string;
     icon: React.ElementType;
+    color: string;
+    hoverColor: string;
     mobile?: boolean;
   }) => (
     <Link to={path} onClick={() => mobile && setIsMobileMenuOpen(false)}>
@@ -59,9 +61,23 @@ export function Navigation({ className }: NavigationProps) {
           mobile ? "w-full justify-start" : "",
           isActive(path) && "text-white"
         )}
-        style={isActive(path) ? { backgroundColor: '#393636' } : {}}
-        onMouseEnter={(e) => isActive(path) && (e.currentTarget.style.backgroundColor = '#2a2828')}
-        onMouseLeave={(e) => isActive(path) && (e.currentTarget.style.backgroundColor = '#393636')}
+        style={isActive(path) ? { backgroundColor: color } : {}}
+        onMouseEnter={(e) => {
+          if (!isActive(path)) {
+            e.currentTarget.style.backgroundColor = color;
+            e.currentTarget.style.color = 'white';
+          } else {
+            e.currentTarget.style.backgroundColor = hoverColor;
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!isActive(path)) {
+            e.currentTarget.style.backgroundColor = '';
+            e.currentTarget.style.color = '';
+          } else {
+            e.currentTarget.style.backgroundColor = color;
+          }
+        }}
       >
         <Icon className="w-4 h-4" />
         {label}
@@ -90,6 +106,8 @@ export function Navigation({ className }: NavigationProps) {
                 path={item.path}
                 label={item.label}
                 icon={item.icon}
+                color={item.color}
+                hoverColor={item.hoverColor}
               />
             ))}
           </div>
@@ -143,6 +161,8 @@ export function Navigation({ className }: NavigationProps) {
                 path={item.path}
                 label={item.label}
                 icon={item.icon}
+                color={item.color}
+                hoverColor={item.hoverColor}
                 mobile
               />
             ))}
