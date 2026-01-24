@@ -34,13 +34,16 @@ export function Navigation({ className }: NavigationProps) {
     return false;
   };
 
-  const navItems = [
+  const allNavItems = [
     { path: '/', label: 'Home', icon: Home },
     { path: '/stories', label: 'Stories', icon: BookOpen },
     { path: '/reviews', label: 'Reviews', icon: Star },
-    { path: '/simple-map-demo', label: 'Map', icon: Map },
+    { path: '/simple-map-demo', label: 'Map', icon: Map, adminOnly: true },
     { path: '/marketplace', label: 'Marketplace', icon: Store },
   ];
+
+  // Filter nav items based on admin status
+  const navItems = allNavItems.filter(item => !item.adminOnly || isAdmin);
 
   const NavButton = ({ path, label, icon: Icon, mobile = false }: {
     path: string;
