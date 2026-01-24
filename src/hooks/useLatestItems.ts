@@ -19,13 +19,13 @@ export function useLatestReview() {
   return useQuery({
     queryKey: ['latest-review-with-image'],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(2000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
       
       const authorizedAuthors = Array.from(authorizedReviewers || []);
       const events = await nostr.query([{
         kinds: [34879],
         authors: authorizedAuthors,
-        limit: 20
+        limit: 30
       }], { signal });
 
       // Find the first review with an image
@@ -75,13 +75,13 @@ export function useLatestStory() {
   return useQuery({
     queryKey: ['latest-story-with-image'],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(2000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
       
       // Query for articles (kind 30023) from admin
       const events = await nostr.query([{
         kinds: [30023],
         authors: [ADMIN_HEX],
-        limit: 10
+        limit: 20
       }], { signal });
 
       // Find the first story with an image
@@ -129,13 +129,13 @@ export function useLatestStockMedia() {
   return useQuery({
     queryKey: ['latest-stock-media-with-image'],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(2000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
       
       const authorizedAuthors = Array.from(authorizedUploaders || []);
       const events = await nostr.query([{
         kinds: [30402],
         authors: authorizedAuthors,
-        limit: 15
+        limit: 25
       }], { signal });
 
       // Find the first product with an image

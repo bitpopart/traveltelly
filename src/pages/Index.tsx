@@ -21,6 +21,13 @@ const Index = () => {
   const { data: latestStory } = useLatestStory();
   const { data: latestStockMedia } = useLatestStockMedia();
 
+  // Debug logging
+  console.log('📊 Homepage thumbnails:', {
+    latestReview: latestReview ? { title: latestReview.title, hasImage: !!latestReview.image } : null,
+    latestStory: latestStory ? { title: latestStory.title, hasImage: !!latestStory.image } : null,
+    latestStockMedia: latestStockMedia ? { title: latestStockMedia.title, hasImage: !!latestStockMedia.image } : null,
+  });
+
   useSeoMeta({
     title: 'Traveltelly - Nostr Powered Travel Community',
     description: 'Nostr Powered Travel Community. Upload photos, rate locations, and earn Lightning tips.',
