@@ -5,10 +5,15 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { PhotoUpload, type UploadedPhoto } from '@/components/PhotoUpload';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
+import { type GPSCoordinates } from '@/lib/exifUtils';
 import { nip19 } from 'nostr-tools';
+import * as geohash from 'ngeohash';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 import {
   BookOpen,
   Send,
@@ -16,7 +21,8 @@ import {
   EyeOff,
   Calendar,
   FileText,
-  AlertCircle
+  AlertCircle,
+  MapPin
 } from 'lucide-react';
 
 // The Traveltelly admin npub
@@ -37,6 +43,8 @@ export function CreateArticleForm() {
   const { mutate: createEvent, isPending } = useNostrPublish();
   const { toast } = useToast();
   const [showPreview, setShowPreview] = useState(false);
+  const [gpsCoordinates, setGpsCoordinates] = useState<GPSCoordinates | null>(null);
+  const [uploadedPhotos, setUploadedPhotos] = useState<UploadedPhoto[]>([]);
 
   const [formData, setFormData] = useState<ArticleFormData>({
     title: '',
@@ -48,6 +56,20 @@ export function CreateArticleForm() {
   });
 
   const isAdmin = user?.pubkey === ADMIN_HEX;
+
+  const handlePhotosChange = (photos: UploadedPhoto[]) => {
+    setUploadedPhotos(photos);
+    // Use the first uploaded photo URL as the featured image
+    const firstUploadedUrl = photos.find(p => p.uploaded && p.url)?.url;
+    if (firstUploadedUrl) {
+      setFormData(prev => ({ ...prev, image: firstUploadedUrl }));
+    }
+  };
+
+  const handleGPSExtracted = (coordinates: GPSCoordinates) => {
+    setGpsCoordinates(coordinates);
+    console.log('📍 GPS coordinates extracted from article photo:', coordinates);
+  };
 
   const generateIdentifier = () => {
     const timestamp = Date.now();
@@ -88,6 +110,13 @@ export function CreateArticleForm() {
       tags.push(['image', formData.image.trim()]);
     }
 
+    // Add geohash if GPS coordinates are available
+    if (gpsCoordinates) {
+      const hash = geohash.encode(gpsCoordinates.latitude, gpsCoordinates.longitude, 8);
+      tags.push(['g', hash]);
+      console.log('📍 Adding geohash to article:', hash, gpsCoordinates);
+    }
+
     // Add topic tags
     if (formData.tags.trim()) {
       const topicTags = formData.tags
@@ -123,6 +152,8 @@ export function CreateArticleForm() {
           tags: '',
           identifier: '',
         });
+        setGpsCoordinates(null);
+        setUploadedPhotos([]);
         setShowPreview(false);
       },
       onError: () => {
@@ -216,17 +247,49 @@ export function CreateArticleForm() {
             />
           </div>
 
-          {/* Image URL */}
+          {/* Featured Image Upload */}
           <div>
-            <Label htmlFor="image">Featured Image URL (optional)</Label>
-            <Input
-              id="image"
-              type="url"
-              value={formData.image}
-              onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-              placeholder="https://example.com/image.jpg"
-              className="mt-1"
+            <Label>Featured Image (optional)</Label>
+            <PhotoUpload
+              onPhotosChange={handlePhotosChange}
+              onGPSExtracted={handleGPSExtracted}
+              maxPhotos={1}
+              className="mt-2"
             />
+            {formData.image && (
+              <div className="mt-3">
+                <p className="text-sm text-muted-foreground mb-2">Preview:</p>
+                <img
+                  src={formData.image}
+                  alt="Featured"
+                  className="w-full max-w-md rounded-lg border"
+                />
+              </div>
+            )}
+            {gpsCoordinates && (
+              <div className="mt-3">
+                <p className="text-sm text-green-600 dark:text-green-400 mb-2 flex items-center gap-1">
+                  <MapPin className="w-4 h-4" />
+                  Location detected: {gpsCoordinates.latitude.toFixed(6)}, {gpsCoordinates.longitude.toFixed(6)}
+                </p>
+                <div className="h-48 rounded-lg overflow-hidden border">
+                  <MapContainer
+                    center={[gpsCoordinates.latitude, gpsCoordinates.longitude]}
+                    zoom={13}
+                    style={{ height: '100%', width: '100%' }}
+                    scrollWheelZoom={false}
+                  >
+                    <TileLayer
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    />
+                    <Marker position={[gpsCoordinates.latitude, gpsCoordinates.longitude]}>
+                      <Popup>Article location</Popup>
+                    </Marker>
+                  </MapContainer>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Tags */}
