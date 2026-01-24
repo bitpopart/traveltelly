@@ -27,7 +27,7 @@ const Index = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
       <NavigationComponent />
       <div className="container mx-auto px-3 md:px-4 py-4 md:py-8">
         <div className="max-w-6xl mx-auto">
