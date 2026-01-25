@@ -1,8 +1,8 @@
 // NOTE: This file is stable and usually should not be modified.
 // It is important that all functionality in this file is preserved, and should only be modified if explicitly requested.
 
-import React, { useRef, useState } from 'react';
-import { Shield, Upload, Zap } from 'lucide-react';
+import React, { useRef, useState, useEffect } from 'react';
+import { Shield, Upload, Zap, QrCode, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button.tsx';
 import { Input } from '@/components/ui/input.tsx';
 import {
@@ -14,6 +14,9 @@ import {
 } from '@/components/ui/dialog.tsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.tsx';
 import { useLoginActions } from '@/hooks/useLoginActions';
+import { useIsMobile } from '@/hooks/useIsMobile';
+import { QRCodeSVG } from 'qrcode.react';
+import { generateSecretKey, getPublicKey } from 'nostr-tools';
 
 interface LoginDialogProps {
   isOpen: boolean;
@@ -26,8 +29,34 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
   const [isLoading, setIsLoading] = useState(false);
   const [nsec, setNsec] = useState('');
   const [bunkerUri, setBunkerUri] = useState('');
+  const [nostrConnectUri, setNostrConnectUri] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const login = useLoginActions();
+  const isMobile = useIsMobile();
+
+  // Generate nostrconnect:// URI for client-initiated connections
+  useEffect(() => {
+    if (isOpen) {
+      // Generate a client keypair for this connection
+      const clientSk = generateSecretKey();
+      const clientPubkey = getPublicKey(clientSk);
+      const secret = Math.random().toString(36).substring(2, 15);
+      
+      // Use current app URL as relay
+      const appUrl = window.location.origin;
+      const relay = encodeURIComponent('wss://relay.damus.io');
+      const relay2 = encodeURIComponent('wss://relay.primal.net');
+      
+      // Generate nostrconnect URI for QR code and deep links
+      const uri = `nostrconnect://${clientPubkey}?relay=${relay}&relay=${relay2}&secret=${secret}&name=${encodeURIComponent('TravelTelly')}&url=${encodeURIComponent(appUrl)}`;
+      setNostrConnectUri(uri);
+      
+      // Store the keypair and secret in sessionStorage for the connection flow
+      sessionStorage.setItem('nip46_client_sk', JSON.stringify(Array.from(clientSk)));
+      sessionStorage.setItem('nip46_secret', secret);
+      sessionStorage.setItem('nip46_client_pubkey', clientPubkey);
+    }
+  }, [isOpen]);
 
   const handleExtensionLogin = () => {
     setIsLoading(true);
@@ -228,29 +257,154 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
             </TabsContent>
 
             <TabsContent value='bunker' className='space-y-4'>
-              <div className='space-y-2'>
-                <label htmlFor='bunkerUri' className='text-sm font-medium text-gray-700 dark:text-gray-400'>
-                  Bunker URI
-                </label>
-                <Input
-                  id='bunkerUri'
-                  value={bunkerUri}
-                  onChange={(e) => setBunkerUri(e.target.value)}
-                  className='rounded-lg border-gray-300 dark:border-gray-700 focus-visible:ring-primary'
-                  placeholder='bunker://'
-                />
-                {bunkerUri && !bunkerUri.startsWith('bunker://') && (
-                  <p className='text-red-500 text-xs'>URI must start with bunker://</p>
+              <div className='p-4 rounded-lg bg-gray-50 dark:bg-gray-800'>
+                {isMobile ? (
+                  // Mobile: Show one-tap buttons for popular signers
+                  <div className='space-y-4'>
+                    <div className='text-center mb-4'>
+                      <Smartphone className='w-12 h-12 mx-auto mb-3 text-primary' />
+                      <h3 className='font-semibold mb-2'>One-Tap Sign In</h3>
+                      <p className='text-sm text-gray-600 dark:text-gray-300'>
+                        Connect with your mobile signer app
+                      </p>
+                    </div>
+
+                    {/* Popular mobile signer buttons */}
+                    <div className='space-y-2'>
+                      <a
+                        href={`nostrum://${nostrConnectUri.replace('nostrconnect://', '')}`}
+                        className='block'
+                      >
+                        <Button
+                          variant="outline"
+                          className='w-full rounded-full py-6'
+                        >
+                          <Shield className='w-4 h-4 mr-2' />
+                          Open in Nostrum
+                        </Button>
+                      </a>
+
+                      <a
+                        href={`amber:${nostrConnectUri}`}
+                        className='block'
+                      >
+                        <Button
+                          variant="outline"
+                          className='w-full rounded-full py-6'
+                        >
+                          <Shield className='w-4 h-4 mr-2' />
+                          Open in Amber
+                        </Button>
+                      </a>
+
+                      <a
+                        href={nostrConnectUri}
+                        className='block'
+                      >
+                        <Button
+                          variant="outline"
+                          className='w-full rounded-full py-6'
+                        >
+                          <Shield className='w-4 h-4 mr-2' />
+                          Open in Default Signer
+                        </Button>
+                      </a>
+                    </div>
+
+                    <div className='relative'>
+                      <div className='absolute inset-0 flex items-center'>
+                        <span className='w-full border-t' />
+                      </div>
+                      <div className='relative flex justify-center text-xs uppercase'>
+                        <span className='bg-gray-50 dark:bg-gray-800 px-2 text-muted-foreground'>
+                          Or paste bunker URI
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className='space-y-2'>
+                      <Input
+                        id='bunkerUriMobile'
+                        value={bunkerUri}
+                        onChange={(e) => setBunkerUri(e.target.value)}
+                        className='rounded-lg border-gray-300 dark:border-gray-700 focus-visible:ring-primary'
+                        placeholder='bunker://...'
+                      />
+                      {bunkerUri && !bunkerUri.startsWith('bunker://') && (
+                        <p className='text-red-500 text-xs'>URI must start with bunker://</p>
+                      )}
+                    </div>
+
+                    <Button
+                      className='w-full rounded-full py-6'
+                      onClick={handleBunkerLogin}
+                      disabled={isLoading || !bunkerUri.trim() || !bunkerUri.startsWith('bunker://')}
+                    >
+                      {isLoading ? 'Connecting...' : 'Connect with URI'}
+                    </Button>
+                  </div>
+                ) : (
+                  // Desktop: Show QR code
+                  <div className='space-y-4'>
+                    <div className='text-center mb-4'>
+                      <QrCode className='w-12 h-12 mx-auto mb-3 text-primary' />
+                      <h3 className='font-semibold mb-2'>Scan with Mobile Signer</h3>
+                      <p className='text-sm text-gray-600 dark:text-gray-300'>
+                        Use your mobile app to scan and approve the connection
+                      </p>
+                    </div>
+
+                    {/* QR Code */}
+                    <div className='flex justify-center p-6 bg-white dark:bg-gray-900 rounded-lg'>
+                      <QRCodeSVG
+                        value={nostrConnectUri}
+                        size={220}
+                        level="M"
+                        includeMargin={true}
+                        className='rounded'
+                      />
+                    </div>
+
+                    <div className='bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg text-center'>
+                      <p className='text-xs text-muted-foreground'>
+                        📱 Scan with Nostrum, Amber, or any NIP-46 compatible signer
+                      </p>
+                    </div>
+
+                    <div className='relative'>
+                      <div className='absolute inset-0 flex items-center'>
+                        <span className='w-full border-t' />
+                      </div>
+                      <div className='relative flex justify-center text-xs uppercase'>
+                        <span className='bg-gray-50 dark:bg-gray-800 px-2 text-muted-foreground'>
+                          Or paste bunker URI
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className='space-y-2'>
+                      <Input
+                        id='bunkerUri'
+                        value={bunkerUri}
+                        onChange={(e) => setBunkerUri(e.target.value)}
+                        className='rounded-lg border-gray-300 dark:border-gray-700 focus-visible:ring-primary'
+                        placeholder='bunker://...'
+                      />
+                      {bunkerUri && !bunkerUri.startsWith('bunker://') && (
+                        <p className='text-red-500 text-xs'>URI must start with bunker://</p>
+                      )}
+                    </div>
+
+                    <Button
+                      className='w-full rounded-full py-6'
+                      onClick={handleBunkerLogin}
+                      disabled={isLoading || !bunkerUri.trim() || !bunkerUri.startsWith('bunker://')}
+                    >
+                      {isLoading ? 'Connecting...' : 'Connect with URI'}
+                    </Button>
+                  </div>
                 )}
               </div>
-
-              <Button
-                className='w-full rounded-full py-6'
-                onClick={handleBunkerLogin}
-                disabled={isLoading || !bunkerUri.trim() || !bunkerUri.startsWith('bunker://')}
-              >
-                {isLoading ? 'Connecting...' : 'Login with Bunker'}
-              </Button>
             </TabsContent>
           </Tabs>
 
