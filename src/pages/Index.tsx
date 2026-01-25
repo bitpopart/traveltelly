@@ -39,24 +39,19 @@ const Index = () => {
       <div className="container mx-auto px-3 md:px-4 py-4 md:py-8">
         <div className="max-w-6xl mx-auto">
           {/* Main Content Box */}
-          <Card className="overflow-hidden shadow-lg">
+          <Card className="overflow-hidden shadow-lg mb-8">
             <CardContent className="p-6 md:p-8">
-              {/* Header - All in one line */}
-              <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-                <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white whitespace-nowrap">
-                  Traveltelly - Nostr Powered Travel Community
-                </h1>
-                <div className="flex items-center gap-3">
-                  <Link to="/what-is-nostr">
-                    <Button 
-                      className="rounded-full font-semibold text-white hover:opacity-90 transition-opacity text-xs md:text-sm px-4 md:px-6 py-2 h-auto"
-                      style={{ backgroundColor: '#b700d7' }}
-                    >
-                      NOSTR POWERED
-                    </Button>
-                  </Link>
-                  {!user && <LoginArea className="max-w-60" />}
-                </div>
+              {/* Header - Purple button and login */}
+              <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
+                <Link to="/what-is-nostr">
+                  <Button 
+                    className="rounded-full font-semibold text-white hover:opacity-90 transition-opacity text-sm md:text-base px-6 md:px-8 py-3 h-auto"
+                    style={{ backgroundColor: '#b700d7' }}
+                  >
+                    NOSTR POWERED TRAVEL COMMUNITY
+                  </Button>
+                </Link>
+                {!user && <LoginArea className="max-w-60" />}
               </div>
 
               {/* Feature Cards */}
@@ -156,7 +151,7 @@ const Index = () => {
 
               {/* Action Buttons */}
               {user && (
-                <div className="flex flex-wrap justify-center gap-2 md:gap-3 mb-6">
+                <div className="flex flex-wrap justify-center gap-2 md:gap-3">
                   <Link to="/create-review">
                     <Button size="lg" className="rounded-full text-white text-sm md:text-base" style={{ backgroundColor: '#393636' }}>
                       <Camera className="w-4 h-4 mr-2" />
