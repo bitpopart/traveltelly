@@ -482,10 +482,11 @@ export function ReviewsMap() {
             scrollWheelZoom={true}
             dragging={true}
           >
-            <TileLayer
-              attribution={tileConfig.attribution}
-              url={tileConfig.url}
-            />
+              <TileLayer
+                attribution={tileConfig.attribution}
+                url={tileConfig.url}
+                maxZoom={tileConfig.maxZoom}
+              />
             {reviewLocations.map((review) => (
               <ReviewMarker key={review.id} review={review} />
             ))}

@@ -443,6 +443,7 @@ export function AdminReviewsMap() {
               <TileLayer
                 attribution={tileConfig.attribution}
                 url={tileConfig.url}
+                maxZoom={tileConfig.maxZoom}
               />
               <MarkerClusterGroup
                 chunkedLoading

@@ -743,6 +743,7 @@ export function AllAdminReviewsMap() {
                   <TileLayer
                     attribution={tileConfig.attribution}
                     url={tileConfig.url}
+                    maxZoom={tileConfig.maxZoom}
                   />
                   <MapController targetLocation={targetLocation} />
                   <MarkerClusterGroup

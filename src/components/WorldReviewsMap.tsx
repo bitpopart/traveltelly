@@ -450,6 +450,7 @@ export function WorldReviewsMap() {
               <TileLayer
                 attribution={tileConfig.attribution}
                 url={tileConfig.url}
+                maxZoom={tileConfig.maxZoom}
               />
               {reviewLocations.map((review) => (
                 <ReviewMarker key={review.id} review={review} />
