@@ -38,23 +38,29 @@ const Index = () => {
       <NavigationComponent />
       <div className="container mx-auto px-3 md:px-4 py-4 md:py-8">
         <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-6 md:mb-10">
-            <div className="flex flex-wrap items-center justify-center gap-3 mb-6 md:mb-8 px-4">
-              <Link to="/what-is-nostr">
-                <Button 
-                  className="rounded-full font-semibold text-white hover:opacity-90 transition-opacity text-xs md:text-sm px-4 md:px-6 py-2 md:py-3 h-auto"
-                  style={{ backgroundColor: '#b700d7' }}
-                >
-                  NOSTR POWERED TRAVEL COMMUNITY
-                </Button>
-              </Link>
-              {!user && <LoginArea className="max-w-60" />}
-            </div>
-            <div className="flex flex-col items-center gap-4 md:gap-6">
+          {/* Main Content Box */}
+          <Card className="overflow-hidden shadow-lg">
+            <CardContent className="p-6 md:p-8">
+              {/* Header - All in one line */}
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+                <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white whitespace-nowrap">
+                  Traveltelly - Nostr Powered Travel Community
+                </h1>
+                <div className="flex items-center gap-3">
+                  <Link to="/what-is-nostr">
+                    <Button 
+                      className="rounded-full font-semibold text-white hover:opacity-90 transition-opacity text-xs md:text-sm px-4 md:px-6 py-2 h-auto"
+                      style={{ backgroundColor: '#b700d7' }}
+                    >
+                      NOSTR POWERED
+                    </Button>
+                  </Link>
+                  {!user && <LoginArea className="max-w-60" />}
+                </div>
+              </div>
 
               {/* Feature Cards */}
-              <div className="grid gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-3 w-full max-w-6xl">
+              <div className="grid gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-3 w-full mb-6">
                 {/* Share Reviews Card */}
                 <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
                   <Link to="/reviews" className="block relative">
@@ -143,8 +149,14 @@ const Index = () => {
                 </Card>
               </div>
 
+              {/* Search Bar - Under thumbnails */}
+              <div className="mb-6">
+                <UnifiedSearchBar />
+              </div>
+
+              {/* Action Buttons */}
               {user && (
-                <div className="flex flex-wrap justify-center gap-2 md:gap-3">
+                <div className="flex flex-wrap justify-center gap-2 md:gap-3 mb-6">
                   <Link to="/create-review">
                     <Button size="lg" className="rounded-full text-white text-sm md:text-base" style={{ backgroundColor: '#393636' }}>
                       <Camera className="w-4 h-4 mr-2" />
@@ -206,16 +218,11 @@ const Index = () => {
                   </Link>
                 </div>
               )}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Admin Debug Info (Development Only) */}
           <AdminDebugInfo />
-
-          {/* Search Bar */}
-          <div className="mb-8 md:mb-12">
-            <UnifiedSearchBar />
-          </div>
 
           {/* Reviews Map */}
           <div className="mb-8 md:mb-12">
