@@ -16,6 +16,7 @@ import { MapPin, Star, Calendar, ArrowLeft } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router-dom';
 import type { NostrEvent } from '@nostrify/nostrify';
+import { Navigation as NavigationComponent } from '@/components/Navigation';
 
 import { ZapAuthorButton } from '@/components/ZapAuthorButton';
 import { ZapButton } from '@/components/ZapButton';
@@ -103,6 +104,7 @@ const ReviewDetail = () => {
   if (error) {
     return (
       <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#f4f4f5' }}>
+        <NavigationComponent />
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-4xl mx-auto">
             <Card className="border-dashed">
@@ -127,42 +129,7 @@ const ReviewDetail = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#f4f4f5' }}>
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-4xl mx-auto space-y-6">
-            <Skeleton className="h-8 w-32" />
-
-            <Card>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Skeleton className="h-12 w-12 rounded-full" />
-                    <div className="space-y-2">
-                      <Skeleton className="h-5 w-32" />
-                      <Skeleton className="h-4 w-24" />
-                    </div>
-                  </div>
-                  <Skeleton className="h-6 w-24" />
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Skeleton className="h-8 w-64" />
-                <Skeleton className="h-4 w-48" />
-                <Skeleton className="h-64 w-full" />
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-3/4" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!review) {
-    return (
-      <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#f4f4f5' }}>
+        <NavigationComponent />
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-4xl mx-auto">
             <Card className="border-dashed">
@@ -244,6 +211,7 @@ const ReviewDetail = () => {
 
   return (
     <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#f4f4f5' }}>
+      <NavigationComponent />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           {/* Back Button */}
