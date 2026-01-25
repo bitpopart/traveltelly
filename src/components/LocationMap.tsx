@@ -1,36 +1,9 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import { useMapProvider } from '@/hooks/useMapProvider';
+import { getTileLayerConfig } from '@/lib/mapConfig';
+import { markerIcons } from '@/lib/mapIcons';
 import 'leaflet/dist/leaflet.css';
-
-// Fix for default markers in Leaflet with Vite
-delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
-
-// Map tile layer configurations
-const getTileLayerConfig = (provider: 'openstreetmap' | 'satellite') => {
-  switch (provider) {
-    case 'openstreetmap':
-      return {
-        url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      };
-    case 'satellite':
-      return {
-        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-        attribution: '&copy; <a href="https://www.esri.com/">Esri</a>, Maxar, Earthstar Geographics',
-      };
-    default:
-      return {
-        url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      };
-  }
-};
 
 interface LocationMapProps {
   onLocationSelect: (lat: number, lng: number) => void;
@@ -58,12 +31,15 @@ export function LocationMap({ onLocationSelect, initialLocation, readonly = fals
     // Add tiles based on map provider setting
     const tileConfig = getTileLayerConfig(mapProvider);
     L.tileLayer(tileConfig.url, {
-      attribution: tileConfig.attribution
+      attribution: tileConfig.attribution,
+      maxZoom: tileConfig.maxZoom
     }).addTo(map);
 
     // Add marker if initial location exists
     if (initialLocation) {
-      const marker = L.marker([initialLocation.lat, initialLocation.lng])
+      const marker = L.marker([initialLocation.lat, initialLocation.lng], {
+        icon: markerIcons.selected
+      })
         .addTo(map)
         .bindPopup(`📍 Location: ${initialLocation.lat.toFixed(6)}, ${initialLocation.lng.toFixed(6)}`)
         .openPopup();
@@ -80,8 +56,10 @@ export function LocationMap({ onLocationSelect, initialLocation, readonly = fals
           map.removeLayer(markerRef.current);
         }
 
-        // Add new marker
-        const marker = L.marker([lat, lng])
+        // Add new marker with custom icon
+        const marker = L.marker([lat, lng], {
+          icon: markerIcons.selected
+        })
           .addTo(map)
           .bindPopup(`📍 Selected: ${lat.toFixed(6)}, ${lng.toFixed(6)}`)
           .openPopup();
@@ -109,8 +87,10 @@ export function LocationMap({ onLocationSelect, initialLocation, readonly = fals
       mapInstanceRef.current.removeLayer(markerRef.current);
     }
 
-    // Add new marker
-    const marker = L.marker([initialLocation.lat, initialLocation.lng])
+    // Add new marker with custom icon
+    const marker = L.marker([initialLocation.lat, initialLocation.lng], {
+      icon: markerIcons.selected
+    })
       .addTo(mapInstanceRef.current)
       .bindPopup(`📍 Location: ${initialLocation.lat.toFixed(6)}, ${initialLocation.lng.toFixed(6)}`)
       .openPopup();

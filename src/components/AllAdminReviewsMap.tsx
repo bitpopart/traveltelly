@@ -15,6 +15,7 @@ import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
 import { genUserName } from '@/lib/genUserName';
 import { MapNavigationControls, type MapLocation } from '@/components/MapNavigationControls';
+import { getTileLayerConfig } from '@/lib/mapConfig';
 import { Star, MapPin, RefreshCw, Loader2, AlertCircle, Layers, Maximize2, Minimize2, Camera, BookOpen } from 'lucide-react';
 import { nip19 } from 'nostr-tools';
 import * as geohash from 'ngeohash';
@@ -34,26 +35,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-// Map tile layer configurations
-const getTileLayerConfig = (provider: 'openstreetmap' | 'satellite') => {
-  switch (provider) {
-    case 'openstreetmap':
-      return {
-        url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      };
-    case 'satellite':
-      return {
-        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-        attribution: '&copy; <a href="https://www.esri.com/">Esri</a>, Maxar, Earthstar Geographics',
-      };
-    default:
-      return {
-        url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      };
-  }
-};
+// Map tile layer configurations moved to @/lib/mapConfig
 
 interface ReviewLocation {
   id: string;
