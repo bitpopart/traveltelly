@@ -2,7 +2,7 @@
 // It is important that all functionality in this file is preserved, and should only be modified if explicitly requested.
 
 import React, { useRef, useState, useEffect } from 'react';
-import { Shield, Upload, Zap, QrCode, Smartphone } from 'lucide-react';
+import { Shield, Upload, QrCode, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button.tsx';
 import { Input } from '@/components/ui/input.tsx';
 import {
@@ -135,9 +135,8 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
 
         <div className='px-6 py-8 space-y-6'>
           <Tabs defaultValue={'nostr' in window ? 'extension' : 'key'} className='w-full'>
-            <TabsList className='grid grid-cols-4 mb-6'>
+            <TabsList className='grid grid-cols-3 mb-6'>
               <TabsTrigger value='extension'>Extension</TabsTrigger>
-              <TabsTrigger value='primal'>Primal</TabsTrigger>
               <TabsTrigger value='key'>Nsec</TabsTrigger>
               <TabsTrigger value='bunker'>Bunker</TabsTrigger>
             </TabsList>
@@ -155,59 +154,6 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
                 >
                   {isLoading ? 'Logging in...' : 'Login with Extension'}
                 </Button>
-              </div>
-            </TabsContent>
-
-            <TabsContent value='primal' className='space-y-4'>
-              <div className='p-4 rounded-lg bg-gray-50 dark:bg-gray-800'>
-                <div className='text-center mb-4'>
-                  <Zap className='w-12 h-12 mx-auto mb-3 text-primary' />
-                  <h3 className='font-semibold mb-2'>Login with Primal</h3>
-                  <p className='text-sm text-gray-600 dark:text-gray-300'>
-                    Use Primal's remote signer for secure login
-                  </p>
-                </div>
-                <div className='space-y-3'>
-                  <div className='bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg text-left'>
-                    <p className='text-sm font-medium mb-2'>📱 How to get your connection URI:</p>
-                    <ol className='text-xs text-muted-foreground space-y-1 list-decimal list-inside'>
-                      <li>Open Primal app or website</li>
-                      <li>Go to Settings</li>
-                      <li>Find "Nostr Address" or "Login Credentials"</li>
-                      <li>Copy your bunker:// connection URI</li>
-                      <li>Paste it below</li>
-                    </ol>
-                  </div>
-                  <a
-                    href="https://primal.net/settings"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Button
-                      variant="outline"
-                      className='w-full rounded-full'
-                    >
-                      <Zap className='w-4 h-4 mr-2' />
-                      Open Primal Settings
-                    </Button>
-                  </a>
-                  <div className='space-y-2'>
-                    <Input
-                      id='primalBunker'
-                      value={bunkerUri}
-                      onChange={(e) => setBunkerUri(e.target.value)}
-                      className='rounded-lg border-gray-300 dark:border-gray-700 focus-visible:ring-primary'
-                      placeholder='bunker://...'
-                    />
-                  </div>
-                  <Button
-                    className='w-full rounded-full py-6'
-                    onClick={handleBunkerLogin}
-                    disabled={isLoading || !bunkerUri.trim() || !bunkerUri.startsWith('bunker://')}
-                  >
-                    {isLoading ? 'Connecting...' : 'Login with Primal'}
-                  </Button>
-                </div>
               </div>
             </TabsContent>
 
