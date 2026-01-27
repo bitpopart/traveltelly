@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
-import { Icon } from 'leaflet';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,7 @@ import { useMapProvider } from '@/hooks/useMapProvider';
 import { useAdminReviews } from '@/hooks/useAdminReviews';
 import { genUserName } from '@/lib/genUserName';
 import { getTileLayerConfig } from '@/lib/mapConfig';
+import { createReviewMarkerIcon } from '@/lib/markerIcons';
 import { Star, MapPin, RefreshCw, Loader2, Plus, AlertCircle } from 'lucide-react';
 import { nip19 } from 'nostr-tools';
 import * as geohash from 'ngeohash';
@@ -81,91 +81,7 @@ function decodeGeohash(geohashStr: string): { lat: number; lng: number; precisio
   }
 }
 
-// Custom marker icon with precision indicator
-const createCustomIcon = (rating: number, precision?: number, upgraded?: boolean, gpsCorreected?: boolean) => {
-  // Use brand green color for all markers
-  const mainColor = '#b2d235';
-  const starColor = '#fc0'; // Yellow star
-  const ratingColor = rating >= 4 ? '#22c55e' : rating >= 3 ? '#eab308' : '#ef4444';
-
-  // Add visual indicator for low precision (old reviews) or upgraded reviews
-  const isLowPrecision = precision && precision <= 5;
-  const isUpgraded = upgraded === true;
-  const isGpsCorrected = gpsCorreected === true;
-
-  let strokeColor = mainColor;
-  let strokeWidth = '0';
-  let strokeDasharray = 'none';
-  let indicator = '';
-
-  if (isGpsCorrected) {
-    // GPS corrected reviews get a green indicator with camera icon
-    strokeColor = '#10b981';
-    strokeWidth = '3';
-    strokeDasharray = 'none';
-    indicator = `<circle cx="60" cy="20" r="8" fill="#10b981"/><text x="60" y="26" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold" fill="white">📷</text>`;
-  } else if (isUpgraded) {
-    // Upgraded reviews get a blue indicator
-    strokeColor = '#3b82f6';
-    strokeWidth = '3';
-    strokeDasharray = 'none';
-    indicator = `<circle cx="60" cy="20" r="8" fill="#3b82f6"/><text x="60" y="26" text-anchor="middle" font-family="Arial" font-size="16" font-weight="bold" fill="white">↑</text>`;
-  } else if (isLowPrecision) {
-    // Low precision reviews get a red dashed border
-    strokeColor = '#ff6b6b';
-    strokeWidth = '3';
-    strokeDasharray = '5,3';
-    indicator = `<circle cx="60" cy="20" r="8" fill="#ff6b6b"/>`;
-  }
-
-  // Use the custom review marker shape with star and shadow
-  const svgString = `<svg viewBox="0 0 76.12 113.81" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
-            <feOffset dx="0" dy="2" result="offsetblur"/>
-            <feComponentTransfer>
-              <feFuncA type="linear" slope="0.3"/>
-            </feComponentTransfer>
-            <feMerge>
-              <feMergeNode/>
-              <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-          </filter>
-        </defs>
-        <g filter="url(#shadow)">
-          <circle cx="36.31" cy="49.53" r="19.75" fill="white"/>
-          <path d="M36.31,13.09C15.67,13.09,0,31.41,0,50.14c0,14.93,36.31,63.67,36.31,63.67,0,0,36.3-48.74,36.3-63.67,0-18.72-15.67-37.04-36.3-37.04ZM36.31,66.6c-9.19,0-16.64-7.45-16.64-16.64s7.45-16.64,16.64-16.64,16.64,7.45,16.64,16.64-7.45,16.64-16.64,16.64Z"
-                fill="${mainColor}"
-                stroke="${strokeColor}"
-                stroke-width="${strokeWidth}"
-                stroke-dasharray="${strokeDasharray}"/>
-          <path d="M57.95,26.65l11.24,8.18-4.3-13.2,11.24-8h-13.78L57.95,0l-4.39,13.63h-13.78l11.24,8-4.3,13.2,11.24-8.18Z" fill="${starColor}"/>
-          <text x="36.31" y="57" text-anchor="middle" font-family="Arial" font-size="22" font-weight="bold" fill="${ratingColor}">${rating}</text>
-        </g>
-        ${indicator}
-      </svg>`.replace(/\s+/g, ' ').replace(/[^\x20-\x7E]/g, '').trim();
-
-  try {
-    const encodedSvg = btoa(svgString);
-    return new Icon({
-      iconUrl: `data:image/svg+xml;base64,${encodedSvg}`,
-      iconSize: [42, 62],
-      iconAnchor: [21, 62],
-      popupAnchor: [0, -62],
-    });
-  } catch (error) {
-    console.error('Error creating custom icon:', error);
-    // Fallback to review marker with star and shadow
-    const fallbackSvg = `<svg viewBox="0 0 76.12 113.81" xmlns="http://www.w3.org/2000/svg"><defs><filter id="shadow"><feGaussianBlur in="SourceAlpha" stdDeviation="2"/><feOffset dx="0" dy="2"/><feComponentTransfer><feFuncA type="linear" slope="0.3"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><g filter="url(#shadow)"><circle cx="36.31" cy="49.53" r="19.75" fill="white"/><path d="M36.31,13.09C15.67,13.09,0,31.41,0,50.14c0,14.93,36.31,63.67,36.31,63.67,0,0,36.3-48.74,36.3-63.67,0-18.72-15.67-37.04-36.3-37.04Z" fill="${mainColor}"/><path d="M57.95,26.65l11.24,8.18-4.3-13.2,11.24-8h-13.78L57.95,0l-4.39,13.63h-13.78l11.24,8-4.3,13.2,11.24-8.18Z" fill="${starColor}"/></g></svg>`;
-    return new Icon({
-      iconUrl: `data:image/svg+xml;base64,${btoa(fallbackSvg)}`,
-      iconSize: [42, 62],
-      iconAnchor: [21, 62],
-      popupAnchor: [0, -62],
-    });
-  }
-};
+// Note: Marker icon creation moved to @/lib/markerIcons for reusability
 
 function ReviewMarker({ review }: { review: ReviewLocation }) {
   const navigate = useNavigate();
@@ -221,7 +137,7 @@ function ReviewMarker({ review }: { review: ReviewLocation }) {
   return (
     <Marker
       position={[review.lat, review.lng]}
-      icon={createCustomIcon(review.rating, review.precision, review.upgraded, review.gpsCorreected)}
+          icon={createReviewMarkerIcon(review.rating, review.precision, review.upgraded, review.gpsCorreected)}
     >
       <Popup className="review-popup" maxWidth={300}>
         <div className="p-2">
