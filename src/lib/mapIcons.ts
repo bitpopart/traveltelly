@@ -5,7 +5,7 @@ import L from 'leaflet';
 
 // Main marker icon using custom SVG
 export const mainMarkerIcon = L.icon({
-  iconUrl: '/main-marker.svg',
+  iconUrl: '/main-marker.svg?v=1',
   iconSize: [40, 55],
   iconAnchor: [20, 55],
   popupAnchor: [0, -55],
@@ -60,7 +60,7 @@ export const markerIcons = {
 };
 
 // Get icon based on category
-export const getIconByCategory = (category?: string): L.DivIcon => {
+export const getIconByCategory = (category?: string): L.DivIcon | L.Icon => {
   if (!category) return markerIcons.default;
   
   const categoryLower = category.toLowerCase();
