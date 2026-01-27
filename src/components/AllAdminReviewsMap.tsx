@@ -90,12 +90,53 @@ function decodeGeohash(geohashStr: string): { lat: number; lng: number; precisio
 
 // Custom marker icon with precision indicator
 const createCustomIcon = (rating: number, precision?: number, upgraded?: boolean, gpsCorreected?: boolean, type?: 'review' | 'stock-media' | 'story') => {
-  // Use brand green color for marker base
+  // For stock media, use red camera marker without rating number
+  if (type === 'stock-media') {
+    const svgString = `<svg viewBox="0 0 72.61 100.72" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+          <feOffset dx="0" dy="2"/>
+          <feComponentTransfer>
+            <feFuncA type="linear" slope="0.3"/>
+          </feComponentTransfer>
+          <feMerge>
+            <feMergeNode/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+      <g filter="url(#shadow)">
+        <path fill="#ce1313" d="M36.31,0C15.67,0,0,18.32,0,37.04c0,14.93,36.31,63.67,36.31,63.67,0,0,36.3-48.74,36.3-63.67C72.61,18.32,56.94,0,36.31,0Z"/>
+        <path fill="#fff" d="M56.57,18.4H16.54c-1.84,0-3.33,1.49-3.33,3.33v26.65c0,1.84,1.5,3.33,3.33,3.33h40.04c1.84,0,3.33-1.49,3.33-3.33v-26.65c0-1.84-1.49-3.33-3.33-3.33ZM30.12,47.69c-6.97,0-12.63-5.65-12.63-12.63s5.65-12.63,12.63-12.63,12.63,5.65,12.63,12.63-5.65,12.63-12.63,12.63ZM54.83,25.48h-4.05c-1.21,0-2.19-.98-2.19-2.18s.98-2.19,2.19-2.19h4.05c1.2,0,2.19.98,2.19,2.19s-.98,2.18-2.19,2.18Z"/>
+        <rect fill="#fff" x="17.89" y="13.86" width="9.58" height="3.48"/>
+        <path fill="#fff" d="M36.01,35.06c0,3.33-2.7,6.03-6.02,6.03s-6.02-2.69-6.02-6.03,2.69-6.02,6.02-6.02,6.02,2.7,6.02,6.02Z"/>
+      </g>
+    </svg>`.replace(/\s+/g, ' ').trim();
+    
+    try {
+      return new Icon({
+        iconUrl: `data:image/svg+xml;base64,${btoa(svgString)}`,
+        iconSize: [40, 55],
+        iconAnchor: [20, 55],
+        popupAnchor: [0, -55],
+      });
+    } catch (error) {
+      console.error('Error creating stock media icon:', error);
+      return new Icon({
+        iconUrl: '/stock-media-marker.svg',
+        iconSize: [40, 55],
+        iconAnchor: [20, 55],
+        popupAnchor: [0, -55],
+      });
+    }
+  }
+  
+  // Use brand green color for review/story marker base
   const mainColor = '#b2d235';
   
   // Different colors for rating text based on type
-  const ratingColor = type === 'stock-media' ? '#3b82f6' 
-    : type === 'story' ? '#8b5cf6' 
+  const ratingColor = type === 'story' ? '#8b5cf6' 
     : rating >= 4 ? '#22c55e' : rating >= 3 ? '#eab308' : '#ef4444';
 
   // Add visual indicator for low precision (old reviews) or upgraded reviews
@@ -119,12 +160,6 @@ const createCustomIcon = (rating: number, precision?: number, upgraded?: boolean
     strokeWidth = '3';
     strokeDasharray = 'none';
     indicator = `<circle cx="60" cy="20" r="10" fill="#8b5cf6"/><text x="60" y="27" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold" fill="white">📖</text>`;
-  } else if (isScenicSpot) {
-    // Scenic spots (stock media) get a camera icon
-    strokeColor = '#3b82f6';
-    strokeWidth = '3';
-    strokeDasharray = 'none';
-    indicator = `<circle cx="60" cy="20" r="10" fill="#3b82f6"/><text x="60" y="27" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold" fill="white">📷</text>`;
   } else if (isGpsCorrected) {
     // GPS corrected reviews get a green indicator with camera icon
     strokeColor = '#10b981';
