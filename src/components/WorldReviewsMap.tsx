@@ -121,16 +121,31 @@ const createCustomIcon = (rating: number, precision?: number, upgraded?: boolean
     indicator = `<circle cx="60" cy="20" r="8" fill="#ff6b6b"/>`;
   }
 
-  // Use the custom review marker shape with star
+  // Use the custom review marker shape with star and shadow
   const svgString = `<svg viewBox="0 0 76.12 113.81" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="36.31" cy="49.53" r="19.75" fill="white"/>
-        <path d="M36.31,13.09C15.67,13.09,0,31.41,0,50.14c0,14.93,36.31,63.67,36.31,63.67,0,0,36.3-48.74,36.3-63.67,0-18.72-15.67-37.04-36.3-37.04ZM36.31,66.6c-9.19,0-16.64-7.45-16.64-16.64s7.45-16.64,16.64-16.64,16.64,7.45,16.64,16.64-7.45,16.64-16.64,16.64Z"
-              fill="${mainColor}"
-              stroke="${strokeColor}"
-              stroke-width="${strokeWidth}"
-              stroke-dasharray="${strokeDasharray}"/>
-        <path d="M57.95,26.65l11.24,8.18-4.3-13.2,11.24-8h-13.78L57.95,0l-4.39,13.63h-13.78l11.24,8-4.3,13.2,11.24-8.18Z" fill="${starColor}"/>
-        <text x="36.31" y="57" text-anchor="middle" font-family="Arial" font-size="22" font-weight="bold" fill="${ratingColor}">${rating}</text>
+        <defs>
+          <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+            <feOffset dx="0" dy="2" result="offsetblur"/>
+            <feComponentTransfer>
+              <feFuncA type="linear" slope="0.3"/>
+            </feComponentTransfer>
+            <feMerge>
+              <feMergeNode/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+        <g filter="url(#shadow)">
+          <circle cx="36.31" cy="49.53" r="19.75" fill="white"/>
+          <path d="M36.31,13.09C15.67,13.09,0,31.41,0,50.14c0,14.93,36.31,63.67,36.31,63.67,0,0,36.3-48.74,36.3-63.67,0-18.72-15.67-37.04-36.3-37.04ZM36.31,66.6c-9.19,0-16.64-7.45-16.64-16.64s7.45-16.64,16.64-16.64,16.64,7.45,16.64,16.64-7.45,16.64-16.64,16.64Z"
+                fill="${mainColor}"
+                stroke="${strokeColor}"
+                stroke-width="${strokeWidth}"
+                stroke-dasharray="${strokeDasharray}"/>
+          <path d="M57.95,26.65l11.24,8.18-4.3-13.2,11.24-8h-13.78L57.95,0l-4.39,13.63h-13.78l11.24,8-4.3,13.2,11.24-8.18Z" fill="${starColor}"/>
+          <text x="36.31" y="57" text-anchor="middle" font-family="Arial" font-size="22" font-weight="bold" fill="${ratingColor}">${rating}</text>
+        </g>
         ${indicator}
       </svg>`.replace(/\s+/g, ' ').replace(/[^\x20-\x7E]/g, '').trim();
 
@@ -144,8 +159,8 @@ const createCustomIcon = (rating: number, precision?: number, upgraded?: boolean
     });
   } catch (error) {
     console.error('Error creating custom icon:', error);
-    // Fallback to review marker with star
-    const fallbackSvg = `<svg viewBox="0 0 76.12 113.81" xmlns="http://www.w3.org/2000/svg"><circle cx="36.31" cy="49.53" r="19.75" fill="white"/><path d="M36.31,13.09C15.67,13.09,0,31.41,0,50.14c0,14.93,36.31,63.67,36.31,63.67,0,0,36.3-48.74,36.3-63.67,0-18.72-15.67-37.04-36.3-37.04Z" fill="${mainColor}"/><path d="M57.95,26.65l11.24,8.18-4.3-13.2,11.24-8h-13.78L57.95,0l-4.39,13.63h-13.78l11.24,8-4.3,13.2,11.24-8.18Z" fill="${starColor}"/></svg>`;
+    // Fallback to review marker with star and shadow
+    const fallbackSvg = `<svg viewBox="0 0 76.12 113.81" xmlns="http://www.w3.org/2000/svg"><defs><filter id="shadow"><feGaussianBlur in="SourceAlpha" stdDeviation="2"/><feOffset dx="0" dy="2"/><feComponentTransfer><feFuncA type="linear" slope="0.3"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><g filter="url(#shadow)"><circle cx="36.31" cy="49.53" r="19.75" fill="white"/><path d="M36.31,13.09C15.67,13.09,0,31.41,0,50.14c0,14.93,36.31,63.67,36.31,63.67,0,0,36.3-48.74,36.3-63.67,0-18.72-15.67-37.04-36.3-37.04Z" fill="${mainColor}"/><path d="M57.95,26.65l11.24,8.18-4.3-13.2,11.24-8h-13.78L57.95,0l-4.39,13.63h-13.78l11.24,8-4.3,13.2,11.24-8.18Z" fill="${starColor}"/></g></svg>`;
     return new Icon({
       iconUrl: `data:image/svg+xml;base64,${btoa(fallbackSvg)}`,
       iconSize: [42, 62],
