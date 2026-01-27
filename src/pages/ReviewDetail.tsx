@@ -13,7 +13,7 @@ import { OptimizedImage } from '@/components/OptimizedImage';
 import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
 import { LocationMap } from '@/components/LocationMap';
-import { MapPin, Star, Calendar, ArrowLeft } from 'lucide-react';
+import { MapPin, Star, Calendar, ArrowLeft, ExternalLink } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router-dom';
 import type { NostrEvent } from '@nostrify/nostrify';
@@ -296,6 +296,24 @@ const ReviewDetail = () => {
                   )}
                 </div>
               </div>
+
+              {/* Open in Maps Button */}
+              {coordinates && (
+                <div className="flex justify-center">
+                  <Button
+                    onClick={() => {
+                      const url = `https://www.google.com/maps/search/?api=1&query=${coordinates.lat},${coordinates.lng}`;
+                      window.open(url, '_blank');
+                    }}
+                    className="text-white hover:opacity-90 transition-opacity"
+                    style={{ backgroundColor: '#27b0ff' }}
+                  >
+                    <MapPin className="w-4 h-4 mr-2" />
+                    Open in Maps
+                    <ExternalLink className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              )}
 
               {/* Photo */}
               {image && (
