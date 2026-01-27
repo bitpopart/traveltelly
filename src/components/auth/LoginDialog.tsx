@@ -32,6 +32,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
   const [bunkerUri, setBunkerUri] = useState('');
   const [nostrConnectUri, setNostrConnectUri] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const nip46CleanupRef = useRef<(() => void) | null>(null);
   const login = useLoginActions();
   const isMobile = useIsMobile();
 
@@ -132,67 +133,135 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
     }
   };
 
-  // NIP-46 connection listener
-  let nip46Subscription: any = null;
-
   const startNip46Listener = async (clientSk: Uint8Array, clientPubkey: string, secret: string) => {
+    // Store cleanup function
+    let isActive = true;
+    const subscriptions: any[] = [];
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    const cleanup = () => {
+      isActive = false;
+      subscriptions.forEach(sub => {
+        try {
+          sub.close();
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+      });
+      subscriptions.length = 0;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+    };
+
+    nip46CleanupRef.current = cleanup;
+
+    // Set a timeout for the connection (2 minutes)
+    timeoutId = setTimeout(() => {
+      console.log('⏱️ NIP-46 connection timeout');
+      setIsWaitingForConnection(false);
+      cleanup();
+    }, 120000);
+
     try {
       setIsWaitingForConnection(true);
       
-      // Import NRelay1 from nostrify for direct relay connection
+      // Import required functions
+      const { nip44 } = await import('nostr-tools');
       const { NRelay1 } = await import('@nostrify/nostrify');
       
       // Connect to relays to listen for remote signer connection
       const relays = ['wss://relay.damus.io', 'wss://relay.primal.net'];
       
-      for (const relayUrl of relays) {
-        const relay = new NRelay1(relayUrl);
-        
-        // Subscribe to events from the remote signer
-        const sub = relay.req([{
-          kinds: [24133], // NIP-46 response kind
-          '#p': [clientPubkey],
-          since: Math.floor(Date.now() / 1000),
-        }]);
+      console.log('🔌 Starting NIP-46 listener');
+      console.log('  Client pubkey:', clientPubkey);
+      console.log('  Secret:', secret);
+      console.log('  Relays:', relays);
+      
+      const processRelay = async (relayUrl: string) => {
+        if (!isActive) return;
 
-        // Listen for connection approval
-        for await (const msg of sub) {
-          if (msg[0] === 'EVENT') {
-            const event = msg[2];
+        try {
+          const relay = new NRelay1(relayUrl);
+          
+          console.log('🔌 Listening on', relayUrl);
+          
+          // Subscribe to events from the remote signer
+          const filter = {
+            kinds: [24133], // NIP-46 response kind
+            '#p': [clientPubkey],
+            since: Math.floor(Date.now() / 1000) - 10, // Start from 10 seconds ago
+          };
+          
+          console.log('📡 Subscribing with filter:', filter);
+          const sub = relay.req([filter]);
+          subscriptions.push(sub);
+
+          // Listen for connection approval
+          for await (const msg of sub) {
+            if (!isActive) break;
             
-            // Verify this is a connect response
-            try {
-              // The remote signer sends a 24133 event when it approves the connection
-              // Extract the remote signer's pubkey from the event
-              const remotePubkey = event.pubkey;
+            if (msg[0] === 'EVENT') {
+              const event = msg[2];
               
-              // Build the bunker URI
-              const bunkerUri = `bunker://${remotePubkey}?relay=${encodeURIComponent('wss://relay.damus.io')}&relay=${encodeURIComponent('wss://relay.primal.net')}&secret=${secret}`;
+              console.log('📨 Received NIP-46 event from', event.pubkey);
               
-              // Store the bunker URI
-              sessionStorage.setItem('nip46_bunker_uri', bunkerUri);
-              
-              // Automatically log in with the bunker URI
-              setIsLoading(true);
-              await login.bunker(bunkerUri);
-              
-              // Close the dialog
-              setIsWaitingForConnection(false);
-              setIsLoading(false);
-              onLogin();
-              onClose();
-              
-              // Stop listening
-              sub.close();
-              break;
-            } catch (error) {
-              console.error('Failed to process NIP-46 connection:', error);
-              setIsWaitingForConnection(false);
-              setIsLoading(false);
+              try {
+                // Decrypt the content using NIP-44 v2
+                console.log('🔐 Attempting to decrypt event...');
+                
+                // First get the conversation key
+                const conversationKey = nip44.v2.utils.getConversationKey(clientSk, event.pubkey);
+                const decrypted = nip44.v2.decrypt(event.content, conversationKey);
+                
+                console.log('🔓 Decrypted response:', decrypted);
+                
+                const response = JSON.parse(decrypted);
+                console.log('📦 Parsed response:', response);
+                
+                // Verify this is a connect response with the correct secret
+                if (response.result === secret || response.result === 'ack') {
+                  console.log('✅ Connection approved! Remote signer pubkey:', event.pubkey);
+                  
+                  // Build the bunker URI
+                  const bunkerUri = `bunker://${event.pubkey}?relay=${encodeURIComponent('wss://relay.damus.io')}&relay=${encodeURIComponent('wss://relay.primal.net')}&secret=${secret}`;
+                  
+                  console.log('🔗 Logging in with bunker URI...');
+                  
+                  // Automatically log in
+                  setIsLoading(true);
+                  await login.bunker(bunkerUri);
+                  
+                  console.log('✅ Login successful!');
+                  
+                  // Success!
+                  setIsWaitingForConnection(false);
+                  setIsLoading(false);
+                  onLogin();
+                  onClose();
+                  cleanup();
+                  return;
+                } else {
+                  console.log('⚠️ Response result did not match secret. Expected:', secret, 'Got:', response.result);
+                }
+              } catch (error) {
+                console.error('❌ Failed to process NIP-46 event:', error);
+                if (error instanceof Error) {
+                  console.error('   Error message:', error.message);
+                  console.error('   Error stack:', error.stack);
+                }
+              }
             }
           }
+        } catch (error) {
+          console.error('Relay error:', relayUrl, error);
         }
-      }
+      };
+
+      // Listen on all relays simultaneously
+      await Promise.all(relays.map(processRelay));
+      
     } catch (error) {
       console.error('NIP-46 listener error:', error);
       setIsWaitingForConnection(false);
@@ -200,13 +269,9 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
   };
 
   const stopNip46Listener = () => {
-    if (nip46Subscription) {
-      try {
-        nip46Subscription.close();
-      } catch (error) {
-        console.error('Error stopping NIP-46 listener:', error);
-      }
-      nip46Subscription = null;
+    if (nip46CleanupRef.current) {
+      nip46CleanupRef.current();
+      nip46CleanupRef.current = null;
     }
   };
 
