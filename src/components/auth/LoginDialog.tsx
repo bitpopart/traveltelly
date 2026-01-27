@@ -238,8 +238,10 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
                 
                 const response = JSON.parse(decrypted);
                 console.log('📦 Parsed response:', response);
+                console.log('   Response keys:', Object.keys(response));
                 console.log('   Expected secret:', secret);
                 console.log('   Received result:', response.result);
+                console.log('   Response method:', response.method);
                 console.log('   Is connect response?', response.result === secret || response.result === 'ack');
                 
                 // Verify this is a connect response with the correct secret
@@ -262,10 +264,12 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
                   setIsLoading(true);
                   
                   try {
-                    // Increase timeout to 60 seconds for bunker login
+                    console.log('⏳ Attempting bunker login (this may take up to 90 seconds)...');
+                    
+                    // Increase timeout to 90 seconds for bunker login
                     const loginPromise = login.bunker(bunkerUri);
                     const timeoutPromise = new Promise((_, reject) => 
-                      setTimeout(() => reject(new Error('Bunker connection timeout after 60s')), 60000)
+                      setTimeout(() => reject(new Error('Bunker connection timeout after 90s')), 90000)
                     );
                     
                     await Promise.race([loginPromise, timeoutPromise]);
