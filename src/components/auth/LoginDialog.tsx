@@ -149,6 +149,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
   const startNip46Listener = async (clientSk: Uint8Array, clientPubkey: string, secret: string) => {
     // Store cleanup function
     let isActive = true;
+    let loginAttempted = false; // Prevent multiple login attempts
     const subscriptions: any[] = [];
     let timeoutId: NodeJS.Timeout | null = null;
 
@@ -172,8 +173,9 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
 
     // Set a timeout for the connection (2 minutes)
     timeoutId = setTimeout(() => {
-      console.log('⏱️ NIP-46 connection timeout');
+      console.log('⏱️ NIP-46 connection timeout (no response received)');
       setIsWaitingForConnection(false);
+      setConnectionError('No response from signer. Please try again or use manual bunker URI.');
       cleanup();
     }, 120000);
 
@@ -236,10 +238,20 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
                 
                 const response = JSON.parse(decrypted);
                 console.log('📦 Parsed response:', response);
+                console.log('   Expected secret:', secret);
+                console.log('   Received result:', response.result);
+                console.log('   Is connect response?', response.result === secret || response.result === 'ack');
                 
                 // Verify this is a connect response with the correct secret
                 if (response.result === secret || response.result === 'ack') {
                   console.log('✅ Connection approved! Remote signer pubkey:', event.pubkey);
+                  
+                  // Prevent multiple login attempts from different relay listeners
+                  if (loginAttempted) {
+                    console.log('⚠️ Login already attempted, skipping');
+                    return;
+                  }
+                  loginAttempted = true;
                   
                   // Build the bunker URI
                   const bunkerUri = `bunker://${event.pubkey}?relay=${encodeURIComponent('wss://relay.damus.io')}&relay=${encodeURIComponent('wss://relay.primal.net')}&secret=${secret}`;
@@ -250,10 +262,10 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
                   setIsLoading(true);
                   
                   try {
-                    // Add timeout for bunker login (30 seconds)
+                    // Increase timeout to 60 seconds for bunker login
                     const loginPromise = login.bunker(bunkerUri);
                     const timeoutPromise = new Promise((_, reject) => 
-                      setTimeout(() => reject(new Error('Connection timeout - please try again')), 30000)
+                      setTimeout(() => reject(new Error('Bunker connection timeout after 60s')), 60000)
                     );
                     
                     await Promise.race([loginPromise, timeoutPromise]);
@@ -278,16 +290,16 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
                     
                     // Show user-friendly error
                     if (errorMsg.includes('timeout')) {
-                      setConnectionError('Connection timed out. Please check your signer app and try again.');
+                      setConnectionError('Bunker connection timed out. The remote signer may not be responding. Try manual bunker URI below.');
                     } else if (errorMsg.includes('WebSocket')) {
-                      setConnectionError('Relay connection failed. The signer might still be connecting - please wait a moment.');
+                      setConnectionError('Relay connection issue. Try using a manual bunker URI below.');
                     } else {
-                      setConnectionError(`Connection failed: ${errorMsg}`);
+                      setConnectionError(`Connection failed: ${errorMsg}. Try manual bunker URI below.`);
                     }
                     
                     setIsWaitingForConnection(false);
                     setIsLoading(false);
-                    // Don't cleanup - keep listening in case it eventually succeeds
+                    // Don't cleanup - keep UI available for manual bunker URI entry
                   }
                 } else {
                   console.log('⚠️ Response result did not match secret. Expected:', secret, 'Got:', response.result);
