@@ -37,6 +37,7 @@ export function LocationMap({ onLocationSelect, initialLocation, readonly = fals
 
     // Add marker if initial location exists
     if (initialLocation) {
+      console.log('🗺️ Creating marker with icon:', markerIcons.selected);
       const marker = L.marker([initialLocation.lat, initialLocation.lng], {
         icon: markerIcons.selected
       })

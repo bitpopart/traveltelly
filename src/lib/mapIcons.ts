@@ -14,6 +14,8 @@ export const mainMarkerIcon = L.icon({
   shadowAnchor: undefined,
 });
 
+console.log('🎯 Main marker icon created with URL:', '/main-marker.svg?v=1');
+
 export const createCustomIcon = (options?: {
   color?: string;
   icon?: string;
