@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/popover";
 import { useState } from "react";
 import { useAppContext } from "@/hooks/useAppContext";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface RelaySelectorProps {
   className?: string;
@@ -25,15 +26,27 @@ export function RelaySelector(props: RelaySelectorProps) {
   const { className } = props;
   const { config, updateConfig, presetRelays = [] } = useAppContext();
   
-  const selectedRelay = config.relayUrl;
-  const setSelectedRelay = (relay: string) => {
-    updateConfig((current) => ({ ...current, relayUrl: relay }));
+  const selectedRelays = config.relayUrls;
+  const toggleRelay = (relay: string) => {
+    updateConfig((current) => {
+      const currentRelays = current.relayUrls;
+      const isSelected = currentRelays.includes(relay);
+      
+      if (isSelected) {
+        // Remove relay if already selected (but keep at least one)
+        const newRelays = currentRelays.filter(r => r !== relay);
+        return { ...current, relayUrls: newRelays.length > 0 ? newRelays : currentRelays };
+      } else {
+        // Add relay if not selected
+        return { ...current, relayUrls: [...currentRelays, relay] };
+      }
+    });
   };
 
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
 
-  const selectedOption = presetRelays.find((option) => option.url === selectedRelay);
+  const selectedCount = selectedRelays.length;
 
   // Function to normalize relay URL by adding wss:// if no protocol is present
   const normalizeRelayUrl = (url: string): string => {
@@ -51,7 +64,13 @@ export function RelaySelector(props: RelaySelectorProps) {
 
   // Handle adding a custom relay
   const handleAddCustomRelay = (url: string) => {
-    setSelectedRelay?.(normalizeRelayUrl(url));
+    const normalized = normalizeRelayUrl(url);
+    updateConfig((current) => {
+      if (!current.relayUrls.includes(normalized)) {
+        return { ...current, relayUrls: [...current.relayUrls, normalized] };
+      }
+      return current;
+    });
     setOpen(false);
     setInputValue("");
   };
@@ -83,11 +102,9 @@ export function RelaySelector(props: RelaySelectorProps) {
           <div className="flex items-center gap-2">
             <Wifi className="h-4 w-4" />
             <span className="truncate">
-              {selectedOption 
-                ? selectedOption.name 
-                : selectedRelay 
-                  ? selectedRelay.replace(/^wss?:\/\//, '')
-                  : "Select relay..."
+              {selectedCount === 1 
+                ? (presetRelays.find(r => r.url === selectedRelays[0])?.name || selectedRelays[0].replace(/^wss?:\/\//, ''))
+                : `${selectedCount} relays`
               }
             </span>
           </div>
@@ -129,28 +146,28 @@ export function RelaySelector(props: RelaySelectorProps) {
                   option.name.toLowerCase().includes(inputValue.toLowerCase()) ||
                   option.url.toLowerCase().includes(inputValue.toLowerCase())
                 )
-                .map((option) => (
-                  <CommandItem
-                    key={option.url}
-                    value={option.url}
-                    onSelect={(currentValue) => {
-                      setSelectedRelay(normalizeRelayUrl(currentValue));
-                      setOpen(false);
-                      setInputValue("");
-                    }}
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        selectedRelay === option.url ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    <div className="flex flex-col">
-                      <span className="font-medium">{option.name}</span>
-                      <span className="text-xs text-muted-foreground">{option.url}</span>
-                    </div>
-                  </CommandItem>
-                ))}
+                .map((option) => {
+                  const isSelected = selectedRelays.includes(option.url);
+                  return (
+                    <CommandItem
+                      key={option.url}
+                      value={option.url}
+                      onSelect={() => {
+                        toggleRelay(option.url);
+                      }}
+                    >
+                      <Checkbox
+                        checked={isSelected}
+                        className="mr-2"
+                        onCheckedChange={() => toggleRelay(option.url)}
+                      />
+                      <div className="flex flex-col">
+                        <span className="font-medium">{option.name}</span>
+                        <span className="text-xs text-muted-foreground">{option.url}</span>
+                      </div>
+                    </CommandItem>
+                  );
+                })}
               {inputValue && isValidRelayInput(inputValue) && (
                 <CommandItem
                   onSelect={() => handleAddCustomRelay(inputValue)}
