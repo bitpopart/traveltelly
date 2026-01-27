@@ -6,15 +6,18 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { MapPin } from 'lucide-react';
+import type { ButtonProps } from '@/components/ui/button';
 
 interface ShareLocationButtonProps {
   lat: number;
   lng: number;
   title?: string;
   className?: string;
+  variant?: ButtonProps['variant'];
+  style?: React.CSSProperties;
 }
 
-export function ShareLocationButton({ lat, lng, title, className }: ShareLocationButtonProps) {
+export function ShareLocationButton({ lat, lng, title, className, variant = 'outline', style }: ShareLocationButtonProps) {
   const openGoogleMaps = () => {
     const query = title ? `${lat},${lng}+(${encodeURIComponent(title)})` : `${lat},${lng}`;
     const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
@@ -30,7 +33,7 @@ export function ShareLocationButton({ lat, lng, title, className }: ShareLocatio
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className={className}>
+        <Button variant={variant} size="sm" className={className} style={style}>
           <MapPin className="w-4 h-4 mr-2" />
           Open in Maps
         </Button>

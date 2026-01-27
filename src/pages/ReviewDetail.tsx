@@ -257,15 +257,33 @@ const ReviewDetail = () => {
                     showAuthorName={true}
                     size="sm"
                   />
-                  <div className="flex items-center">
-                    {Array.from({ length: 5 }, (_, i) => (
-                      <Star
-                        key={i}
-                        className={`w-5 h-5 ${
-                          i < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
-                        }`}
-                      />
-                    ))}
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center">
+                      {Array.from({ length: 5 }, (_, i) => (
+                        <Star
+                          key={i}
+                          className={`w-5 h-5 ${
+                            i < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    {/* Open in Maps Button - Round, next to stars */}
+                    {coordinates && (
+                      <Button
+                        onClick={() => {
+                          const url = `https://www.google.com/maps/search/?api=1&query=${coordinates.lat},${coordinates.lng}`;
+                          window.open(url, '_blank');
+                        }}
+                        className="rounded-full text-white hover:opacity-90 transition-opacity"
+                        style={{ backgroundColor: '#27b0ff' }}
+                        size="sm"
+                      >
+                        <MapPin className="w-4 h-4 mr-1" />
+                        Open in Maps
+                        <ExternalLink className="w-3 h-3 ml-1" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -296,24 +314,6 @@ const ReviewDetail = () => {
                   )}
                 </div>
               </div>
-
-              {/* Open in Maps Button */}
-              {coordinates && (
-                <div className="flex justify-center">
-                  <Button
-                    onClick={() => {
-                      const url = `https://www.google.com/maps/search/?api=1&query=${coordinates.lat},${coordinates.lng}`;
-                      window.open(url, '_blank');
-                    }}
-                    className="text-white hover:opacity-90 transition-opacity"
-                    style={{ backgroundColor: '#27b0ff' }}
-                  >
-                    <MapPin className="w-4 h-4 mr-2" />
-                    Open in Maps
-                    <ExternalLink className="w-4 h-4 ml-2" />
-                  </Button>
-                </div>
-              )}
 
               {/* Photo */}
               {image && (
@@ -377,6 +377,9 @@ const ReviewDetail = () => {
                       lat={coordinates.lat} 
                       lng={coordinates.lng}
                       title={title}
+                      className="rounded-full text-white"
+                      variant="default"
+                      style={{ backgroundColor: '#27b0ff' }}
                     />
                   </div>
                 </div>
