@@ -53,6 +53,10 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
       const uri = `nostrconnect://${clientPubkey}?relay=${relay}&relay=${relay2}&secret=${secret}&name=${encodeURIComponent('TravelTelly')}&url=${encodeURIComponent(appUrl)}`;
       setNostrConnectUri(uri);
       
+      console.log('🔑 Generated nostrconnect URI:', uri);
+      console.log('   Client pubkey:', clientPubkey);
+      console.log('   Secret:', secret);
+      
       // Store the keypair and secret in sessionStorage for the connection flow
       sessionStorage.setItem('nip46_client_sk', JSON.stringify(Array.from(clientSk)));
       sessionStorage.setItem('nip46_secret', secret);
