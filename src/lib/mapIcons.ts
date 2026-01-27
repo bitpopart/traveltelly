@@ -3,9 +3,26 @@ import L from 'leaflet';
 // Custom marker icons using Leaflet DivIcon for better customization
 // These create colorful, distinctive markers instead of the default blue pins
 
+// Custom SVG marker as data URL for better loading
+const mainMarkerSvg = `data:image/svg+xml;base64,${btoa(`<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72.61 100.72">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #b2d235;
+      }
+      .cls-2 {
+        fill: #fff;
+      }
+    </style>
+  </defs>
+  <circle class="cls-2" cx="36.31" cy="36.44" r="19.75"/>
+  <path class="cls-1" d="M36.31,0C15.67,0,0,18.32,0,37.04c0,14.93,36.31,63.67,36.31,63.67,0,0,36.3-48.74,36.3-63.67C72.61,18.32,56.94,0,36.31,0ZM36.31,53.51c-9.19,0-16.64-7.45-16.64-16.64s7.45-16.64,16.64-16.64,16.64,7.45,16.64,16.64-7.45,16.64-16.64,16.64Z"/>
+</svg>`)}`;
+
 // Main marker icon using custom SVG
 export const mainMarkerIcon = L.icon({
-  iconUrl: '/main-marker.svg?v=1',
+  iconUrl: mainMarkerSvg,
   iconSize: [40, 55],
   iconAnchor: [20, 55],
   popupAnchor: [0, -55],
@@ -14,7 +31,7 @@ export const mainMarkerIcon = L.icon({
   shadowAnchor: undefined,
 });
 
-console.log('🎯 Main marker icon created with URL:', '/main-marker.svg?v=1');
+console.log('🎯 Main marker icon created (inline SVG)');
 
 export const createCustomIcon = (options?: {
   color?: string;
