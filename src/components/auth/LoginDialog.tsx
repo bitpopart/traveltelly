@@ -27,6 +27,7 @@ interface LoginDialogProps {
 
 const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onSignup }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [isWaitingForConnection, setIsWaitingForConnection] = useState(false);
   const [nsec, setNsec] = useState('');
   const [bunkerUri, setBunkerUri] = useState('');
   const [nostrConnectUri, setNostrConnectUri] = useState('');
@@ -55,7 +56,15 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
       sessionStorage.setItem('nip46_client_sk', JSON.stringify(Array.from(clientSk)));
       sessionStorage.setItem('nip46_secret', secret);
       sessionStorage.setItem('nip46_client_pubkey', clientPubkey);
+
+      // Start listening for remote signer connection
+      startNip46Listener(clientSk, clientPubkey, secret);
     }
+
+    return () => {
+      // Cleanup listener on unmount
+      stopNip46Listener();
+    };
   }, [isOpen]);
 
   const handleExtensionLogin = () => {
@@ -120,6 +129,84 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
     onClose();
     if (onSignup) {
       onSignup();
+    }
+  };
+
+  // NIP-46 connection listener
+  let nip46Subscription: any = null;
+
+  const startNip46Listener = async (clientSk: Uint8Array, clientPubkey: string, secret: string) => {
+    try {
+      setIsWaitingForConnection(true);
+      
+      // Import NRelay1 from nostrify for direct relay connection
+      const { NRelay1 } = await import('@nostrify/nostrify');
+      
+      // Connect to relays to listen for remote signer connection
+      const relays = ['wss://relay.damus.io', 'wss://relay.primal.net'];
+      
+      for (const relayUrl of relays) {
+        const relay = new NRelay1(relayUrl);
+        
+        // Subscribe to events from the remote signer
+        const sub = relay.req([{
+          kinds: [24133], // NIP-46 response kind
+          '#p': [clientPubkey],
+          since: Math.floor(Date.now() / 1000),
+        }]);
+
+        // Listen for connection approval
+        for await (const msg of sub) {
+          if (msg[0] === 'EVENT') {
+            const event = msg[2];
+            
+            // Verify this is a connect response
+            try {
+              // The remote signer sends a 24133 event when it approves the connection
+              // Extract the remote signer's pubkey from the event
+              const remotePubkey = event.pubkey;
+              
+              // Build the bunker URI
+              const bunkerUri = `bunker://${remotePubkey}?relay=${encodeURIComponent('wss://relay.damus.io')}&relay=${encodeURIComponent('wss://relay.primal.net')}&secret=${secret}`;
+              
+              // Store the bunker URI
+              sessionStorage.setItem('nip46_bunker_uri', bunkerUri);
+              
+              // Automatically log in with the bunker URI
+              setIsLoading(true);
+              await login.bunker(bunkerUri);
+              
+              // Close the dialog
+              setIsWaitingForConnection(false);
+              setIsLoading(false);
+              onLogin();
+              onClose();
+              
+              // Stop listening
+              sub.close();
+              break;
+            } catch (error) {
+              console.error('Failed to process NIP-46 connection:', error);
+              setIsWaitingForConnection(false);
+              setIsLoading(false);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('NIP-46 listener error:', error);
+      setIsWaitingForConnection(false);
+    }
+  };
+
+  const stopNip46Listener = () => {
+    if (nip46Subscription) {
+      try {
+        nip46Subscription.close();
+      } catch (error) {
+        console.error('Error stopping NIP-46 listener:', error);
+      }
+      nip46Subscription = null;
     }
   };
 
@@ -257,6 +344,20 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
                       </a>
                     </div>
 
+                    {isWaitingForConnection && (
+                      <div className='bg-green-50 dark:bg-green-900/20 p-4 rounded-lg text-center'>
+                        <div className='flex items-center justify-center gap-2 mb-2'>
+                          <div className='w-2 h-2 bg-green-500 rounded-full animate-pulse' />
+                          <p className='text-sm font-medium text-green-700 dark:text-green-400'>
+                            Waiting for connection...
+                          </p>
+                        </div>
+                        <p className='text-xs text-muted-foreground'>
+                          Approve the connection in your signer app
+                        </p>
+                      </div>
+                    )}
+
                     <div className='relative'>
                       <div className='absolute inset-0 flex items-center'>
                         <span className='w-full border-t' />
@@ -311,11 +412,25 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
                       />
                     </div>
 
-                    <div className='bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg text-center'>
-                      <p className='text-xs text-muted-foreground'>
-                        📱 Scan with Nostrum, Amber, or any NIP-46 compatible signer
-                      </p>
-                    </div>
+                    {isWaitingForConnection ? (
+                      <div className='bg-green-50 dark:bg-green-900/20 p-4 rounded-lg text-center'>
+                        <div className='flex items-center justify-center gap-2 mb-2'>
+                          <div className='w-2 h-2 bg-green-500 rounded-full animate-pulse' />
+                          <p className='text-sm font-medium text-green-700 dark:text-green-400'>
+                            Waiting for connection...
+                          </p>
+                        </div>
+                        <p className='text-xs text-muted-foreground'>
+                          Approve the connection in your signer app
+                        </p>
+                      </div>
+                    ) : (
+                      <div className='bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg text-center'>
+                        <p className='text-xs text-muted-foreground'>
+                          📱 Scan with Nostrum, Amber, or any NIP-46 compatible signer
+                        </p>
+                      </div>
+                    )}
 
                     <div className='relative'>
                       <div className='absolute inset-0 flex items-center'>
