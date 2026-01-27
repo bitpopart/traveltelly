@@ -88,14 +88,13 @@ export function ProductCard({ product }: ProductCardProps) {
         <CardHeader className="p-0">
           {/* Product Image - Clickable */}
           <Link to={`/media/preview/${generateProductNaddr()}`} className="block">
-            <div className="aspect-square bg-gray-100 dark:bg-gray-800 relative overflow-hidden cursor-pointer">
+            <div className="relative aspect-square bg-gray-100 dark:bg-gray-800 overflow-hidden cursor-pointer">
               {product.images.length > 0 ? (
                 <div className="relative w-full h-full">
                   <OptimizedImage
                     src={product.images[0]}
                     alt={product.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                    aspectRatio="1/1"
                     blurUp={true}
                   />
 

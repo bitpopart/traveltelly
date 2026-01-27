@@ -17,7 +17,7 @@ interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> 
  * Generates a thumbnail URL from a Blossom server image URL
  * Blossom supports automatic resizing via query parameters
  */
-function getThumbnailUrl(url: string, width: number = 400): string {
+function getThumbnailUrl(url: string, width: number = 600): string {
   try {
     // Check if it's a Blossom server URL (nostr.build, satellite.earth, etc.)
     const urlObj = new URL(url);
@@ -27,8 +27,9 @@ function getThumbnailUrl(url: string, width: number = 400): string {
     const isBlossomServer = blossomDomains.some(domain => urlObj.hostname.includes(domain));
     
     if (isBlossomServer) {
-      // Add width parameter for automatic resizing
+      // Add width and quality parameters for faster loading
       urlObj.searchParams.set('w', width.toString());
+      urlObj.searchParams.set('q', '85'); // Slightly lower quality for better performance
       return urlObj.toString();
     }
     
@@ -51,8 +52,8 @@ function getBlurPlaceholderUrl(url: string): string {
     
     if (isBlossomServer) {
       // Request very small size for blur placeholder
-      urlObj.searchParams.set('w', '20');
-      urlObj.searchParams.set('q', '50'); // Lower quality
+      urlObj.searchParams.set('w', '40');
+      urlObj.searchParams.set('q', '30'); // Very low quality for tiny file size
       return urlObj.toString();
     }
     
@@ -74,9 +75,10 @@ export function OptimizedImage({
 }: OptimizedImageProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isError, setIsError] = useState(false);
+  const [blurLoaded, setBlurLoaded] = useState(false);
 
-  // Generate optimized URLs
-  const thumbnailUrl = getThumbnailUrl(src, 800); // 800px width for thumbnails
+  // Generate optimized URLs - use smaller size for faster loading
+  const thumbnailUrl = getThumbnailUrl(src, 600); // 600px width for thumbnails (reduced from 800px)
   const blurUrl = blurUp ? getBlurPlaceholderUrl(src) : null;
 
   const handleLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -98,16 +100,21 @@ export function OptimizedImage({
   const imageContent = (
     <>
       {/* Blur placeholder image (loads first, very small file) */}
-      {blurUp && blurUrl && !isLoaded && !isError && (
+      {blurUp && blurUrl && !isError && (
         <img
           src={blurUrl}
           alt=""
           aria-hidden="true"
+          onLoad={() => setBlurLoaded(true)}
           className={cn(
-            'absolute inset-0 w-full h-full object-cover blur-sm scale-110',
-            className
+            'absolute inset-0 w-full h-full object-cover transition-opacity duration-150',
+            isLoaded ? 'opacity-0' : 'opacity-100',
+            aspectRatio ? '' : className
           )}
-          style={{ filter: 'blur(10px)' }}
+          style={{ 
+            filter: 'blur(20px)', 
+            transform: 'scale(1.1)',
+          }}
         />
       )}
       
@@ -117,19 +124,19 @@ export function OptimizedImage({
         alt={alt}
         loading={priority ? 'eager' : 'lazy'}
         decoding="async"
+        fetchpriority={priority ? 'high' : 'auto'}
         onLoad={handleLoad}
         onError={handleError}
         className={cn(
-          'transition-opacity duration-300',
+          'transition-opacity duration-150',
           isLoaded ? 'opacity-100' : 'opacity-0',
-          aspectRatio && 'absolute inset-0 w-full h-full object-cover',
-          className
+          aspectRatio ? 'absolute inset-0 w-full h-full object-cover' : className
         )}
         {...props}
       />
 
-      {/* Loading skeleton */}
-      {!isLoaded && !isError && !blurUp && (
+      {/* Loading skeleton - only show if blur hasn't loaded yet */}
+      {!blurLoaded && !isError && !blurUp && (
         <div className={cn(
           'absolute inset-0 bg-gray-200 dark:bg-gray-800 animate-pulse',
           aspectRatio && 'w-full h-full'
@@ -155,11 +162,11 @@ export function OptimizedImage({
 
   if (aspectRatio) {
     return (
-      <div style={wrapperStyle} className="relative">
+      <div style={wrapperStyle}>
         {imageContent}
       </div>
     );
   }
 
-  return <div className="relative">{imageContent}</div>;
+  return <>{imageContent}</>;
 }

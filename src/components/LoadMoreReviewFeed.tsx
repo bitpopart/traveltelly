@@ -160,12 +160,11 @@ function ReviewCard({ review }: { review: ReviewEvent }) {
 
         {image && (
           <Link to={`/review/${naddr}`} className="block">
-            <div className="relative rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
+            <div className="relative aspect-video rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
               <OptimizedImage
                 src={image}
                 alt={title}
-                className="w-full h-48 object-cover"
-                aspectRatio="16/9"
+                className="w-full h-full object-cover"
                 blurUp={true}
               />
             </div>
