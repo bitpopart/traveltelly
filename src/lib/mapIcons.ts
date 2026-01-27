@@ -3,6 +3,17 @@ import L from 'leaflet';
 // Custom marker icons using Leaflet DivIcon for better customization
 // These create colorful, distinctive markers instead of the default blue pins
 
+// Main marker icon using custom SVG
+export const mainMarkerIcon = L.icon({
+  iconUrl: '/main-marker.svg',
+  iconSize: [40, 55],
+  iconAnchor: [20, 55],
+  popupAnchor: [0, -55],
+  shadowUrl: undefined,
+  shadowSize: undefined,
+  shadowAnchor: undefined,
+});
+
 export const createCustomIcon = (options?: {
   color?: string;
   icon?: string;
@@ -45,7 +56,7 @@ export const markerIcons = {
   shop: createCustomIcon({ color: '#ec4899', icon: '🛍️' }),
   nature: createCustomIcon({ color: '#059669', icon: '🌲' }),
   culture: createCustomIcon({ color: '#7c3aed', icon: '🏛️' }),
-  selected: createCustomIcon({ color: '#dc2626', icon: '📍', size: 'large' }),
+  selected: mainMarkerIcon, // Use custom SVG for main/selected marker
 };
 
 // Get icon based on category
