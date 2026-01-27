@@ -82,14 +82,16 @@ function decodeGeohash(geohashStr: string): { lat: number; lng: number; precisio
 
 // Custom marker icon with precision indicator
 const createCustomIcon = (rating: number, precision?: number, upgraded?: boolean, gpsCorreected?: boolean) => {
-  const color = rating >= 4 ? '#22c55e' : rating >= 3 ? '#eab308' : '#ef4444';
+  // Use brand green color for all markers
+  const mainColor = '#b2d235';
+  const ratingColor = rating >= 4 ? '#22c55e' : rating >= 3 ? '#eab308' : '#ef4444';
 
   // Add visual indicator for low precision (old reviews) or upgraded reviews
   const isLowPrecision = precision && precision <= 5;
   const isUpgraded = upgraded === true;
   const isGpsCorrected = gpsCorreected === true;
 
-  let strokeColor = color;
+  let strokeColor = mainColor;
   let strokeWidth = '0';
   let strokeDasharray = 'none';
   let indicator = '';
@@ -97,31 +99,32 @@ const createCustomIcon = (rating: number, precision?: number, upgraded?: boolean
   if (isGpsCorrected) {
     // GPS corrected reviews get a green indicator with camera icon
     strokeColor = '#10b981';
-    strokeWidth = '2';
+    strokeWidth = '3';
     strokeDasharray = 'none';
-    indicator = `<circle cx="20" cy="8" r="3" fill="#10b981"/><text x="20" y="11" text-anchor="middle" font-family="Arial" font-size="6" font-weight="bold" fill="white">📷</text>`;
+    indicator = `<circle cx="60" cy="20" r="8" fill="#10b981"/><text x="60" y="26" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold" fill="white">📷</text>`;
   } else if (isUpgraded) {
     // Upgraded reviews get a blue indicator
     strokeColor = '#3b82f6';
-    strokeWidth = '2';
+    strokeWidth = '3';
     strokeDasharray = 'none';
-    indicator = `<circle cx="20" cy="8" r="3" fill="#3b82f6"/><text x="20" y="11" text-anchor="middle" font-family="Arial" font-size="8" font-weight="bold" fill="white">↑</text>`;
+    indicator = `<circle cx="60" cy="20" r="8" fill="#3b82f6"/><text x="60" y="26" text-anchor="middle" font-family="Arial" font-size="16" font-weight="bold" fill="white">↑</text>`;
   } else if (isLowPrecision) {
     // Low precision reviews get a red dashed border
     strokeColor = '#ff6b6b';
-    strokeWidth = '2';
-    strokeDasharray = '3,2';
-    indicator = `<circle cx="20" cy="8" r="3" fill="#ff6b6b"/>`;
+    strokeWidth = '3';
+    strokeDasharray = '5,3';
+    indicator = `<circle cx="60" cy="20" r="8" fill="#ff6b6b"/>`;
   }
 
-  const svgString = `<svg width="25" height="41" viewBox="0 0 25 41" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12.5 0C5.6 0 0 5.6 0 12.5C0 19.4 12.5 41 12.5 41S25 19.4 25 12.5C25 5.6 19.4 0 12.5 0Z"
-              fill="${color}"
+  // Use the custom marker shape from Main_Map_Marker.svg
+  const svgString = `<svg viewBox="0 0 72.61 100.72" xmlns="http://www.w3.org/2000/svg">
+        <path d="M36.31,0C15.67,0,0,18.32,0,37.04c0,14.93,36.31,63.67,36.31,63.67,0,0,36.3-48.74,36.3-63.67C72.61,18.32,56.94,0,36.31,0ZM36.31,53.51c-9.19,0-16.64-7.45-16.64-16.64s7.45-16.64,16.64-16.64,16.64,7.45,16.64,16.64-7.45,16.64-16.64,16.64Z"
+              fill="${mainColor}"
               stroke="${strokeColor}"
               stroke-width="${strokeWidth}"
               stroke-dasharray="${strokeDasharray}"/>
-        <circle cx="12.5" cy="12.5" r="8" fill="white"/>
-        <text x="12.5" y="17" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="${color}">${rating}</text>
+        <circle cx="36.31" cy="36.44" r="19.75" fill="white"/>
+        <text x="36.31" y="44" text-anchor="middle" font-family="Arial" font-size="22" font-weight="bold" fill="${ratingColor}">${rating}</text>
         ${indicator}
       </svg>`.replace(/\s+/g, ' ').replace(/[^\x20-\x7E]/g, '').trim();
 
@@ -129,19 +132,19 @@ const createCustomIcon = (rating: number, precision?: number, upgraded?: boolean
     const encodedSvg = btoa(svgString);
     return new Icon({
       iconUrl: `data:image/svg+xml;base64,${encodedSvg}`,
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
+      iconSize: [40, 55],
+      iconAnchor: [20, 55],
+      popupAnchor: [0, -55],
     });
   } catch (error) {
     console.error('Error creating custom icon:', error);
-    // Fallback to a simple colored marker
-    const fallbackSvg = `<svg width="25" height="41" xmlns="http://www.w3.org/2000/svg"><path d="M12.5 0C5.6 0 0 5.6 0 12.5C0 19.4 12.5 41 12.5 41S25 19.4 25 12.5C25 5.6 19.4 0 12.5 0Z" fill="${color}"/></svg>`;
+    // Fallback to custom marker shape
+    const fallbackSvg = `<svg viewBox="0 0 72.61 100.72" xmlns="http://www.w3.org/2000/svg"><path d="M36.31,0C15.67,0,0,18.32,0,37.04c0,14.93,36.31,63.67,36.31,63.67,0,0,36.3-48.74,36.3-63.67C72.61,18.32,56.94,0,36.31,0Z" fill="${mainColor}"/><circle cx="36.31" cy="36.44" r="19.75" fill="white"/></svg>`;
     return new Icon({
       iconUrl: `data:image/svg+xml;base64,${btoa(fallbackSvg)}`,
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
+      iconSize: [40, 55],
+      iconAnchor: [20, 55],
+      popupAnchor: [0, -55],
     });
   }
 };
