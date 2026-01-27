@@ -185,12 +185,10 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
       const { NRelay1 } = await import('@nostrify/nostrify');
       
       // Connect to multiple relays to listen for remote signer connection
-      // Include extra relays that Primal might use
       const relays = [
         'wss://relay.damus.io',
         'wss://relay.primal.net', 
-        'wss://relay.nostr.band', // Primal often uses this
-        'wss://nos.lol', // Popular relay
+        'wss://nos.lol', // Popular relay for NIP-46
       ];
       
       console.log('🔌 Starting NIP-46 listener');
