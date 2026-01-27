@@ -21,6 +21,7 @@ import { Navigation as NavigationComponent } from '@/components/Navigation';
 import { ZapAuthorButton } from '@/components/ZapAuthorButton';
 import { ZapButton } from '@/components/ZapButton';
 import { CommentSection } from '@/components/CommentSection';
+import { ShareLocationButton } from '@/components/ShareLocationButton';
 import { getShortNpub, getFullNpub } from '@/lib/nostrUtils';
 import * as geohash from 'ngeohash';
 import { trackCoordinates } from '@/lib/coordinateVerification';
@@ -347,11 +348,16 @@ const ReviewDetail = () => {
                       readonly={true}
                     />
                   </div>
-                  {coordinates && (
-                    <p className="text-xs text-muted-foreground mt-2">
+                  <div className="flex items-center justify-between mt-3">
+                    <p className="text-xs text-muted-foreground">
                       Coordinates: {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
                     </p>
-                  )}
+                    <ShareLocationButton 
+                      lat={coordinates.lat} 
+                      lng={coordinates.lng}
+                      title={title}
+                    />
+                  </div>
                 </div>
               )}
 
