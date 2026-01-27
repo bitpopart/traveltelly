@@ -4,6 +4,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ShareButton } from '@/components/ShareButton';
+import { OptimizedImage } from '@/components/OptimizedImage';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useInfiniteReviews } from '@/hooks/useInfiniteReviews';
 import { genUserName } from '@/lib/genUserName';
@@ -160,11 +161,12 @@ function ReviewCard({ review }: { review: ReviewEvent }) {
         {image && (
           <Link to={`/review/${naddr}`} className="block">
             <div className="relative rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
-              <img
+              <OptimizedImage
                 src={image}
                 alt={title}
                 className="w-full h-48 object-cover"
-                loading="lazy"
+                aspectRatio="16/9"
+                blurUp={true}
               />
             </div>
           </Link>

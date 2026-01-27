@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { OptimizedImage } from '@/components/OptimizedImage';
 import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
 import { MapPin, Star, Calendar, Camera, MessageCircle } from 'lucide-react';
@@ -167,10 +168,12 @@ function ReviewCard({ review }: { review: ReviewEvent }) {
         {image && (
           <Link to={`/review/${naddr}`} className="block">
             <div className="rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
-              <img
+              <OptimizedImage
                 src={image}
                 alt={title}
                 className="w-full h-48 object-cover"
+                aspectRatio="16/9"
+                blurUp={true}
               />
             </div>
           </Link>

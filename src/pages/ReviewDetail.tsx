@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ShareButton } from '@/components/ShareButton';
+import { OptimizedImage } from '@/components/OptimizedImage';
 import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
 import { LocationMap } from '@/components/LocationMap';
@@ -299,10 +300,12 @@ const ReviewDetail = () => {
               {/* Photo */}
               {image && (
                 <div className="rounded-lg overflow-hidden">
-                  <img
+                  <OptimizedImage
                     src={image}
                     alt={title}
                     className="w-full max-h-96 object-cover"
+                    blurUp={true}
+                    priority={true}
                   />
                 </div>
               )}

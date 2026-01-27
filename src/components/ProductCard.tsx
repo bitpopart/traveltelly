@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PaymentDialog } from '@/components/PaymentDialog';
-import { RobustImage } from '@/components/RobustImage';
+import { OptimizedImage } from '@/components/OptimizedImage';
 import { ShareButton } from '@/components/ShareButton';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -91,21 +91,12 @@ export function ProductCard({ product }: ProductCardProps) {
             <div className="aspect-square bg-gray-100 dark:bg-gray-800 relative overflow-hidden cursor-pointer">
               {product.images.length > 0 ? (
                 <div className="relative w-full h-full">
-                  <RobustImage
+                  <OptimizedImage
                     src={product.images[0]}
                     alt={product.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                    onLoad={() => {
-                      console.log('✅ Product image loaded successfully:', product.images[0]);
-                    }}
-                    onError={(error) => {
-                      console.error('❌ Product image failed to load:', product.images[0]);
-                      console.error('❌ Product:', product.title);
-                      console.error('❌ All images:', product.images);
-                      console.error('❌ Error:', error);
-                    }}
-                    retryAttempts={2}
-                    retryDelay={1000}
+                    aspectRatio="1/1"
+                    blurUp={true}
                   />
 
                   {/* Preview Overlay */}

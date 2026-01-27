@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RelaySelector } from '@/components/RelaySelector';
 import { ShareButton } from '@/components/ShareButton';
+import { OptimizedImage } from '@/components/OptimizedImage';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
@@ -87,10 +88,12 @@ function StoryItem({ story, onReadMore }: StoryItemProps) {
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
       {image && (
         <div className="aspect-video overflow-hidden">
-          <img
+          <OptimizedImage
             src={image}
             alt={title}
             className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+            aspectRatio="16/9"
+            blurUp={true}
           />
         </div>
       )}

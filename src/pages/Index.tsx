@@ -2,6 +2,7 @@ import { useSeoMeta } from '@unhead/react';
 import { Navigation as NavigationComponent } from "@/components/Navigation";
 import { LoginArea } from "@/components/auth/LoginArea";
 import { RelaySelector } from "@/components/RelaySelector";
+import { OptimizedImage } from "@/components/OptimizedImage";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadMoreReviewFeed } from "@/components/LoadMoreReviewFeed";
@@ -61,12 +62,12 @@ const Index = () => {
                   <Link to="/reviews" className="block relative">
                     <div className="aspect-video md:aspect-[4/5] overflow-hidden relative" style={{ backgroundColor: '#27b0ff' }}>
                       {latestReview ? (
-                        <img
+                        <OptimizedImage
                           src={latestReview.image}
                           alt={latestReview.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          loading="eager"
-                          fetchPriority="high"
+                          priority={true}
+                          blurUp={true}
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
@@ -90,12 +91,12 @@ const Index = () => {
                   <Link to="/stories" className="block relative">
                     <div className="aspect-video md:aspect-[4/5] overflow-hidden relative" style={{ backgroundColor: '#b2d235' }}>
                       {latestStory ? (
-                        <img
+                        <OptimizedImage
                           src={latestStory.image}
                           alt={latestStory.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          loading="eager"
-                          fetchPriority="high"
+                          priority={true}
+                          blurUp={true}
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
@@ -119,12 +120,12 @@ const Index = () => {
                   <Link to="/marketplace" className="block relative">
                     <div className="aspect-video md:aspect-[4/5] overflow-hidden relative" style={{ backgroundColor: '#ec1a58' }}>
                       {latestStockMedia ? (
-                        <img
+                        <OptimizedImage
                           src={latestStockMedia.image}
                           alt={latestStockMedia.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          loading="eager"
-                          fetchPriority="high"
+                          priority={true}
+                          blurUp={true}
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
