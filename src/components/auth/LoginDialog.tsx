@@ -237,21 +237,34 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
                   // Build the bunker URI
                   const bunkerUri = `bunker://${event.pubkey}?relay=${encodeURIComponent('wss://relay.damus.io')}&relay=${encodeURIComponent('wss://relay.primal.net')}&secret=${secret}`;
                   
-                  console.log('🔗 Logging in with bunker URI...');
+                  console.log('🔗 Logging in with bunker URI:', bunkerUri);
                   
                   // Automatically log in
                   setIsLoading(true);
-                  await login.bunker(bunkerUri);
                   
-                  console.log('✅ Login successful!');
-                  
-                  // Success!
-                  setIsWaitingForConnection(false);
-                  setIsLoading(false);
-                  onLogin();
-                  onClose();
-                  cleanup();
-                  return;
+                  try {
+                    await login.bunker(bunkerUri);
+                    console.log('✅ Login successful! Waiting 500ms before closing...');
+                    
+                    // Small delay to ensure login is processed
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    // Success!
+                    setIsWaitingForConnection(false);
+                    setIsLoading(false);
+                    onLogin();
+                    onClose();
+                    cleanup();
+                    return;
+                  } catch (loginError) {
+                    console.error('❌ Bunker login failed:', loginError);
+                    if (loginError instanceof Error) {
+                      console.error('   Error:', loginError.message);
+                    }
+                    setIsWaitingForConnection(false);
+                    setIsLoading(false);
+                    // Don't cleanup - user might want to try again
+                  }
                 } else {
                   console.log('⚠️ Response result did not match secret. Expected:', secret, 'Got:', response.result);
                 }
