@@ -132,8 +132,8 @@ const createCustomIcon = (rating: number, precision?: number, upgraded?: boolean
     }
   }
   
-  // Use brand green color for review/story marker base
-  const mainColor = '#b2d235';
+  // Use blue color for review/story marker base (matching other map components)
+  const mainColor = '#27b0ff';
   
   // Different colors for rating text based on type
   const ratingColor = type === 'story' ? '#8b5cf6' 
@@ -146,8 +146,8 @@ const createCustomIcon = (rating: number, precision?: number, upgraded?: boolean
   const isScenicSpot = type === 'stock-media';
   const isStory = type === 'story';
 
-  // Use brand green for marker base
-  const markerBaseColor = '#b2d235';
+  // Use blue color for marker base (matching other map components)
+  const markerBaseColor = '#27b0ff';
   
   let strokeColor = markerBaseColor;
   let strokeWidth = '0';

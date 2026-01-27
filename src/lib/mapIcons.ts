@@ -3,42 +3,33 @@ import L from 'leaflet';
 // Custom marker icons using Leaflet DivIcon for better customization
 // These create colorful, distinctive markers instead of the default blue pins
 
-// Custom SVG marker as data URL with shadow
+// Custom SVG marker as data URL with shadow (blue marker with star)
 const mainMarkerSvg = `data:image/svg+xml;base64,${btoa(`<?xml version="1.0" encoding="UTF-8"?>
-<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72.61 100.72">
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 76.12 113.81">
   <defs>
     <style>
       .cls-1 {
-        fill: #b2d235;
+        fill: #fc0;
       }
       .cls-2 {
         fill: #fff;
       }
+      .cls-3 {
+        fill: #27b0ff;
+      }
     </style>
-    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
-      <feOffset dx="0" dy="2" result="offsetblur"/>
-      <feComponentTransfer>
-        <feFuncA type="linear" slope="0.3"/>
-      </feComponentTransfer>
-      <feMerge>
-        <feMergeNode/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
   </defs>
-  <g filter="url(#shadow)">
-    <circle class="cls-2" cx="36.31" cy="36.44" r="19.75"/>
-    <path class="cls-1" d="M36.31,0C15.67,0,0,18.32,0,37.04c0,14.93,36.31,63.67,36.31,63.67,0,0,36.3-48.74,36.3-63.67C72.61,18.32,56.94,0,36.31,0ZM36.31,53.51c-9.19,0-16.64-7.45-16.64-16.64s7.45-16.64,16.64-16.64,16.64,7.45,16.64,16.64-7.45,16.64-16.64,16.64Z"/>
-  </g>
+  <circle class="cls-2" cx="36.31" cy="49.53" r="19.75"/>
+  <path class="cls-3" d="M36.31,13.09C15.67,13.09,0,31.41,0,50.14c0,14.93,36.31,63.67,36.31,63.67,0,0,36.3-48.74,36.3-63.67,0-18.72-15.67-37.04-36.3-37.04ZM36.31,66.6c-9.19,0-16.64-7.45-16.64-16.64s7.45-16.64,16.64-16.64,16.64,7.45,16.64,16.64-7.45,16.64-16.64,16.64Z"/>
+  <path class="cls-1" d="M57.95,26.65l11.24,8.18-4.3-13.2,11.24-8h-13.78L57.95,0l-4.39,13.63h-13.78l11.24,8-4.3,13.2,11.24-8.18Z"/>
 </svg>`)}`;
 
-// Main marker icon using custom SVG
+// Main marker icon using custom SVG (blue with yellow star)
 export const mainMarkerIcon = L.icon({
   iconUrl: mainMarkerSvg,
-  iconSize: [40, 55],
-  iconAnchor: [20, 55],
-  popupAnchor: [0, -55],
+  iconSize: [42, 62],
+  iconAnchor: [21, 62],
+  popupAnchor: [0, -62],
   shadowUrl: undefined,
   shadowSize: undefined,
   shadowAnchor: undefined,
