@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/useToast';
-import { convertToSats } from '@/lib/priceConversion';
+import { usePriceConversion } from '@/hooks/usePriceConversion';
 import { Zap, Loader2, CheckCircle, Copy, ExternalLink } from 'lucide-react';
 import type { MarketplaceProduct } from '@/hooks/useMarketplaceProducts';
 
@@ -44,8 +44,13 @@ export function LightningMarketplacePayment({ product, onSuccess: _onSuccess }: 
 
   const { toast } = useToast();
 
-  // Convert price to satoshis using the conversion utility
-  const amountSats = convertToSats(parseFloat(product.price), product.currency) || 0;
+  // Convert price to satoshis using the conversion hook
+  const priceInfo = usePriceConversion(product.price, product.currency);
+  
+  // Extract sats amount from the formatted string (e.g., "1,234 sats" -> 1234)
+  const amountSats = priceInfo.sats 
+    ? parseInt(priceInfo.sats.replace(/[^\d]/g, '')) 
+    : 0;
 
   // Lightning address for TravelTelly
   const LIGHTNING_ADDRESS = 'traveltelly@primal.net';

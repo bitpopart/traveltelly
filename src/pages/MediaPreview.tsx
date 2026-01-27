@@ -17,8 +17,9 @@ import { ImageDiagnostic } from "@/components/ImageDiagnostic";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useMarketplaceProducts } from "@/hooks/useMarketplaceProducts";
 import { useAuthor } from "@/hooks/useAuthor";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { usePriceConversion } from "@/hooks/usePriceConversion";
 import { genUserName } from "@/lib/genUserName";
-import { formatPriceWithSats } from "@/lib/priceConversion";
 import {
   ArrowLeft,
   Download,
@@ -106,7 +107,7 @@ const MediaPreview = () => {
     });
   }
 
-  const priceInfo = product ? formatPriceWithSats(product.price, product.currency) : null;
+  const priceInfo = usePriceConversion(product?.price || '0', product?.currency || 'USD');
 
   const getCurrencyIcon = (currency: string) => {
     if (currency === 'BTC' || currency === 'SATS') {

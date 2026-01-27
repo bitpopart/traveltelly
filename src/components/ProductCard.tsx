@@ -8,8 +8,8 @@ import { OptimizedImage } from '@/components/OptimizedImage';
 import { ShareButton } from '@/components/ShareButton';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { usePriceConversion } from '@/hooks/usePriceConversion';
 import { genUserName } from '@/lib/genUserName';
-import { formatPriceWithSats } from '@/lib/priceConversion';
 import { MapPin, User, ShoppingCart, Zap, CreditCard, Download, Eye, Camera, Video, Music, Palette } from 'lucide-react';
 import type { MarketplaceProduct } from '@/hooks/useMarketplaceProducts';
 import { Link } from 'react-router-dom';
@@ -48,7 +48,7 @@ export function ProductCard({ product }: ProductCardProps) {
   // Don't show buy button for own products
   const isOwnProduct = user && user.pubkey === product.seller.pubkey;
 
-  const priceInfo = formatPriceWithSats(product.price, product.currency);
+  const priceInfo = usePriceConversion(product.price, product.currency);
 
   const getCurrencyIcon = (currency: string) => {
     if (currency === 'BTC' || currency === 'SATS') {

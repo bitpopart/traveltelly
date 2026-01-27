@@ -1,16 +1,21 @@
 /**
- * Converts fiat currency to SATs using approximate exchange rates
- * Note: These are approximate rates and should be updated regularly in production
+ * @deprecated This file uses static exchange rates. 
+ * Use @/lib/exchangeRates and @/hooks/usePriceConversion instead for real-time rates.
+ * 
+ * Kept for backward compatibility only.
  */
 
 const APPROXIMATE_BTC_PRICES = {
-  USD: 100000, // $100k per BTC
-  EUR: 92000,  // €92k per BTC
-  GBP: 78000,  // £78k per BTC
+  USD: 100000, // $100k per BTC (fallback only)
+  EUR: 92000,  // €92k per BTC (fallback only)
+  GBP: 78000,  // £78k per BTC (fallback only)
 } as const;
 
 const SATS_PER_BTC = 100000000; // 100 million sats = 1 BTC
 
+/**
+ * @deprecated Use convertToSats from @/lib/exchangeRates instead
+ */
 export function convertToSats(amount: number, currency: string): number | null {
   const upperCurrency = currency.toUpperCase();
   
@@ -38,10 +43,16 @@ export function convertToSats(amount: number, currency: string): number | null {
   return Math.round(satsAmount);
 }
 
+/**
+ * @deprecated Use formatSats from @/lib/exchangeRates instead
+ */
 export function formatSats(sats: number): string {
   return `${sats.toLocaleString()} sats`;
 }
 
+/**
+ * @deprecated Use usePriceConversion hook instead
+ */
 export function formatPriceWithSats(price: string, currency: string): {
   primary: string;
   sats: string | null;

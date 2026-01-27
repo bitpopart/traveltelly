@@ -7,8 +7,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { LightningMarketplacePayment } from '@/components/LightningMarketplacePayment';
 import { useAuthor } from '@/hooks/useAuthor';
+import { usePriceConversion } from '@/hooks/usePriceConversion';
 import { genUserName } from '@/lib/genUserName';
-import { formatPriceWithSats } from '@/lib/priceConversion';
 import { Zap, CreditCard, ShoppingCart, User, MapPin, Package } from 'lucide-react';
 import type { MarketplaceProduct } from '@/hooks/useMarketplaceProducts';
 
@@ -26,7 +26,7 @@ export function PaymentDialog({ isOpen, onClose, product }: PaymentDialogProps) 
   const displayName = metadata?.name || genUserName(product.seller.pubkey);
   const profileImage = metadata?.picture;
 
-  const priceInfo = formatPriceWithSats(product.price, product.currency);
+  const priceInfo = usePriceConversion(product.price, product.currency);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
