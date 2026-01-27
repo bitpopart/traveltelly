@@ -2,7 +2,7 @@
 // It is important that all functionality in this file is preserved, and should only be modified if explicitly requested.
 
 import React, { useRef, useState, useEffect } from 'react';
-import { Shield, Upload, QrCode, Smartphone } from 'lucide-react';
+import { Shield, Upload, QrCode, Smartphone, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button.tsx';
 import { Input } from '@/components/ui/input.tsx';
 import {
@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog.tsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.tsx';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useLoginActions } from '@/hooks/useLoginActions';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { QRCodeSVG } from 'qrcode.react';
@@ -28,6 +29,7 @@ interface LoginDialogProps {
 const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onSignup }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isWaitingForConnection, setIsWaitingForConnection] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const [nsec, setNsec] = useState('');
   const [bunkerUri, setBunkerUri] = useState('');
   const [nostrConnectUri, setNostrConnectUri] = useState('');
@@ -39,6 +41,9 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
   // Generate nostrconnect:// URI for client-initiated connections
   useEffect(() => {
     if (isOpen) {
+      // Clear any previous errors
+      setConnectionError(null);
+      
       // Generate a client keypair for this connection
       const clientSk = generateSecretKey();
       const clientPubkey = getPublicKey(clientSk);
@@ -64,6 +69,10 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
 
       // Start listening for remote signer connection
       startNip46Listener(clientSk, clientPubkey, secret);
+    } else {
+      // Clear error when dialog closes
+      setConnectionError(null);
+      setIsWaitingForConnection(false);
     }
 
     return () => {
@@ -243,27 +252,44 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
                   setIsLoading(true);
                   
                   try {
-                    await login.bunker(bunkerUri);
-                    console.log('✅ Login successful! Waiting 500ms before closing...');
+                    // Add timeout for bunker login (30 seconds)
+                    const loginPromise = login.bunker(bunkerUri);
+                    const timeoutPromise = new Promise((_, reject) => 
+                      setTimeout(() => reject(new Error('Connection timeout - please try again')), 30000)
+                    );
                     
-                    // Small delay to ensure login is processed
+                    await Promise.race([loginPromise, timeoutPromise]);
+                    
+                    console.log('✅ Login successful! Closing dialog...');
+                    
+                    // Small delay to ensure state is updated
                     await new Promise(resolve => setTimeout(resolve, 500));
                     
                     // Success!
                     setIsWaitingForConnection(false);
                     setIsLoading(false);
+                    setConnectionError(null);
                     onLogin();
                     onClose();
                     cleanup();
                     return;
                   } catch (loginError) {
                     console.error('❌ Bunker login failed:', loginError);
-                    if (loginError instanceof Error) {
-                      console.error('   Error:', loginError.message);
+                    const errorMsg = loginError instanceof Error ? loginError.message : 'Unknown error';
+                    console.error('   Error:', errorMsg);
+                    
+                    // Show user-friendly error
+                    if (errorMsg.includes('timeout')) {
+                      setConnectionError('Connection timed out. Please check your signer app and try again.');
+                    } else if (errorMsg.includes('WebSocket')) {
+                      setConnectionError('Relay connection failed. The signer might still be connecting - please wait a moment.');
+                    } else {
+                      setConnectionError(`Connection failed: ${errorMsg}`);
                     }
+                    
                     setIsWaitingForConnection(false);
                     setIsLoading(false);
-                    // Don't cleanup - user might want to try again
+                    // Don't cleanup - keep listening in case it eventually succeeds
                   }
                 } else {
                   console.log('⚠️ Response result did not match secret. Expected:', secret, 'Got:', response.result);
@@ -309,6 +335,13 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
         </DialogHeader>
 
         <div className='px-6 py-8 space-y-6'>
+          {connectionError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{connectionError}</AlertDescription>
+            </Alert>
+          )}
+          
           <Tabs defaultValue={'nostr' in window ? 'extension' : 'key'} className='w-full'>
             <TabsList className='grid grid-cols-3 mb-6'>
               <TabsTrigger value='extension'>Extension</TabsTrigger>
