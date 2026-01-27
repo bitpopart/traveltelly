@@ -114,12 +114,10 @@ const ReviewDetail = () => {
                 <p className="text-muted-foreground mb-4">
                   Review not found or failed to load.
                 </p>
-                <Link to="/">
-                  <Button variant="outline">
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back to Home
-                  </Button>
-                </Link>
+                <Button variant="outline" onClick={() => window.history.back()}>
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Go Back
+                </Button>
               </CardContent>
             </Card>
           </div>
@@ -139,12 +137,10 @@ const ReviewDetail = () => {
                 <p className="text-muted-foreground mb-4">
                   Review not found.
                 </p>
-                <Link to="/">
-                  <Button variant="outline">
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back to Home
-                  </Button>
-                </Link>
+                <Button variant="outline" onClick={() => window.history.back()}>
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Go Back
+                </Button>
               </CardContent>
             </Card>
           </div>
@@ -218,73 +214,75 @@ const ReviewDetail = () => {
         <div className="max-w-4xl mx-auto">
           {/* Back Button */}
           <div className="mb-6">
-            <Link to="/">
-              <Button variant="outline">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Reviews
-              </Button>
-            </Link>
+            <Button variant="outline" onClick={() => window.history.back()}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
           </div>
 
           {/* Review Card */}
           <Card className="mb-6">
             <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex items-center space-x-4">
-                  <Avatar className="h-12 w-12">
-                    <AvatarImage src={profileImage} alt={displayName} />
-                    <AvatarFallback>{displayName[0]?.toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-semibold text-lg">{displayName}</p>
-                    <p className="text-sm text-muted-foreground flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
-                      {formatDistanceToNow(new Date(review.created_at * 1000), { addSuffix: true })}
-                    </p>
-                    <p
-                      className="text-xs text-muted-foreground font-mono cursor-pointer hover:text-blue-600"
-                      onClick={() => navigator.clipboard.writeText(getFullNpub(review.pubkey))}
-                      title="Click to copy full npub"
-                    >
-                      {getShortNpub(review.pubkey)}
-                    </p>
+              {/* Author Info and Stars - Mobile Optimized */}
+              <div className="space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center space-x-3 min-w-0 flex-1">
+                    <Avatar className="h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0">
+                      <AvatarImage src={profileImage} alt={displayName} />
+                      <AvatarFallback>{displayName[0]?.toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-base sm:text-lg truncate">{displayName}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
+                        <Calendar className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate">{formatDistanceToNow(new Date(review.created_at * 1000), { addSuffix: true })}</span>
+                      </p>
+                      <p
+                        className="text-xs text-muted-foreground font-mono cursor-pointer hover:text-blue-600 truncate"
+                        onClick={() => navigator.clipboard.writeText(getFullNpub(review.pubkey))}
+                        title="Click to copy full npub"
+                      >
+                        {getShortNpub(review.pubkey)}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
                   <ZapAuthorButton
                     authorPubkey={review.pubkey}
                     event={review}
-                    showAuthorName={true}
+                    showAuthorName={false}
                     size="sm"
+                    className="flex-shrink-0"
                   />
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center">
-                      {Array.from({ length: 5 }, (_, i) => (
-                        <Star
-                          key={i}
-                          className={`w-5 h-5 ${
-                            i < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    {/* Open in Maps Button - Round, next to stars */}
-                    {coordinates && (
-                      <Button
-                        onClick={() => {
-                          const url = `https://www.google.com/maps/search/?api=1&query=${coordinates.lat},${coordinates.lng}`;
-                          window.open(url, '_blank');
-                        }}
-                        className="rounded-full text-white hover:opacity-90 transition-opacity"
-                        style={{ backgroundColor: '#27b0ff' }}
-                        size="sm"
-                      >
-                        <MapPin className="w-4 h-4 mr-1" />
-                        Open in Maps
-                        <ExternalLink className="w-3 h-3 ml-1" />
-                      </Button>
-                    )}
+                </div>
+                
+                {/* Stars and Open in Maps Button */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                  <div className="flex items-center">
+                    {Array.from({ length: 5 }, (_, i) => (
+                      <Star
+                        key={i}
+                        className={`w-5 h-5 ${
+                          i < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                        }`}
+                      />
+                    ))}
                   </div>
+                  {/* Open in Maps Button */}
+                  {coordinates && (
+                    <Button
+                      onClick={() => {
+                        const url = `https://www.google.com/maps/search/?api=1&query=${coordinates.lat},${coordinates.lng}`;
+                        window.open(url, '_blank');
+                      }}
+                      className="rounded-full text-white hover:opacity-90 transition-opacity w-full sm:w-auto"
+                      style={{ backgroundColor: '#27b0ff' }}
+                      size="sm"
+                    >
+                      <MapPin className="w-4 h-4 mr-1" />
+                      Open in Maps
+                      <ExternalLink className="w-3 h-3 ml-1" />
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardHeader>
