@@ -403,18 +403,7 @@ export default function WhatIsNostr() {
 
           {/* Footer */}
           <div className="text-center text-gray-600 dark:text-gray-400 mt-12">
-            <p className="text-sm">
-              Vibed with{' '}
-              <a
-                href="https://soapbox.pub/mkstack"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:underline"
-                style={{ color: '#393636' }}
-              >
-                MKStack
-              </a>
-            </p>
+
           </div>
         </div>
       </div>

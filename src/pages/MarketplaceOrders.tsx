@@ -408,16 +408,7 @@ const MarketplaceOrders = () => {
           {/* Footer */}
           <div className="text-center text-gray-600 dark:text-gray-400 mt-8">
             <p className="mb-4">
-              Vibed with{" "}
-              <a
-                href="https://soapbox.pub/mkstack"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                MKStack
-              </a>
-            </p>
+
           </div>
         </div>
       </div>

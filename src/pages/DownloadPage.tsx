@@ -773,17 +773,7 @@ For questions, contact: traveltelly@primal.net
             <p className="mb-4">
               Thank you for supporting independent creators on Nostr! 🙏
             </p>
-            <p className="text-sm">
-              Vibed with{" "}
-              <a
-                href="https://soapbox.pub/mkstack"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                MKStack
-              </a>
-            </p>
+
           </div>
         </div>
       </div>

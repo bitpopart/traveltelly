@@ -315,21 +315,7 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          {/* Footer */}
-          <div className="text-center text-gray-600 dark:text-gray-400 px-4">
-            <p className="mb-4 text-sm md:text-base">
-              Vibed with{" "}
-              <a
-                href="https://soapbox.pub/mkstack"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:underline"
-                style={{ color: '#393636' }}
-              >
-                MKStack
-              </a>
-            </p>
-          </div>
+
         </div>
       </div>
     </div>

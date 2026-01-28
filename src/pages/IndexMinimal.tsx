@@ -143,19 +143,7 @@ const IndexMinimal = () => {
           </Card>
 
           {/* Footer */}
-          <div className="text-center text-gray-600 dark:text-gray-400">
-            <p className="mb-4">
-              Vibed with{" "}
-              <a
-                href="https://soapbox.pub/mkstack"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-orange-600 dark:text-orange-400 hover:underline"
-              >
-                MKStack
-              </a>
-            </p>
-          </div>
+
         </div>
       </div>
     </div>
