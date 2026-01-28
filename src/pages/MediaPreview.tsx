@@ -88,18 +88,22 @@ const MediaPreview = () => {
 
   // Debug logging for images
   if (product) {
-    console.log('🖼️ MediaPreview Debug - Product images:', product.images);
-    console.log('🖼️ MediaPreview Debug - Product event tags:', product.event.tags);
-    console.log('🖼️ MediaPreview Debug - Current image index:', currentImageIndex);
-    console.log('🖼️ MediaPreview Debug - Current image URL:', product.images[currentImageIndex]);
-    console.log('🖼️ MediaPreview Debug - Image exists:', !!product.images[currentImageIndex]);
+    console.log('🖼️ MediaPreview - Product:', product.title);
+    console.log('🖼️ MediaPreview - Total images in array:', product.images.length);
+    console.log('🖼️ MediaPreview - Image URLs:', product.images);
+    console.log('🖼️ MediaPreview - All image tags from event:', 
+      product.event.tags.filter(([name]) => ['image', 'img', 'photo', 'picture', 'url', 'imeta'].includes(name))
+    );
+    console.log('🖼️ MediaPreview - Current displaying index:', currentImageIndex);
+    console.log('🖼️ MediaPreview - Current image URL:', product.images[currentImageIndex]);
 
     // Test each image URL
     product.images.forEach((url, idx) => {
       if (url) {
+        console.log(`🔍 Testing image ${idx + 1}/${product.images.length}:`, url);
         const testImg = new Image();
-        testImg.onload = () => console.log(`✅ Image ${idx + 1} is valid:`, url);
-        testImg.onerror = () => console.error(`❌ Image ${idx + 1} is invalid:`, url);
+        testImg.onload = () => console.log(`✅ Image ${idx + 1} loaded successfully`);
+        testImg.onerror = (e) => console.error(`❌ Image ${idx + 1} failed to load:`, url, e);
         testImg.src = url;
       } else {
         console.error(`❌ Image ${idx + 1} is empty or null`);
