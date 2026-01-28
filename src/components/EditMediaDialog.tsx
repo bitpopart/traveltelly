@@ -7,8 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
+import { useUploadFile } from '@/hooks/useUploadFile';
 import { useToast } from '@/hooks/useToast';
-import { Edit3, Save, X, Trash2 } from 'lucide-react';
+import { Edit3, Save, X, Trash2, Upload, XCircle, Loader2 } from 'lucide-react';
 import type { MarketplaceProduct } from '@/hooks/useMarketplaceProducts';
 
 interface EditMediaDialogProps {
@@ -20,6 +21,7 @@ interface EditMediaDialogProps {
 
 export function EditMediaDialog({ isOpen, onClose, product, onUpdate }: EditMediaDialogProps) {
   const { mutate: createEvent } = useNostrPublish();
+  const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -32,6 +34,7 @@ export function EditMediaDialog({ isOpen, onClose, product, onUpdate }: EditMedi
     status: 'active' as 'active' | 'inactive' | 'sold' | 'deleted',
   });
 
+  const [images, setImages] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -47,8 +50,43 @@ export function EditMediaDialog({ isOpen, onClose, product, onUpdate }: EditMedi
         location: product.location || '',
         status: product.status,
       });
+      setImages(product.images);
     }
   }, [product]);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    try {
+      for (const file of Array.from(files)) {
+        const tags = await uploadFile(file);
+        const url = tags[0]?.[1]; // First tag contains the URL
+        if (url) {
+          setImages(prev => [...prev, url]);
+          toast({
+            title: "Image uploaded!",
+            description: `Added ${file.name}`,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Failed to upload image:', error);
+      toast({
+        title: "Upload failed",
+        description: "Could not upload image. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
+    toast({
+      title: "Image removed",
+      description: "Image will be removed when you save changes.",
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,6 +94,9 @@ export function EditMediaDialog({ isOpen, onClose, product, onUpdate }: EditMedi
 
     setIsSubmitting(true);
     try {
+      // Build image tags from current images array
+      const imageTags = images.map(url => ['image', url]);
+
       // Create updated event with same d-tag to replace the original
       createEvent({
         kind: 30402, // NIP-99 classified listing
@@ -70,10 +111,8 @@ export function EditMediaDialog({ isOpen, onClose, product, onUpdate }: EditMedi
           ['t', formData.category], // Category tag
           ['t', 'media'], // General media tag
           ['t', 'marketplace'], // Marketplace tag
-          // Preserve existing image tags
-          ...product.event.tags.filter(([name]) =>
-            ['image', 'img', 'photo', 'picture', 'url', 'imeta'].includes(name)
-          ),
+          // Add updated image tags
+          ...imageTags,
         ],
       });
 
@@ -256,55 +295,88 @@ export function EditMediaDialog({ isOpen, onClose, product, onUpdate }: EditMedi
               />
             </div>
 
-            {/* Media Info */}
+            {/* Media Files Management */}
             <div className="space-y-4">
-              <Label>Media Files</Label>
+              <div className="flex items-center justify-between">
+                <Label>Media Files ({images.length})</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => document.getElementById('media-file-upload')?.click()}
+                  disabled={isUploading}
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Add Images
+                    </>
+                  )}
+                </Button>
+                <input
+                  id="media-file-upload"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </div>
 
-              {/* Current Images Display */}
-              {product.images.length > 0 ? (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {product.images.map((image, index) => (
-                      <div key={index} className="relative group">
-                        <div className="aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
-                          <img
-                            src={image}
-                            alt={`Media ${index + 1}`}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                              e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                            }}
-                          />
-                          <div className="hidden w-full h-full flex items-center justify-center text-xs text-muted-foreground">
-                            Failed to load
-                          </div>
+              {/* Current Images Display with Delete Option */}
+              {images.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {images.map((image, index) => (
+                    <div key={index} className="relative group">
+                      <div className="aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
+                        <img
+                          src={image}
+                          alt={`Media ${index + 1}`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                          }}
+                        />
+                        <div className="hidden w-full h-full flex items-center justify-center text-xs text-muted-foreground">
+                          Failed to load
                         </div>
-                        <Badge
-                          variant="secondary"
-                          className="absolute -top-2 -right-2 text-xs"
-                        >
-                          {index + 1}
-                        </Badge>
                       </div>
-                    ))}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {product.images.map((image, index) => (
-                      <Badge key={index} variant="outline" className="text-xs">
-                        Image {index + 1}
+                      {/* Number Badge */}
+                      <Badge
+                        variant="secondary"
+                        className="absolute -top-2 -right-2 text-xs w-6 h-6 flex items-center justify-center p-0 rounded-full"
+                      >
+                        {index + 1}
                       </Badge>
-                    ))}
-                  </div>
+                      {/* Delete Button */}
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-1 left-1 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => handleDeleteImage(index)}
+                      >
+                        <XCircle className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
+                  <Upload className="w-8 h-8 mx-auto mb-2 opacity-50" />
                   <p className="text-sm">No images attached</p>
+                  <p className="text-xs mt-1">Click "Add Images" to upload</p>
                 </div>
               )}
 
               <p className="text-xs text-muted-foreground">
-                To change media files, you'll need to create a new listing. Image editing will be available in a future update.
+                Add or remove images as needed. Changes will be saved when you click "Save Changes".
               </p>
             </div>
 
