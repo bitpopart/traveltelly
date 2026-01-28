@@ -36,3 +36,19 @@ export function getFullNpub(hexPubkey: string): string {
     return hexPubkey;
   }
 }
+
+/**
+ * Normalizes a category string by removing accents and converting to lowercase
+ * Example: "Café" -> "cafe"
+ */
+export function normalizeCategory(category: string): string {
+  return category.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+/**
+ * Gets the emoji for a category, handling both accented and non-accented versions
+ */
+export function getCategoryEmoji(category: string, categoryEmojis: Record<string, string>): string {
+  const normalized = normalizeCategory(category);
+  return categoryEmojis[normalized] || categoryEmojis[category] || '📍';
+}

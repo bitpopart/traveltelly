@@ -23,7 +23,7 @@ import { ZapAuthorButton } from '@/components/ZapAuthorButton';
 import { ZapButton } from '@/components/ZapButton';
 import { CommentSection } from '@/components/CommentSection';
 import { ShareLocationButton } from '@/components/ShareLocationButton';
-import { getShortNpub, getFullNpub } from '@/lib/nostrUtils';
+import { getShortNpub, getFullNpub, getCategoryEmoji, normalizeCategory } from '@/lib/nostrUtils';
 import * as geohash from 'ngeohash';
 import { trackCoordinates } from '@/lib/coordinateVerification';
 
@@ -162,6 +162,12 @@ const ReviewDetail = () => {
 
   const coordinates = geohashStr ? decodeGeohash(geohashStr) : null;
 
+  console.log('📋 Review Detail - Category:', { 
+    original: category, 
+    normalized: normalizeCategory(category),
+    coordinates: coordinates ? 'yes' : 'no'
+  });
+
   const categoryEmojis: Record<string, string> = {
     'grocery-store': '🛒',
     'clothing-store': '👕',
@@ -291,7 +297,7 @@ const ReviewDetail = () => {
               {/* Title and Category */}
               <div>
                 <div className="flex items-center gap-3 mb-2">
-                  <span className="text-2xl">{categoryEmojis[category] || '📍'}</span>
+                  <span className="text-2xl">{getCategoryEmoji(category, categoryEmojis)}</span>
                   <h1 className="text-3xl font-bold">{title}</h1>
                 </div>
 
