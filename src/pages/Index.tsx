@@ -68,6 +68,7 @@ const Index = () => {
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           priority={true}
                           blurUp={true}
+                          thumbnail={true}
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
@@ -97,6 +98,7 @@ const Index = () => {
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           priority={true}
                           blurUp={true}
+                          thumbnail={true}
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
@@ -126,6 +128,7 @@ const Index = () => {
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           priority={true}
                           blurUp={true}
+                          thumbnail={true}
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">

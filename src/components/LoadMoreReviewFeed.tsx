@@ -166,6 +166,7 @@ function ReviewCard({ review }: { review: ReviewEvent }) {
                 alt={title}
                 className="w-full h-full object-cover"
                 blurUp={true}
+                thumbnail={true}
               />
             </div>
           </Link>

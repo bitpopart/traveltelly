@@ -89,10 +89,12 @@ function StoryItem({ story, onReadMore }: StoryItemProps) {
       {image && (
         <div className="relative aspect-video overflow-hidden">
           <OptimizedImage
-            src={image}
-            alt={title}
-            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+            src={latestStory.image}
+            alt={latestStory.title}
+            className="w-full h-full object-cover"
             blurUp={true}
+            priority={true}
+            thumbnail={true}
           />
         </div>
       )}

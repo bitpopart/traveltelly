@@ -11,25 +11,27 @@ interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> 
   priority?: boolean;
   /** Aspect ratio for placeholder (e.g., "16/9", "1/1", "4/3") */
   aspectRatio?: string;
+  /** Use thumbnail optimization (smaller size, lower quality for cards/feeds) */
+  thumbnail?: boolean;
 }
 
 /**
  * Generates a thumbnail URL from a Blossom server image URL
  * Blossom supports automatic resizing via query parameters
  */
-function getThumbnailUrl(url: string, width: number = 600): string {
+function getThumbnailUrl(url: string, width: number = 600, quality: number = 75): string {
   try {
     // Check if it's a Blossom server URL (nostr.build, satellite.earth, etc.)
     const urlObj = new URL(url);
     
-    // Common Blossom server domains
-    const blossomDomains = ['nostr.build', 'satellite.earth', 'void.cat', 'nostrcheck.me'];
+    // Common Blossom server domains that support resizing
+    const blossomDomains = ['nostr.build', 'satellite.earth', 'void.cat', 'nostrcheck.me', 'blossom.primal.net'];
     const isBlossomServer = blossomDomains.some(domain => urlObj.hostname.includes(domain));
     
     if (isBlossomServer) {
       // Add width and quality parameters for faster loading
       urlObj.searchParams.set('w', width.toString());
-      urlObj.searchParams.set('q', '85'); // Slightly lower quality for better performance
+      urlObj.searchParams.set('q', quality.toString());
       return urlObj.toString();
     }
     
@@ -47,7 +49,7 @@ function getThumbnailUrl(url: string, width: number = 600): string {
 function getBlurPlaceholderUrl(url: string): string {
   try {
     const urlObj = new URL(url);
-    const blossomDomains = ['nostr.build', 'satellite.earth', 'void.cat', 'nostrcheck.me'];
+    const blossomDomains = ['nostr.build', 'satellite.earth', 'void.cat', 'nostrcheck.me', 'blossom.primal.net'];
     const isBlossomServer = blossomDomains.some(domain => urlObj.hostname.includes(domain));
     
     if (isBlossomServer) {
@@ -70,6 +72,7 @@ export function OptimizedImage({
   blurUp = true,
   priority = false,
   aspectRatio,
+  thumbnail = false,
   onLoad,
   ...props
 }: OptimizedImageProps) {
@@ -77,8 +80,10 @@ export function OptimizedImage({
   const [isError, setIsError] = useState(false);
   const [blurLoaded, setBlurLoaded] = useState(false);
 
-  // Generate optimized URLs - use smaller size for faster loading
-  const thumbnailUrl = getThumbnailUrl(src, 600); // 600px width for thumbnails (reduced from 800px)
+  // Generate optimized URLs - use aggressive optimization for thumbnails
+  const width = thumbnail ? 300 : 600; // Much smaller for thumbnails
+  const quality = thumbnail ? 60 : 75; // Lower quality for thumbnails
+  const thumbnailUrl = getThumbnailUrl(src, width, quality);
   const blurUrl = blurUp ? getBlurPlaceholderUrl(src) : null;
 
   const handleLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
