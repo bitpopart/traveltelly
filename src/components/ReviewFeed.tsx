@@ -57,7 +57,8 @@ function ReviewCard({ review }: { review: ReviewEvent }) {
   const rating = parseInt(review.tags.find(([name]) => name === 'rating')?.[1] || '0');
   const category = review.tags.find(([name]) => name === 'category')?.[1] || '';
   const location = review.tags.find(([name]) => name === 'location')?.[1];
-  const image = review.tags.find(([name]) => name === 'image')?.[1];
+  const images = review.tags.filter(([name]) => name === 'image').map(([, url]) => url);
+  const image = images[0];
 
   const displayName = metadata?.name || genUserName(review.pubkey);
   const profileImage = metadata?.picture;
@@ -175,6 +176,12 @@ function ReviewCard({ review }: { review: ReviewEvent }) {
                 blurUp={true}
                 thumbnail={true}
               />
+              {images.length > 1 && (
+                <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded-md text-xs flex items-center gap-1">
+                  <Camera className="w-3 h-3" />
+                  {images.length}
+                </div>
+              )}
             </div>
           </Link>
         )}
@@ -273,7 +280,14 @@ export function ReviewFeed() {
       return events
         .filter(validateReviewEvent)
         .filter(event => !isUserBlocked(event.pubkey)) // Filter out blocked users
-        .sort((a, b) => b.created_at - a.created_at)
+        .sort((a, b) => {
+          // Sort by published_at tag if available, otherwise fall back to created_at
+          const aPublishedAt = parseInt(a.tags.find(([name]) => name === 'published_at')?.[1] || '0');
+          const bPublishedAt = parseInt(b.tags.find(([name]) => name === 'published_at')?.[1] || '0');
+          const aTime = aPublishedAt || a.created_at;
+          const bTime = bPublishedAt || b.created_at;
+          return bTime - aTime;
+        })
         .slice(0, 20); // Limit to 20 after sorting
     },
     enabled: !!authorizedReviewers && authorizedReviewers.size > 0, // Only run when we have authorized reviewers

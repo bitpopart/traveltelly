@@ -164,6 +164,18 @@ export function EditReviewForm({ review, onSave, onCancel }: EditReviewFormProps
         tags.push(['g', geohash]);
       }
 
+      // Keep existing published_at timestamp to maintain original position in feed
+      const publishedAt = review.tags.find(([name]) => name === 'published_at')?.[1];
+      if (publishedAt) {
+        tags.push(['published_at', publishedAt]);
+      }
+
+      // Keep existing lightning preference
+      const lightning = review.tags.find(([name]) => name === 'lightning')?.[1];
+      if (lightning) {
+        tags.push(['lightning', lightning]);
+      }
+
       createEvent({
         kind: 34879,
         content: data.content || '',
