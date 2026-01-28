@@ -66,7 +66,7 @@ const Index = () => {
                   className="rounded-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold px-6 md:px-8 py-3 h-auto"
                 >
                   <Zap className="w-5 h-5 mr-2 fill-current" />
-                  Support Traveltelly
+                  Support
                 </ZapAuthorButton>
                 {!user && <LoginArea className="max-w-60" />}
               </div>
