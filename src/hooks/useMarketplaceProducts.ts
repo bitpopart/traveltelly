@@ -64,11 +64,28 @@ function parseMarketplaceProduct(event: NostrEvent): MarketplaceProduct | null {
     const status = event.tags.find(([name]) => name === 'status')?.[1] as 'active' | 'sold' | 'inactive' | 'deleted' || 'active';
 
     // Get all image tags - check multiple possible tag names
-    const imageTagNames = ['image', 'img', 'photo', 'picture', 'url', 'imeta'];
-    const images = event.tags
-      .filter(([name]) => imageTagNames.includes(name))
-      .map(([, url]) => url)
-      .filter(Boolean);
+    const imageTagNames = ['image', 'img', 'photo', 'picture', 'url'];
+    const imageTags = event.tags.filter(([name]) => imageTagNames.includes(name));
+    const images = imageTags.map(([, url]) => url).filter(Boolean);
+    
+    // Handle imeta tags separately (NIP-94 format: ["imeta", "url https://..."])
+    const imetaTags = event.tags.filter(([name]) => name === 'imeta');
+    const imetaImages = imetaTags
+      .map(([, value]) => {
+        // Parse "url https://..." format
+        const urlMatch = value?.match(/url\s+(.+)/);
+        return urlMatch ? urlMatch[1] : null;
+      })
+      .filter(Boolean) as string[];
+    
+    console.log(`🔍 Processing event: ${title}`);
+    console.log(`   Regular image tags:`, imageTags);
+    console.log(`   Regular image URLs:`, images);
+    console.log(`   Imeta tags:`, imetaTags);
+    console.log(`   Imeta image URLs:`, imetaImages);
+    
+    // Combine regular images with imeta images
+    const allTagImages = [...images, ...imetaImages];
 
     // Also check content field for URLs or JSON with images
     let contentImages: string[] = [];
@@ -91,15 +108,17 @@ function parseMarketplaceProduct(event: NostrEvent): MarketplaceProduct | null {
       }
     }
 
-    // Combine tag images and content images, remove duplicates
-    const allImages = [...new Set([...images, ...contentImages])].filter(Boolean);
+    // Combine tag images (including imeta) and content images, remove duplicates
+    const allImages = [...new Set([...allTagImages, ...contentImages])].filter(Boolean);
 
     // Debug: Log all tags and content to see what's available
     console.log('🏷️ All tags for event:', event.tags);
     console.log('📄 Event content:', event.content);
-    console.log('🖼️ Found tag images:', images);
+    console.log('🖼️ Found regular tag images:', images);
+    console.log('🖼️ Found imeta images:', imetaImages);
     console.log('🖼️ Found content images:', contentImages);
     console.log('🖼️ All combined images:', allImages);
+    console.log(`📊 FINAL IMAGE COUNT for "${title}": ${allImages.length} images`);
 
     // Get media types from 't' tags (photos, videos, etc.)
     const mediaTypes = event.tags
