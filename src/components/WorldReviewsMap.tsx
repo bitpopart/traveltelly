@@ -136,10 +136,12 @@ function ReviewMarker({ review }: { review: ReviewLocation }) {
     'shrine': '⛩️'
   };
 
+  const markerIcon = createReviewMarkerIcon(review.rating, review.precision, review.upgraded, review.gpsCorreected, review.category);
+  
   return (
     <Marker
       position={[review.lat, review.lng]}
-          icon={createReviewMarkerIcon(review.rating, review.precision, review.upgraded, review.gpsCorreected, review.category)}
+      icon={markerIcon}
     >
       <Popup className="review-popup" maxWidth={300}>
         <div className="p-2">
@@ -271,6 +273,11 @@ export function WorldReviewsMap() {
         const rating = parseInt(review.tags.find(([name]) => name === 'rating')?.[1] || '0');
         const category = review.tags.find(([name]) => name === 'category')?.[1] || '';
         const image = review.tags.find(([name]) => name === 'image')?.[1];
+        
+        // Log category for debugging cafe markers
+        if (category && (category.toLowerCase().includes('caf') || category.toLowerCase().includes('café'))) {
+          console.log('🔍 WorldMap - Found cafe review:', { title, category, normalized: category.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') });
+        }
 
         const naddr = nip19.naddrEncode({
           identifier: review.tags.find(([name]) => name === 'd')?.[1] || '',

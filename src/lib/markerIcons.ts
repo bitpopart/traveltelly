@@ -20,9 +20,23 @@ export const createReviewMarkerIcon = (
   // Check if this is a cafe category - use special cafe marker (handles both 'cafe' and 'café')
   const normalizedCategory = category?.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const isCafe = normalizedCategory === 'cafe';
-  console.log('🔍 Marker category check:', { category, normalizedCategory, isCafe });
+  
+  // Enhanced logging for cafe detection
+  if (category) {
+    const lowerCategory = category.toLowerCase();
+    if (lowerCategory.includes('caf') || lowerCategory.includes('café')) {
+      console.log('☕ CAFE MARKER CHECK:', { 
+        originalCategory: category,
+        lowerCase: lowerCategory,
+        normalizedCategory, 
+        matches: normalizedCategory === 'cafe',
+        rating
+      });
+    }
+  }
+  
   if (isCafe) {
-    console.log('☕ Creating cafe marker for rating:', rating);
+    console.log('✅ YES - Creating CAFE marker with coffee cup for rating:', rating);
     return createCafeMarkerIcon(rating, precision, upgraded, gpsCorreected);
   }
 
