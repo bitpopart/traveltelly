@@ -4,6 +4,7 @@ import type { NostrEvent } from '@nostrify/nostrify';
 import { useAuthorizedReviewers } from './useAuthorizedReviewers';
 import { useAuthorizedMediaUploaders } from './useStockMediaPermissions';
 import { nip19 } from 'nostr-tools';
+import { useAdminReviews } from './useAdminReviews';
 
 // The Traveltelly admin npub
 const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642';
@@ -178,6 +179,79 @@ export function useLatestStockMedia() {
     },
     enabled: !!authorizedUploaders && authorizedUploaders.size > 0,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes,
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
+  });
+}
+
+/**
+ * Get total count of reviews
+ */
+export function useReviewCount() {
+  const { data } = useAdminReviews();
+  
+  if (!data?.pages) return 0;
+  
+  const allReviews = data.pages.flatMap(page => page.reviews);
+  return allReviews.length;
+}
+
+/**
+ * Get total count of stories
+ */
+export function useStoryCount() {
+  const { nostr } = useNostr();
+
+  return useQuery({
+    queryKey: ['story-count'],
+    queryFn: async (c) => {
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
+      
+      const events = await nostr.query([{
+        kinds: [30023],
+        authors: [ADMIN_HEX],
+        limit: 1000
+      }], { signal });
+
+      return events.length;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
+  });
+}
+
+/**
+ * Get total count of stock media products
+ */
+export function useStockMediaCount() {
+  const { nostr } = useNostr();
+  const { data: authorizedUploaders } = useAuthorizedMediaUploaders();
+
+  return useQuery({
+    queryKey: ['stock-media-count'],
+    queryFn: async (c) => {
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
+      
+      const authorizedAuthors = Array.from(authorizedUploaders || []);
+      const events = await nostr.query([{
+        kinds: [30402],
+        authors: authorizedAuthors,
+        limit: 1000
+      }], { signal });
+
+      // Filter out deleted items
+      const activeProducts = events.filter(event => {
+        const status = event.tags.find(([name]) => name === 'status')?.[1];
+        const deleted = event.tags.find(([name]) => name === 'deleted')?.[1];
+        const adminDeleted = event.tags.find(([name]) => name === 'admin_deleted')?.[1];
+        
+        return status !== 'deleted' && deleted !== 'true' && adminDeleted !== 'true';
+      });
+
+      return activeProducts.length;
+    },
+    enabled: !!authorizedUploaders && authorizedUploaders.size > 0,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
   });
 }

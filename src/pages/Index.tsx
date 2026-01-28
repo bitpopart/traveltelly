@@ -11,7 +11,7 @@ import { AdminDebugInfo } from "@/components/AdminDebugInfo";
 import { UnifiedSearchBar } from "@/components/UnifiedSearchBar";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useReviewPermissions } from "@/hooks/useReviewPermissions";
-import { useLatestReview, useLatestStory, useLatestStockMedia } from "@/hooks/useLatestItems";
+import { useLatestReview, useLatestStory, useLatestStockMedia, useReviewCount, useStoryCount, useStockMediaCount } from "@/hooks/useLatestItems";
 import { MapPin, Star, Camera, Zap, Shield, BookOpen, Search, Navigation } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -21,6 +21,11 @@ const Index = () => {
   const { data: latestReview } = useLatestReview();
   const { data: latestStory } = useLatestStory();
   const { data: latestStockMedia } = useLatestStockMedia();
+  
+  // Get counts
+  const reviewCount = useReviewCount();
+  const { data: storyCount = 0 } = useStoryCount();
+  const { data: stockMediaCount = 0 } = useStockMediaCount();
 
   // Debug logging
   console.log('📊 Homepage thumbnails:', {
@@ -77,10 +82,15 @@ const Index = () => {
                       )}
                       <div className="absolute inset-x-0 bottom-0 p-4">
                         <Button 
-                          className="w-full rounded-full font-medium shadow-lg text-white hover:opacity-90 transition-opacity" 
+                          className="w-full rounded-full font-medium shadow-lg text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2" 
                           style={{ backgroundColor: '#27b0ff' }}
                         >
-                          Reviews
+                          <span>Reviews</span>
+                          {reviewCount > 0 && (
+                            <span className="bg-white/20 px-2 py-0.5 rounded-full text-sm">
+                              {reviewCount}
+                            </span>
+                          )}
                         </Button>
                       </div>
                     </div>
@@ -107,10 +117,15 @@ const Index = () => {
                       )}
                       <div className="absolute inset-x-0 bottom-0 p-4">
                         <Button 
-                          className="w-full rounded-full font-medium shadow-lg text-white hover:opacity-90 transition-opacity" 
+                          className="w-full rounded-full font-medium shadow-lg text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2" 
                           style={{ backgroundColor: '#b2d235' }}
                         >
-                          Stories
+                          <span>Stories</span>
+                          {storyCount > 0 && (
+                            <span className="bg-white/20 px-2 py-0.5 rounded-full text-sm">
+                              {storyCount}
+                            </span>
+                          )}
                         </Button>
                       </div>
                     </div>
@@ -137,10 +152,15 @@ const Index = () => {
                       )}
                       <div className="absolute inset-x-0 bottom-0 p-4">
                         <Button 
-                          className="w-full rounded-full font-medium shadow-lg text-white hover:opacity-90 transition-opacity" 
+                          className="w-full rounded-full font-medium shadow-lg text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2" 
                           style={{ backgroundColor: '#ec1a58' }}
                         >
-                          Stock Media
+                          <span>Stock Media</span>
+                          {stockMediaCount > 0 && (
+                            <span className="bg-white/20 px-2 py-0.5 rounded-full text-sm">
+                              {stockMediaCount}
+                            </span>
+                          )}
                         </Button>
                       </div>
                     </div>
