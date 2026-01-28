@@ -17,9 +17,11 @@ export const createReviewMarkerIcon = (
   gpsCorreected?: boolean,
   category?: string
 ): Icon => {
-  // Check if this is a cafe category - use special cafe marker
-  console.log('🔍 Marker category check:', { category, isCafe: category?.toLowerCase() === 'cafe' });
-  if (category?.toLowerCase() === 'cafe') {
+  // Check if this is a cafe category - use special cafe marker (handles both 'cafe' and 'café')
+  const normalizedCategory = category?.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const isCafe = normalizedCategory === 'cafe';
+  console.log('🔍 Marker category check:', { category, normalizedCategory, isCafe });
+  if (isCafe) {
     console.log('☕ Creating cafe marker for rating:', rating);
     return createCafeMarkerIcon(rating, precision, upgraded, gpsCorreected);
   }

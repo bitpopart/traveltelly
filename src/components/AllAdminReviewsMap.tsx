@@ -90,9 +90,11 @@ function decodeGeohash(geohashStr: string): { lat: number; lng: number; precisio
 
 // Custom marker icon with precision indicator
 const createCustomIcon = (rating: number, precision?: number, upgraded?: boolean, gpsCorreected?: boolean, type?: 'review' | 'stock-media' | 'story', category?: string) => {
-  // For cafe category, use special cafe marker with coffee cup icon
-  console.log('🔍 AllAdmin marker check:', { category, type, isCafe: category?.toLowerCase() === 'cafe' && type === 'review' });
-  if (category?.toLowerCase() === 'cafe' && type === 'review') {
+  // For cafe category, use special cafe marker with coffee cup icon (handles both 'cafe' and 'café')
+  const normalizedCategory = category?.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const isCafe = normalizedCategory === 'cafe' && type === 'review';
+  console.log('🔍 AllAdmin marker check:', { category, normalizedCategory, type, isCafe });
+  if (isCafe) {
     console.log('☕ Creating cafe marker (AllAdmin) for rating:', rating);
     return createCafeMarkerForAdmin(rating, precision, upgraded, gpsCorreected);
   }
