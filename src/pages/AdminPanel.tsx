@@ -11,7 +11,7 @@ import { CategoryManager } from '@/components/CategoryManager';
 import { MediaManagement } from '@/components/MediaManagement';
 import { AdminReviewManager } from '@/components/AdminReviewManager';
 import { nip19 } from 'nostr-tools';
-import { Shield, ArrowLeft, Camera, MessageSquare, Settings, Tag, FileImage } from 'lucide-react';
+import { Shield, ArrowLeft, Camera, MessageSquare, Settings, Tag, FileImage, Coffee } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function AdminPanel() {
@@ -131,6 +131,12 @@ export default function AdminPanel() {
                   <Button variant="outline">
                     <Tag className="w-4 h-4 mr-2" />
                     Test Categories
+                  </Button>
+                </Link>
+                <Link to="/category-migration">
+                  <Button variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-50">
+                    <Coffee className="w-4 h-4 mr-2" />
+                    Category Migration
                   </Button>
                 </Link>
               </div>
