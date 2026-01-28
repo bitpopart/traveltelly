@@ -223,6 +223,16 @@ export function WorldReviewsMap() {
     refetch,
   } = useInfiniteReviews();
 
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('🔄 Auto-refreshing map data...');
+      refetch();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [refetch]);
+
   // Set up intersection observer for infinite scroll
   const { ref: loadMoreRef, inView } = useInView({
     threshold: 0,
@@ -365,8 +375,11 @@ export function WorldReviewsMap() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => refetch()}
-              disabled={isLoading}
+              onClick={() => {
+                console.log('🔄 Manual refresh triggered');
+                refetch();
+              }}
+              disabled={isLoading || isFetchingNextPage}
               className="h-8 px-3"
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />

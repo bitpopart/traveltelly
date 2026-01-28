@@ -18,7 +18,9 @@ export const createReviewMarkerIcon = (
   category?: string
 ): Icon => {
   // Check if this is a cafe category - use special cafe marker
+  console.log('🔍 Marker category check:', { category, isCafe: category?.toLowerCase() === 'cafe' });
   if (category?.toLowerCase() === 'cafe') {
+    console.log('☕ Creating cafe marker for rating:', rating);
     return createCafeMarkerIcon(rating, precision, upgraded, gpsCorreected);
   }
 

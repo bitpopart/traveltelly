@@ -91,7 +91,9 @@ function decodeGeohash(geohashStr: string): { lat: number; lng: number; precisio
 // Custom marker icon with precision indicator
 const createCustomIcon = (rating: number, precision?: number, upgraded?: boolean, gpsCorreected?: boolean, type?: 'review' | 'stock-media' | 'story', category?: string) => {
   // For cafe category, use special cafe marker with coffee cup icon
+  console.log('🔍 AllAdmin marker check:', { category, type, isCafe: category?.toLowerCase() === 'cafe' && type === 'review' });
   if (category?.toLowerCase() === 'cafe' && type === 'review') {
+    console.log('☕ Creating cafe marker (AllAdmin) for rating:', rating);
     return createCafeMarkerForAdmin(rating, precision, upgraded, gpsCorreected);
   }
   
@@ -550,6 +552,16 @@ export function AllAdminReviewsMap() {
   // Fetch stories (NIP-23 articles)
   const { data: stories } = useStories();
 
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('🔄 Auto-refreshing map data...');
+      refetch();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [refetch]);
+
   // Auto-load all pages
   useEffect(() => {
     if (hasNextPage && !isFetchingNextPage) {
@@ -836,7 +848,7 @@ export function AllAdminReviewsMap() {
             <CardHeader className="pb-3 px-3 md:px-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <CardTitle className="text-base md:text-lg">All Admin Review Locations</CardTitle>
+                  <CardTitle className="text-base md:text-lg">Review Locations</CardTitle>
                   <Badge variant="secondary" className="text-xs">
                     <Layers className="w-3 h-3 mr-1" />
                     Clustered
