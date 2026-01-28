@@ -393,7 +393,7 @@ const MediaPreview = () => {
                           setImageZoom(1);
                           setImageRotation(0);
                         }}
-                        className={`flex-shrink-0 w-16 h-16 rounded border-2 overflow-hidden transition-colors ${
+                        className={`relative flex-shrink-0 w-16 h-16 rounded border-2 overflow-hidden transition-colors ${
                           index === currentImageIndex
                             ? 'border-blue-500'
                             : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
@@ -406,6 +406,10 @@ const MediaPreview = () => {
                           retryAttempts={1}
                           retryDelay={500}
                         />
+                        {/* Number Badge */}
+                        <div className="absolute top-1 right-1 bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shadow-md">
+                          {index + 1}
+                        </div>
                       </button>
                     ))}
                   </div>

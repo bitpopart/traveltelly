@@ -10,7 +10,7 @@ import { useAuthor } from '@/hooks/useAuthor';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { usePriceConversion } from '@/hooks/usePriceConversion';
 import { genUserName } from '@/lib/genUserName';
-import { MapPin, User, ShoppingCart, Zap, CreditCard, Download, Eye, Camera, Video, Music, Palette } from 'lucide-react';
+import { MapPin, User, ShoppingCart, Zap, CreditCard, Download, Eye, Camera, Video, Music, Palette, Images } from 'lucide-react';
 import type { MarketplaceProduct } from '@/hooks/useMarketplaceProducts';
 import { Link } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
@@ -151,11 +151,15 @@ export function ProductCard({ product }: ProductCardProps) {
                 </Badge>
               )}
 
-              {/* Debug Info in Development */}
-              {process.env.NODE_ENV === 'development' && (
-                <div className="absolute top-2 left-1/2 transform -translate-x-1/2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                  {product.images.length} img{product.images.length !== 1 ? 's' : ''}
-                </div>
+              {/* Multiple Images Badge */}
+              {product.images.length > 1 && (
+                <Badge
+                  variant="default"
+                  className="absolute bottom-2 right-2 text-xs bg-blue-600 hover:bg-blue-700 flex items-center gap-1"
+                >
+                  <Images className="w-3 h-3" />
+                  {product.images.length}
+                </Badge>
               )}
             </div>
           </Link>
