@@ -225,18 +225,19 @@ export function MarkdownEditor({
             </Button>
           ))}
         
-        <div className="flex-1" />
+          <div className="flex-1" />
         
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsFullscreen(!isFullscreen)}
-          title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-          className="h-8 w-8 p-0"
-        >
-          {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-        </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+            className="h-8 w-8 p-0"
+          >
+            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          </Button>
+        </div>
       </div>
 
       {/* Editor Tabs */}
