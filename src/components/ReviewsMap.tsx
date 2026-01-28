@@ -154,7 +154,7 @@ function ReviewMarker({ review }: { review: ReviewLocation }) {
   return (
     <Marker
       position={[review.lat, review.lng]}
-          icon={createReviewMarkerIcon(review.rating, review.precision, review.upgraded, review.gpsCorreected)}
+          icon={createReviewMarkerIcon(review.rating, review.precision, review.upgraded, review.gpsCorreected, review.category)}
     >
       <Popup className="review-popup" maxWidth={300}>
         <div className="p-2">
