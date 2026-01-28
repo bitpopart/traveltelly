@@ -155,7 +155,8 @@ const ReviewDetail = () => {
   const description = review.tags.find(([name]) => name === 'description')?.[1];
   const location = review.tags.find(([name]) => name === 'location')?.[1];
   const geohashStr = review.tags.find(([name]) => name === 'g')?.[1];
-  const image = review.tags.find(([name]) => name === 'image')?.[1];
+  const images = review.tags.filter(([name]) => name === 'image').map(([, url]) => url);
+  const mainImage = images[0];
 
   const displayName = metadata?.name || genUserName(review.pubkey);
   const profileImage = metadata?.picture;
@@ -319,16 +320,36 @@ const ReviewDetail = () => {
                 </div>
               </div>
 
-              {/* Photo */}
-              {image && (
-                <div className="rounded-lg overflow-hidden">
-                  <OptimizedImage
-                    src={image}
-                    alt={title}
-                    className="w-full max-h-96 object-cover"
-                    blurUp={true}
-                    priority={true}
-                  />
+              {/* Photos */}
+              {images.length > 0 && (
+                <div className="space-y-4">
+                  {/* Main Photo */}
+                  <div className="rounded-lg overflow-hidden">
+                    <OptimizedImage
+                      src={mainImage}
+                      alt={title}
+                      className="w-full max-h-96 object-cover"
+                      blurUp={true}
+                      priority={true}
+                    />
+                  </div>
+                  
+                  {/* Additional Photos Grid */}
+                  {images.length > 1 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {images.slice(1).map((imageUrl, index) => (
+                        <div key={index} className="rounded-lg overflow-hidden aspect-square">
+                          <OptimizedImage
+                            src={imageUrl}
+                            alt={`${title} - Photo ${index + 2}`}
+                            className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                            blurUp={true}
+                            onClick={() => window.open(imageUrl, '_blank')}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -353,7 +374,7 @@ const ReviewDetail = () => {
                   url={`/review/${naddr}`}
                   title={title}
                   description={review.content || `${rating}/5 stars - ${location || 'Review'}`}
-                  image={image}
+                  image={mainImage}
                   variant="outline"
                   size="default"
                 />

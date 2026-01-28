@@ -60,6 +60,7 @@ function encodeGeohash(lat: number, lng: number, precision = 8): string {
 function CreateReviewFormContent() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [additionalPhotos, setAdditionalPhotos] = useState<string[]>([]);
   const [location, setLocation] = useState<LocationData | null>(null);
   const [showMap, setShowMap] = useState(false);
   const [extractingLocation, setExtractingLocation] = useState(false);
@@ -253,6 +254,11 @@ function CreateReviewFormContent() {
       if (imageUrl) {
         tags.push(['image', imageUrl]);
       }
+      
+      // Add additional photos
+      additionalPhotos.forEach(photoUrl => {
+        tags.push(['image', photoUrl]);
+      });
 
       if (data.moreInfoUrl && data.moreInfoUrl.trim()) {
         tags.push(['r', data.moreInfoUrl.trim()]);
@@ -659,6 +665,94 @@ function CreateReviewFormContent() {
             <p className="text-xs text-muted-foreground mt-1">
               Add relevant hashtags separated by commas (without # symbol)
             </p>
+          </div>
+
+          {/* Additional Photos */}
+          <div>
+            <Label>Additional Photos</Label>
+            <div className="space-y-3">
+              {additionalPhotos.length > 0 && (
+                <div className="grid grid-cols-3 gap-2">
+                  {additionalPhotos.map((photoUrl, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={photoUrl}
+                        alt={`Photo ${index + 1}`}
+                        className="w-full aspect-square object-cover rounded-lg"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => setAdditionalPhotos(prev => prev.filter((_, i) => i !== index))}
+                      >
+                        <Upload className="w-3 h-3 rotate-180" />
+                      </Button>
+                      <Badge className="absolute bottom-1 right-1 text-xs">
+                        {index + 1}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => document.getElementById('additional-photos-input')?.click()}
+                disabled={isUploading}
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Add More Photos
+                  </>
+                )}
+              </Button>
+              <input
+                id="additional-photos-input"
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={async (e) => {
+                  const files = e.target.files;
+                  if (!files) return;
+
+                  for (const file of Array.from(files)) {
+                    try {
+                      const tags = await uploadFile(file);
+                      const url = tags[0]?.[1];
+                      if (url) {
+                        setAdditionalPhotos(prev => [...prev, url]);
+                        toast({
+                          title: 'Photo uploaded!',
+                          description: `Added ${file.name}`,
+                        });
+                      }
+                    } catch (error) {
+                      console.error('Failed to upload photo:', error);
+                      toast({
+                        title: 'Upload failed',
+                        description: `Could not upload ${file.name}`,
+                        variant: 'destructive',
+                      });
+                    }
+                  }
+                  e.target.value = '';
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                Upload additional photos to create a photo gallery for this review
+              </p>
+            </div>
           </div>
 
           <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">

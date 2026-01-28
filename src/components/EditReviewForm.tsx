@@ -11,7 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
 import { useReviewCategories } from '@/hooks/useReviewCategories';
-import { Star, Save, X } from 'lucide-react';
+import { useUploadFile } from '@/hooks/useUploadFile';
+import { Star, Save, X, Upload, Image as ImageIcon, Trash2 } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -38,10 +39,13 @@ interface EditReviewFormProps {
 
 export function EditReviewForm({ review, onSave, onCancel }: EditReviewFormProps) {
   const { mutate: createEvent, isPending } = useNostrPublish();
+  const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
   const { toast } = useToast();
   const { data: categories } = useReviewCategories();
   const [hashtags, setHashtags] = useState<string[]>([]);
   const [newHashtag, setNewHashtag] = useState('');
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
 
   // Extract current review data
   const currentTitle = review.tags.find(([name]) => name === 'title')?.[1] || '';
@@ -49,7 +53,7 @@ export function EditReviewForm({ review, onSave, onCancel }: EditReviewFormProps
   const currentCategory = review.tags.find(([name]) => name === 'category')?.[1] || '';
   const currentLocation = review.tags.find(([name]) => name === 'location')?.[1] || '';
   const currentMoreInfoUrl = review.tags.find(([name]) => name === 'more_info_url')?.[1] || '';
-  const currentImage = review.tags.find(([name]) => name === 'image')?.[1] || '';
+  const currentImages = review.tags.filter(([name]) => name === 'image').map(([, url]) => url);
   const currentHashtags = review.tags.filter(([name]) => name === 't').map(([, tag]) => tag);
   const dTag = review.tags.find(([name]) => name === 'd')?.[1] || '';
 
@@ -65,10 +69,11 @@ export function EditReviewForm({ review, onSave, onCancel }: EditReviewFormProps
     },
   });
 
-  // Initialize hashtags
+  // Initialize hashtags and photos
   useEffect(() => {
     setHashtags(currentHashtags);
-  }, [currentHashtags]);
+    setPhotos(currentImages);
+  }, [currentHashtags, currentImages]);
 
   const addHashtag = () => {
     const tag = newHashtag.trim().toLowerCase().replace(/^#/, '');
@@ -80,6 +85,48 @@ export function EditReviewForm({ review, onSave, onCancel }: EditReviewFormProps
 
   const removeHashtag = (tagToRemove: string) => {
     setHashtags(hashtags.filter(tag => tag !== tagToRemove));
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: 'Invalid file',
+          description: 'Please select an image file',
+          variant: 'destructive',
+        });
+        continue;
+      }
+
+      try {
+        setUploadingIndex(photos.length);
+        const [[, url]] = await uploadFile(file);
+        setPhotos([...photos, url]);
+        toast({
+          title: 'Photo uploaded',
+          description: 'Your photo has been uploaded successfully.',
+        });
+      } catch {
+        toast({
+          title: 'Upload failed',
+          description: 'Failed to upload photo. Please try again.',
+          variant: 'destructive',
+        });
+      } finally {
+        setUploadingIndex(null);
+      }
+    }
+
+    e.target.value = '';
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotos(photos.filter((_, i) => i !== index));
   };
 
   const onSubmit = async (data: z.infer<typeof editReviewSchema>) => {
@@ -101,10 +148,10 @@ export function EditReviewForm({ review, onSave, onCancel }: EditReviewFormProps
         tags.push(['more_info_url', data.moreInfoUrl]);
       }
 
-      // Keep existing image if present
-      if (currentImage) {
-        tags.push(['image', currentImage]);
-      }
+      // Add all photos
+      photos.forEach(url => {
+        tags.push(['image', url]);
+      });
 
       // Add hashtags
       hashtags.forEach(tag => {
@@ -268,6 +315,68 @@ export function EditReviewForm({ review, onSave, onCancel }: EditReviewFormProps
                 {form.formState.errors.moreInfoUrl.message}
               </p>
             )}
+          </div>
+
+          {/* Photos */}
+          <div>
+            <Label>Photos</Label>
+            <div className="mt-2 space-y-4">
+              {photos.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {photos.map((url, index) => (
+                    <div key={index} className="relative aspect-square rounded-lg overflow-hidden border bg-muted group">
+                      <img
+                        src={url}
+                        alt={`Photo ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(index)}
+                        className="absolute top-2 right-2 p-1.5 bg-destructive/90 text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                      {index === 0 && (
+                        <div className="absolute top-2 left-2 px-2 py-1 bg-primary text-primary-foreground text-xs rounded-md">
+                          Main
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {uploadingIndex !== null && (
+                    <div className="aspect-square rounded-lg border bg-muted flex items-center justify-center">
+                      <div className="text-center">
+                        <Upload className="h-8 w-8 mx-auto text-muted-foreground animate-pulse" />
+                        <p className="text-xs text-muted-foreground mt-2">Uploading...</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              <div className="flex items-center justify-center">
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    disabled={isUploading}
+                  />
+                  <div className="flex items-center space-x-2 px-4 py-2 border border-dashed rounded-lg hover:bg-muted transition-colors">
+                    <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">
+                      {photos.length === 0 ? 'Add photos' : 'Add more photos'}
+                    </span>
+                  </div>
+                </label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                The first photo will be used as the main image. You can upload multiple photos.
+              </p>
+            </div>
           </div>
 
           {/* Hashtags */}
