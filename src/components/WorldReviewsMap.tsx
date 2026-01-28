@@ -274,9 +274,12 @@ export function WorldReviewsMap() {
         const category = review.tags.find(([name]) => name === 'category')?.[1] || '';
         const image = review.tags.find(([name]) => name === 'image')?.[1];
         
+        // Log ALL categories to see what we're getting
+        console.log('📍 WorldMap review:', { title, category });
+        
         // Log category for debugging cafe markers
         if (category && (category.toLowerCase().includes('caf') || category.toLowerCase().includes('café'))) {
-          console.log('🔍 WorldMap - Found cafe review:', { title, category, normalized: category.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') });
+          console.log('☕ FOUND CAFE REVIEW:', { title, category, normalized: category.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') });
         }
 
         const naddr = nip19.naddrEncode({
