@@ -14,6 +14,7 @@ import { useReviewPermissions } from "@/hooks/useReviewPermissions";
 import { useLatestReview, useLatestStory, useLatestStockMedia, useReviewCount, useStoryCount, useStockMediaCount } from "@/hooks/useLatestItems";
 import { MapPin, Star, Camera, Zap, Shield, BookOpen, Search, Navigation } from "lucide-react";
 import { Link } from "react-router-dom";
+import { ZapAuthorButton } from "@/components/ZapAuthorButton";
 
 const Index = () => {
   const { user } = useCurrentUser();
@@ -57,6 +58,16 @@ const Index = () => {
                     NOSTR POWERED TRAVEL COMMUNITY
                   </Button>
                 </Link>
+                <ZapAuthorButton
+                  authorPubkey="7d33ba57d8a6e8869a1f1d5215254597594ac0dbfeb01b690def8c461b82db35"
+                  showAuthorName={false}
+                  variant="default"
+                  size="lg"
+                  className="rounded-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold px-6 md:px-8 py-3 h-auto"
+                >
+                  <Zap className="w-5 h-5 mr-2 fill-current" />
+                  Support Traveltelly
+                </ZapAuthorButton>
                 {!user && <LoginArea className="max-w-60" />}
               </div>
 
