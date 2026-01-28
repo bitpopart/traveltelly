@@ -38,6 +38,7 @@ import { AdminEvents } from "./pages/AdminEvents";
 import SearchTest from "./pages/SearchTest";
 import { SimpleMapDemoPage } from "./pages/SimpleMapDemo";
 import WhatIsNostr from "./pages/WhatIsNostr";
+import CategoryMigrationPage from "./pages/CategoryMigrationPage";
 import NotFound from "./pages/NotFound";
 
 export function AppRouter() {
@@ -81,6 +82,7 @@ export function AppRouter() {
         <Route path="/search-test" element={<SearchTest />} />
         <Route path="/simple-map-demo" element={<SimpleMapDemoPage />} />
         <Route path="/what-is-nostr" element={<WhatIsNostr />} />
+        <Route path="/category-migration" element={<CategoryMigrationPage />} />
         {/* <Route path="/world-map" element={<WorldMap />} /> */}
         {/* Explicit admin routes for better debugging */}
         <Route path="/admin/*" element={<AdminPanel />} />
