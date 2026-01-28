@@ -89,11 +89,11 @@ function StoryItem({ story, onReadMore }: StoryItemProps) {
       {image && (
         <div className="relative aspect-video overflow-hidden">
           <OptimizedImage
-            src={latestStory.image}
-            alt={latestStory.title}
+            src={image}
+            alt={title}
             className="w-full h-full object-cover"
             blurUp={true}
-            priority={true}
+            priority={false}
             thumbnail={true}
           />
         </div>
@@ -296,11 +296,8 @@ export default function Stories() {
                 Traveltelly Stories
               </h1>
             </div>
-            <p className="text-xl text-gray-600 dark:text-gray-300 mb-2">
-              Official NIP-23 travel articles from the Traveltelly team
-            </p>
-            <p className="text-sm text-muted-foreground mb-6">
-              Long-form travel guides and insights using the NIP-23 standard from {ADMIN_NPUB.slice(0, 12)}...
+            <p className="text-xl text-gray-600 dark:text-gray-300 mb-6">
+              Long-form travel guides and insights from {ADMIN_NPUB.slice(0, 12)}...
             </p>
           </div>
 
@@ -311,11 +308,11 @@ export default function Stories() {
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="articles" className="flex items-center gap-2">
                 <BookOpen className="w-4 h-4" />
-                Published Articles ({stories?.length || 0})
+                Stories ({stories?.length || 0})
               </TabsTrigger>
               <TabsTrigger value="create" className="flex items-center gap-2">
                 <Plus className="w-4 h-4" />
-                {isAdmin ? 'Create Article' : 'Admin Only'}
+                {isAdmin ? 'Create Story' : 'Admin Only'}
               </TabsTrigger>
             </TabsList>
 

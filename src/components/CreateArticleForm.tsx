@@ -320,25 +320,18 @@ export function CreateArticleForm() {
 
           {/* Content */}
           <div>
-            <Label htmlFor="content" className="mb-3 block">
-              Article Content (Markdown) <span className="text-red-500">*</span>
+            <Label htmlFor="content" className="mb-3 block text-base">
+              Story Content <span className="text-red-500">*</span>
             </Label>
+            <p className="text-sm text-muted-foreground mb-3">
+              Write your travel story below. Use the toolbar buttons to add headings, bold text, links, and more.
+            </p>
             <MarkdownEditor
               value={formData.content}
               onChange={(content) => setFormData({ ...formData, content })}
-              placeholder="Write your article content in Markdown format...
+              placeholder="Start writing your travel story here...
 
-# Heading 1
-## Heading 2
-
-**Bold text** and *italic text*
-
-- Bullet points
-- Another point
-
-[Link text](https://example.com)
-
-> Quote text"
+Share your experiences, tips, and memories from your journey. Use the toolbar buttons above to format your text - make headings bold, add photos, create lists, and more!"
               minHeight="500px"
             />
           </div>

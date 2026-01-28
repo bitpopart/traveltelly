@@ -31,7 +31,7 @@ interface MarkdownEditorProps {
 export function MarkdownEditor({
   value,
   onChange,
-  placeholder = 'Write your article content in Markdown format...',
+  placeholder = 'Write your story here... Use the toolbar buttons above to format your text.',
   minHeight = '500px',
 }: MarkdownEditorProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -109,42 +109,32 @@ export function MarkdownEditor({
   const toolbarButtons = [
     {
       icon: Heading1,
-      label: 'Heading 1',
+      label: 'Large Heading',
       action: () => insertNewLine('# '),
     },
     {
       icon: Heading2,
-      label: 'Heading 2',
+      label: 'Medium Heading',
       action: () => insertNewLine('## '),
     },
     {
       icon: Heading3,
-      label: 'Heading 3',
+      label: 'Small Heading',
       action: () => insertNewLine('### '),
     },
     {
       icon: Bold,
-      label: 'Bold',
+      label: 'Bold Text',
       action: () => insertText('**', '**', 'bold text'),
     },
     {
       icon: Italic,
-      label: 'Italic',
+      label: 'Italic Text',
       action: () => insertText('*', '*', 'italic text'),
     },
     {
-      icon: Strikethrough,
-      label: 'Strikethrough',
-      action: () => insertText('~~', '~~', 'strikethrough text'),
-    },
-    {
-      icon: Code,
-      label: 'Code',
-      action: () => insertText('`', '`', 'code'),
-    },
-    {
       icon: Quote,
-      label: 'Quote',
+      label: 'Quote Block',
       action: () => insertNewLine('> '),
     },
     {
@@ -159,13 +149,13 @@ export function MarkdownEditor({
     },
     {
       icon: Link,
-      label: 'Link',
+      label: 'Insert Link',
       action: () => insertText('[', '](https://example.com)', 'link text'),
     },
     {
       icon: Image,
-      label: 'Image',
-      action: () => insertAtCursor('![alt text](https://example.com/image.jpg)'),
+      label: 'Insert Image',
+      action: () => insertAtCursor('![Image description](https://example.com/image.jpg)'),
     },
   ];
 
@@ -217,20 +207,23 @@ export function MarkdownEditor({
   const editorContent = (
     <div className="space-y-3">
       {/* Toolbar */}
-      <div className="flex flex-wrap gap-1 p-2 bg-gray-50 dark:bg-gray-900 rounded-lg border">
-        {toolbarButtons.map((button, index) => (
-          <Button
-            key={index}
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={button.action}
-            title={button.label}
-            className="h-8 w-8 p-0"
-          >
-            <button.icon className="w-4 h-4" />
-          </Button>
-        ))}
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-muted-foreground">Text Formatting Tools</p>
+        <div className="flex flex-wrap gap-1 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border">
+          {toolbarButtons.map((button, index) => (
+            <Button
+              key={index}
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={button.action}
+              title={button.label}
+              className="h-9 px-3 flex items-center gap-2 hover:bg-gray-200 dark:hover:bg-gray-800"
+            >
+              <button.icon className="w-4 h-4" />
+              <span className="text-xs hidden sm:inline">{button.label}</span>
+            </Button>
+          ))}
         
         <div className="flex-1" />
         
@@ -265,9 +258,12 @@ export function MarkdownEditor({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
-            className="font-mono text-sm"
-            style={{ minHeight }}
+            className="text-base leading-relaxed resize-none"
+            style={{ minHeight, fontFamily: 'inherit' }}
           />
+          <p className="text-xs text-muted-foreground mt-2">
+            💡 Tip: Use the toolbar buttons to format your text, or switch to Preview to see how it will look.
+          </p>
         </TabsContent>
 
         <TabsContent value="preview" className="mt-3">
@@ -288,8 +284,8 @@ export function MarkdownEditor({
       </Tabs>
 
       {/* Character count */}
-      <div className="flex justify-between items-center text-xs text-muted-foreground">
-        <span>Markdown formatting supported</span>
+      <div className="flex justify-between items-center text-xs text-muted-foreground px-1">
+        <span>✨ Click toolbar buttons to format text</span>
         <span>{value.length} characters</span>
       </div>
     </div>
