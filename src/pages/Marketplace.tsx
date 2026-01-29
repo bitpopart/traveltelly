@@ -63,47 +63,46 @@ const Marketplace = () => {
           {/* Header */}
           <div className="text-center mb-12">
             <div className="mb-6">
-              <Store className="w-16 h-16 mx-auto text-blue-600 dark:text-blue-400 mb-4" />
+              <div className="p-4 rounded-full w-fit mx-auto mb-4" style={{ backgroundColor: '#ec1a5820' }}>
+                <Store className="w-16 h-16 mx-auto" style={{ color: '#ec1a58' }} />
+              </div>
               <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">
-                Nostr Travel Media Marketplace
+                Stock Media Marketplace
               </h1>
               <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
-                Decentralized marketplace for digital travel media with Lightning ⚡ payments
+                Decentralized marketplace for travel photography with Lightning ⚡ payments
               </p>
             </div>
 
-            <div className="flex flex-col items-center gap-4">
-              <LoginArea className="max-w-60" />
-              {user && (
-                <div className="flex flex-wrap justify-center gap-3">
-                  <CreateProductDialog>
-                    <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Upload Media
-                    </Button>
-                  </CreateProductDialog>
-                  <Link to="/marketplace/orders">
-                    <Button variant="outline" size="lg">
-                      <ShoppingCart className="w-4 h-4 mr-2" />
-                      My Purchases
-                    </Button>
-                  </Link>
-                  <Link to="/marketplace/portfolio">
-                    <Button variant="outline" size="lg">
-                      <Store className="w-4 h-4 mr-2" />
-                      My Portfolio
-                    </Button>
-                  </Link>
-                </div>
-              )}
-            </div>
+            {user && (
+              <div className="flex flex-wrap justify-center gap-3">
+                <CreateProductDialog>
+                  <Button size="lg" className="rounded-full text-white font-semibold hover:opacity-90" style={{ backgroundColor: '#ec1a58' }}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Upload Media
+                  </Button>
+                </CreateProductDialog>
+                <Link to="/marketplace/orders">
+                  <Button variant="outline" size="lg" className="rounded-full" style={{ borderColor: '#ec1a58', color: '#ec1a58' }}>
+                    <ShoppingCart className="w-4 h-4 mr-2" />
+                    My Purchases
+                  </Button>
+                </Link>
+                <Link to="/marketplace/portfolio">
+                  <Button variant="outline" size="lg" className="rounded-full" style={{ borderColor: '#ec1a58', color: '#ec1a58' }}>
+                    <Store className="w-4 h-4 mr-2" />
+                    My Portfolio
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Media Types Grid */}
           <div className="grid md:grid-cols-2 gap-6 mb-12 max-w-3xl mx-auto">
-            <Card className="border-purple-200 dark:border-purple-800 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20">
+            <Card className="border-pink-200 dark:border-pink-800 bg-gradient-to-r from-pink-50 to-red-50 dark:from-pink-900/20 dark:to-red-900/20">
               <CardContent className="p-6 text-center">
-                <div className="p-3 bg-purple-500 rounded-full w-fit mx-auto mb-3">
+                <div className="p-3 rounded-full w-fit mx-auto mb-3" style={{ backgroundColor: '#ec1a58' }}>
                   <Camera className="w-6 h-6 text-white" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
@@ -115,9 +114,9 @@ const Marketplace = () => {
               </CardContent>
             </Card>
 
-            <Card className="border-red-200 dark:border-red-800 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20">
+            <Card className="border-pink-200 dark:border-pink-800 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20">
               <CardContent className="p-6 text-center">
-                <div className="p-3 bg-red-500 rounded-full w-fit mx-auto mb-3">
+                <div className="p-3 rounded-full w-fit mx-auto mb-3" style={{ backgroundColor: '#ec1a58' }}>
                   <Video className="w-6 h-6 text-white" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
@@ -132,11 +131,11 @@ const Marketplace = () => {
 
           {/* Payment Methods Info */}
           <div className="grid md:grid-cols-2 gap-6 mb-12">
-            <Card className="border-yellow-200 dark:border-yellow-800 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20">
+            <Card className="border-pink-200 dark:border-pink-800 bg-gradient-to-r from-pink-50 to-red-50 dark:from-pink-900/20 dark:to-red-900/20">
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 bg-yellow-500 rounded-full">
-                    <Zap className="w-6 h-6 text-white fill-current" />
+                  <div className="p-3 rounded-full" style={{ backgroundColor: '#ffcc00' }}>
+                    <Zap className="w-6 h-6 text-black fill-current" />
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -150,10 +149,10 @@ const Marketplace = () => {
               </CardContent>
             </Card>
 
-            <Card className="border-blue-200 dark:border-blue-800 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
+            <Card className="border-pink-200 dark:border-pink-800 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20">
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 bg-blue-500 rounded-full">
+                  <div className="p-3 rounded-full" style={{ backgroundColor: '#ec1a58' }}>
                     <CreditCard className="w-6 h-6 text-white" />
                   </div>
                   <div>

@@ -73,6 +73,7 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [gpsCoordinates, setGpsCoordinates] = useState<GPSCoordinates | null>(null);
+  const [allPhotos, setAllPhotos] = useState<UploadedPhoto[]>([]);
   const [formData, setFormData] = useState<ProductFormData>({
     title: '',
     description: '',
@@ -93,6 +94,9 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
   };
 
   const handlePhotosChange = (photos: UploadedPhoto[]) => {
+    // Store all photos (uploaded or not)
+    setAllPhotos(photos);
+    // Update images with uploaded ones
     const imageUrls = photos.filter(photo => photo.uploaded && photo.url).map(photo => photo.url!);
     setFormData(prev => ({ ...prev, images: imageUrls }));
   };
@@ -112,6 +116,13 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
 
     const price = parseFloat(formData.price);
     if (isNaN(price) || price <= 0) return 'Price must be a valid positive number';
+
+    // Check if photos are selected but not uploaded
+    const hasUnuploadedPhotos = allPhotos.some(photo => !photo.uploaded);
+    if (hasUnuploadedPhotos) return 'Please upload all photos before publishing (click "Upload All Photos" button)';
+
+    // Check if at least one photo is uploaded
+    if (formData.images.length === 0) return 'At least one photo is required';
 
     return null;
   };
