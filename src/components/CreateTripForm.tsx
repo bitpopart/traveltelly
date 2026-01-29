@@ -10,6 +10,7 @@ import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useUploadFile } from '@/hooks/useUploadFile';
 import { useToast } from '@/hooks/useToast';
 import { extractGPSFromImage } from '@/lib/exifUtils';
+import { compressImage, COMPRESSION_PRESETS } from '@/lib/imageCompression';
 import { Camera, MapPin, Upload, X, FileUp, Info, Loader2 } from 'lucide-react';
 
 interface PhotoWithGPS {
@@ -47,28 +48,35 @@ export function CreateTripForm({ onSuccess }: CreateTripFormProps = {}) {
     const newPhotos: PhotoWithGPS[] = [];
 
     for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+      const originalFile = files[i];
       
-      // Create preview URL
+      // Extract GPS data from original file first (before compression)
+      let gpsData;
+      try {
+        gpsData = await extractGPSFromImage(originalFile);
+      } catch (error) {
+        console.error('Error extracting GPS from', originalFile.name, error);
+      }
+
+      // Compress image for faster viewing
+      let file = originalFile;
+      try {
+        file = await compressImage(originalFile, COMPRESSION_PRESETS.trip);
+      } catch (error) {
+        console.error('Error compressing image, using original:', error);
+        file = originalFile;
+      }
+      
+      // Create preview URL from compressed file
       const url = URL.createObjectURL(file);
       
-      // Extract GPS data
-      try {
-        const gpsData = await extractGPSFromImage(file);
-        newPhotos.push({
-          file,
-          url,
-          lat: gpsData?.latitude,
-          lon: gpsData?.longitude,
-          timestamp: gpsData?.timestamp,
-        });
-      } catch (error) {
-        console.error('Error extracting GPS from', file.name, error);
-        newPhotos.push({
-          file,
-          url,
-        });
-      }
+      newPhotos.push({
+        file,
+        url,
+        lat: gpsData?.latitude,
+        lon: gpsData?.longitude,
+        timestamp: gpsData?.timestamp,
+      });
     }
 
     setPhotos([...photos, ...newPhotos]);

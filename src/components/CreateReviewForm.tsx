@@ -19,6 +19,7 @@ import { PermissionGate } from '@/components/PermissionGate';
 import { Camera, MapPin, Star, Upload, Loader2, Zap } from 'lucide-react';
 import { LocationMap } from '@/components/LocationMap';
 import { extractGPSFromImage, canContainEXIF } from '@/lib/exifUtils';
+import { compressImage, COMPRESSION_PRESETS } from '@/lib/imageCompression';
 import { useNavigate } from 'react-router-dom';
 import { GPSDebugger } from '@/components/GPSDebugger';
 import * as geohash from 'ngeohash';
@@ -162,21 +163,34 @@ function CreateReviewFormContent() {
   }, [form, toast]);
 
   const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const originalFile = event.target.files?.[0];
+    if (!originalFile) return;
+
+    // Extract GPS from original file first (before compression)
+    await extractLocationFromExif(originalFile);
+
+    // Compress image for faster viewing
+    let file = originalFile;
+    try {
+      file = await compressImage(originalFile, COMPRESSION_PRESETS.review);
+      toast({
+        title: 'Image optimized',
+        description: `Reduced size by ${(((originalFile.size - file.size) / originalFile.size) * 100).toFixed(0)}% for faster viewing`,
+      });
+    } catch (error) {
+      console.error('Error compressing image, using original:', error);
+      file = originalFile;
+    }
 
     setSelectedFile(file);
 
-    // Create preview
+    // Create preview from compressed file
     const reader = new FileReader();
     reader.onload = (e) => {
       setImagePreview(e.target?.result as string);
     };
     reader.readAsDataURL(file);
-
-    // Extract location from EXIF
-    await extractLocationFromExif(file);
-  }, [extractLocationFromExif]);
+  }, [extractLocationFromExif, toast]);
 
   const handleLocationSelect = useCallback((lat: number, lng: number) => {
     console.log(`🗺️ Manual location selected: lat=${lat}, lng=${lng}`);
