@@ -123,15 +123,17 @@ export function TripMap({ photos, className }: TripMapProps) {
             position={[photo.lat, photo.lon]}
             icon={createNumberedMarker(idx + 1)}
           >
-            <Popup maxWidth={300}>
+            <Popup maxWidth={400} minWidth={250}>
               <div className="p-2">
-                <OptimizedImage
-                  src={photo.url}
-                  alt={`Photo ${idx + 1}`}
-                  className="w-full h-48 object-cover rounded mb-2"
-                  priority={false}
-                  thumbnail={true}
-                />
+                <div className="mb-2 max-h-[300px] overflow-hidden rounded flex items-center justify-center">
+                  <OptimizedImage
+                    src={photo.url}
+                    alt={`Photo ${idx + 1}`}
+                    className="w-full h-auto max-h-[300px] object-contain rounded"
+                    priority={false}
+                    thumbnail={false}
+                  />
+                </div>
                 <p className="text-sm font-medium">Photo {idx + 1}</p>
                 <p className="text-xs text-muted-foreground">
                   {photo.lat.toFixed(6)}, {photo.lon.toFixed(6)}
