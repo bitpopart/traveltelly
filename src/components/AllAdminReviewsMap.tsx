@@ -665,7 +665,7 @@ export function AllAdminReviewsMap() {
     console.log(`🔧 Admin Precision upgrade stats:`, upgradeStats);
 
     // Apply upgrades to location data
-    const upgradedLocations = applyPrecisionUpgrades(locations, upgrades);
+    const upgradedLocations: ReviewLocation[] = applyPrecisionUpgrades(locations, upgrades);
 
     console.log(`✅ Final admin locations with upgrades: ${upgradedLocations.length}`);
 
