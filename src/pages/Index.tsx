@@ -6,11 +6,13 @@ import { RelaySelector } from "@/components/RelaySelector";
 import { OptimizedImage } from "@/components/OptimizedImage";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { LoadMoreReviewFeed } from "@/components/LoadMoreReviewFeed";
 import { AllAdminReviewsMap } from "@/components/AllAdminReviewsMap";
 import { AdminDebugInfo } from "@/components/AdminDebugInfo";
 import { UnifiedSearchBar } from "@/components/UnifiedSearchBar";
 import { CreateProductDialog } from "@/components/CreateProductDialog";
+import { CreateTripForm } from "@/components/CreateTripForm";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useReviewPermissions } from "@/hooks/useReviewPermissions";
 import { useLatestReview, useLatestStory, useLatestStockMedia, useLatestTrip, useReviewCount, useStoryCount, useStockMediaCount, useTripCount } from "@/hooks/useLatestItems";
@@ -26,6 +28,7 @@ const Index = () => {
   const { data: latestStory } = useLatestStory();
   const { data: latestStockMedia } = useLatestStockMedia();
   const { data: latestTrip } = useLatestTrip();
+  const [isCreateTripDialogOpen, setIsCreateTripDialogOpen] = useState(false);
   
   // Get counts
   const reviewCount = useReviewCount();
@@ -240,6 +243,15 @@ const Index = () => {
                     <BookOpen className="w-4 h-4 mr-2" />
                     Create Story
                   </Button>
+                  <Button 
+                    size="lg" 
+                    className="rounded-full text-black font-semibold text-sm md:text-base" 
+                    style={{ backgroundColor: '#ffcc00' }}
+                    onClick={() => setIsCreateTripDialogOpen(true)}
+                  >
+                    <MapPin className="w-4 h-4 mr-2" />
+                    Create Trip
+                  </Button>
                   <CreateProductDialog>
                     <Button size="lg" className="rounded-full text-white text-sm md:text-base" style={{ backgroundColor: '#ec1a58' }}>
                       <FileImage className="w-4 h-4 mr-2" />
@@ -369,9 +381,20 @@ const Index = () => {
             </CardContent>
           </Card>
 
-
         </div>
       </div>
+
+      {/* Create Trip Dialog */}
+      <Dialog open={isCreateTripDialogOpen} onOpenChange={setIsCreateTripDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">Create New Trip</DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            <CreateTripForm onSuccess={() => setIsCreateTripDialogOpen(false)} />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
