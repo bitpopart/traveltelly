@@ -7,12 +7,63 @@ This project implements a decentralized review platform and digital media market
 This platform leverages existing Nostr standards with minimal custom event kinds:
 
 - **Custom Review System**: Using kind `34879` for location-based reviews
+- **Custom Trip System**: Using kind `30025` for travel trips with photos and GPS routes
 - **NIP-99 (Classified Listings)**: For digital media marketplace listings using kind `30402`
 - **NIP-52 (Calendar Events)**: For event management using kinds `31922` and `31923`
 - **NIP-57 (Lightning Zaps)**: For Lightning payments via Bitcoin
 - **NIP-04 (Encrypted Direct Messages)**: For communication between users
 - **NIP-15 (Nostr Marketplace)**: Reference implementation for marketplace message types
 - **Custom Permission System**: For managing review and media upload permissions (kinds `31492`, `30384`)
+
+## Trip System (Custom Kind 30025)
+
+Travel trips with multiple photos, GPS coordinates, and route visualization are published using custom kind `30025`:
+
+```json
+{
+  "kind": 30025,
+  "content": "Trip description and experience details",
+  "tags": [
+    ["d", "trip-unique-id"],
+    ["title", "Hiking in Yosemite"],
+    ["summary", "Amazing day hike through the valley"],
+    ["category", "hike"],
+    ["image", "photo1_url", "lat1", "lon1", "timestamp1"],
+    ["image", "photo2_url", "lat2", "lon2", "timestamp2"],
+    ["image", "photo3_url", "lat3", "lon3", "timestamp3"],
+    ["distance", "12.5"],
+    ["distance_unit", "km"],
+    ["gpx", "gpx_file_url"],
+    ["alt", "Hiking trip in Yosemite - 12.5km"]
+  ]
+}
+```
+
+### Trip Features
+
+- **Multiple Photos**: Each photo includes GPS coordinates and timestamp
+- **Route Visualization**: Photos are connected on a map showing the trip route
+- **GPS Extraction**: Automatic GPS extraction from HEIC/JPEG EXIF data
+- **GPX Support**: Optional GPX or TCX file upload for precise route tracking
+- **Distance Calculation**: Automatic distance calculation from photo coordinates or GPX
+- **Trip Categories**: Walk, Hike, Cycling
+
+### Photo Tag Format
+
+Each photo is stored as an `image` tag with:
+- Photo URL (required)
+- Latitude (extracted from EXIF or GPX)
+- Longitude (extracted from EXIF or GPX)
+- Timestamp (optional, for route ordering)
+
+### Route Creation
+
+Routes are created by:
+1. Connecting photos in chronological order based on timestamps
+2. Using GPX/TCX track data if provided
+3. Calculating approximate distance between points
+
+**Note**: Routes shown are approximate and based on photo locations, not exact paths taken.
 
 ## Review System (Custom Kind 34879)
 

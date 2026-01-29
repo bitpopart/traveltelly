@@ -13,7 +13,8 @@ import {
   Shield,
   Menu,
   X,
-  Map
+  Map,
+  MapPin
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -38,6 +39,7 @@ export function Navigation({ className }: NavigationProps) {
     { path: '/', label: 'Home', icon: Home, color: '#393636', hoverColor: '#2a2828' },
     { path: '/reviews', label: 'Reviews', icon: Star, color: '#27b0ff', hoverColor: '#1a9fe6' },
     { path: '/stories', label: 'Stories', icon: BookOpen, color: '#b2d235', hoverColor: '#9dbf2e' },
+    { path: '/trips', label: 'Trips', icon: MapPin, color: '#ffcc00', hoverColor: '#e6b800' },
     { path: '/marketplace', label: 'Marketplace', icon: Store, color: '#ec1a58', hoverColor: '#d3164d' },
     { path: '/simple-map-demo', label: 'Map', icon: Map, adminOnly: true, color: '#393636', hoverColor: '#2a2828' },
   ];
