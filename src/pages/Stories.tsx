@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Navigation } from '@/components/Navigation';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -273,6 +274,16 @@ export default function Stories() {
   const { data: stories, isLoading, error } = useStories();
   const isAdmin = user?.pubkey === ADMIN_HEX;
   const [selectedArticle, setSelectedArticle] = useState<NostrEvent | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<string>('articles');
+
+  // Handle tab query parameter
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'create') {
+      setActiveTab('create');
+    }
+  }, [searchParams]);
 
   const handleReadMore = (article: NostrEvent) => {
     setSelectedArticle(article);
@@ -304,7 +315,7 @@ export default function Stories() {
 
 
           {/* Main Content Tabs */}
-          <Tabs defaultValue="articles" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="articles" className="flex items-center gap-2">
                 <BookOpen className="w-4 h-4" />

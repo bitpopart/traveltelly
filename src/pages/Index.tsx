@@ -1,4 +1,5 @@
 import { useSeoMeta } from '@unhead/react';
+import { useState } from 'react';
 import { Navigation as NavigationComponent } from "@/components/Navigation";
 import { LoginArea } from "@/components/auth/LoginArea";
 import { RelaySelector } from "@/components/RelaySelector";
@@ -9,15 +10,17 @@ import { LoadMoreReviewFeed } from "@/components/LoadMoreReviewFeed";
 import { AllAdminReviewsMap } from "@/components/AllAdminReviewsMap";
 import { AdminDebugInfo } from "@/components/AdminDebugInfo";
 import { UnifiedSearchBar } from "@/components/UnifiedSearchBar";
+import { CreateProductDialog } from "@/components/CreateProductDialog";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useReviewPermissions } from "@/hooks/useReviewPermissions";
 import { useLatestReview, useLatestStory, useLatestStockMedia, useReviewCount, useStoryCount, useStockMediaCount } from "@/hooks/useLatestItems";
-import { MapPin, Star, Camera, Zap, Shield, BookOpen, Search, Navigation } from "lucide-react";
-import { Link } from "react-router-dom";
+import { MapPin, Star, Camera, Zap, Shield, BookOpen, Search, Navigation, FileImage } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { ZapAuthorButton } from "@/components/ZapAuthorButton";
 
 const Index = () => {
   const { user } = useCurrentUser();
+  const navigate = useNavigate();
   const { isAdmin, isCheckingPermission } = useReviewPermissions();
   const { data: latestReview } = useLatestReview();
   const { data: latestStory } = useLatestStory();
@@ -190,6 +193,22 @@ const Index = () => {
                       Create Review
                     </Button>
                   </Link>
+                  <Button 
+                    size="lg" 
+                    className="rounded-full text-white text-sm md:text-base" 
+                    style={{ backgroundColor: '#b2d235' }}
+                    onClick={() => navigate('/stories?tab=create')}
+                  >
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    Create Story
+                  </Button>
+                  <CreateProductDialog>
+                    <Button size="lg" className="rounded-full text-white text-sm md:text-base" style={{ backgroundColor: '#ec1a58' }}>
+                      <FileImage className="w-4 h-4 mr-2" />
+                      <span className="hidden sm:inline">Upload Stock Media</span>
+                      <span className="sm:hidden">Upload Media</span>
+                    </Button>
+                  </CreateProductDialog>
                   <Link to="/stock-media-permissions">
                     <Button variant="outline" size="lg" className="rounded-full text-sm md:text-base">
                       <Camera className="w-4 h-4 mr-2" />
