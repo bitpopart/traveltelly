@@ -135,6 +135,25 @@ const ReviewDetail = () => {
             <Card className="border-dashed">
               <CardContent className="py-12 px-8 text-center">
                 <p className="text-muted-foreground mb-4">
+                  Loading review...
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!review) {
+    return (
+      <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#f4f4f5' }}>
+        <NavigationComponent />
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-4xl mx-auto">
+            <Card className="border-dashed">
+              <CardContent className="py-12 px-8 text-center">
+                <p className="text-muted-foreground mb-4">
                   Review not found.
                 </p>
                 <Button variant="outline" onClick={() => window.history.back()}>

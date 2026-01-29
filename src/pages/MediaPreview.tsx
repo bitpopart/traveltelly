@@ -17,7 +17,6 @@ import { ImageDiagnostic } from "@/components/ImageDiagnostic";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useMarketplaceProducts } from "@/hooks/useMarketplaceProducts";
 import { useAuthor } from "@/hooks/useAuthor";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePriceConversion } from "@/hooks/usePriceConversion";
 import { genUserName } from "@/lib/genUserName";
 import {

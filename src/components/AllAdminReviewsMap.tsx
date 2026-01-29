@@ -638,6 +638,7 @@ export function AllAdminReviewsMap() {
           image,
           precision: coordinates.precision,
           accuracy: coordinates.accuracy,
+          type: 'review',
         });
       } catch (error) {
         console.error('Error decoding geohash for review:', review.id, error);
