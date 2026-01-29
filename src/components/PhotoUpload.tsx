@@ -5,6 +5,7 @@ import { useUploadFile } from '@/hooks/useUploadFile';
 import { useToast } from '@/hooks/useToast';
 import { Camera, Upload, Loader2, X, MapPin } from 'lucide-react';
 import { extractGPSFromImage, canContainEXIF, type GPSCoordinates } from '@/lib/exifUtils';
+import { compressImage, COMPRESSION_PRESETS } from '@/lib/imageCompression';
 
 interface PhotoUploadProps {
   onPhotosChange?: (photos: UploadedPhoto[]) => void;
@@ -101,27 +102,43 @@ export function PhotoUpload({
     // Create photo objects with previews
     const newPhotos: UploadedPhoto[] = [];
     
-    for (const file of files) {
+    for (const originalFile of files) {
       // Validate file type
       const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/tiff', 'image/tif', 'image/heic', 'image/heif'];
-      if (!validTypes.includes(file.type.toLowerCase()) && 
-          !file.name.toLowerCase().match(/\.(jpg|jpeg|png|webp|tiff|tif|heic|heif)$/)) {
+      if (!validTypes.includes(originalFile.type.toLowerCase()) && 
+          !originalFile.name.toLowerCase().match(/\.(jpg|jpeg|png|webp|tiff|tif|heic|heif)$/)) {
         toast({
           title: 'Invalid file type',
-          description: `${file.name} is not a supported image format.`,
+          description: `${originalFile.name} is not a supported image format.`,
           variant: 'destructive',
         });
         continue;
       }
 
-      // Check file size (10MB limit)
-      if (file.size > 10 * 1024 * 1024) {
+      // Check file size (10MB limit for original)
+      if (originalFile.size > 10 * 1024 * 1024) {
         toast({
           title: 'File too large',
-          description: `${file.name} is larger than 10MB.`,
+          description: `${originalFile.name} is larger than 10MB.`,
           variant: 'destructive',
         });
         continue;
+      }
+
+      // Extract GPS from original file first (before compression)
+      let shouldExtractGPS = photos.length === 0 && newPhotos.length === 0;
+      if (shouldExtractGPS) {
+        await extractGPSFromFirstPhoto(originalFile);
+      }
+
+      // Compress image for faster viewing (use story preset for better quality)
+      let file = originalFile;
+      try {
+        file = await compressImage(originalFile, COMPRESSION_PRESETS.story);
+        console.log(`Story photo compressed: ${originalFile.name} - ${(((originalFile.size - file.size) / originalFile.size) * 100).toFixed(0)}% reduction`);
+      } catch (error) {
+        console.error('Error compressing image, using original:', error);
+        file = originalFile;
       }
 
       const preview = URL.createObjectURL(file);
@@ -137,11 +154,6 @@ export function PhotoUpload({
 
     const updatedPhotos = [...photos, ...newPhotos];
     updatePhotos(updatedPhotos);
-
-    // Extract GPS from the first photo if this is the first upload
-    if (photos.length === 0 && newPhotos.length > 0) {
-      await extractGPSFromFirstPhoto(newPhotos[0].file);
-    }
 
     // Clear the input
     event.target.value = '';

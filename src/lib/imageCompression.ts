@@ -148,6 +148,12 @@ export const COMPRESSION_PRESETS = {
     quality: 0.85,
     outputFormat: 'image/jpeg' as const,
   },
+  story: {
+    maxWidth: 2048,
+    maxHeight: 2048,
+    quality: 0.88,
+    outputFormat: 'image/jpeg' as const,
+  },
   trip: {
     maxWidth: 1920,
     maxHeight: 1920,
