@@ -152,7 +152,6 @@ const createCustomIcon = (rating: number, precision?: number, upgraded?: boolean
   const isLowPrecision = precision && precision <= 5;
   const isUpgraded = upgraded === true;
   const isGpsCorrected = gpsCorreected === true;
-  const isScenicSpot = type === 'stock-media';
   const isStory = type === 'story';
 
   // Use blue color for marker base (matching other map components)
@@ -638,6 +637,7 @@ export function AllAdminReviewsMap() {
           image,
           precision: coordinates.precision,
           accuracy: coordinates.accuracy,
+          type: 'review',
         });
       } catch (error) {
         console.error('Error decoding geohash for review:', review.id, error);
@@ -664,7 +664,7 @@ export function AllAdminReviewsMap() {
     console.log(`🔧 Admin Precision upgrade stats:`, upgradeStats);
 
     // Apply upgrades to location data
-    const upgradedLocations = applyPrecisionUpgrades(locations, upgrades);
+    const upgradedLocations: ReviewLocation[] = applyPrecisionUpgrades(locations, upgrades);
 
     console.log(`✅ Final admin locations with upgrades: ${upgradedLocations.length}`);
 

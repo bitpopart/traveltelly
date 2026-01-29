@@ -64,10 +64,7 @@ const Index = () => {
                   variant="default"
                   size="lg"
                   className="rounded-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold px-6 md:px-8 py-3 h-auto"
-                >
-                  <Zap className="w-5 h-5 mr-2 fill-current" />
-                  Support
-                </ZapAuthorButton>
+                />
                 {!user && <LoginArea className="max-w-60" />}
               </div>
 
@@ -77,7 +74,7 @@ const Index = () => {
                 <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
                   <Link to="/reviews" className="block relative">
                     <div className="aspect-video md:aspect-[4/5] overflow-hidden relative" style={{ backgroundColor: '#27b0ff' }}>
-                      {latestReview ? (
+                      {latestReview?.image ? (
                         <OptimizedImage
                           src={latestReview.image}
                           alt={latestReview.title}
@@ -112,7 +109,7 @@ const Index = () => {
                 <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
                   <Link to="/stories" className="block relative">
                     <div className="aspect-video md:aspect-[4/5] overflow-hidden relative" style={{ backgroundColor: '#b2d235' }}>
-                      {latestStory ? (
+                      {latestStory?.image ? (
                         <OptimizedImage
                           src={latestStory.image}
                           alt={latestStory.title}
@@ -147,7 +144,7 @@ const Index = () => {
                 <Card className="overflow-hidden hover:shadow-lg transition-shadow group sm:col-span-2 md:col-span-1">
                   <Link to="/marketplace" className="block relative">
                     <div className="aspect-video md:aspect-[4/5] overflow-hidden relative" style={{ backgroundColor: '#ec1a58' }}>
-                      {latestStockMedia ? (
+                      {latestStockMedia?.image ? (
                         <OptimizedImage
                           src={latestStockMedia.image}
                           alt={latestStockMedia.title}
