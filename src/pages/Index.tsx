@@ -57,7 +57,7 @@ const Index = () => {
           {/* Main Content Box */}
           <Card className="overflow-hidden shadow-lg mb-8">
             <CardContent className="p-6 md:p-8">
-              {/* Header - Purple button and login */}
+              {/* Header - Purple and orange buttons */}
               <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
                 <Link to="/what-is-nostr">
                   <Button 
@@ -74,7 +74,6 @@ const Index = () => {
                   size="lg"
                   className="rounded-full bg-orange-500 hover:bg-orange-600 text-white font-semibold px-6 md:px-8 py-3 h-auto"
                 />
-                {!user && <LoginArea className="max-w-60" />}
               </div>
 
               {/* Feature Cards */}
