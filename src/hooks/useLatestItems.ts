@@ -255,3 +255,87 @@ export function useStockMediaCount() {
     refetchInterval: 30000, // Auto-refresh every 30 seconds
   });
 }
+
+/**
+ * Fetch the latest trip with an image
+ */
+export function useLatestTrip() {
+  const { nostr } = useNostr();
+
+  return useQuery({
+    queryKey: ['latest-trip-with-image'],
+    queryFn: async (c) => {
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
+      
+      const events = await nostr.query([{
+        kinds: [30025],
+        limit: 20
+      }], { signal });
+
+      // Find the first trip with an image
+      const tripWithImage = events
+        .filter((event: NostrEvent) => {
+          const d = event.tags.find(([name]) => name === 'd')?.[1];
+          const title = event.tags.find(([name]) => name === 'title')?.[1];
+          const images = event.tags.filter(([name]) => name === 'image');
+          
+          return !!(d && title && images.length > 0);
+        })
+        .sort((a, b) => b.created_at - a.created_at)[0];
+
+      if (!tripWithImage) return null;
+
+      // Get first image
+      const image = tripWithImage.tags.find(([name]) => name === 'image')?.[1];
+      const title = tripWithImage.tags.find(([name]) => name === 'title')?.[1] || 'Untitled Trip';
+      const identifier = tripWithImage.tags.find(([name]) => name === 'd')?.[1] || '';
+      
+      const naddr = nip19.naddrEncode({
+        identifier,
+        pubkey: tripWithImage.pubkey,
+        kind: 30025,
+      });
+
+      return {
+        image,
+        title,
+        naddr,
+        event: tripWithImage,
+      };
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  });
+}
+
+/**
+ * Get total count of trips
+ */
+export function useTripCount() {
+  const { nostr } = useNostr();
+
+  return useQuery({
+    queryKey: ['trip-count'],
+    queryFn: async (c) => {
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
+      
+      const events = await nostr.query([{
+        kinds: [30025],
+        limit: 1000
+      }], { signal });
+
+      // Filter valid trips
+      const validTrips = events.filter(event => {
+        const d = event.tags.find(([name]) => name === 'd')?.[1];
+        const title = event.tags.find(([name]) => name === 'title')?.[1];
+        const images = event.tags.filter(([name]) => name === 'image');
+        
+        return !!(d && title && images.length > 0);
+      });
+
+      return validTrips.length;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
+  });
+}

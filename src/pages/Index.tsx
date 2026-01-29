@@ -13,7 +13,7 @@ import { UnifiedSearchBar } from "@/components/UnifiedSearchBar";
 import { CreateProductDialog } from "@/components/CreateProductDialog";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useReviewPermissions } from "@/hooks/useReviewPermissions";
-import { useLatestReview, useLatestStory, useLatestStockMedia, useReviewCount, useStoryCount, useStockMediaCount } from "@/hooks/useLatestItems";
+import { useLatestReview, useLatestStory, useLatestStockMedia, useLatestTrip, useReviewCount, useStoryCount, useStockMediaCount, useTripCount } from "@/hooks/useLatestItems";
 import { MapPin, Star, Camera, Zap, Shield, BookOpen, Search, Navigation, FileImage } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { ZapAuthorButton } from "@/components/ZapAuthorButton";
@@ -25,17 +25,20 @@ const Index = () => {
   const { data: latestReview } = useLatestReview();
   const { data: latestStory } = useLatestStory();
   const { data: latestStockMedia } = useLatestStockMedia();
+  const { data: latestTrip } = useLatestTrip();
   
   // Get counts
   const reviewCount = useReviewCount();
   const { data: storyCount = 0 } = useStoryCount();
   const { data: stockMediaCount = 0 } = useStockMediaCount();
+  const { data: tripCount = 0 } = useTripCount();
 
   // Debug logging
   console.log('📊 Homepage thumbnails:', {
     latestReview: latestReview ? { title: latestReview.title, hasImage: !!latestReview.image } : null,
     latestStory: latestStory ? { title: latestStory.title, hasImage: !!latestStory.image } : null,
     latestStockMedia: latestStockMedia ? { title: latestStockMedia.title, hasImage: !!latestStockMedia.image } : null,
+    latestTrip: latestTrip ? { title: latestTrip.title, hasImage: !!latestTrip.image } : null,
   });
 
   useSeoMeta({
@@ -72,7 +75,7 @@ const Index = () => {
               </div>
 
               {/* Feature Cards */}
-              <div className="grid gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-3 w-full mb-6">
+              <div className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-4 w-full mb-6">
                 {/* Share Reviews Card */}
                 <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
                   <Link to="/reviews" className="block relative">
@@ -143,8 +146,43 @@ const Index = () => {
                   </Link>
                 </Card>
 
+                {/* Trips Card */}
+                <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
+                  <Link to="/trips" className="block relative">
+                    <div className="aspect-video md:aspect-[4/5] overflow-hidden relative" style={{ backgroundColor: '#ffcc00' }}>
+                      {latestTrip?.image ? (
+                        <OptimizedImage
+                          src={latestTrip.image}
+                          alt={latestTrip.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          priority={true}
+                          blurUp={true}
+                          thumbnail={true}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <MapPin className="w-16 h-16 md:w-24 md:h-24 text-white opacity-50" />
+                        </div>
+                      )}
+                      <div className="absolute inset-x-0 bottom-0 p-4">
+                        <Button 
+                          className="w-full rounded-full font-medium shadow-lg text-black hover:opacity-90 transition-opacity flex items-center justify-center gap-2" 
+                          style={{ backgroundColor: '#ffcc00' }}
+                        >
+                          <span>Trips</span>
+                          {tripCount > 0 && (
+                            <span className="bg-black/20 px-2 py-0.5 rounded-full text-sm">
+                              {tripCount}
+                            </span>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </Link>
+                </Card>
+
                 {/* Stock Media Card */}
-                <Card className="overflow-hidden hover:shadow-lg transition-shadow group sm:col-span-2 md:col-span-1">
+                <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
                   <Link to="/marketplace" className="block relative">
                     <div className="aspect-video md:aspect-[4/5] overflow-hidden relative" style={{ backgroundColor: '#ec1a58' }}>
                       {latestStockMedia?.image ? (
