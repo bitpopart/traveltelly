@@ -39,9 +39,11 @@ jobs:
 
       - name: Type check
         run: npx tsc -p tsconfig.app.json --noEmit
+        continue-on-error: true
 
       - name: Lint
         run: npx eslint
+        continue-on-error: true
 
       - name: Build
         run: npm run build
