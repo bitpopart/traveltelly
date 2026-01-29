@@ -23,7 +23,11 @@ interface PhotoWithGPS {
   uploadedUrl?: string;
 }
 
-export function CreateTripForm() {
+interface CreateTripFormProps {
+  onSuccess?: () => void;
+}
+
+export function CreateTripForm({ onSuccess }: CreateTripFormProps = {}) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { mutateAsync: uploadFile } = useUploadFile();
@@ -239,6 +243,11 @@ export function CreateTripForm() {
         title: 'Trip published!',
         description: 'Your trip has been shared successfully',
       });
+
+      // Call onSuccess callback if provided (for dialog)
+      if (onSuccess) {
+        onSuccess();
+      }
 
       // Navigate to trips page
       setTimeout(() => {

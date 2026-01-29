@@ -31,6 +31,7 @@ import DownloadPage from "./pages/DownloadPage";
 import Stories from "./pages/Stories";
 import Reviews from "./pages/Reviews";
 import Trips from "./pages/Trips";
+import TripDetail from "./pages/TripDetail";
 import CategoryTest from "./pages/CategoryTest";
 import StockMediaPermissions from "./pages/StockMediaPermissions";
 import MediaManagementPage from "./pages/MediaManagementPage";
@@ -58,6 +59,7 @@ export function AppRouter() {
         <Route path="/stories" element={<Stories />} />
         <Route path="/reviews" element={<Reviews />} />
         <Route path="/trips" element={<Trips />} />
+        <Route path="/trip/:naddr" element={<TripDetail />} />
         <Route path="/create-review" element={<CreateReview />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/review/:naddr" element={<ReviewDetail />} />
