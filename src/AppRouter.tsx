@@ -33,6 +33,7 @@ import Reviews from "./pages/Reviews";
 import CategoryTest from "./pages/CategoryTest";
 import StockMediaPermissions from "./pages/StockMediaPermissions";
 import MediaManagementPage from "./pages/MediaManagementPage";
+import MapMarkerEditor from "./pages/MapMarkerEditor";
 import { Events } from "./pages/Events";
 import { AdminEvents } from "./pages/AdminEvents";
 import SearchTest from "./pages/SearchTest";
@@ -77,6 +78,7 @@ export function AppRouter() {
         <Route path="/category-test" element={<CategoryTest />} />
         <Route path="/stock-media-permissions" element={<StockMediaPermissions />} />
         <Route path="/media-management" element={<MediaManagementPage />} />
+        <Route path="/map-marker-editor" element={<MapMarkerEditor />} />
         <Route path="/events" element={<Events />} />
         <Route path="/admin/events" element={<AdminEvents />} />
         <Route path="/search-test" element={<SearchTest />} />

@@ -104,7 +104,7 @@ const createCustomIcon = (rating: number, precision?: number, upgraded?: boolean
     return createRestaurantMarkerForAdmin(rating, precision, upgraded, gpsCorreected);
   }
   
-  // For stock media, use red camera marker without rating number
+  // For stock media, use red camera marker with yellow star
   if (type === 'stock-media') {
     const svgString = `<svg viewBox="0 0 72.61 100.72" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -125,6 +125,7 @@ const createCustomIcon = (rating: number, precision?: number, upgraded?: boolean
         <path fill="#fff" d="M56.57,18.4H16.54c-1.84,0-3.33,1.49-3.33,3.33v26.65c0,1.84,1.5,3.33,3.33,3.33h40.04c1.84,0,3.33-1.49,3.33-3.33v-26.65c0-1.84-1.49-3.33-3.33-3.33ZM30.12,47.69c-6.97,0-12.63-5.65-12.63-12.63s5.65-12.63,12.63-12.63,12.63,5.65,12.63,12.63-5.65,12.63-12.63,12.63ZM54.83,25.48h-4.05c-1.21,0-2.19-.98-2.19-2.18s.98-2.19,2.19-2.19h4.05c1.2,0,2.19.98,2.19,2.19s-.98,2.18-2.19,2.18Z"/>
         <rect fill="#fff" x="17.89" y="13.86" width="9.58" height="3.48"/>
         <path fill="#fff" d="M36.01,35.06c0,3.33-2.7,6.03-6.02,6.03s-6.02-2.69-6.02-6.03,2.69-6.02,6.02-6.02,6.02,2.7,6.02,6.02Z"/>
+        <path fill="#fc0" d="M42.54,65.41c-.15-.11-.35-.12-.52-.02l-4.25,2.55s-.03.02-.04.03c-.04.03-.1.06-.1.08-.24-.57-1.64-5.81-2.49-9.03-.06-.21-.24-.35-.46-.35-.22,0-.4.15-.45.36l-3.92,16.92c-.03.16-.11.69.27.96.27.19.62.16,1.03-.1l3.53-2.2,2.76,8.6c.06.19.24.33.45.33h.02c.21,0,.39-.16.44-.37l3.91-17.27c.04-.18-.03-.37-.18-.48Z"/>
       </g>
     </svg>`.replace(/\s+/g, ' ').trim();
     
@@ -138,7 +139,7 @@ const createCustomIcon = (rating: number, precision?: number, upgraded?: boolean
     } catch (error) {
       console.error('Error creating stock media icon:', error);
       return new Icon({
-        iconUrl: '/stock-media-marker.svg',
+        iconUrl: '/stock-media-marker-new.svg',
         iconSize: [40, 55],
         iconAnchor: [20, 55],
         popupAnchor: [0, -55],
