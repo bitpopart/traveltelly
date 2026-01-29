@@ -408,7 +408,8 @@ const MarketplaceOrders = () => {
           {/* Footer */}
           <div className="text-center text-gray-600 dark:text-gray-400 mt-8">
             <p className="mb-4">
-
+              Your orders are stored locally in your browser.
+            </p>
           </div>
         </div>
       </div>
