@@ -4,10 +4,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useReviewPermissions } from '@/hooks/useReviewPermissions';
+import { useReviewCategories } from '@/hooks/useReviewCategories';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { nip19 } from 'nostr-tools';
 import { 
   Shield, 
@@ -23,60 +28,94 @@ import {
   Eye,
   Info,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Plus,
+  Trash2,
+  Edit
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface MarkerConfig {
+  id: string;
   name: string;
   file: string;
   description: string;
-  icon: typeof MapPin;
+  icon: string;
   color: string;
   category: string;
+  isDefault?: boolean;
 }
 
-const markerConfigs: MarkerConfig[] = [
+const defaultMarkers: MarkerConfig[] = [
   {
+    id: 'review-default',
     name: 'Review Marker',
     file: 'main-marker.svg',
     description: 'Default marker for reviews with rating display',
-    icon: Star,
+    icon: 'Star',
     color: '#27b0ff',
-    category: 'review'
+    category: 'review',
+    isDefault: true
   },
   {
+    id: 'cafe',
     name: 'Cafe Marker',
     file: 'cafe-marker.svg',
     description: 'Marker for cafe category with coffee cup icon',
-    icon: Coffee,
+    icon: 'Coffee',
     color: '#27b0ff',
-    category: 'cafe'
+    category: 'cafe',
+    isDefault: true
   },
   {
+    id: 'restaurant',
     name: 'Restaurant Marker',
     file: 'restaurant-marker.svg',
     description: 'Marker for restaurant category with fork and knife icon',
-    icon: Utensils,
+    icon: 'Utensils',
     color: '#27b0ff',
-    category: 'restaurant'
+    category: 'restaurant',
+    isDefault: true
   },
   {
+    id: 'stock-media',
     name: 'Stock Media Marker',
     file: 'stock-media-marker-new.svg',
     description: 'Marker for stock media with camera and yellow star',
-    icon: FileImage,
+    icon: 'FileImage',
     color: '#ce1313',
-    category: 'stock-media'
+    category: 'stock-media',
+    isDefault: true
   }
 ];
+
+const getIconComponent = (iconName: string) => {
+  const icons: Record<string, typeof MapPin> = {
+    MapPin, Camera, Star, Coffee, Utensils, FileImage
+  };
+  return icons[iconName] || MapPin;
+};
 
 export default function MapMarkerEditor() {
   const { user } = useCurrentUser();
   const { isAdmin, isCheckingPermission } = useReviewPermissions();
+  const { data: categories = [] } = useReviewCategories();
+  const [customMarkers, setCustomMarkers] = useLocalStorage<MarkerConfig[]>('custom-map-markers', []);
   const [selectedMarker, setSelectedMarker] = useState<MarkerConfig | null>(null);
   const [uploadStatus, setUploadStatus] = useState<{ success: boolean; message: string } | null>(null);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [newMarker, setNewMarker] = useState<Partial<MarkerConfig>>({
+    name: '',
+    file: '',
+    description: '',
+    icon: 'MapPin',
+    color: '#27b0ff',
+    category: ''
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const newMarkerFileRef = useRef<HTMLInputElement>(null);
+
+  const allMarkers = [...defaultMarkers, ...customMarkers];
 
   // Double-check that this is specifically the admin npub
   const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642';
@@ -142,27 +181,63 @@ export default function MapMarkerEditor() {
       return;
     }
 
-    // In a real implementation, this would upload to the server
-    // For now, we'll just show instructions
     setUploadStatus({ 
       success: true, 
       message: `To update ${marker.name}, replace /public/${marker.file} with your new SVG file and rebuild the project.` 
     });
 
-    // Clear file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
   const handleDownloadMarker = (marker: MarkerConfig) => {
-    // Create a link to download the marker
     const link = document.createElement('a');
     link.href = `/${marker.file}`;
     link.download = marker.file;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleAddMarker = () => {
+    if (!newMarker.name || !newMarker.category || !newMarker.file) {
+      setUploadStatus({ success: false, message: 'Please fill in all required fields' });
+      return;
+    }
+
+    const markerConfig: MarkerConfig = {
+      id: `custom-${Date.now()}`,
+      name: newMarker.name!,
+      file: newMarker.file!,
+      description: newMarker.description || '',
+      icon: newMarker.icon || 'MapPin',
+      color: newMarker.color || '#27b0ff',
+      category: newMarker.category!,
+      isDefault: false
+    };
+
+    setCustomMarkers([...customMarkers, markerConfig]);
+    setUploadStatus({ 
+      success: true, 
+      message: `Marker "${markerConfig.name}" added successfully! Remember to add the SVG file to /public/${markerConfig.file}` 
+    });
+    
+    // Reset form
+    setNewMarker({
+      name: '',
+      file: '',
+      description: '',
+      icon: 'MapPin',
+      color: '#27b0ff',
+      category: ''
+    });
+    setIsAddDialogOpen(false);
+  };
+
+  const handleDeleteMarker = (markerId: string) => {
+    setCustomMarkers(customMarkers.filter(m => m.id !== markerId));
+    setUploadStatus({ success: true, message: 'Marker deleted successfully' });
   };
 
   return (
@@ -180,13 +255,164 @@ export default function MapMarkerEditor() {
                 </Button>
               </Link>
             </div>
-            <div className="flex items-center gap-3 mb-2">
-              <MapPin className="w-8 h-8 text-blue-600" />
-              <h1 className="text-3xl font-bold">Map Marker Editor</h1>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <MapPin className="w-8 h-8 text-blue-600" />
+                  <h1 className="text-3xl font-bold">Map Marker Editor</h1>
+                </div>
+                <p className="text-muted-foreground">
+                  Manage and customize map markers for reviews, categories, and stock media
+                </p>
+              </div>
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-green-600 hover:bg-green-700">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add New Marker
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Add New Map Marker</DialogTitle>
+                    <DialogDescription>
+                      Create a custom marker and assign it to a category
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="grid gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="marker-name">
+                          Marker Name <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="marker-name"
+                          placeholder="e.g., Hotel Marker, Beach Marker"
+                          value={newMarker.name}
+                          onChange={(e) => setNewMarker({ ...newMarker, name: e.target.value })}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="marker-category">
+                          Category <span className="text-red-500">*</span>
+                        </Label>
+                        <Select
+                          value={newMarker.category}
+                          onValueChange={(value) => setNewMarker({ ...newMarker, category: value })}
+                        >
+                          <SelectTrigger id="marker-category">
+                            <SelectValue placeholder="Select a category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="stock-media">Stock Media</SelectItem>
+                            <SelectItem value="review">Review (Default)</SelectItem>
+                            {categories.map((cat) => (
+                              <SelectItem key={cat.value} value={cat.value}>
+                                {cat.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          This marker will be used for all items in this category
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="marker-file">
+                          File Name <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="marker-file"
+                          placeholder="e.g., hotel-marker.svg"
+                          value={newMarker.file}
+                          onChange={(e) => setNewMarker({ ...newMarker, file: e.target.value })}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          SVG file name (must be placed in /public/ folder)
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="marker-description">Description</Label>
+                        <Textarea
+                          id="marker-description"
+                          placeholder="Brief description of this marker"
+                          value={newMarker.description}
+                          onChange={(e) => setNewMarker({ ...newMarker, description: e.target.value })}
+                          rows={3}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="marker-icon">Icon</Label>
+                          <Select
+                            value={newMarker.icon}
+                            onValueChange={(value) => setNewMarker({ ...newMarker, icon: value })}
+                          >
+                            <SelectTrigger id="marker-icon">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="MapPin">Map Pin</SelectItem>
+                              <SelectItem value="Star">Star</SelectItem>
+                              <SelectItem value="Camera">Camera</SelectItem>
+                              <SelectItem value="Coffee">Coffee</SelectItem>
+                              <SelectItem value="Utensils">Utensils</SelectItem>
+                              <SelectItem value="FileImage">File Image</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="marker-color">Color</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              id="marker-color"
+                              type="color"
+                              value={newMarker.color}
+                              onChange={(e) => setNewMarker({ ...newMarker, color: e.target.value })}
+                              className="w-20 h-10 p-1"
+                            />
+                            <Input
+                              value={newMarker.color}
+                              onChange={(e) => setNewMarker({ ...newMarker, color: e.target.value })}
+                              placeholder="#27b0ff"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                      <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                        <Info className="w-4 h-4" />
+                        Next Steps
+                      </h4>
+                      <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+                        <li>Click "Add Marker" to save the configuration</li>
+                        <li>Create your SVG file following the design guidelines</li>
+                        <li>Place the SVG file in <code className="bg-blue-100 dark:bg-blue-800 px-1 rounded">/public/{newMarker.file || 'your-marker.svg'}</code></li>
+                        <li>Update map components to use the new marker for the category</li>
+                        <li>Rebuild the project to see changes</li>
+                      </ol>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleAddMarker} className="bg-green-600 hover:bg-green-700">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Marker
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
-            <p className="text-muted-foreground">
-              Manage and customize map markers for reviews, categories, and stock media
-            </p>
           </div>
 
           {/* Status Message */}
@@ -233,7 +459,7 @@ export default function MapMarkerEditor() {
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="markers">
                 <MapPin className="w-4 h-4 mr-2" />
-                Manage Markers
+                Manage Markers ({allMarkers.length})
               </TabsTrigger>
               <TabsTrigger value="guidelines">
                 <Info className="w-4 h-4 mr-2" />
@@ -242,74 +468,159 @@ export default function MapMarkerEditor() {
             </TabsList>
 
             <TabsContent value="markers" className="mt-6">
-              <div className="grid gap-6 md:grid-cols-2">
-                {markerConfigs.map((marker) => {
-                  const Icon = marker.icon;
-                  return (
-                    <Card key={marker.file} className="overflow-hidden hover:shadow-lg transition-shadow">
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div 
-                              className="p-2 rounded-lg"
-                              style={{ backgroundColor: `${marker.color}20` }}
-                            >
-                              <Icon className="w-6 h-6" style={{ color: marker.color }} />
-                            </div>
-                            <div>
-                              <CardTitle className="text-lg">{marker.name}</CardTitle>
-                              <Badge variant="outline" className="mt-1">{marker.category}</Badge>
+              <div className="space-y-4 mb-6">
+                <h3 className="text-lg font-semibold">Default Markers</h3>
+                <div className="grid gap-6 md:grid-cols-2">
+                  {allMarkers.filter(m => m.isDefault).map((marker) => {
+                    const Icon = getIconComponent(marker.icon);
+                    return (
+                      <Card key={marker.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                        <CardHeader>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div 
+                                className="p-2 rounded-lg"
+                                style={{ backgroundColor: `${marker.color}20` }}
+                              >
+                                <Icon className="w-6 h-6" style={{ color: marker.color }} />
+                              </div>
+                              <div>
+                                <CardTitle className="text-lg">{marker.name}</CardTitle>
+                                <Badge variant="outline" className="mt-1">{marker.category}</Badge>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-muted-foreground mb-4">{marker.description}</p>
-                        
-                        {/* Preview */}
-                        <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 mb-4 flex items-center justify-center">
-                          <img 
-                            src={`/${marker.file}`} 
-                            alt={marker.name}
-                            className="h-24 object-contain"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = '/main-marker.svg';
-                            }}
-                          />
-                        </div>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-muted-foreground mb-4">{marker.description}</p>
+                          
+                          {/* Preview */}
+                          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 mb-4 flex items-center justify-center">
+                            <img 
+                              src={`/${marker.file}`} 
+                              alt={marker.name}
+                              className="h-24 object-contain"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = '/main-marker.svg';
+                              }}
+                            />
+                          </div>
 
-                        <div className="text-xs text-muted-foreground mb-4 font-mono bg-gray-50 dark:bg-gray-800 p-2 rounded">
-                          /public/{marker.file}
-                        </div>
+                          <div className="text-xs text-muted-foreground mb-4 font-mono bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                            /public/{marker.file}
+                          </div>
 
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1"
-                            onClick={() => handleDownloadMarker(marker)}
-                          >
-                            <Download className="w-4 h-4 mr-2" />
-                            Download
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1"
-                            onClick={() => {
-                              setSelectedMarker(marker);
-                              fileInputRef.current?.click();
-                            }}
-                          >
-                            <Upload className="w-4 h-4 mr-2" />
-                            Replace
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1"
+                              onClick={() => handleDownloadMarker(marker)}
+                            >
+                              <Download className="w-4 h-4 mr-2" />
+                              Download
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1"
+                              onClick={() => {
+                                setSelectedMarker(marker);
+                                fileInputRef.current?.click();
+                              }}
+                            >
+                              <Upload className="w-4 h-4 mr-2" />
+                              Replace
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
               </div>
+
+              {customMarkers.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Custom Markers</h3>
+                  <div className="grid gap-6 md:grid-cols-2">
+                    {allMarkers.filter(m => !m.isDefault).map((marker) => {
+                      const Icon = getIconComponent(marker.icon);
+                      return (
+                        <Card key={marker.id} className="overflow-hidden hover:shadow-lg transition-shadow border-green-200">
+                          <CardHeader>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div 
+                                  className="p-2 rounded-lg"
+                                  style={{ backgroundColor: `${marker.color}20` }}
+                                >
+                                  <Icon className="w-6 h-6" style={{ color: marker.color }} />
+                                </div>
+                                <div>
+                                  <CardTitle className="text-lg">{marker.name}</CardTitle>
+                                  <Badge variant="outline" className="mt-1">{marker.category}</Badge>
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteMarker(marker.id)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-sm text-muted-foreground mb-4">{marker.description}</p>
+                            
+                            {/* Preview */}
+                            <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 mb-4 flex items-center justify-center">
+                              <img 
+                                src={`/${marker.file}`} 
+                                alt={marker.name}
+                                className="h-24 object-contain"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = '/main-marker.svg';
+                                }}
+                              />
+                            </div>
+
+                            <div className="text-xs text-muted-foreground mb-4 font-mono bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                              /public/{marker.file}
+                            </div>
+
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1"
+                                onClick={() => handleDownloadMarker(marker)}
+                              >
+                                <Download className="w-4 h-4 mr-2" />
+                                Download
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1"
+                                onClick={() => {
+                                  setSelectedMarker(marker);
+                                  fileInputRef.current?.click();
+                                }}
+                              >
+                                <Upload className="w-4 h-4 mr-2" />
+                                Replace
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Hidden file input */}
               <input
@@ -392,7 +703,23 @@ export default function MapMarkerEditor() {
                       <li>Avoid overly complex paths (impacts performance)</li>
                       <li>Use semantic file names (e.g., cafe-marker.svg, restaurant-marker.svg)</li>
                       <li>After updating, clear browser cache to see changes</li>
+                      <li>Custom markers require code updates in map components to function</li>
                     </ul>
+                  </div>
+
+                  <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                    <h3 className="font-semibold mb-2 text-green-900 dark:text-green-100">
+                      ✅ Implementing Custom Markers
+                    </h3>
+                    <p className="text-sm text-green-800 dark:text-green-200 mb-2">
+                      After adding a new marker, you'll need to update the map components:
+                    </p>
+                    <ol className="text-sm text-green-800 dark:text-green-200 space-y-1 ml-6 list-decimal">
+                      <li>Add marker detection logic in <code>createCustomIcon</code> function</li>
+                      <li>Create a marker generation function similar to <code>createCafeMarkerIcon</code></li>
+                      <li>Update both <code>markerIcons.ts</code> and <code>AllAdminReviewsMap.tsx</code></li>
+                      <li>Test on the map to ensure proper rendering</li>
+                    </ol>
                   </div>
                 </CardContent>
               </Card>
