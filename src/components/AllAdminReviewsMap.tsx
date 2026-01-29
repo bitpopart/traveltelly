@@ -152,7 +152,6 @@ const createCustomIcon = (rating: number, precision?: number, upgraded?: boolean
   const isLowPrecision = precision && precision <= 5;
   const isUpgraded = upgraded === true;
   const isGpsCorrected = gpsCorreected === true;
-  const isScenicSpot = type === 'stock-media';
   const isStory = type === 'story';
 
   // Use blue color for marker base (matching other map components)
