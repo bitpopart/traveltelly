@@ -13,7 +13,6 @@ import {
   Shield,
   Menu,
   X,
-  Map,
   MapPin
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -41,11 +40,10 @@ export function Navigation({ className }: NavigationProps) {
     { path: '/stories', label: 'Stories', icon: BookOpen, color: '#b2d235', hoverColor: '#9dbf2e' },
     { path: '/trips', label: 'Trips', icon: MapPin, color: '#ffcc00', hoverColor: '#e6b800' },
     { path: '/marketplace', label: 'Marketplace', icon: Store, color: '#ec1a58', hoverColor: '#d3164d' },
-    { path: '/simple-map-demo', label: 'Map', icon: Map, adminOnly: true, color: '#393636', hoverColor: '#2a2828' },
   ];
 
-  // Filter nav items based on admin status
-  const navItems = allNavItems.filter(item => !item.adminOnly || isAdmin);
+  // No filtering needed - Map button removed
+  const navItems = allNavItems;
 
   const NavButton = ({ path, label, icon: Icon, color, hoverColor, mobile = false }: {
     path: string;

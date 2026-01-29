@@ -72,7 +72,7 @@ const Index = () => {
                   showAuthorName={false}
                   variant="default"
                   size="lg"
-                  className="rounded-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold px-6 md:px-8 py-3 h-auto"
+                  className="rounded-full bg-orange-500 hover:bg-orange-600 text-white font-semibold px-6 md:px-8 py-3 h-auto"
                 />
                 {!user && <LoginArea className="max-w-60" />}
               </div>
