@@ -29,6 +29,7 @@ import MediaPreview from "./pages/MediaPreview";
 import DownloadPage from "./pages/DownloadPage";
 
 import Stories from "./pages/Stories";
+import StoryDetail from "./pages/StoryDetail";
 import Reviews from "./pages/Reviews";
 import Trips from "./pages/Trips";
 import TripDetail from "./pages/TripDetail";
@@ -57,6 +58,7 @@ export function AppRouter() {
         <Route path="/simple" element={<IndexSimple />} />
         <Route path="/full" element={<Index />} />
         <Route path="/stories" element={<Stories />} />
+        <Route path="/story/:naddr" element={<StoryDetail />} />
         <Route path="/reviews" element={<Reviews />} />
         <Route path="/trips" element={<Trips />} />
         <Route path="/trip/:naddr" element={<TripDetail />} />

@@ -8,7 +8,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { RelaySelector } from '@/components/RelaySelector';
 import { OptimizedImage } from '@/components/OptimizedImage';
 import { CreateArticleForm } from '@/components/CreateArticleForm';
-import { FullArticleView } from '@/components/FullArticleView';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostr } from '@nostrify/react';
@@ -33,10 +32,9 @@ const ADMIN_HEX = nip19.decode(ADMIN_NPUB).data as string;
 
 interface StoryCardProps {
   story: NostrEvent;
-  onClick: () => void;
 }
 
-function StoryCard({ story, onClick }: StoryCardProps) {
+function StoryCard({ story }: StoryCardProps) {
   const author = useAuthor(story.pubkey);
   const metadata = author.data?.metadata;
 
@@ -59,8 +57,17 @@ function StoryCard({ story, onClick }: StoryCardProps) {
     .filter(tag => tag && !['travel', 'traveltelly'].includes(tag))
     .slice(0, 2);
 
+  // Create naddr for linking
+  const identifier = story.tags.find(([name]) => name === 'd')?.[1] || '';
+  const naddr = nip19.naddrEncode({
+    kind: story.kind,
+    pubkey: story.pubkey,
+    identifier,
+  });
+
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group" onClick={onClick}>
+    <Link to={`/story/${naddr}`}>
+      <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group">
       {image && (
         <div className="relative aspect-video overflow-hidden">
           <OptimizedImage
@@ -117,6 +124,7 @@ function StoryCard({ story, onClick }: StoryCardProps) {
         )}
       </CardHeader>
     </Card>
+    </Link>
   );
 }
 
@@ -184,7 +192,6 @@ export default function Stories() {
   const { user } = useCurrentUser();
   const { data: stories, isLoading, error } = useStories();
   const isAdmin = user?.pubkey === ADMIN_HEX;
-  const [selectedArticle, setSelectedArticle] = useState<NostrEvent | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   return (
@@ -285,22 +292,12 @@ export default function Stories() {
                 <StoryCard
                   key={story.id}
                   story={story}
-                  onClick={() => setSelectedArticle(story)}
                 />
               ))}
             </div>
           )}
         </div>
       </div>
-
-      {/* Full Article View Modal */}
-      {selectedArticle && (
-        <FullArticleView
-          article={selectedArticle}
-          isOpen={!!selectedArticle}
-          onClose={() => setSelectedArticle(null)}
-        />
-      )}
     </div>
   );
 }

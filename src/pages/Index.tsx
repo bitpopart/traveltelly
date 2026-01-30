@@ -548,7 +548,7 @@ const Index = () => {
 
                         <CardContent className="space-y-4">
                           {story.image && (
-                            <Link to="/stories" className="block">
+                            <Link to={`/story/${story.naddr}`} className="block">
                               <div className="relative aspect-video rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
                                 <OptimizedImage
                                   src={story.image}
@@ -582,7 +582,7 @@ const Index = () => {
                                 </Badge>
                               ))}
                             </div>
-                            <Link to="/stories">
+                            <Link to={`/story/${story.naddr}`}>
                               <Button size="sm" variant="outline" className="rounded-full text-xs">
                                 Read Story
                               </Button>
