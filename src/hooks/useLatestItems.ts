@@ -11,7 +11,7 @@ const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a
 const ADMIN_HEX = nip19.decode(ADMIN_NPUB).data as string;
 
 /**
- * Fetch the latest review with an image
+ * Fetch the latest review with an image (for homepage thumbnail)
  */
 export function useLatestReview() {
   const { nostr } = useNostr();
@@ -68,7 +68,66 @@ export function useLatestReview() {
 }
 
 /**
- * Fetch the latest story (article) with an image
+ * Fetch the last 3 reviews with images
+ */
+export function useLatestReviews() {
+  const { nostr } = useNostr();
+  const { data: authorizedReviewers } = useAuthorizedReviewers();
+
+  return useQuery({
+    queryKey: ['latest-reviews-with-images'],
+    queryFn: async (c) => {
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
+      
+      const authorizedAuthors = Array.from(authorizedReviewers || []);
+      const events = await nostr.query([{
+        kinds: [34879],
+        authors: authorizedAuthors,
+        limit: 50
+      }], { signal });
+
+      // Find reviews with images
+      const reviewsWithImages = events
+        .filter((event: NostrEvent) => {
+          const d = event.tags.find(([name]) => name === 'd')?.[1];
+          const title = event.tags.find(([name]) => name === 'title')?.[1];
+          const rating = event.tags.find(([name]) => name === 'rating')?.[1];
+          const category = event.tags.find(([name]) => name === 'category')?.[1];
+          const image = event.tags.find(([name]) => name === 'image')?.[1];
+          
+          return !!(d && title && rating && category && image);
+        })
+        .sort((a, b) => b.created_at - a.created_at)
+        .slice(0, 3); // Get the last 3
+
+      return reviewsWithImages.map((event) => {
+        const image = event.tags.find(([name]) => name === 'image')?.[1];
+        const title = event.tags.find(([name]) => name === 'title')?.[1] || 'Unknown Place';
+        const identifier = event.tags.find(([name]) => name === 'd')?.[1] || '';
+        
+        const naddr = nip19.naddrEncode({
+          identifier,
+          pubkey: event.pubkey,
+          kind: 34879,
+        });
+
+        return {
+          image,
+          title,
+          naddr,
+          event,
+        };
+      });
+    },
+    enabled: !!authorizedReviewers && authorizedReviewers.size > 0,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
+  });
+}
+
+/**
+ * Fetch the latest story (article) with an image (for homepage thumbnail)
  */
 export function useLatestStory() {
   const { nostr } = useNostr();
@@ -121,7 +180,62 @@ export function useLatestStory() {
 }
 
 /**
- * Fetch the latest stock media product with an image
+ * Fetch the last 3 stories with images
+ */
+export function useLatestStories() {
+  const { nostr } = useNostr();
+
+  return useQuery({
+    queryKey: ['latest-stories-with-images'],
+    queryFn: async (c) => {
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
+      
+      // Query for articles (kind 30023) from admin
+      const events = await nostr.query([{
+        kinds: [30023],
+        authors: [ADMIN_HEX],
+        limit: 50
+      }], { signal });
+
+      // Find stories with images
+      const storiesWithImages = events
+        .filter((event: NostrEvent) => {
+          const d = event.tags.find(([name]) => name === 'd')?.[1];
+          const title = event.tags.find(([name]) => name === 'title')?.[1];
+          const image = event.tags.find(([name]) => name === 'image')?.[1];
+          
+          return !!(d && title && image);
+        })
+        .sort((a, b) => b.created_at - a.created_at)
+        .slice(0, 3); // Get the last 3
+
+      return storiesWithImages.map((event) => {
+        const image = event.tags.find(([name]) => name === 'image')?.[1];
+        const title = event.tags.find(([name]) => name === 'title')?.[1] || 'Untitled Story';
+        const identifier = event.tags.find(([name]) => name === 'd')?.[1] || '';
+        
+        const naddr = nip19.naddrEncode({
+          identifier,
+          pubkey: event.pubkey,
+          kind: 30023,
+        });
+
+        return {
+          image,
+          title,
+          naddr,
+          event,
+        };
+      });
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
+  });
+}
+
+/**
+ * Fetch the latest stock media product with an image (for homepage thumbnail)
  */
 export function useLatestStockMedia() {
   const { nostr } = useNostr();
@@ -180,6 +294,71 @@ export function useLatestStockMedia() {
     enabled: !!authorizedUploaders && authorizedUploaders.size > 0,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes,
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
+  });
+}
+
+/**
+ * Fetch the last 3 stock media products with images
+ */
+export function useLatestStockMediaItems() {
+  const { nostr } = useNostr();
+  const { data: authorizedUploaders } = useAuthorizedMediaUploaders();
+
+  return useQuery({
+    queryKey: ['latest-stock-media-items-with-images'],
+    queryFn: async (c) => {
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
+      
+      const authorizedAuthors = Array.from(authorizedUploaders || []);
+      const events = await nostr.query([{
+        kinds: [30402],
+        authors: authorizedAuthors,
+        limit: 50
+      }], { signal });
+
+      // Find products with images
+      const productsWithImages = events
+        .filter((event: NostrEvent) => {
+          const d = event.tags.find(([name]) => name === 'd')?.[1];
+          const title = event.tags.find(([name]) => name === 'title')?.[1];
+          const price = event.tags.find(([name]) => name === 'price');
+          const image = event.tags.find(([name]) => name === 'image')?.[1];
+          const status = event.tags.find(([name]) => name === 'status')?.[1];
+          
+          // Check price validity
+          const hasValidPrice = price && price.length >= 3 && price[1] && price[2];
+          
+          // Only show active/available products
+          const isActive = !status || status === 'active';
+          
+          return !!(d && title && hasValidPrice && image && isActive);
+        })
+        .sort((a, b) => b.created_at - a.created_at)
+        .slice(0, 3); // Get the last 3
+
+      return productsWithImages.map((event) => {
+        const image = event.tags.find(([name]) => name === 'image')?.[1];
+        const title = event.tags.find(([name]) => name === 'title')?.[1] || 'Untitled Product';
+        const identifier = event.tags.find(([name]) => name === 'd')?.[1] || '';
+        
+        const naddr = nip19.naddrEncode({
+          identifier,
+          pubkey: event.pubkey,
+          kind: 30402,
+        });
+
+        return {
+          image,
+          title,
+          naddr,
+          event,
+        };
+      });
+    },
+    enabled: !!authorizedUploaders && authorizedUploaders.size > 0,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
     refetchInterval: 30000, // Auto-refresh every 30 seconds
   });
 }
@@ -257,7 +436,7 @@ export function useStockMediaCount() {
 }
 
 /**
- * Fetch the latest trip with an image
+ * Fetch the latest trip with an image (for homepage thumbnail)
  */
 export function useLatestTrip() {
   const { nostr } = useNostr();
@@ -305,6 +484,60 @@ export function useLatestTrip() {
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
+  });
+}
+
+/**
+ * Fetch the last 3 trips with images
+ */
+export function useLatestTrips() {
+  const { nostr } = useNostr();
+
+  return useQuery({
+    queryKey: ['latest-trips-with-images'],
+    queryFn: async (c) => {
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
+      
+      const events = await nostr.query([{
+        kinds: [30025],
+        limit: 50
+      }], { signal });
+
+      // Find trips with images
+      const tripsWithImages = events
+        .filter((event: NostrEvent) => {
+          const d = event.tags.find(([name]) => name === 'd')?.[1];
+          const title = event.tags.find(([name]) => name === 'title')?.[1];
+          const images = event.tags.filter(([name]) => name === 'image');
+          
+          return !!(d && title && images.length > 0);
+        })
+        .sort((a, b) => b.created_at - a.created_at)
+        .slice(0, 3); // Get the last 3
+
+      return tripsWithImages.map((event) => {
+        // Get first image
+        const image = event.tags.find(([name]) => name === 'image')?.[1];
+        const title = event.tags.find(([name]) => name === 'title')?.[1] || 'Untitled Trip';
+        const identifier = event.tags.find(([name]) => name === 'd')?.[1] || '';
+        
+        const naddr = nip19.naddrEncode({
+          identifier,
+          pubkey: event.pubkey,
+          kind: 30025,
+        });
+
+        return {
+          image,
+          title,
+          naddr,
+          event,
+        };
+      });
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
   });
 }
 

@@ -15,8 +15,8 @@ import { CreateProductDialog } from "@/components/CreateProductDialog";
 import { CreateTripForm } from "@/components/CreateTripForm";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useReviewPermissions } from "@/hooks/useReviewPermissions";
-import { useLatestReview, useLatestStory, useLatestStockMedia, useLatestTrip, useReviewCount, useStoryCount, useStockMediaCount, useTripCount } from "@/hooks/useLatestItems";
-import { MapPin, Star, Camera, Zap, Shield, BookOpen, Search, Navigation, FileImage } from "lucide-react";
+import { useLatestReview, useLatestStory, useLatestStockMedia, useLatestTrip, useReviewCount, useStoryCount, useStockMediaCount, useTripCount, useLatestReviews, useLatestStories, useLatestTrips, useLatestStockMediaItems } from "@/hooks/useLatestItems";
+import { MapPin, Star, Camera, Zap, Shield, BookOpen, Search, Navigation, FileImage, ArrowRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { ZapAuthorButton } from "@/components/ZapAuthorButton";
 
@@ -35,6 +35,12 @@ const Index = () => {
   const { data: storyCount = 0 } = useStoryCount();
   const { data: stockMediaCount = 0 } = useStockMediaCount();
   const { data: tripCount = 0 } = useTripCount();
+  
+  // Get last 3 items for each category
+  const { data: latestReviews = [] } = useLatestReviews();
+  const { data: latestStories = [] } = useLatestStories();
+  const { data: latestTrips = [] } = useLatestTrips();
+  const { data: latestStockMediaItems = [] } = useLatestStockMediaItems();
 
   // Debug logging
   console.log('📊 Homepage thumbnails:', {
@@ -324,6 +330,196 @@ const Index = () => {
             <AllAdminReviewsMap />
           </div>
 
+          {/* Reviews Section */}
+          {latestReviews.length > 0 && (
+            <div className="mb-8 md:mb-12">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  Reviews
+                  {reviewCount > 0 && (
+                    <span className="text-lg md:text-xl font-normal text-muted-foreground">
+                      ({reviewCount})
+                    </span>
+                  )}
+                </h2>
+                <Link to="/reviews">
+                  <Button variant="outline" className="rounded-full" style={{ borderColor: '#27b0ff', color: '#27b0ff' }}>
+                    View All
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </Link>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {latestReviews.map((review) => (
+                  <Link key={review.naddr} to={`/${review.naddr}`}>
+                    <Card className="overflow-hidden hover:shadow-lg transition-shadow group cursor-pointer">
+                      <div className="aspect-video overflow-hidden relative">
+                        {review.image ? (
+                          <OptimizedImage
+                            src={review.image}
+                            alt={review.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            blurUp={true}
+                            thumbnail={true}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: '#27b0ff' }}>
+                            <Star className="w-16 h-16 text-white opacity-50" />
+                          </div>
+                        )}
+                      </div>
+                      <CardHeader>
+                        <CardTitle className="text-lg line-clamp-2">{review.title}</CardTitle>
+                      </CardHeader>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Stories Section */}
+          {latestStories.length > 0 && (
+            <div className="mb-8 md:mb-12">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  Stories
+                  {storyCount > 0 && (
+                    <span className="text-lg md:text-xl font-normal text-muted-foreground">
+                      ({storyCount})
+                    </span>
+                  )}
+                </h2>
+                <Link to="/stories">
+                  <Button variant="outline" className="rounded-full" style={{ borderColor: '#b2d235', color: '#b2d235' }}>
+                    View All
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </Link>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {latestStories.map((story) => (
+                  <Card key={story.naddr} className="overflow-hidden hover:shadow-lg transition-shadow group cursor-pointer">
+                    <div className="aspect-video overflow-hidden relative">
+                      {story.image ? (
+                        <OptimizedImage
+                          src={story.image}
+                          alt={story.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          blurUp={true}
+                          thumbnail={true}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: '#b2d235' }}>
+                          <BookOpen className="w-16 h-16 text-white opacity-50" />
+                        </div>
+                      )}
+                    </div>
+                    <CardHeader>
+                      <CardTitle className="text-lg line-clamp-2">{story.title}</CardTitle>
+                    </CardHeader>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Trips Section */}
+          {latestTrips.length > 0 && (
+            <div className="mb-8 md:mb-12">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  Trips
+                  {tripCount > 0 && (
+                    <span className="text-lg md:text-xl font-normal text-muted-foreground">
+                      ({tripCount})
+                    </span>
+                  )}
+                </h2>
+                <Link to="/trips">
+                  <Button variant="outline" className="rounded-full" style={{ borderColor: '#ffcc00', color: '#ffcc00' }}>
+                    View All
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </Link>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {latestTrips.map((trip) => (
+                  <Link key={trip.naddr} to={`/${trip.naddr}`}>
+                    <Card className="overflow-hidden hover:shadow-lg transition-shadow group cursor-pointer">
+                      <div className="aspect-video overflow-hidden relative">
+                        {trip.image ? (
+                          <OptimizedImage
+                            src={trip.image}
+                            alt={trip.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            blurUp={true}
+                            thumbnail={true}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: '#ffcc00' }}>
+                            <MapPin className="w-16 h-16 text-white opacity-50" />
+                          </div>
+                        )}
+                      </div>
+                      <CardHeader>
+                        <CardTitle className="text-lg line-clamp-2">{trip.title}</CardTitle>
+                      </CardHeader>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Stock Media Section */}
+          {latestStockMediaItems.length > 0 && (
+            <div className="mb-8 md:mb-12">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  Stock Media
+                  {stockMediaCount > 0 && (
+                    <span className="text-lg md:text-xl font-normal text-muted-foreground">
+                      ({stockMediaCount})
+                    </span>
+                  )}
+                </h2>
+                <Link to="/marketplace">
+                  <Button variant="outline" className="rounded-full" style={{ borderColor: '#ec1a58', color: '#ec1a58' }}>
+                    View All
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </Link>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {latestStockMediaItems.map((media) => (
+                  <Link key={media.naddr} to={`/${media.naddr}`}>
+                    <Card className="overflow-hidden hover:shadow-lg transition-shadow group cursor-pointer">
+                      <div className="aspect-video overflow-hidden relative">
+                        {media.image ? (
+                          <OptimizedImage
+                            src={media.image}
+                            alt={media.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            blurUp={true}
+                            thumbnail={true}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: '#ec1a58' }}>
+                            <FileImage className="w-16 h-16 text-white opacity-50" />
+                          </div>
+                        )}
+                      </div>
+                      <CardHeader>
+                        <CardTitle className="text-lg line-clamp-2">{media.title}</CardTitle>
+                      </CardHeader>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Lightning Tips Info */}
           {user && (
             <Card className="mb-6 md:mb-8 border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-700/50">
@@ -352,11 +548,11 @@ const Index = () => {
             </Card>
           )}
 
-          {/* Recent Reviews */}
+          {/* All Reviews Feed */}
           <div className="mb-8 md:mb-12">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
               <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
-                Recent Reviews
+                All Reviews Feed
               </h2>
               <Link to="/dashboard">
                 <Button variant="outline" className="rounded-full text-sm md:text-base w-full sm:w-auto">
