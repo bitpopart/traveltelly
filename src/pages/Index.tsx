@@ -14,8 +14,6 @@ import { CreateProductDialog } from "@/components/CreateProductDialog";
 import { CreateTripForm } from "@/components/CreateTripForm";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useReviewPermissions } from "@/hooks/useReviewPermissions";
-import { FullArticleView } from "@/components/FullArticleView";
-import type { NostrEvent } from '@nostrify/nostrify';
 import { useLatestReview, useLatestStory, useLatestStockMedia, useLatestTrip, useReviewCount, useStoryCount, useStockMediaCount, useTripCount, useLatestReviews, useLatestStories, useLatestTrips, useLatestStockMediaItems } from "@/hooks/useLatestItems";
 import { MapPin, Star, Camera, Zap, Shield, BookOpen, Search, Navigation, FileImage, ArrowRight, Calendar, MessageCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -38,7 +36,6 @@ const Index = () => {
   const { data: latestStockMedia } = useLatestStockMedia();
   const { data: latestTrip } = useLatestTrip();
   const [isCreateTripDialogOpen, setIsCreateTripDialogOpen] = useState(false);
-  const [selectedArticle, setSelectedArticle] = useState<NostrEvent | null>(null);
   
   // Get counts
   const reviewCount = useReviewCount();
@@ -551,18 +548,17 @@ const Index = () => {
 
                         <CardContent className="space-y-4">
                           {story.image && (
-                            <div 
-                              onClick={() => setSelectedArticle(story.event)}
-                              className="relative aspect-video rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
-                            >
-                              <OptimizedImage
-                                src={story.image}
-                                alt={story.title}
-                                className="w-full h-full object-cover"
-                                blurUp={true}
-                                thumbnail={true}
-                              />
-                            </div>
+                            <Link to="/stories" className="block">
+                              <div className="relative aspect-video rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
+                                <OptimizedImage
+                                  src={story.image}
+                                  alt={story.title}
+                                  className="w-full h-full object-cover"
+                                  blurUp={true}
+                                  thumbnail={true}
+                                />
+                              </div>
+                            </Link>
                           )}
 
                           <div>
@@ -586,14 +582,11 @@ const Index = () => {
                                 </Badge>
                               ))}
                             </div>
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="rounded-full text-xs"
-                              onClick={() => setSelectedArticle(story.event)}
-                            >
-                              Read Story
-                            </Button>
+                            <Link to="/stories">
+                              <Button size="sm" variant="outline" className="rounded-full text-xs">
+                                Read Story
+                              </Button>
+                            </Link>
                           </div>
                         </CardContent>
                       </Card>
@@ -871,15 +864,6 @@ const Index = () => {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Full Article View Modal for Stories */}
-      {selectedArticle && (
-        <FullArticleView
-          article={selectedArticle}
-          isOpen={!!selectedArticle}
-          onClose={() => setSelectedArticle(null)}
-        />
-      )}
     </div>
   );
 };
