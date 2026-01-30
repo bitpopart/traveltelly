@@ -86,7 +86,7 @@ function validateArticleEvent(event: NostrEvent): boolean {
   const d = event.tags.find(([name]) => name === 'd')?.[1];
   const title = event.tags.find(([name]) => name === 'title')?.[1];
 
-  return !!(d && title && event.content.length > 100);
+  return !!(d && title);
 }
 
 export default function StoryDetail() {
