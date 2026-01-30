@@ -7,7 +7,6 @@ import { OptimizedImage } from "@/components/OptimizedImage";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { LoadMoreReviewFeed } from "@/components/LoadMoreReviewFeed";
 import { AllAdminReviewsMap } from "@/components/AllAdminReviewsMap";
 import { AdminDebugInfo } from "@/components/AdminDebugInfo";
 import { UnifiedSearchBar } from "@/components/UnifiedSearchBar";
@@ -16,9 +15,17 @@ import { CreateTripForm } from "@/components/CreateTripForm";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useReviewPermissions } from "@/hooks/useReviewPermissions";
 import { useLatestReview, useLatestStory, useLatestStockMedia, useLatestTrip, useReviewCount, useStoryCount, useStockMediaCount, useTripCount, useLatestReviews, useLatestStories, useLatestTrips, useLatestStockMediaItems } from "@/hooks/useLatestItems";
-import { MapPin, Star, Camera, Zap, Shield, BookOpen, Search, Navigation, FileImage, ArrowRight } from "lucide-react";
+import { MapPin, Star, Camera, Zap, Shield, BookOpen, Search, Navigation, FileImage, ArrowRight, Calendar, MessageCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { ZapAuthorButton } from "@/components/ZapAuthorButton";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { useAuthor } from "@/hooks/useAuthor";
+import { genUserName } from "@/lib/genUserName";
+import { formatDistanceToNow } from "date-fns";
+import { getShortNpub } from "@/lib/nostrUtils";
+import { ZapButton } from "@/components/ZapButton";
+import { useReviewComments } from "@/hooks/useReviewComments";
 
 const Index = () => {
   const { user } = useCurrentUser();
@@ -349,31 +356,133 @@ const Index = () => {
                   </Button>
                 </Link>
               </div>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {latestReviews.map((review) => (
-                  <Link key={review.naddr} to={`/${review.naddr}`}>
-                    <Card className="overflow-hidden hover:shadow-lg transition-shadow group cursor-pointer">
-                      <div className="aspect-video overflow-hidden relative">
-                        {review.image ? (
-                          <OptimizedImage
-                            src={review.image}
-                            alt={review.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            blurUp={true}
-                            thumbnail={true}
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: '#27b0ff' }}>
-                            <Star className="w-16 h-16 text-white opacity-50" />
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {latestReviews.map((review) => {
+                  const ReviewCardContent = () => {
+                    const author = useAuthor(review.event.pubkey);
+                    const metadata = author.data?.metadata;
+                    const displayName = metadata?.name || genUserName(review.event.pubkey);
+                    const shortNpub = getShortNpub(review.event.pubkey);
+                    
+                    const rating = parseInt(review.event.tags.find(([name]) => name === 'rating')?.[1] || '0');
+                    const category = review.event.tags.find(([name]) => name === 'category')?.[1] || '';
+                    const location = review.event.tags.find(([name]) => name === 'location')?.[1] || '';
+                    const { data: comments = [] } = useReviewComments(review.event.id);
+
+                    const categoryEmojis: Record<string, string> = {
+                      'grocery-store': '🛒', 'clothing-store': '👕', 'electronics-store': '📱',
+                      'convenience-store': '🏪', 'restaurant': '🍽️', 'cafe': '☕', 'fast-food': '🍔',
+                      'bar-pub': '🍺', 'hotel': '🏨', 'motel': '🏨', 'hostel': '🏠',
+                      'landmarks': '🏛️', 'bank': '🏦', 'salon-spa': '💅', 'car-repair': '🔧',
+                      'laundry': '🧺', 'hospital': '🏥', 'clinic': '🏥', 'pharmacy': '💊',
+                      'dentist': '🦷', 'park': '🌳', 'beach': '🏖️', 'playground': '🛝',
+                      'hiking-trail': '🥾', 'cycling-trail': '🚴', 'museum': '🏛️',
+                      'movie-theater': '🎬', 'zoo': '🦁', 'music-venue': '🎵',
+                      'school': '🏫', 'library': '📚', 'post-office': '📮',
+                      'police-station': '👮', 'gas-station': '⛽', 'bus-stop': '🚌',
+                      'train-station': '🚂', 'parking-lot': '🅿️', 'church': '⛪',
+                      'mosque': '🕌', 'temple': '🛕', 'synagogue': '✡️', 'shrine': '⛩️'
+                    };
+
+                    return (
+                      <Card className="hover:shadow-lg transition-shadow">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center space-x-3">
+                              <Avatar className="h-10 w-10">
+                                <AvatarImage src={metadata?.picture} alt={displayName} />
+                                <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="font-medium text-sm">{displayName}</p>
+                                <p className="text-xs text-muted-foreground">{shortNpub}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Calendar className="w-3 h-3" />
+                              <span>{formatDistanceToNow(new Date(review.event.created_at * 1000), { addSuffix: true })}</span>
+                            </div>
                           </div>
-                        )}
-                      </div>
-                      <CardHeader>
-                        <CardTitle className="text-lg line-clamp-2">{review.title}</CardTitle>
-                      </CardHeader>
-                    </Card>
-                  </Link>
-                ))}
+                        </CardHeader>
+
+                        <CardContent className="space-y-4">
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-lg">{categoryEmojis[category] || '📍'}</span>
+                              <h3 className="font-bold text-lg">{review.title}</h3>
+                            </div>
+                            <div className="flex items-center mb-2">
+                              {Array.from({ length: 5 }, (_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`w-4 h-4 ${
+                                    i < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                                  }`}
+                                />
+                              ))}
+                              <span className="text-sm text-gray-600 ml-2">({rating}/5)</span>
+                            </div>
+                            {location && (
+                              <div className="flex items-center text-sm text-gray-600 mb-2">
+                                <MapPin className="w-3 h-3 mr-1" />
+                                {location}
+                              </div>
+                            )}
+                          </div>
+
+                          {review.image && (
+                            <Link to={`/review/${review.naddr}`} className="block">
+                              <div className="relative aspect-video rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
+                                <OptimizedImage
+                                  src={review.image}
+                                  alt={review.title}
+                                  className="w-full h-full object-cover"
+                                  blurUp={true}
+                                  thumbnail={true}
+                                />
+                              </div>
+                            </Link>
+                          )}
+
+                          {review.event.content && (
+                            <div className="text-sm text-gray-700 dark:text-gray-300">
+                              <p>{review.event.content.length > 120 ? review.event.content.substring(0, 120) + '...' : review.event.content}</p>
+                            </div>
+                          )}
+
+                          <div className="flex justify-between items-center pt-2 border-t">
+                            <div className="flex items-center gap-4">
+                              <ZapButton
+                                authorPubkey={review.event.pubkey}
+                                event={review.event}
+                                className="text-xs"
+                              />
+                              {comments.length > 0 && (
+                                <Button variant="ghost" size="sm" className="text-xs p-0 h-auto">
+                                  <MessageCircle className="w-3 h-3 mr-1" />
+                                  {comments.length}
+                                </Button>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="capitalize text-xs">
+                                {category.replace('-', ' ')}
+                              </Badge>
+                              <Link to={`/review/${review.naddr}`}>
+                                <Button size="sm" variant="outline" className="rounded-full text-xs">
+                                  View Details
+                                </Button>
+                              </Link>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  };
+
+                  return <ReviewCardContent key={review.naddr} />;
+                })}
               </div>
             </div>
           )}
@@ -397,29 +506,95 @@ const Index = () => {
                   </Button>
                 </Link>
               </div>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {latestStories.map((story) => (
-                  <Card key={story.naddr} className="overflow-hidden hover:shadow-lg transition-shadow group cursor-pointer">
-                    <div className="aspect-video overflow-hidden relative">
-                      {story.image ? (
-                        <OptimizedImage
-                          src={story.image}
-                          alt={story.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          blurUp={true}
-                          thumbnail={true}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: '#b2d235' }}>
-                          <BookOpen className="w-16 h-16 text-white opacity-50" />
-                        </div>
-                      )}
-                    </div>
-                    <CardHeader>
-                      <CardTitle className="text-lg line-clamp-2">{story.title}</CardTitle>
-                    </CardHeader>
-                  </Card>
-                ))}
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {latestStories.map((story) => {
+                  const StoryCardContent = () => {
+                    const author = useAuthor(story.event.pubkey);
+                    const metadata = author.data?.metadata;
+                    const displayName = metadata?.name || genUserName(story.event.pubkey);
+                    const shortNpub = getShortNpub(story.event.pubkey);
+                    
+                    const location = story.event.tags.find(([name]) => name === 'location')?.[1];
+                    const summary = story.event.tags.find(([name]) => name === 'summary')?.[1];
+                    const publishedAt = story.event.tags.find(([name]) => name === 'published_at')?.[1];
+                    const displayDate = publishedAt ? new Date(parseInt(publishedAt) * 1000) : new Date(story.event.created_at * 1000);
+                    
+                    const topicTags = story.event.tags
+                      .filter(([name]) => name === 't')
+                      .map(([, value]) => value)
+                      .filter(tag => tag && !['travel', 'traveltelly'].includes(tag))
+                      .slice(0, 2);
+
+                    return (
+                      <Card className="hover:shadow-lg transition-shadow">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center space-x-3">
+                              <Avatar className="h-10 w-10">
+                                <AvatarImage src={metadata?.picture} alt={displayName} />
+                                <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="font-medium text-sm">{displayName}</p>
+                                <p className="text-xs text-muted-foreground">{shortNpub}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Calendar className="w-3 h-3" />
+                              <span>{formatDistanceToNow(displayDate, { addSuffix: true })}</span>
+                            </div>
+                          </div>
+                        </CardHeader>
+
+                        <CardContent className="space-y-4">
+                          {story.image && (
+                            <Link to={`/${story.naddr}`} className="block">
+                              <div className="relative aspect-video rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
+                                <OptimizedImage
+                                  src={story.image}
+                                  alt={story.title}
+                                  className="w-full h-full object-cover"
+                                  blurUp={true}
+                                  thumbnail={true}
+                                />
+                              </div>
+                            </Link>
+                          )}
+
+                          <div>
+                            <h3 className="font-bold text-lg mb-2">{story.title}</h3>
+                            {location && (
+                              <div className="flex items-center text-sm text-gray-600 mb-2">
+                                <MapPin className="w-3 h-3 mr-1" />
+                                {location}
+                              </div>
+                            )}
+                            {summary && (
+                              <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">{summary}</p>
+                            )}
+                          </div>
+
+                          <div className="flex justify-between items-center pt-2 border-t">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {topicTags.map(tag => (
+                                <Badge key={tag} variant="outline" className="bg-green-50 dark:bg-green-900/20 text-xs">
+                                  #{tag}
+                                </Badge>
+                              ))}
+                            </div>
+                            <Link to={`/${story.naddr}`}>
+                              <Button size="sm" variant="outline" className="rounded-full text-xs">
+                                Read Story
+                              </Button>
+                            </Link>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  };
+
+                  return <StoryCardContent key={story.naddr} />;
+                })}
               </div>
             </div>
           )}
@@ -443,31 +618,91 @@ const Index = () => {
                   </Button>
                 </Link>
               </div>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {latestTrips.map((trip) => (
-                  <Link key={trip.naddr} to={`/${trip.naddr}`}>
-                    <Card className="overflow-hidden hover:shadow-lg transition-shadow group cursor-pointer">
-                      <div className="aspect-video overflow-hidden relative">
-                        {trip.image ? (
-                          <OptimizedImage
-                            src={trip.image}
-                            alt={trip.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            blurUp={true}
-                            thumbnail={true}
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: '#ffcc00' }}>
-                            <MapPin className="w-16 h-16 text-white opacity-50" />
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {latestTrips.map((trip) => {
+                  const TripCardContent = () => {
+                    const author = useAuthor(trip.event.pubkey);
+                    const metadata = author.data?.metadata;
+                    const displayName = metadata?.name || genUserName(trip.event.pubkey);
+                    const shortNpub = getShortNpub(trip.event.pubkey);
+                    
+                    const summary = trip.event.tags.find(([name]) => name === 'summary')?.[1];
+                    const startDate = trip.event.tags.find(([name]) => name === 'start')?.[1];
+                    const endDate = trip.event.tags.find(([name]) => name === 'end')?.[1];
+                    const imageCount = trip.event.tags.filter(([name]) => name === 'image').length;
+
+                    return (
+                      <Card className="hover:shadow-lg transition-shadow">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center space-x-3">
+                              <Avatar className="h-10 w-10">
+                                <AvatarImage src={metadata?.picture} alt={displayName} />
+                                <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="font-medium text-sm">{displayName}</p>
+                                <p className="text-xs text-muted-foreground">{shortNpub}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Calendar className="w-3 h-3" />
+                              <span>{formatDistanceToNow(new Date(trip.event.created_at * 1000), { addSuffix: true })}</span>
+                            </div>
                           </div>
-                        )}
-                      </div>
-                      <CardHeader>
-                        <CardTitle className="text-lg line-clamp-2">{trip.title}</CardTitle>
-                      </CardHeader>
-                    </Card>
-                  </Link>
-                ))}
+                        </CardHeader>
+
+                        <CardContent className="space-y-4">
+                          {trip.image && (
+                            <Link to={`/${trip.naddr}`} className="block">
+                              <div className="relative aspect-video rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
+                                <OptimizedImage
+                                  src={trip.image}
+                                  alt={trip.title}
+                                  className="w-full h-full object-cover"
+                                  blurUp={true}
+                                  thumbnail={true}
+                                />
+                              </div>
+                            </Link>
+                          )}
+
+                          <div>
+                            <h3 className="font-bold text-lg mb-2">{trip.title}</h3>
+                            {summary && (
+                              <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2 mb-2">{summary}</p>
+                            )}
+                            {(startDate || endDate) && (
+                              <div className="flex items-center text-sm text-gray-600 mb-2">
+                                <Calendar className="w-3 h-3 mr-1" />
+                                {startDate && new Date(parseInt(startDate) * 1000).toLocaleDateString()}
+                                {endDate && ` - ${new Date(parseInt(endDate) * 1000).toLocaleDateString()}`}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex justify-between items-center pt-2 border-t">
+                            <div className="flex items-center gap-2">
+                              {imageCount > 1 && (
+                                <Badge variant="outline" className="text-xs">
+                                  <Camera className="w-3 h-3 mr-1" />
+                                  {imageCount} photos
+                                </Badge>
+                              )}
+                            </div>
+                            <Link to={`/${trip.naddr}`}>
+                              <Button size="sm" variant="outline" className="rounded-full text-xs">
+                                View Trip
+                              </Button>
+                            </Link>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  };
+
+                  return <TripCardContent key={trip.naddr} />;
+                })}
               </div>
             </div>
           )}
@@ -491,31 +726,85 @@ const Index = () => {
                   </Button>
                 </Link>
               </div>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {latestStockMediaItems.map((media) => (
-                  <Link key={media.naddr} to={`/${media.naddr}`}>
-                    <Card className="overflow-hidden hover:shadow-lg transition-shadow group cursor-pointer">
-                      <div className="aspect-video overflow-hidden relative">
-                        {media.image ? (
-                          <OptimizedImage
-                            src={media.image}
-                            alt={media.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            blurUp={true}
-                            thumbnail={true}
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: '#ec1a58' }}>
-                            <FileImage className="w-16 h-16 text-white opacity-50" />
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {latestStockMediaItems.map((media) => {
+                  const MediaCardContent = () => {
+                    const author = useAuthor(media.event.pubkey);
+                    const metadata = author.data?.metadata;
+                    const displayName = metadata?.name || genUserName(media.event.pubkey);
+                    const shortNpub = getShortNpub(media.event.pubkey);
+                    
+                    const price = media.event.tags.find(([name]) => name === 'price');
+                    const priceAmount = price && price[1] ? parseFloat(price[1]) : 0;
+                    const priceCurrency = price && price[2] ? price[2].toUpperCase() : 'SATS';
+                    const summary = media.event.tags.find(([name]) => name === 'summary')?.[1];
+                    const mediaType = media.event.tags.find(([name]) => name === 't')?.[1] || 'photo';
+
+                    return (
+                      <Card className="hover:shadow-lg transition-shadow">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center space-x-3">
+                              <Avatar className="h-10 w-10">
+                                <AvatarImage src={metadata?.picture} alt={displayName} />
+                                <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="font-medium text-sm">{displayName}</p>
+                                <p className="text-xs text-muted-foreground">{shortNpub}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Calendar className="w-3 h-3" />
+                              <span>{formatDistanceToNow(new Date(media.event.created_at * 1000), { addSuffix: true })}</span>
+                            </div>
                           </div>
-                        )}
-                      </div>
-                      <CardHeader>
-                        <CardTitle className="text-lg line-clamp-2">{media.title}</CardTitle>
-                      </CardHeader>
-                    </Card>
-                  </Link>
-                ))}
+                        </CardHeader>
+
+                        <CardContent className="space-y-4">
+                          {media.image && (
+                            <Link to={`/${media.naddr}`} className="block">
+                              <div className="relative aspect-video rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
+                                <OptimizedImage
+                                  src={media.image}
+                                  alt={media.title}
+                                  className="w-full h-full object-cover"
+                                  blurUp={true}
+                                  thumbnail={true}
+                                />
+                              </div>
+                            </Link>
+                          )}
+
+                          <div>
+                            <h3 className="font-bold text-lg mb-2">{media.title}</h3>
+                            {summary && (
+                              <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">{summary}</p>
+                            )}
+                          </div>
+
+                          <div className="flex justify-between items-center pt-2 border-t">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="capitalize text-xs">
+                                {mediaType}
+                              </Badge>
+                              <div className="font-bold text-sm" style={{ color: '#ec1a58' }}>
+                                {priceAmount.toLocaleString()} {priceCurrency}
+                              </div>
+                            </div>
+                            <Link to={`/${media.naddr}`}>
+                              <Button size="sm" variant="outline" className="rounded-full text-xs">
+                                View Media
+                              </Button>
+                            </Link>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  };
+
+                  return <MediaCardContent key={media.naddr} />;
+                })}
               </div>
             </div>
           )}
@@ -547,21 +836,6 @@ const Index = () => {
               </CardContent>
             </Card>
           )}
-
-          {/* All Reviews Feed */}
-          <div className="mb-8 md:mb-12">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
-                All Reviews Feed
-              </h2>
-              <Link to="/dashboard">
-                <Button variant="outline" className="rounded-full text-sm md:text-base w-full sm:w-auto">
-                  View Dashboard
-                </Button>
-              </Link>
-            </div>
-            <LoadMoreReviewFeed />
-          </div>
 
           {/* Relay Configuration */}
           <Card className="mb-6 md:mb-8 border-gray-200 dark:border-gray-700">
