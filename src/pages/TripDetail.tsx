@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TripMap } from '@/components/TripMap';
 import { OptimizedImage } from '@/components/OptimizedImage';
+import { ShareButton } from '@/components/ShareButton';
 import { useTrip } from '@/hooks/useTrips';
 import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
@@ -146,7 +147,7 @@ export default function TripDetail() {
                     {formatDistanceToNow(new Date(trip.created_at * 1000), { addSuffix: true })}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap mb-4">
                   <Badge variant="outline" style={{ backgroundColor: '#ffcc0020', borderColor: '#ffcc00', color: '#000' }}>
                     {categoryEmoji} {category.charAt(0).toUpperCase() + category.slice(1)}
                   </Badge>
@@ -167,6 +168,14 @@ export default function TripDetail() {
                     </Badge>
                   )}
                 </div>
+                <ShareButton
+                  url={`/trip/${naddr}`}
+                  title={title}
+                  description={summary || `Trip with ${allPhotos.length} photos`}
+                  image={allPhotos[0]}
+                  variant="outline"
+                  size="default"
+                />
               </div>
             </div>
 
