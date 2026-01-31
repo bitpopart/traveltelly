@@ -8,14 +8,16 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { ShareButton } from '@/components/ShareButton';
 import { OptimizedImage } from '@/components/OptimizedImage';
 import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
 import { LocationMap } from '@/components/LocationMap';
-import { MapPin, Star, Calendar, ArrowLeft, ExternalLink } from 'lucide-react';
+import { MapPin, Star, Calendar, ArrowLeft, ExternalLink, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { Navigation as NavigationComponent } from '@/components/Navigation';
 
@@ -64,6 +66,7 @@ function decodeGeohash(geohashStr: string): { lat: number; lng: number } {
 const ReviewDetail = () => {
   const { naddr } = useParams<{ naddr: string }>();
   const { nostr } = useNostr();
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
 
   const { data: review, isLoading, error } = useQuery({
     queryKey: ['review', naddr],
@@ -343,7 +346,10 @@ const ReviewDetail = () => {
               {images.length > 0 && (
                 <div className="space-y-4">
                   {/* Main Photo */}
-                  <div className="rounded-lg overflow-hidden">
+                  <div 
+                    className="rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => setSelectedImageIndex(0)}
+                  >
                     <OptimizedImage
                       src={mainImage}
                       alt={title}
@@ -357,13 +363,16 @@ const ReviewDetail = () => {
                   {images.length > 1 && (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                       {images.slice(1).map((imageUrl, index) => (
-                        <div key={index} className="rounded-lg overflow-hidden aspect-square">
+                        <div 
+                          key={index} 
+                          className="rounded-lg overflow-hidden aspect-square cursor-pointer hover:opacity-90 transition-opacity"
+                          onClick={() => setSelectedImageIndex(index + 1)}
+                        >
                           <OptimizedImage
                             src={imageUrl}
                             alt={`${title} - Photo ${index + 2}`}
-                            className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                            className="w-full h-full object-cover"
                             blurUp={true}
-                            onClick={() => window.open(imageUrl, '_blank')}
                           />
                         </div>
                       ))}
@@ -453,6 +462,61 @@ const ReviewDetail = () => {
           <CommentSection review={review} />
         </div>
       </div>
+
+      {/* Image Gallery Modal */}
+      {selectedImageIndex !== null && (
+        <Dialog open={selectedImageIndex !== null} onOpenChange={() => setSelectedImageIndex(null)}>
+          <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-black/95 border-0">
+            <div className="relative w-full h-[95vh] flex items-center justify-center">
+              {/* Close Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-4 right-4 z-50 text-white hover:bg-white/20 rounded-full"
+                onClick={() => setSelectedImageIndex(null)}
+              >
+                <X className="w-6 h-6" />
+              </Button>
+
+              {/* Previous Button */}
+              {selectedImageIndex > 0 && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute left-4 z-50 text-white hover:bg-white/20 rounded-full"
+                  onClick={() => setSelectedImageIndex(selectedImageIndex - 1)}
+                >
+                  <ChevronLeft className="w-8 h-8" />
+                </Button>
+              )}
+
+              {/* Current Image */}
+              <img
+                src={images[selectedImageIndex]}
+                alt={`${title} - Photo ${selectedImageIndex + 1}`}
+                className="max-w-full max-h-full object-contain"
+              />
+
+              {/* Next Button */}
+              {selectedImageIndex < images.length - 1 && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-4 z-50 text-white hover:bg-white/20 rounded-full"
+                  onClick={() => setSelectedImageIndex(selectedImageIndex + 1)}
+                >
+                  <ChevronRight className="w-8 h-8" />
+                </Button>
+              )}
+
+              {/* Image Counter */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white px-4 py-2 rounded-full text-sm">
+                {selectedImageIndex + 1} / {images.length}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
