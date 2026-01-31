@@ -277,6 +277,29 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Images - Moved to top for metadata extraction */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Upload Media Files</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PhotoUpload
+                onPhotosChange={handlePhotosChange}
+                onGPSExtracted={handleGPSExtracted}
+                maxPhotos={5}
+                className="w-full"
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                Upload your media files first. Title, description, and keywords will be auto-filled from photo metadata.
+                {gpsCoordinates && (
+                  <span className="block mt-1 text-green-600">
+                    📍 GPS location detected: {gpsCoordinates.latitude.toFixed(6)}, {gpsCoordinates.longitude.toFixed(6)}
+                  </span>
+                )}
+              </p>
+            </CardContent>
+          </Card>
+
           {/* Basic Information */}
           <Card>
             <CardHeader>
@@ -431,29 +454,6 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
                   </p>
                 </div>
               )}
-            </CardContent>
-          </Card>
-
-          {/* Images */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Media Files & Preview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <PhotoUpload
-                onPhotosChange={handlePhotosChange}
-                onGPSExtracted={handleGPSExtracted}
-                maxPhotos={5}
-                className="w-full"
-              />
-              <p className="text-xs text-muted-foreground mt-2">
-                Upload preview images and media files. First image will be used as the main preview.
-                {gpsCoordinates && (
-                  <span className="block mt-1 text-green-600">
-                    📍 GPS location detected: {gpsCoordinates.latitude.toFixed(6)}, {gpsCoordinates.longitude.toFixed(6)}
-                  </span>
-                )}
-              </p>
             </CardContent>
           </Card>
 
