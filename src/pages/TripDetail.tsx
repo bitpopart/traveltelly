@@ -129,14 +129,14 @@ export default function TripDetail() {
                 Back to Trips
               </Button>
             </Link>
-            <ShareToNostrButton
-              url={`/trip/${naddr}`}
-              title={title}
-              description={summary || `Trip with ${allPhotos.length} photos`}
-              defaultContent={`🗺️ ${title}\n\n${summary || `Check out this amazing trip with ${allPhotos.length} photos!`}\n${distance ? `\n📏 ${distance} ${distanceUnit}\n` : ''}\n${window.location.origin}/trip/${naddr}`}
-              variant="default"
-              size="default"
-            />
+              <ShareToNostrButton
+                url={`/trip/${naddr}`}
+                title={title}
+                description={summary || `Trip with ${allPhotos.length} photos`}
+                defaultContent={`🗺️ ${title}\n\n${summary || `Check out this amazing trip with ${allPhotos.length} photos!`}\n${distance ? `📏 ${distance} ${distanceUnit}\n` : ''}\ntraveltelly.com/trip/${naddr}`}
+                variant="default"
+                size="default"
+              />
           </div>
 
           {/* Trip Header */}

@@ -108,17 +108,23 @@ export function ShareToNostrButton({
           </DialogHeader>
 
           <div className="space-y-4">
-            <Textarea
-              placeholder={generatedContent}
-              value={customMessage}
-              onChange={(e) => setCustomMessage(e.target.value)}
-              rows={8}
-              className="resize-none"
-            />
+            <div>
+              <label className="text-sm font-medium mb-2 block">Your Message</label>
+              <Textarea
+                placeholder={generatedContent}
+                value={customMessage}
+                onChange={(e) => setCustomMessage(e.target.value)}
+                rows={8}
+                className="resize-none text-sm"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Edit the message above or leave blank to use the default.
+              </p>
+            </div>
 
-            <div className="text-sm text-muted-foreground bg-gray-50 dark:bg-gray-900 p-3 rounded-lg max-h-32 overflow-y-auto">
-              <p className="font-semibold mb-1">Preview:</p>
-              <p className="whitespace-pre-wrap break-words">
+            <div className="text-sm text-muted-foreground bg-gray-50 dark:bg-gray-900 p-3 rounded-lg max-h-40 overflow-y-auto border border-gray-200 dark:border-gray-700">
+              <p className="font-semibold mb-2">Preview:</p>
+              <p className="whitespace-pre-wrap break-all leading-relaxed">
                 {customMessage.trim() || generatedContent}
               </p>
             </div>
