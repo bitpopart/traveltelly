@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -112,7 +112,7 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
     }
   };
 
-  const handleMetadataExtracted = (metadata: PhotoMetadata) => {
+  const handleMetadataExtracted = useCallback((metadata: PhotoMetadata) => {
     console.log('📸 Metadata extracted callback:', metadata);
     
     // Auto-fill form fields if empty
@@ -132,12 +132,12 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
       title: 'Metadata extracted!',
       description: 'Title, description, and keywords have been auto-filled from your photo.',
     });
-  };
+  }, [toast]);
 
-  const handleGPSExtracted = (coordinates: GPSCoordinates) => {
+  const handleGPSExtracted = useCallback((coordinates: GPSCoordinates) => {
     setGpsCoordinates(coordinates);
     console.log('📍 GPS coordinates extracted from photo:', coordinates);
-  };
+  }, []);
 
   const validateForm = (): string | null => {
     if (!formData.title.trim()) return 'Title is required';
