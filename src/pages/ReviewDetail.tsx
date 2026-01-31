@@ -8,13 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { ShareButton } from '@/components/ShareButton';
 import { OptimizedImage } from '@/components/OptimizedImage';
 import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
 import { LocationMap } from '@/components/LocationMap';
-import { MapPin, Star, Calendar, ArrowLeft, ExternalLink, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { MapPin, Star, Calendar, ArrowLeft, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
@@ -66,7 +65,7 @@ function decodeGeohash(geohashStr: string): { lat: number; lng: number } {
 const ReviewDetail = () => {
   const { naddr } = useParams<{ naddr: string }>();
   const { nostr } = useNostr();
-  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const { data: review, isLoading, error } = useQuery({
     queryKey: ['review', naddr],
@@ -342,37 +341,71 @@ const ReviewDetail = () => {
                 </div>
               </div>
 
-              {/* Photos */}
+              {/* Photo Gallery */}
               {images.length > 0 && (
                 <div className="space-y-4">
-                  {/* Main Photo */}
-                  <div 
-                    className="rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
-                    onClick={() => setSelectedImageIndex(0)}
-                  >
+                  {/* Main Photo Carousel */}
+                  <div className="relative rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
                     <OptimizedImage
-                      src={mainImage}
-                      alt={title}
+                      src={images[currentImageIndex]}
+                      alt={`${title} - Photo ${currentImageIndex + 1}`}
                       className="w-full max-h-96 object-cover"
                       blurUp={true}
                       priority={true}
                     />
+                    
+                    {/* Navigation Arrows */}
+                    {images.length > 1 && (
+                      <>
+                        {currentImageIndex > 0 && (
+                          <Button
+                            variant="secondary"
+                            size="icon"
+                            className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 hover:bg-black/70 text-white"
+                            onClick={() => setCurrentImageIndex(currentImageIndex - 1)}
+                          >
+                            <ChevronLeft className="w-6 h-6" />
+                          </Button>
+                        )}
+                        
+                        {currentImageIndex < images.length - 1 && (
+                          <Button
+                            variant="secondary"
+                            size="icon"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 hover:bg-black/70 text-white"
+                            onClick={() => setCurrentImageIndex(currentImageIndex + 1)}
+                          >
+                            <ChevronRight className="w-6 h-6" />
+                          </Button>
+                        )}
+                        
+                        {/* Image Counter */}
+                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white px-3 py-1 rounded-full text-sm">
+                          {currentImageIndex + 1} / {images.length}
+                        </div>
+                      </>
+                    )}
                   </div>
                   
-                  {/* Additional Photos Grid */}
+                  {/* Thumbnail Gallery */}
                   {images.length > 1 && (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {images.slice(1).map((imageUrl, index) => (
+                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
+                      {images.map((imageUrl, index) => (
                         <div 
                           key={index} 
-                          className="rounded-lg overflow-hidden aspect-square cursor-pointer hover:opacity-90 transition-opacity"
-                          onClick={() => setSelectedImageIndex(index + 1)}
+                          className={`rounded-lg overflow-hidden aspect-square cursor-pointer hover:opacity-90 transition-all border-2 ${
+                            index === currentImageIndex 
+                              ? 'border-blue-500 ring-2 ring-blue-300' 
+                              : 'border-transparent hover:border-gray-300'
+                          }`}
+                          onClick={() => setCurrentImageIndex(index)}
                         >
                           <OptimizedImage
                             src={imageUrl}
-                            alt={`${title} - Photo ${index + 2}`}
+                            alt={`${title} - Thumbnail ${index + 1}`}
                             className="w-full h-full object-cover"
                             blurUp={true}
+                            thumbnail={true}
                           />
                         </div>
                       ))}
@@ -462,61 +495,6 @@ const ReviewDetail = () => {
           <CommentSection review={review} />
         </div>
       </div>
-
-      {/* Image Gallery Modal */}
-      {selectedImageIndex !== null && (
-        <Dialog open={selectedImageIndex !== null} onOpenChange={() => setSelectedImageIndex(null)}>
-          <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-black/95 border-0">
-            <div className="relative w-full h-[95vh] flex items-center justify-center">
-              {/* Close Button */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-4 right-4 z-50 text-white hover:bg-white/20 rounded-full"
-                onClick={() => setSelectedImageIndex(null)}
-              >
-                <X className="w-6 h-6" />
-              </Button>
-
-              {/* Previous Button */}
-              {selectedImageIndex > 0 && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute left-4 z-50 text-white hover:bg-white/20 rounded-full"
-                  onClick={() => setSelectedImageIndex(selectedImageIndex - 1)}
-                >
-                  <ChevronLeft className="w-8 h-8" />
-                </Button>
-              )}
-
-              {/* Current Image */}
-              <img
-                src={images[selectedImageIndex]}
-                alt={`${title} - Photo ${selectedImageIndex + 1}`}
-                className="max-w-full max-h-full object-contain"
-              />
-
-              {/* Next Button */}
-              {selectedImageIndex < images.length - 1 && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-4 z-50 text-white hover:bg-white/20 rounded-full"
-                  onClick={() => setSelectedImageIndex(selectedImageIndex + 1)}
-                >
-                  <ChevronRight className="w-8 h-8" />
-                </Button>
-              )}
-
-              {/* Image Counter */}
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white px-4 py-2 rounded-full text-sm">
-                {selectedImageIndex + 1} / {images.length}
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
     </div>
   );
 };
