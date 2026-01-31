@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ShareButton } from "@/components/ShareButton";
+import { ShareToNostrButton } from "@/components/ShareToNostrButton";
 import { PaymentDialog } from "@/components/PaymentDialog";
 import { MediaReviews } from "@/components/MediaReviews";
 import { EditMediaDialog } from "@/components/EditMediaDialog";
@@ -227,15 +228,24 @@ const MediaPreview = () => {
         <Navigation />
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-6xl mx-auto">
-            {/* Back Button */}
-            <Button
-              variant="ghost"
-              className="mb-6"
-              onClick={() => navigate(-1)}
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>
+            {/* Back Button and Share to Nostr */}
+            <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <Button
+                variant="ghost"
+                onClick={() => navigate(-1)}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
+              <ShareToNostrButton
+                url={`/media/preview/${naddr}`}
+                title={product?.title || 'Stock Media'}
+                description={product?.description}
+                defaultContent={`📸 ${product?.title}\n\n${product?.description || 'Check out this stock media on Traveltelly!'}\n\n💰 ${product?.price} ${product?.currency}\n\n${window.location.origin}/media/preview/${naddr}`}
+                variant="default"
+                size="default"
+              />
+            </div>
 
             <div className="grid lg:grid-cols-2 gap-8">
               {/* Media Preview Section */}

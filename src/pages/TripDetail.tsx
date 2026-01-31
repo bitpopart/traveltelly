@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { TripMap } from '@/components/TripMap';
 import { OptimizedImage } from '@/components/OptimizedImage';
 import { ShareButton } from '@/components/ShareButton';
+import { ShareToNostrButton } from '@/components/ShareToNostrButton';
 import { useTrip } from '@/hooks/useTrips';
 import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
@@ -120,13 +121,23 @@ export default function TripDetail() {
       <Navigation />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
-          {/* Back Button */}
-          <Link to="/trips">
-            <Button variant="outline" className="mb-6">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Trips
-            </Button>
-          </Link>
+          {/* Back Button and Share to Nostr */}
+          <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <Link to="/trips">
+              <Button variant="outline">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Trips
+              </Button>
+            </Link>
+            <ShareToNostrButton
+              url={`/trip/${naddr}`}
+              title={title}
+              description={summary || `Trip with ${allPhotos.length} photos`}
+              defaultContent={`🗺️ ${title}\n\n${summary || `Check out this amazing trip with ${allPhotos.length} photos!`}\n${distance ? `\n📏 ${distance} ${distanceUnit}\n` : ''}\n${window.location.origin}/trip/${naddr}`}
+              variant="default"
+              size="default"
+            />
+          </div>
 
           {/* Trip Header */}
           <div className="mb-8">

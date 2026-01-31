@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 import { ShareButton } from '@/components/ShareButton';
+import { ShareToNostrButton } from '@/components/ShareToNostrButton';
 import { useArticleReactions, useReactToArticle } from '@/hooks/useArticleReactions';
 import { useArticleComments, useCommentOnArticle } from '@/hooks/useArticleComments';
 import { useAuthor } from '@/hooks/useAuthor';
@@ -279,12 +280,20 @@ export default function StoryDetail() {
       
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          {/* Back Button */}
-          <div className="mb-6">
+          {/* Back Button and Share to Nostr */}
+          <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <Button variant="outline" onClick={() => window.history.back()}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
+            <ShareToNostrButton
+              url={`/story/${articleNaddr}`}
+              title={title}
+              description={summary || article.content.slice(0, 200)}
+              defaultContent={`📖 ${title}\n\n${summary || article.content.slice(0, 150) + '...'}\n\n${window.location.origin}/story/${articleNaddr}`}
+              variant="default"
+              size="default"
+            />
           </div>
 
           <Card>
