@@ -244,29 +244,55 @@ export async function extractPhotoMetadata(file: File): Promise<PhotoMetadata> {
   try {
     console.log('🔍 Extracting metadata from file:', file.name);
 
-    // Parse all EXIF data
-    const exifData = await parseExif(file, {
+    // Parse all EXIF data with comprehensive options
+    let exifData = await parseExif(file, {
       gps: true,
+      iptc: true,
+      ifd0: true,
+      ifd1: true,
+      exif: true,
+      xmp: true,
       mergeOutput: true,
       translateKeys: true,
       translateValues: true,
       reviveValues: true,
     });
 
-    console.log('📊 Full EXIF data:', exifData);
+    console.log('📊 Full EXIF data (strategy 1):', exifData);
+    
+    // Try alternative parsing if no data found
+    if (!exifData || Object.keys(exifData).length < 3) {
+      console.log('🔄 Trying alternative parsing...');
+      exifData = await parseExif(file);
+      console.log('📊 Full EXIF data (strategy 2 - all fields):', exifData);
+    }
+    
+    // Log all available keys for debugging
+    if (exifData) {
+      console.log('📋 Available EXIF keys:', Object.keys(exifData));
+      // Log specific IPTC/XMP fields if present
+      if (exifData.iptc) console.log('📋 IPTC data:', exifData.iptc);
+      if (exifData.xmp) console.log('📋 XMP data:', exifData.xmp);
+    }
 
     const metadata: PhotoMetadata = {};
 
-    // Extract title from various possible fields
-    if (exifData?.Title) {
-      metadata.title = exifData.Title;
-      console.log('✅ Title found:', metadata.title);
-    } else if (exifData?.ObjectName) {
-      metadata.title = exifData.ObjectName;
-      console.log('✅ Title found (ObjectName):', metadata.title);
-    } else if (exifData?.XPTitle) {
-      metadata.title = exifData.XPTitle;
-      console.log('✅ Title found (XPTitle):', metadata.title);
+    // Extract title from various possible fields (try all variations)
+    const titleFields = [
+      'Title',
+      'ObjectName', 
+      'XPTitle',
+      'Headline',
+      'DocumentName',
+      'ImageDescription', // Sometimes used for title
+    ];
+    
+    for (const field of titleFields) {
+      if (exifData?.[field] && typeof exifData[field] === 'string' && exifData[field].trim()) {
+        metadata.title = exifData[field].trim();
+        console.log(`✅ Title found from ${field}:`, metadata.title);
+        break;
+      }
     }
 
     // Extract description from various possible fields
@@ -290,29 +316,36 @@ export async function extractPhotoMetadata(file: File): Promise<PhotoMetadata> {
     // Extract keywords from various possible fields
     const keywords: string[] = [];
     
-    if (exifData?.Keywords) {
-      if (Array.isArray(exifData.Keywords)) {
-        keywords.push(...exifData.Keywords);
-      } else if (typeof exifData.Keywords === 'string') {
-        keywords.push(...exifData.Keywords.split(/[,;]/).map(k => k.trim()).filter(Boolean));
-      }
-    }
+    const keywordFields = [
+      'Keywords',
+      'Subject',
+      'XPKeywords',
+      'CatalogSets',
+      'SupplementalCategories',
+      'HierarchicalSubject',
+    ];
     
-    if (exifData?.Subject && Array.isArray(exifData.Subject)) {
-      keywords.push(...exifData.Subject);
-    }
-    
-    if (exifData?.XPKeywords) {
-      if (Array.isArray(exifData.XPKeywords)) {
-        keywords.push(...exifData.XPKeywords);
-      } else if (typeof exifData.XPKeywords === 'string') {
-        keywords.push(...exifData.XPKeywords.split(/[,;]/).map(k => k.trim()).filter(Boolean));
+    for (const field of keywordFields) {
+      const value = exifData?.[field];
+      if (!value) continue;
+      
+      if (Array.isArray(value)) {
+        // Handle array of keywords
+        keywords.push(...value.filter(k => typeof k === 'string' && k.trim()));
+        console.log(`✅ Keywords found from ${field} (array):`, value);
+      } else if (typeof value === 'string' && value.trim()) {
+        // Handle comma or semicolon separated string
+        const parsed = value.split(/[,;]/).map(k => k.trim()).filter(Boolean);
+        keywords.push(...parsed);
+        console.log(`✅ Keywords found from ${field} (string):`, value);
       }
     }
 
     if (keywords.length > 0) {
       metadata.keywords = [...new Set(keywords)]; // Remove duplicates
-      console.log('✅ Keywords found:', metadata.keywords);
+      console.log('✅ Final keywords array:', metadata.keywords);
+    } else {
+      console.log('ℹ️ No keywords found in EXIF data');
     }
 
     // Extract GPS if available
