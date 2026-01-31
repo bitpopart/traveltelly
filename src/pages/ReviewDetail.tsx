@@ -251,6 +251,7 @@ const ReviewDetail = () => {
               url={`/review/${naddr}`}
               title={title}
               description={review.content || `${rating}/5 stars - ${location || 'Review'}`}
+              image={mainImage}
               defaultContent={`Check out my review of ${title} on Traveltelly!\n\n⭐ Rating: ${rating}/5\n${location ? `📍 ${location}\n` : ''}\ntraveltelly.com/review/${naddr}`}
               variant="default"
               size="default"

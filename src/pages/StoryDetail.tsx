@@ -290,6 +290,7 @@ export default function StoryDetail() {
               url={`/story/${articleNaddr}`}
               title={title}
               description={summary || article.content.slice(0, 200)}
+              image={image}
               defaultContent={`📖 ${title}\n\n${summary || article.content.slice(0, 150) + '...'}\n\ntraveltelly.com/story/${articleNaddr}`}
               variant="default"
               size="default"

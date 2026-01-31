@@ -12,6 +12,7 @@ interface ShareToNostrButtonProps {
   title: string;
   description?: string;
   defaultContent?: string;
+  image?: string;
   variant?: 'default' | 'outline' | 'secondary';
   size?: 'default' | 'sm' | 'lg';
   className?: string;
@@ -22,6 +23,7 @@ export function ShareToNostrButton({
   title,
   description,
   defaultContent,
+  image,
   variant = 'default',
   size = 'default',
   className = '',
@@ -108,13 +110,24 @@ export function ShareToNostrButton({
           </DialogHeader>
 
           <div className="space-y-4">
+            {/* Image Preview */}
+            {image && (
+              <div className="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                <img
+                  src={image}
+                  alt={title}
+                  className="w-full max-h-48 object-cover"
+                />
+              </div>
+            )}
+
             <div>
               <label className="text-sm font-medium mb-2 block">Your Message</label>
               <Textarea
                 placeholder={generatedContent}
                 value={customMessage}
                 onChange={(e) => setCustomMessage(e.target.value)}
-                rows={8}
+                rows={6}
                 className="resize-none text-sm"
               />
               <p className="text-xs text-muted-foreground mt-1">
