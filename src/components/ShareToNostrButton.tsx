@@ -96,7 +96,7 @@ export function ShareToNostrButton({
       </Button>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Zap className="w-5 h-5" style={{ color: '#b700d7' }} />
@@ -112,16 +112,15 @@ export function ShareToNostrButton({
               placeholder={generatedContent}
               value={customMessage}
               onChange={(e) => setCustomMessage(e.target.value)}
-              rows={6}
+              rows={8}
               className="resize-none"
             />
 
-            <div className="text-sm text-muted-foreground">
-              {customMessage.trim() ? (
-                <p>Preview: {customMessage}</p>
-              ) : (
-                <p>Default: {generatedContent}</p>
-              )}
+            <div className="text-sm text-muted-foreground bg-gray-50 dark:bg-gray-900 p-3 rounded-lg max-h-32 overflow-y-auto">
+              <p className="font-semibold mb-1">Preview:</p>
+              <p className="whitespace-pre-wrap break-words">
+                {customMessage.trim() || generatedContent}
+              </p>
             </div>
 
             <div className="flex justify-end gap-3">
