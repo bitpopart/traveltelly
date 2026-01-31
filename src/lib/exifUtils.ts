@@ -7,6 +7,13 @@ export interface GPSCoordinates {
   longitude: number;
 }
 
+export interface PhotoMetadata {
+  title?: string;
+  description?: string;
+  keywords?: string[];
+  gps?: GPSCoordinates;
+}
+
 /**
  * Convert DMS (Degrees, Minutes, Seconds) to decimal degrees
  * Handles various DMS formats from different cameras
@@ -228,4 +235,101 @@ export function canContainEXIF(file: File): boolean {
   });
 
   return hasValidType && hasReasonableSize;
+}
+
+/**
+ * Extract comprehensive metadata from image file including title, description, and keywords
+ */
+export async function extractPhotoMetadata(file: File): Promise<PhotoMetadata> {
+  try {
+    console.log('🔍 Extracting metadata from file:', file.name);
+
+    // Parse all EXIF data
+    const exifData = await parseExif(file, {
+      gps: true,
+      mergeOutput: true,
+      translateKeys: true,
+      translateValues: true,
+      reviveValues: true,
+    });
+
+    console.log('📊 Full EXIF data:', exifData);
+
+    const metadata: PhotoMetadata = {};
+
+    // Extract title from various possible fields
+    if (exifData?.Title) {
+      metadata.title = exifData.Title;
+      console.log('✅ Title found:', metadata.title);
+    } else if (exifData?.ObjectName) {
+      metadata.title = exifData.ObjectName;
+      console.log('✅ Title found (ObjectName):', metadata.title);
+    } else if (exifData?.XPTitle) {
+      metadata.title = exifData.XPTitle;
+      console.log('✅ Title found (XPTitle):', metadata.title);
+    }
+
+    // Extract description from various possible fields
+    if (exifData?.ImageDescription) {
+      metadata.description = exifData.ImageDescription;
+      console.log('✅ Description found:', metadata.description);
+    } else if (exifData?.UserComment) {
+      metadata.description = exifData.UserComment;
+      console.log('✅ Description found (UserComment):', metadata.description);
+    } else if (exifData?.Caption || exifData?.['Caption-Abstract']) {
+      metadata.description = exifData.Caption || exifData['Caption-Abstract'];
+      console.log('✅ Description found (Caption):', metadata.description);
+    } else if (exifData?.XPComment) {
+      metadata.description = exifData.XPComment;
+      console.log('✅ Description found (XPComment):', metadata.description);
+    } else if (exifData?.Description) {
+      metadata.description = exifData.Description;
+      console.log('✅ Description found (Description):', metadata.description);
+    }
+
+    // Extract keywords from various possible fields
+    const keywords: string[] = [];
+    
+    if (exifData?.Keywords) {
+      if (Array.isArray(exifData.Keywords)) {
+        keywords.push(...exifData.Keywords);
+      } else if (typeof exifData.Keywords === 'string') {
+        keywords.push(...exifData.Keywords.split(/[,;]/).map(k => k.trim()).filter(Boolean));
+      }
+    }
+    
+    if (exifData?.Subject && Array.isArray(exifData.Subject)) {
+      keywords.push(...exifData.Subject);
+    }
+    
+    if (exifData?.XPKeywords) {
+      if (Array.isArray(exifData.XPKeywords)) {
+        keywords.push(...exifData.XPKeywords);
+      } else if (typeof exifData.XPKeywords === 'string') {
+        keywords.push(...exifData.XPKeywords.split(/[,;]/).map(k => k.trim()).filter(Boolean));
+      }
+    }
+
+    if (keywords.length > 0) {
+      metadata.keywords = [...new Set(keywords)]; // Remove duplicates
+      console.log('✅ Keywords found:', metadata.keywords);
+    }
+
+    // Extract GPS if available
+    try {
+      const gps = await extractGPSFromImage(file);
+      if (gps) {
+        metadata.gps = gps;
+        console.log('✅ GPS found:', metadata.gps);
+      }
+    } catch (e) {
+      console.log('ℹ️ No GPS data in image');
+    }
+
+    console.log('📋 Final metadata:', metadata);
+    return metadata;
+  } catch (error) {
+    console.error('Error extracting metadata:', error);
+    return {};
+  }
 }

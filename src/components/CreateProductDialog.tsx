@@ -11,7 +11,7 @@ import { PhotoUpload, type UploadedPhoto } from '@/components/PhotoUpload';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
-import { type GPSCoordinates } from '@/lib/exifUtils';
+import { type GPSCoordinates, extractPhotoMetadata } from '@/lib/exifUtils';
 import * as geohash from 'ngeohash';
 import { Plus, Loader2, Package, DollarSign, MapPin } from 'lucide-react';
 
@@ -27,6 +27,7 @@ interface ProductFormData {
   mediaType: string;
   category: string;
   location: string;
+  keywords: string;
   images: string[];
 }
 
@@ -82,6 +83,7 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
     mediaType: '',
     category: '',
     location: '',
+    keywords: '',
     images: [],
   });
 
@@ -93,12 +95,37 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handlePhotosChange = (photos: UploadedPhoto[]) => {
+  const handlePhotosChange = async (photos: UploadedPhoto[]) => {
     // Store all photos (uploaded or not)
     setAllPhotos(photos);
     // Update images with uploaded ones
     const imageUrls = photos.filter(photo => photo.uploaded && photo.url).map(photo => photo.url!);
     setFormData(prev => ({ ...prev, images: imageUrls }));
+    
+    // Extract metadata from first photo
+    if (photos.length > 0 && photos[0].file) {
+      try {
+        const metadata = await extractPhotoMetadata(photos[0].file);
+        console.log('📸 Extracted metadata from photo:', metadata);
+        
+        // Auto-fill form fields if empty
+        setFormData(prev => ({
+          ...prev,
+          title: prev.title || metadata.title || '',
+          description: prev.description || metadata.description || '',
+          keywords: prev.keywords || (metadata.keywords?.join(', ') || ''),
+          // Auto-detect media type based on file type
+          mediaType: prev.mediaType || (photos[0].file.type.startsWith('video/') ? 'videos' : 'photos'),
+        }));
+        
+        // Set GPS coordinates
+        if (metadata.gps) {
+          setGpsCoordinates(metadata.gps);
+        }
+      } catch (error) {
+        console.error('Error extracting photo metadata:', error);
+      }
+    }
   };
 
   const handleGPSExtracted = (coordinates: GPSCoordinates) => {
@@ -170,6 +197,20 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
         tags.push(['location', formData.location.trim()]);
       }
 
+      // Add keywords as tags if provided
+      if (formData.keywords.trim()) {
+        const keywordList = formData.keywords
+          .split(',')
+          .map(k => k.trim())
+          .filter(Boolean);
+        
+        keywordList.forEach(keyword => {
+          tags.push(['t', keyword.toLowerCase()]);
+        });
+        
+        console.log('🏷️ Adding keywords as tags:', keywordList);
+      }
+
       // Add geohash if GPS coordinates are available
       if (gpsCoordinates) {
         const hash = geohash.encode(gpsCoordinates.latitude, gpsCoordinates.longitude, 8);
@@ -203,6 +244,7 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
         mediaType: '',
         category: '',
         location: '',
+        keywords: '',
         images: [],
       });
       setGpsCoordinates(null);
@@ -270,6 +312,20 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
                 />
                 <p className="text-xs text-muted-foreground">
                   {formData.description.length}/1000 characters
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="keywords">Keywords</Label>
+                <Input
+                  id="keywords"
+                  placeholder="e.g., sunset, landscape, nature, travel"
+                  value={formData.keywords}
+                  onChange={(e) => handleInputChange('keywords', e.target.value)}
+                  maxLength={200}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Comma-separated keywords for better discoverability
                 </p>
               </div>
 
