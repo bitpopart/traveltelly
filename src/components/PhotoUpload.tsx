@@ -4,12 +4,13 @@ import { Button } from '@/components/ui/button';
 import { useUploadFile } from '@/hooks/useUploadFile';
 import { useToast } from '@/hooks/useToast';
 import { Camera, Upload, Loader2, X, MapPin } from 'lucide-react';
-import { extractGPSFromImage, canContainEXIF, type GPSCoordinates } from '@/lib/exifUtils';
+import { extractGPSFromImage, canContainEXIF, type GPSCoordinates, extractPhotoMetadata, type PhotoMetadata } from '@/lib/exifUtils';
 import { compressImage, COMPRESSION_PRESETS } from '@/lib/imageCompression';
 
 interface PhotoUploadProps {
   onPhotosChange?: (photos: UploadedPhoto[]) => void;
   onGPSExtracted?: (coordinates: GPSCoordinates) => void;
+  onMetadataExtracted?: (metadata: PhotoMetadata) => void;
   maxPhotos?: number;
   className?: string;
 }
@@ -25,7 +26,8 @@ export interface UploadedPhoto {
 
 export function PhotoUpload({ 
   onPhotosChange, 
-  onGPSExtracted, 
+  onGPSExtracted,
+  onMetadataExtracted, 
   maxPhotos = 3,
   className 
 }: PhotoUploadProps) {
@@ -125,10 +127,24 @@ export function PhotoUpload({
         continue;
       }
 
-      // Extract GPS from original file first (before compression)
-      let shouldExtractGPS = photos.length === 0 && newPhotos.length === 0;
-      if (shouldExtractGPS) {
-        await extractGPSFromFirstPhoto(originalFile);
+      // Extract metadata from first photo (before compression)
+      let shouldExtractMetadata = photos.length === 0 && newPhotos.length === 0;
+      if (shouldExtractMetadata) {
+        try {
+          console.log('🔍 Extracting full metadata from first photo...');
+          const metadata = await extractPhotoMetadata(originalFile);
+          if (onMetadataExtracted) {
+            onMetadataExtracted(metadata);
+          }
+          // Also call GPS callback for backward compatibility
+          if (metadata.gps && onGPSExtracted) {
+            onGPSExtracted(metadata.gps);
+          }
+        } catch (error) {
+          console.error('Error extracting metadata:', error);
+          // Fallback to GPS-only extraction
+          await extractGPSFromFirstPhoto(originalFile);
+        }
       }
 
       // Compress image for faster viewing (use story preset for better quality)

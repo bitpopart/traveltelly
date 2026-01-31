@@ -95,37 +95,43 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handlePhotosChange = async (photos: UploadedPhoto[]) => {
+  const handlePhotosChange = (photos: UploadedPhoto[]) => {
     // Store all photos (uploaded or not)
     setAllPhotos(photos);
     // Update images with uploaded ones
     const imageUrls = photos.filter(photo => photo.uploaded && photo.url).map(photo => photo.url!);
     setFormData(prev => ({ ...prev, images: imageUrls }));
     
-    // Extract metadata from first photo
+    // Auto-detect media type based on first file type
     if (photos.length > 0 && photos[0].file) {
-      try {
-        const metadata = await extractPhotoMetadata(photos[0].file);
-        console.log('📸 Extracted metadata from photo:', metadata);
-        
-        // Auto-fill form fields if empty
-        setFormData(prev => ({
-          ...prev,
-          title: prev.title || metadata.title || '',
-          description: prev.description || metadata.description || '',
-          keywords: prev.keywords || (metadata.keywords?.join(', ') || ''),
-          // Auto-detect media type based on file type
-          mediaType: prev.mediaType || (photos[0].file.type.startsWith('video/') ? 'videos' : 'photos'),
-        }));
-        
-        // Set GPS coordinates
-        if (metadata.gps) {
-          setGpsCoordinates(metadata.gps);
-        }
-      } catch (error) {
-        console.error('Error extracting photo metadata:', error);
-      }
+      const isVideo = photos[0].file.type.startsWith('video/');
+      setFormData(prev => ({
+        ...prev,
+        mediaType: prev.mediaType || (isVideo ? 'videos' : 'photos'),
+      }));
     }
+  };
+
+  const handleMetadataExtracted = (metadata: PhotoMetadata) => {
+    console.log('📸 Metadata extracted callback:', metadata);
+    
+    // Auto-fill form fields if empty
+    setFormData(prev => ({
+      ...prev,
+      title: prev.title || metadata.title || '',
+      description: prev.description || metadata.description || '',
+      keywords: prev.keywords || (metadata.keywords?.join(', ') || ''),
+    }));
+    
+    // Set GPS coordinates
+    if (metadata.gps) {
+      setGpsCoordinates(metadata.gps);
+    }
+
+    toast({
+      title: 'Metadata extracted!',
+      description: 'Title, description, and keywords have been auto-filled from your photo.',
+    });
   };
 
   const handleGPSExtracted = (coordinates: GPSCoordinates) => {
@@ -286,14 +292,20 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
               <PhotoUpload
                 onPhotosChange={handlePhotosChange}
                 onGPSExtracted={handleGPSExtracted}
+                onMetadataExtracted={handleMetadataExtracted}
                 maxPhotos={5}
                 className="w-full"
               />
               <p className="text-xs text-muted-foreground mt-2">
                 Upload your media files first. Title, description, and keywords will be auto-filled from photo metadata.
                 {gpsCoordinates && (
-                  <span className="block mt-1 text-green-600">
-                    📍 GPS location detected: {gpsCoordinates.latitude.toFixed(6)}, {gpsCoordinates.longitude.toFixed(6)}
+                  <span className="block mt-1 text-green-600 font-medium">
+                    ✅ GPS location detected: {gpsCoordinates.latitude.toFixed(6)}, {gpsCoordinates.longitude.toFixed(6)}
+                  </span>
+                )}
+                {formData.title && (
+                  <span className="block mt-1 text-blue-600 font-medium">
+                    ✅ Metadata extracted from photo
                   </span>
                 )}
               </p>
