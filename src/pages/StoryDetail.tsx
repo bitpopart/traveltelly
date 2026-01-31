@@ -103,12 +103,16 @@ export default function StoryDetail() {
       if (!naddr) throw new Error('No story identifier provided');
 
       try {
+        console.log('🔍 Fetching story with naddr:', naddr);
         const decoded = nip19.decode(naddr);
+        console.log('📋 Decoded naddr:', decoded);
+        
         if (decoded.type !== 'naddr') {
-          throw new Error('Invalid story identifier');
+          throw new Error('Invalid story identifier - not an naddr');
         }
 
         const { kind, pubkey, identifier } = decoded.data;
+        console.log('📋 Query params:', { kind, pubkey, identifier });
 
         const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
         const events = await nostr.query([{
@@ -117,11 +121,22 @@ export default function StoryDetail() {
           '#d': [identifier],
         }], { signal });
 
+        console.log('📊 Events found:', events.length);
+        if (events.length > 0) {
+          console.log('📄 First event:', events[0]);
+        }
+
         const validArticles = events.filter(validateArticleEvent);
+        console.log('✅ Valid articles after filter:', validArticles.length);
+        
+        if (validArticles.length === 0) {
+          console.log('❌ No valid articles found');
+        }
+        
         return validArticles[0] || null;
       } catch (error) {
-        console.error('Error decoding naddr:', error);
-        throw new Error('Invalid story identifier');
+        console.error('❌ Error in story query:', error);
+        throw error;
       }
     },
     enabled: !!naddr,
