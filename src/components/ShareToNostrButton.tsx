@@ -41,7 +41,10 @@ export function ShareToNostrButton({
   const generatedContent = defaultContent || `Check out this on Traveltelly:\n\n${title}\n\n${shareUrl}`;
 
   const handleShare = () => {
+    console.log('🔵 Share to Nostr clicked', { user: !!user, url, title });
+    
     if (!user) {
+      console.log('❌ User not logged in');
       toast({
         title: 'Login required',
         description: 'Please log in to share on Nostr.',
@@ -50,11 +53,14 @@ export function ShareToNostrButton({
       return;
     }
 
+    console.log('✅ Opening share dialog');
     setIsDialogOpen(true);
   };
 
   const handlePublish = () => {
     const content = customMessage.trim() || generatedContent;
+    
+    console.log('📤 Publishing to Nostr:', { content, shareUrl });
 
     publish(
       {
@@ -66,6 +72,7 @@ export function ShareToNostrButton({
       },
       {
         onSuccess: () => {
+          console.log('✅ Published successfully to Nostr');
           toast({
             title: 'Shared to Nostr!',
             description: 'Your note has been published to the Nostr network.',
@@ -73,7 +80,8 @@ export function ShareToNostrButton({
           setIsDialogOpen(false);
           setCustomMessage('');
         },
-        onError: () => {
+        onError: (error) => {
+          console.error('❌ Failed to publish to Nostr:', error);
           toast({
             title: 'Failed to share',
             description: 'Could not publish to Nostr. Please try again.',
