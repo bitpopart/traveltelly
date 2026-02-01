@@ -35,14 +35,21 @@ function isValidLocation(text: string): boolean {
     'landscape', 'nature', 'sunset', 'sunrise', 'beach', 'mountain',
     'sea', 'ocean', 'water', 'lake', 'river', 'waterfall',
     'forest', 'jungle', 'desert', 'valley', 'hill', 'peak',
+    // Weather and conditions
+    'sunny', 'cloudy', 'rainy', 'snowy', 'foggy', 'windy',
     // Place descriptors
     'old town', 'old', 'town', 'new', 'historic', 'ancient', 'modern',
     'downtown', 'center', 'centre', 'district', 'area', 'zone',
     'north', 'south', 'east', 'west', 'central', 'upper', 'lower',
-    // Place types
+    // Place types and structures
     'food', 'restaurant', 'cafe', 'hotel', 'hostel', 'resort',
+    'tower', 'bridge', 'castle', 'palace', 'fort', 'fortress',
+    'church', 'temple', 'mosque', 'cathedral', 'chapel', 'monastery',
+    'shrine', 'pagoda', 'stupa', 'basilica',
+    'building', 'monument', 'statue', 'memorial', 'plaza', 'square',
+    'market', 'bazaar', 'mall', 'shopping', 'store', 'shop',
+    // Activities and subjects
     'review', 'trip', 'tour', 'guide', 'visit',
-    // Activities
     'adventure', 'explore', 'wanderlust', 'vacation', 'holiday',
     'hiking', 'walking', 'cycling', 'swimming', 'diving',
     // Themes
@@ -128,14 +135,15 @@ function extractLocationTags(locationText: string): { country?: string; city?: s
 
 /**
  * Hook to get popular location tags from all content types
+ * If parentLocation is provided, returns only cities/provinces from that country
  */
-export function useLocationTags() {
+export function useLocationTags(parentLocation?: string) {
   const { nostr } = useNostr();
   const { data: authorizedReviewers } = useAuthorizedReviewers();
   const { data: authorizedUploaders } = useAuthorizedMediaUploaders();
 
   return useQuery({
-    queryKey: ['location-tags', authorizedReviewers, authorizedUploaders],
+    queryKey: ['location-tags', parentLocation, authorizedReviewers, authorizedUploaders],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
 
@@ -181,14 +189,39 @@ export function useLocationTags() {
         // Get location from location tag
         const location = event.tags.find(([name]) => name === 'location')?.[1];
         
+        // If parent location is specified, only process events from that location
+        if (parentLocation) {
+          const locationLower = location?.toLowerCase() || '';
+          const parentLower = parentLocation.toLowerCase();
+          
+          // Check if location contains parent location
+          const matchesParent = locationLower.includes(parentLower);
+          
+          // Also check hashtags
+          const hashtags = event.tags.filter(([name]) => name === 't').map(([, tag]) => tag?.toLowerCase());
+          const hasParentHashtag = hashtags.some(tag => tag && tag.includes(parentLower));
+          
+          if (!matchesParent && !hasParentHashtag) {
+            return; // Skip this event if it doesn't match parent location
+          }
+        }
+        
         if (location) {
           const { country, city } = extractLocationTags(location);
           
-          if (country) {
-            countryCount.set(country, (countryCount.get(country) || 0) + 1);
-          }
-          if (city) {
-            cityCount.set(city, (cityCount.get(city) || 0) + 1);
+          // When filtering by parent location, only count cities/provinces, not countries
+          if (parentLocation) {
+            if (city) {
+              cityCount.set(city, (cityCount.get(city) || 0) + 1);
+            }
+          } else {
+            // Global view: count both countries and cities
+            if (country) {
+              countryCount.set(country, (countryCount.get(country) || 0) + 1);
+            }
+            if (city) {
+              cityCount.set(city, (cityCount.get(city) || 0) + 1);
+            }
           }
         }
 
@@ -206,16 +239,21 @@ export function useLocationTags() {
               .map(word => word.charAt(0).toUpperCase() + word.slice(1))
               .join(' ');
             
-            // Try to determine if it's likely a country or city/province
-            // Common countries are usually one word, cities/provinces can be multiple
-            const wordCount = capitalizedTag.split(' ').length;
-            
-            if (wordCount === 1) {
-              // Single word tags are more likely countries or provinces
-              countryCount.set(capitalizedTag, (countryCount.get(capitalizedTag) || 0) + 1);
+            // When filtering by parent location, only count cities/provinces
+            if (parentLocation) {
+              // Only add to cities (skip if it's the parent location itself)
+              if (capitalizedTag.toLowerCase() !== parentLocation.toLowerCase()) {
+                cityCount.set(capitalizedTag, (cityCount.get(capitalizedTag) || 0) + 1);
+              }
             } else {
-              // Multi-word tags are more likely cities or towns
-              cityCount.set(capitalizedTag, (cityCount.get(capitalizedTag) || 0) + 1);
+              // Global view: categorize as country or city
+              const wordCount = capitalizedTag.split(' ').length;
+              
+              if (wordCount === 1) {
+                countryCount.set(capitalizedTag, (countryCount.get(capitalizedTag) || 0) + 1);
+              } else {
+                cityCount.set(capitalizedTag, (cityCount.get(capitalizedTag) || 0) + 1);
+              }
             }
           }
         });

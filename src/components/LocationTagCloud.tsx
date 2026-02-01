@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLocationTags, type LocationTag } from '@/hooks/useLocationTags';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { MapPin, Globe } from 'lucide-react';
 
 interface LocationTagCloudProps {
@@ -12,6 +13,7 @@ interface LocationTagCloudProps {
 
 export function LocationTagCloud({ onTagClick, selectedTag }: LocationTagCloudProps) {
   const { data: locationData, isLoading } = useLocationTags();
+  const isMobile = useIsMobile();
 
   if (isLoading) {
     return (
@@ -38,7 +40,9 @@ export function LocationTagCloud({ onTagClick, selectedTag }: LocationTagCloudPr
   }
 
   // Get top locations (mix of countries and cities)
-  const topLocations = locationData.all.slice(0, 25);
+  // Limit to 7 on mobile, 15 on desktop
+  const maxLocations = isMobile ? 7 : 15;
+  const topLocations = locationData.all.slice(0, maxLocations);
 
   // Calculate font sizes based on count
   const maxCount = Math.max(...topLocations.map(loc => loc.count));

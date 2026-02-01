@@ -50,6 +50,12 @@ function ReviewCard({ review }: ReviewCardProps) {
   const category = review.event.tags.find(([name]) => name === 'category')?.[1] || '';
   const location = review.event.tags.find(([name]) => name === 'location')?.[1] || '';
   const { data: comments = [] } = useReviewComments(review.event.id);
+  
+  const hashtags = review.event.tags
+    .filter(([name]) => name === 't')
+    .map(([, value]) => value)
+    .filter(Boolean)
+    .slice(0, 3);
 
   const categoryEmojis: Record<string, string> = {
     'grocery-store': '🛒', 'clothing-store': '👕', 'electronics-store': '📱',
@@ -129,6 +135,21 @@ function ReviewCard({ review }: ReviewCardProps) {
         {review.event.content && (
           <div className="text-sm text-gray-700 dark:text-gray-300">
             <p>{review.event.content.length > 120 ? review.event.content.substring(0, 120) + '...' : review.event.content}</p>
+          </div>
+        )}
+
+        {/* Tags */}
+        {hashtags.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {hashtags.map((tag, index) => (
+              <Badge
+                key={index}
+                variant="secondary"
+                className="text-xs"
+              >
+                #{tag}
+              </Badge>
+            ))}
           </div>
         )}
 

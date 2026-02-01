@@ -431,7 +431,7 @@ export function UnifiedSearchBar({
 
       {/* Search Results Dropdown */}
       {isOpen && (
-        <Card ref={dropdownRef} className="absolute top-full left-0 right-0 mt-2 z-50 max-h-96 overflow-hidden shadow-lg">
+        <Card ref={dropdownRef} className="absolute top-full left-0 right-0 mt-2 z-[100] max-h-96 overflow-hidden shadow-lg">
           <CardContent className="p-0">
             {isLoading ? (
               <div className="p-4 space-y-3">

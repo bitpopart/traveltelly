@@ -179,6 +179,10 @@ const ReviewDetail = () => {
   const geohashStr = review.tags.find(([name]) => name === 'g')?.[1];
   const images = review.tags.filter(([name]) => name === 'image').map(([, url]) => url);
   const mainImage = images[0];
+  const hashtags = review.tags
+    .filter(([name]) => name === 't')
+    .map(([, value]) => value)
+    .filter(Boolean);
 
   const displayName = metadata?.name || genUserName(review.pubkey);
   const profileImage = metadata?.picture;
@@ -349,6 +353,21 @@ const ReviewDetail = () => {
                     </p>
                   )}
                 </div>
+
+                {/* Tags */}
+                {hashtags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {hashtags.map((tag, index) => (
+                      <Badge
+                        key={index}
+                        variant="secondary"
+                        className="text-xs"
+                      >
+                        #{tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Photo Gallery */}
