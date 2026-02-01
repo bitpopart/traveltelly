@@ -3,6 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -11,13 +13,52 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useUploadFile } from '@/hooks/useUploadFile';
 import { useToast } from '@/hooks/useToast';
+import { extractPhotoMetadata, type PhotoMetadata } from '@/lib/exifUtils';
 import { nip19 } from 'nostr-tools';
-import { Upload, FileText, CheckCircle2, XCircle, Loader2, Download, AlertCircle, Image as ImageIcon, X, FileUp } from 'lucide-react';
+import { Upload, FileText, CheckCircle2, XCircle, Loader2, Download, AlertCircle, Image as ImageIcon, X, FileUp, Edit2, Save } from 'lucide-react';
 import * as geohash from 'ngeohash';
 
 const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642';
 
-interface CSVRow {
+const MEDIA_TYPES = ['photos', 'videos', 'audio', 'graphics', 'templates', '3d-models', 'fonts', 'presets'];
+
+const CATEGORIES = [
+  'Animals',
+  'Buildings and Architecture',
+  'Business',
+  'Drinks',
+  'The Environment',
+  'States of Mind',
+  'Food',
+  'Graphic Resources',
+  'Hobbies and Leisure',
+  'Industry',
+  'Landscape',
+  'Lifestyle',
+  'People',
+  'Plants and Flowers',
+  'Culture and Religion',
+  'Science',
+  'Social Issues',
+  'Sports',
+  'Technology',
+  'Transport',
+  'Travel',
+];
+
+const CURRENCIES = [
+  { code: 'USD', name: 'US Dollar' },
+  { code: 'EUR', name: 'Euro' },
+  { code: 'GBP', name: 'British Pound' },
+  { code: 'CAD', name: 'Canadian Dollar' },
+  { code: 'AUD', name: 'Australian Dollar' },
+  { code: 'BTC', name: 'Bitcoin' },
+  { code: 'SATS', name: 'Satoshis' },
+];
+
+interface UploadItem {
+  id: string;
+  file: File;
   title: string;
   description: string;
   price: string;
@@ -28,38 +69,25 @@ interface CSVRow {
   latitude: string;
   longitude: string;
   keywords: string;
-  filename?: string; // Match with uploaded files
-}
-
-interface UploadedFileData {
-  file: File;
-  url?: string;
-  uploading: boolean;
-  uploaded: boolean;
+  imageUrl?: string;
+  status: 'pending' | 'extracting' | 'ready' | 'uploading' | 'completed' | 'error';
   error?: string;
-}
-
-interface UploadItem {
-  rowIndex: number;
-  data: CSVRow;
-  files: UploadedFileData[];
-  status: 'pending' | 'uploading' | 'completed' | 'error';
-  error?: string;
-  eventId?: string;
+  isEditing?: boolean;
+  metadata?: PhotoMetadata;
 }
 
 const CSV_TEMPLATE = `title,description,price,currency,mediaType,category,location,latitude,longitude,keywords,filename
-"Sunset Over Mountains","Beautiful sunset landscape photography",25,USD,photos,Landscape,"Yosemite National Park",37.865101,-119.538330,"sunset,mountains,nature,landscape","sunset1.jpg,sunset2.jpg"
+"Sunset Over Mountains","Beautiful sunset landscape photography",25,USD,photos,Landscape,"Yosemite National Park",37.865101,-119.538330,"sunset,mountains,nature,landscape","sunset1.jpg"
 "Urban Street Scene","City street photography with vibrant colors",15,EUR,photos,Travel,"Paris, France",48.856614,2.352222,"urban,street,city,architecture","paris-street.jpg"
 "Business Meeting","Corporate team collaboration photo",30,USD,photos,Business,"New York, NY",40.712776,-74.005974,"business,meeting,corporate,team","meeting.jpg"`;
 
 export function AdminMassUpload() {
-  const [csvFile, setCSVFile] = useState<File | null>(null);
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [uploadItems, setUploadItems] = useState<UploadItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isExtracting, setIsExtracting] = useState(false);
   const [currentUploadIndex, setCurrentUploadIndex] = useState(-1);
   const [isDragging, setIsDragging] = useState(false);
+  const [showCsvUpload, setShowCsvUpload] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
   
@@ -101,139 +129,67 @@ export function AdminMassUpload() {
     });
   };
 
-  const parseCSV = (text: string): CSVRow[] => {
-    const lines = text.split('\n').filter(line => line.trim());
-    if (lines.length < 2) {
-      throw new Error('CSV file is empty or missing data');
-    }
+  const extractMetadataFromFiles = async (files: File[]) => {
+    setIsExtracting(true);
+    const newItems: UploadItem[] = [];
 
-    // Parse header
-    const header = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-    
-    // Validate required headers
-    const requiredHeaders = ['title', 'description', 'price', 'currency', 'mediaType', 'category'];
-    const missingHeaders = requiredHeaders.filter(h => !header.includes(h));
-    if (missingHeaders.length > 0) {
-      throw new Error(`Missing required CSV headers: ${missingHeaders.join(', ')}`);
-    }
-
-    // Parse rows
-    const rows: CSVRow[] = [];
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i];
-      if (!line.trim()) continue;
-
-      // Simple CSV parsing (handles quoted fields)
-      const values: string[] = [];
-      let current = '';
-      let inQuotes = false;
+    for (const file of files) {
+      const itemId = `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
-      for (let j = 0; j < line.length; j++) {
-        const char = line[j];
-        
-        if (char === '"') {
-          inQuotes = !inQuotes;
-        } else if (char === ',' && !inQuotes) {
-          values.push(current.trim());
-          current = '';
-        } else {
-          current += char;
-        }
-      }
-      values.push(current.trim());
+      // Create initial item
+      const item: UploadItem = {
+        id: itemId,
+        file,
+        title: '',
+        description: '',
+        price: '25',
+        currency: 'USD',
+        mediaType: file.type.startsWith('video/') ? 'videos' : 'photos',
+        category: '',
+        location: '',
+        latitude: '',
+        longitude: '',
+        keywords: '',
+        status: 'extracting',
+      };
 
-      // Map values to object
-      const row: Record<string, string> = {};
-      header.forEach((key, idx) => {
-        row[key] = values[idx] || '';
-      });
+      setUploadItems(prev => [...prev, item]);
 
-      rows.push(row as CSVRow);
-    }
-
-    return rows;
-  };
-
-  const handleCSVChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.name.endsWith('.csv')) {
-      toast({
-        title: 'Invalid File Type',
-        description: 'Please upload a CSV file.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setCSVFile(file);
-    
-    // Parse CSV file
-    const reader = new FileReader();
-    reader.onload = (event) => {
       try {
-        const text = event.target?.result as string;
-        const rows = parseCSV(text);
+        // Extract metadata from photo
+        const metadata = await extractPhotoMetadata(file);
         
-        toast({
-          title: 'CSV Parsed Successfully',
-          description: `Found ${rows.length} items. Now upload the image files.`,
-        });
-
-        // If we already have images, match them with CSV rows
-        if (imageFiles.length > 0) {
-          matchFilesWithCSV(rows, imageFiles);
+        // Update item with extracted metadata
+        item.title = metadata.title || file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+        item.description = metadata.description || '';
+        item.keywords = metadata.keywords?.join(', ') || '';
+        item.metadata = metadata;
+        
+        // Set GPS if available
+        if (metadata.gps) {
+          item.latitude = metadata.gps.latitude.toString();
+          item.longitude = metadata.gps.longitude.toString();
         }
-      } catch (error) {
-        toast({
-          title: 'CSV Parse Error',
-          description: error instanceof Error ? error.message : 'Failed to parse CSV file',
-          variant: 'destructive',
-        });
-        setCSVFile(null);
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  const matchFilesWithCSV = (csvRows: CSVRow[], files: File[]) => {
-    const items: UploadItem[] = [];
-
-    csvRows.forEach((data, index) => {
-      // Match files by filename from CSV
-      const matchedFiles: File[] = [];
-      
-      if (data.filename) {
-        const filenames = data.filename.split(',').map(f => f.trim()).filter(Boolean);
         
-        filenames.forEach(filename => {
-          const matchedFile = files.find(f => f.name === filename);
-          if (matchedFile) {
-            matchedFiles.push(matchedFile);
-          }
-        });
+        item.status = 'ready';
+        
+        console.log(`📸 Extracted metadata for ${file.name}:`, metadata);
+      } catch (error) {
+        console.error(`Error extracting metadata from ${file.name}:`, error);
+        // Still create item but with basic info
+        item.title = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+        item.status = 'ready';
       }
 
-      // Create upload item with matched files
-      items.push({
-        rowIndex: index + 2,
-        data,
-        files: matchedFiles.map(file => ({
-          file,
-          uploading: false,
-          uploaded: false,
-        })),
-        status: 'pending',
-      });
-    });
+      // Update the item in state
+      setUploadItems(prev => prev.map(i => i.id === itemId ? item : i));
+    }
 
-    setUploadItems(items);
+    setIsExtracting(false);
     
-    const totalFiles = items.reduce((sum, item) => sum + item.files.length, 0);
     toast({
-      title: 'Files Matched',
-      description: `Matched ${totalFiles} files with ${items.length} CSV rows.`,
+      title: 'Metadata Extracted',
+      description: `Processed ${files.length} files. Review and edit details before uploading.`,
     });
   };
 
@@ -242,7 +198,7 @@ export function AdminMassUpload() {
     handleFiles(files);
   };
 
-  const handleFiles = (files: File[]) => {
+  const handleFiles = async (files: File[]) => {
     // Filter only image and video files
     const validFiles = files.filter(file => 
       file.type.startsWith('image/') || file.type.startsWith('video/')
@@ -256,27 +212,10 @@ export function AdminMassUpload() {
       });
     }
 
-    setImageFiles(prev => [...prev, ...validFiles]);
+    if (validFiles.length === 0) return;
 
-    // If CSV is already loaded, match the files
-    if (csvFile) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const text = event.target?.result as string;
-          const rows = parseCSV(text);
-          matchFilesWithCSV(rows, [...imageFiles, ...validFiles]);
-        } catch (error) {
-          console.error('Error re-matching files:', error);
-        }
-      };
-      reader.readAsText(csvFile);
-    } else {
-      toast({
-        title: 'Images Added',
-        description: `Added ${validFiles.length} files. Upload CSV to match them.`,
-      });
-    }
+    // Extract metadata from all files
+    await extractMetadataFromFiles(validFiles);
   };
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -295,92 +234,155 @@ export function AdminMassUpload() {
     
     const files = Array.from(e.dataTransfer.files);
     handleFiles(files);
-  }, [csvFile, imageFiles]);
+  }, []);
 
-  const removeImageFile = (index: number) => {
-    setImageFiles(prev => prev.filter((_, i) => i !== index));
+  const parseCSV = (text: string): Record<string, string>[] => {
+    const lines = text.split('\n').filter(line => line.trim());
+    if (lines.length < 2) {
+      throw new Error('CSV file is empty or missing data');
+    }
+
+    const header = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+    const rows: Record<string, string>[] = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i];
+      if (!line.trim()) continue;
+
+      const values: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      
+      for (let j = 0; j < line.length; j++) {
+        const char = line[j];
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          values.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      values.push(current.trim());
+
+      const row: Record<string, string> = {};
+      header.forEach((key, idx) => {
+        row[key] = values[idx] || '';
+      });
+
+      rows.push(row);
+    }
+
+    return rows;
   };
 
-  const validateRow = (row: CSVRow): string | null => {
-    if (!row.title?.trim()) return 'Title is required';
-    if (!row.description?.trim()) return 'Description is required';
-    if (!row.price?.trim()) return 'Price is required';
-    if (!row.currency?.trim()) return 'Currency is required';
-    if (!row.mediaType?.trim()) return 'Media Type is required';
-    if (!row.category?.trim()) return 'Category is required';
+  const handleCSVImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    const price = parseFloat(row.price);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        const csvData = parseCSV(text);
+        
+        // Match CSV data with existing items by filename
+        setUploadItems(prev => prev.map(item => {
+          const matchingRow = csvData.find(row => 
+            row.filename && item.file.name === row.filename.trim()
+          );
+          
+          if (matchingRow) {
+            return {
+              ...item,
+              title: matchingRow.title || item.title,
+              description: matchingRow.description || item.description,
+              price: matchingRow.price || item.price,
+              currency: matchingRow.currency || item.currency,
+              mediaType: matchingRow.mediaType || item.mediaType,
+              category: matchingRow.category || item.category,
+              location: matchingRow.location || item.location,
+              latitude: matchingRow.latitude || item.latitude,
+              longitude: matchingRow.longitude || item.longitude,
+              keywords: matchingRow.keywords || item.keywords,
+            };
+          }
+          return item;
+        }));
+
+        toast({
+          title: 'CSV Imported',
+          description: 'CSV data has been matched with uploaded files.',
+        });
+      } catch (error) {
+        toast({
+          title: 'CSV Import Error',
+          description: error instanceof Error ? error.message : 'Failed to parse CSV',
+          variant: 'destructive',
+        });
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const updateItem = (id: string, updates: Partial<UploadItem>) => {
+    setUploadItems(prev => prev.map(item => 
+      item.id === id ? { ...item, ...updates } : item
+    ));
+  };
+
+  const removeItem = (id: string) => {
+    setUploadItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  const validateItem = (item: UploadItem): string | null => {
+    if (!item.title?.trim()) return 'Title is required';
+    if (!item.description?.trim()) return 'Description is required';
+    if (!item.price?.trim()) return 'Price is required';
+    if (!item.currency?.trim()) return 'Currency is required';
+    if (!item.mediaType?.trim()) return 'Media Type is required';
+    if (!item.category?.trim()) return 'Category is required';
+
+    const price = parseFloat(item.price);
     if (isNaN(price) || price <= 0) return 'Price must be a valid positive number';
 
     return null;
   };
 
-  const uploadItemFiles = async (item: UploadItem): Promise<string[]> => {
-    const uploadedUrls: string[] = [];
-
-    for (const fileData of item.files) {
-      try {
-        // Mark as uploading
-        fileData.uploading = true;
-        setUploadItems(prev => [...prev]);
-
-        // Upload to Blossom
-        const result = await uploadFile(fileData.file);
-        const url = result[0][1]; // Get URL from NIP-94 tags
-        
-        fileData.url = url;
-        fileData.uploaded = true;
-        fileData.uploading = false;
-        uploadedUrls.push(url);
-        
-        setUploadItems(prev => [...prev]);
-      } catch (error) {
-        fileData.error = error instanceof Error ? error.message : 'Upload failed';
-        fileData.uploading = false;
-        console.error('Error uploading file:', error);
-      }
-    }
-
-    return uploadedUrls;
-  };
-
   const uploadSingleItem = async (item: UploadItem): Promise<void> => {
-    const { data } = item;
-    
-    // Validate row
-    const validationError = validateRow(data);
+    // Validate
+    const validationError = validateItem(item);
     if (validationError) {
       throw new Error(validationError);
     }
 
-    // Upload all files for this item
-    const imageUrls = await uploadItemFiles(item);
-
-    if (imageUrls.length === 0) {
-      throw new Error('No images were uploaded successfully');
-    }
+    // Upload file to Blossom
+    const result = await uploadFile(item.file);
+    const imageUrl = result[0][1];
 
     // Build tags for NIP-99 classified listing
     const productId = `mass_upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const tags: string[][] = [
       ['d', productId],
-      ['title', data.title],
-      ['summary', data.description.slice(0, 200)],
-      ['price', data.price, data.currency.toUpperCase()],
-      ['t', data.mediaType],
-      ['category', data.category],
+      ['title', item.title],
+      ['summary', item.description.slice(0, 200)],
+      ['price', item.price, item.currency.toUpperCase()],
+      ['t', item.mediaType],
+      ['category', item.category],
       ['status', 'active'],
       ['published_at', Math.floor(Date.now() / 1000).toString()],
+      ['image', imageUrl],
     ];
 
     // Add location if provided
-    if (data.location?.trim()) {
-      tags.push(['location', data.location.trim()]);
+    if (item.location?.trim()) {
+      tags.push(['location', item.location.trim()]);
     }
 
     // Add keywords as tags
-    if (data.keywords?.trim()) {
-      const keywordList = data.keywords
+    if (item.keywords?.trim()) {
+      const keywordList = item.keywords
         .split(',')
         .map(k => k.trim())
         .filter(Boolean);
@@ -391,9 +393,9 @@ export function AdminMassUpload() {
     }
 
     // Add geohash if coordinates provided
-    if (data.latitude?.trim() && data.longitude?.trim()) {
-      const lat = parseFloat(data.latitude);
-      const lng = parseFloat(data.longitude);
+    if (item.latitude?.trim() && item.longitude?.trim()) {
+      const lat = parseFloat(item.latitude);
+      const lng = parseFloat(item.longitude);
       
       if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
         const hash = geohash.encode(lat, lng, 8);
@@ -401,15 +403,10 @@ export function AdminMassUpload() {
       }
     }
 
-    // Add uploaded image URLs as tags
-    imageUrls.forEach(imageUrl => {
-      tags.push(['image', imageUrl]);
-    });
-
     // Publish event
     await publishEvent({
       kind: 30402,
-      content: data.description,
+      content: item.description,
       tags,
     });
   };
@@ -418,7 +415,18 @@ export function AdminMassUpload() {
     if (uploadItems.length === 0) {
       toast({
         title: 'No Items to Upload',
-        description: 'Please upload both CSV and image files first.',
+        description: 'Please upload some files first.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Check if all items are ready
+    const notReady = uploadItems.filter(item => item.status !== 'ready');
+    if (notReady.length > 0) {
+      toast({
+        title: 'Items Not Ready',
+        description: `${notReady.length} items are still being processed. Please wait.`,
         variant: 'destructive',
       });
       return;
@@ -430,29 +438,17 @@ export function AdminMassUpload() {
       const item = uploadItems[i];
       setCurrentUploadIndex(i);
       
-      // Update status to uploading
-      setUploadItems(prev => prev.map((it, idx) => 
-        idx === i ? { ...it, status: 'uploading' } : it
-      ));
+      updateItem(item.id, { status: 'uploading' });
 
       try {
         await uploadSingleItem(item);
-        
-        // Update status to completed
-        setUploadItems(prev => prev.map((it, idx) => 
-          idx === i ? { ...it, status: 'completed' } : it
-        ));
+        updateItem(item.id, { status: 'completed' });
       } catch (error) {
         console.error(`Error uploading item ${i + 1}:`, error);
-        
-        // Update status to error
-        setUploadItems(prev => prev.map((it, idx) => 
-          idx === i ? { 
-            ...it, 
-            status: 'error',
-            error: error instanceof Error ? error.message : 'Upload failed'
-          } : it
-        ));
+        updateItem(item.id, { 
+          status: 'error',
+          error: error instanceof Error ? error.message : 'Upload failed'
+        });
       }
     }
 
@@ -469,8 +465,6 @@ export function AdminMassUpload() {
   };
 
   const handleReset = () => {
-    setCSVFile(null);
-    setImageFiles([]);
     setUploadItems([]);
     setCurrentUploadIndex(-1);
     if (fileInputRef.current) {
@@ -483,6 +477,7 @@ export function AdminMassUpload() {
 
   const completedCount = uploadItems.filter(it => it.status === 'completed').length;
   const errorCount = uploadItems.filter(it => it.status === 'error').length;
+  const readyCount = uploadItems.filter(it => it.status === 'ready').length;
   const progress = uploadItems.length > 0 ? (completedCount / uploadItems.length) * 100 : 0;
 
   return (
@@ -494,31 +489,13 @@ export function AdminMassUpload() {
             Mass Upload Stock Media
           </CardTitle>
           <CardDescription>
-            Upload multiple files and match them with CSV metadata
+            Upload files and auto-extract metadata, or import CSV for bulk data
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Template Download */}
-          <div className="space-y-3">
-            <Label>Step 1: Download CSV Template</Label>
-            <Button 
-              variant="outline" 
-              onClick={handleDownloadTemplate}
-              className="w-full"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Download CSV Template
-            </Button>
-            <p className="text-sm text-muted-foreground">
-              Download the template and fill in your product data. The <strong>filename</strong> column should match your uploaded files.
-            </p>
-          </div>
-
-          <Separator />
-
           {/* Image Files Upload */}
           <div className="space-y-3">
-            <Label htmlFor="image-files">Step 2: Upload Image/Video Files</Label>
+            <Label htmlFor="image-files">Upload Image/Video Files</Label>
             
             {/* Drag and Drop Zone */}
             <div
@@ -536,7 +513,7 @@ export function AdminMassUpload() {
                 Drag and drop files here, or click to browse
               </p>
               <p className="text-xs text-muted-foreground mb-4">
-                Supports: JPG, PNG, GIF, WEBP, MP4, MOV
+                Metadata will be automatically extracted from photos (title, description, keywords, GPS)
               </p>
               <Input
                 ref={fileInputRef}
@@ -545,99 +522,87 @@ export function AdminMassUpload() {
                 accept="image/*,video/*"
                 multiple
                 onChange={handleImageFilesChange}
-                disabled={isProcessing}
+                disabled={isProcessing || isExtracting}
                 className="hidden"
               />
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={isProcessing}
+                disabled={isProcessing || isExtracting}
               >
-                <Upload className="w-4 h-4 mr-2" />
-                Select Files
+                {isExtracting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Extracting Metadata...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Select Files
+                  </>
+                )}
               </Button>
             </div>
+          </div>
 
-            {/* Uploaded Files List */}
-            {imageFiles.length > 0 && (
-              <div className="border rounded-lg p-4 max-h-48 overflow-y-auto">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">{imageFiles.length} files selected</span>
+          {/* Optional CSV Import */}
+          {uploadItems.length > 0 && (
+            <>
+              <Separator />
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label>Optional: Import CSV Data</Label>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setImageFiles([])}
-                    disabled={isProcessing}
+                    onClick={() => setShowCsvUpload(!showCsvUpload)}
                   >
-                    Clear All
+                    {showCsvUpload ? 'Hide' : 'Show'} CSV Import
                   </Button>
                 </div>
-                <div className="space-y-1">
-                  {imageFiles.map((file, idx) => (
-                    <div key={idx} className="flex items-center justify-between text-sm p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded">
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <ImageIcon className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                        <span className="truncate">{file.name}</span>
-                        <span className="text-xs text-muted-foreground flex-shrink-0">
-                          ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                        </span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeImageFile(idx)}
-                        disabled={isProcessing}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
+                
+                {showCsvUpload && (
+                  <div className="space-y-3 p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
+                    <Button 
+                      variant="outline" 
+                      onClick={handleDownloadTemplate}
+                      className="w-full"
+                      size="sm"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Download CSV Template
+                    </Button>
+                    
+                    <Input
+                      ref={csvInputRef}
+                      type="file"
+                      accept=".csv"
+                      onChange={handleCSVImport}
+                      disabled={isProcessing}
+                    />
+                    
+                    <p className="text-xs text-muted-foreground">
+                      CSV data will override auto-extracted metadata for matched files (by filename)
+                    </p>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
 
-          <Separator />
-
-          {/* CSV Upload */}
-          <div className="space-y-3">
-            <Label htmlFor="csv-upload">Step 3: Upload Your CSV File</Label>
-            <Input
-              ref={csvInputRef}
-              id="csv-upload"
-              type="file"
-              accept=".csv"
-              onChange={handleCSVChange}
-              disabled={isProcessing}
-            />
-            {csvFile && (
-              <div className="flex items-center gap-2 text-sm text-green-600">
-                <FileText className="w-4 h-4" />
-                <span>{csvFile.name} ({uploadItems.length} items)</span>
-              </div>
-            )}
-            <p className="text-sm text-muted-foreground">
-              The CSV will be matched with uploaded files using the <strong>filename</strong> column.
-            </p>
-          </div>
-
-          <Separator />
-
-          {/* CSV Requirements */}
+          {/* Info */}
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               <div className="space-y-2">
                 <p className="font-semibold">How it works:</p>
                 <ul className="list-disc list-inside space-y-1 text-sm">
-                  <li><strong>Upload files first:</strong> Select all your image/video files</li>
-                  <li><strong>Upload CSV:</strong> The system matches files by filename</li>
-                  <li><strong>Filename matching:</strong> CSV "filename" column should list comma-separated filenames</li>
-                  <li><strong>Example:</strong> If CSV has "sunset1.jpg,sunset2.jpg", those files will be matched</li>
-                  <li><strong>Auto-upload:</strong> Files are uploaded to Blossom when you click "Start Upload"</li>
-                  <li><strong>Required fields:</strong> title, description, price, currency, mediaType, category</li>
-                  <li><strong>Optional fields:</strong> location, latitude, longitude, keywords, filename</li>
+                  <li><strong>Upload files:</strong> Drag & drop or select your images/videos</li>
+                  <li><strong>Auto-extract:</strong> Title, description, keywords, and GPS from EXIF/IPTC metadata</li>
+                  <li><strong>Review & Edit:</strong> Check and modify the extracted data</li>
+                  <li><strong>Optional CSV:</strong> Import CSV to override or fill missing data</li>
+                  <li><strong>Upload:</strong> Files are uploaded to Blossom and published to marketplace</li>
                 </ul>
               </div>
             </AlertDescription>
@@ -651,7 +616,7 @@ export function AdminMassUpload() {
           <CardHeader>
             <CardTitle>Upload Queue</CardTitle>
             <CardDescription>
-              {uploadItems.length} items ready to upload
+              {uploadItems.length} items • {readyCount} ready • {completedCount} completed
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -671,6 +636,11 @@ export function AdminMassUpload() {
               <Badge variant="secondary">
                 {uploadItems.length} Total
               </Badge>
+              {readyCount > 0 && (
+                <Badge variant="default" className="bg-blue-600">
+                  {readyCount} Ready
+                </Badge>
+              )}
               {completedCount > 0 && (
                 <Badge variant="default" className="bg-green-600">
                   <CheckCircle2 className="w-3 h-3 mr-1" />
@@ -686,90 +656,249 @@ export function AdminMassUpload() {
             </div>
 
             {/* Items List */}
-            <div className="max-h-96 overflow-y-auto space-y-2 border rounded-lg p-4">
-              {uploadItems.map((item, idx) => (
-                <div
-                  key={idx}
-                  className={`p-3 rounded-lg border ${
+            <div className="max-h-[600px] overflow-y-auto space-y-3 border rounded-lg p-4">
+              {uploadItems.map((item) => (
+                <Card
+                  key={item.id}
+                  className={`${
+                    item.status === 'extracting' ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200' :
                     item.status === 'uploading' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200' :
                     item.status === 'completed' ? 'bg-green-50 dark:bg-green-900/20 border-green-200' :
                     item.status === 'error' ? 'bg-red-50 dark:bg-red-900/20 border-red-200' :
-                    'bg-gray-50 dark:bg-gray-800'
+                    ''
                   }`}
                 >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 min-w-0">
+                  <CardContent className="p-4">
+                    <div className="space-y-3">
+                      {/* Header */}
+                      <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium truncate">{item.data.title}</span>
-                          {item.files.length > 0 && (
-                            <Badge variant="outline" className="text-xs">
-                              <ImageIcon className="w-3 h-3 mr-1" />
-                              {item.files.length} files
+                          <ImageIcon className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                          <span className="text-sm font-medium truncate">{item.file.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {item.status === 'extracting' && (
+                            <Badge variant="default" className="bg-purple-600">
+                              <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                              Extracting
                             </Badge>
                           )}
-                        </div>
-                        <div className="flex gap-2 mt-1">
-                          <span className="text-xs text-muted-foreground">
-                            {item.data.price} {item.data.currency}
-                          </span>
-                          <span className="text-xs text-muted-foreground">•</span>
-                          <span className="text-xs text-muted-foreground capitalize">
-                            {item.data.mediaType}
-                          </span>
+                          {item.status === 'ready' && !item.isEditing && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => updateItem(item.id, { isEditing: true })}
+                              disabled={isProcessing}
+                            >
+                              <Edit2 className="w-3 h-3 mr-1" />
+                              Edit
+                            </Button>
+                          )}
+                          {item.status === 'ready' && item.isEditing && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => updateItem(item.id, { isEditing: false })}
+                            >
+                              <Save className="w-3 h-3 mr-1" />
+                              Save
+                            </Button>
+                          )}
+                          {item.status === 'uploading' && (
+                            <Badge variant="default" className="bg-blue-600">
+                              <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                              Uploading
+                            </Badge>
+                          )}
+                          {item.status === 'completed' && (
+                            <Badge variant="default" className="bg-green-600">
+                              <CheckCircle2 className="w-3 h-3 mr-1" />
+                              Done
+                            </Badge>
+                          )}
+                          {item.status === 'error' && (
+                            <Badge variant="destructive">
+                              <XCircle className="w-3 h-3 mr-1" />
+                              Failed
+                            </Badge>
+                          )}
+                          {!isProcessing && item.status !== 'completed' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeItem(item.id)}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          )}
                         </div>
                       </div>
-                      <div>
-                        {item.status === 'pending' && (
-                          <Badge variant="secondary">Pending</Badge>
-                        )}
-                        {item.status === 'uploading' && (
-                          <Badge variant="default" className="bg-blue-600">
-                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                            Uploading
-                          </Badge>
-                        )}
-                        {item.status === 'completed' && (
-                          <Badge variant="default" className="bg-green-600">
-                            <CheckCircle2 className="w-3 h-3 mr-1" />
-                            Done
-                          </Badge>
-                        )}
-                        {item.status === 'error' && (
-                          <Badge variant="destructive">
-                            <XCircle className="w-3 h-3 mr-1" />
-                            Failed
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
 
-                    {/* File upload status */}
-                    {item.files.length > 0 && (
-                      <div className="space-y-1">
-                        {item.files.map((fileData, fileIdx) => (
-                          <div key={fileIdx} className="flex items-center gap-2 text-xs">
-                            <ImageIcon className="w-3 h-3" />
-                            <span className="flex-1 truncate">{fileData.file.name}</span>
-                            {fileData.uploading && (
-                              <span className="text-blue-600">Uploading...</span>
-                            )}
-                            {fileData.uploaded && (
-                              <CheckCircle2 className="w-3 h-3 text-green-600" />
-                            )}
-                            {fileData.error && (
-                              <span className="text-red-600">{fileData.error}</span>
-                            )}
+                      {/* Editable Fields */}
+                      {(item.status === 'ready' || item.status === 'error') && item.isEditing && (
+                        <div className="grid grid-cols-2 gap-3 pt-2">
+                          <div className="col-span-2">
+                            <Label className="text-xs">Title</Label>
+                            <Input
+                              value={item.title}
+                              onChange={(e) => updateItem(item.id, { title: e.target.value })}
+                              placeholder="Product title"
+                              className="text-sm"
+                            />
                           </div>
-                        ))}
-                      </div>
-                    )}
+                          <div className="col-span-2">
+                            <Label className="text-xs">Description</Label>
+                            <Textarea
+                              value={item.description}
+                              onChange={(e) => updateItem(item.id, { description: e.target.value })}
+                              placeholder="Product description"
+                              rows={2}
+                              className="text-sm"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Price</Label>
+                            <Input
+                              value={item.price}
+                              onChange={(e) => updateItem(item.id, { price: e.target.value })}
+                              type="number"
+                              className="text-sm"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Currency</Label>
+                            <Select value={item.currency} onValueChange={(value) => updateItem(item.id, { currency: value })}>
+                              <SelectTrigger className="text-sm">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {CURRENCIES.map((curr) => (
+                                  <SelectItem key={curr.code} value={curr.code}>
+                                    {curr.code}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-xs">Media Type</Label>
+                            <Select value={item.mediaType} onValueChange={(value) => updateItem(item.id, { mediaType: value })}>
+                              <SelectTrigger className="text-sm">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {MEDIA_TYPES.map((type) => (
+                                  <SelectItem key={type} value={type}>
+                                    <span className="capitalize">{type}</span>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-xs">Category</Label>
+                            <Select value={item.category} onValueChange={(value) => updateItem(item.id, { category: value })}>
+                              <SelectTrigger className="text-sm">
+                                <SelectValue placeholder="Select category" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {CATEGORIES.map((cat) => (
+                                  <SelectItem key={cat} value={cat}>
+                                    {cat}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="col-span-2">
+                            <Label className="text-xs">Keywords (comma-separated)</Label>
+                            <Input
+                              value={item.keywords}
+                              onChange={(e) => updateItem(item.id, { keywords: e.target.value })}
+                              placeholder="keyword1, keyword2, keyword3"
+                              className="text-sm"
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <Label className="text-xs">Location (optional)</Label>
+                            <Input
+                              value={item.location}
+                              onChange={(e) => updateItem(item.id, { location: e.target.value })}
+                              placeholder="City, Country"
+                              className="text-sm"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Latitude (optional)</Label>
+                            <Input
+                              value={item.latitude}
+                              onChange={(e) => updateItem(item.id, { latitude: e.target.value })}
+                              type="number"
+                              step="0.000001"
+                              className="text-sm"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Longitude (optional)</Label>
+                            <Input
+                              value={item.longitude}
+                              onChange={(e) => updateItem(item.id, { longitude: e.target.value })}
+                              type="number"
+                              step="0.000001"
+                              className="text-sm"
+                            />
+                          </div>
+                        </div>
+                      )}
 
-                    {item.error && (
-                      <p className="text-xs text-red-600 mt-1">{item.error}</p>
-                    )}
-                  </div>
-                </div>
+                      {/* Summary View */}
+                      {(item.status === 'ready' || item.status === 'completed' || item.status === 'error') && !item.isEditing && (
+                        <div className="grid grid-cols-2 gap-2 text-xs pt-2">
+                          {item.title && (
+                            <div className="col-span-2">
+                              <span className="text-muted-foreground">Title:</span>
+                              <p className="font-medium truncate">{item.title}</p>
+                            </div>
+                          )}
+                          {item.description && (
+                            <div className="col-span-2">
+                              <span className="text-muted-foreground">Description:</span>
+                              <p className="line-clamp-2">{item.description}</p>
+                            </div>
+                          )}
+                          <div>
+                            <span className="text-muted-foreground">Price:</span>
+                            <p className="font-medium">{item.price} {item.currency}</p>
+                          </div>
+                          {item.category && (
+                            <div>
+                              <span className="text-muted-foreground">Category:</span>
+                              <p className="font-medium">{item.category}</p>
+                            </div>
+                          )}
+                          {item.keywords && (
+                            <div className="col-span-2">
+                              <span className="text-muted-foreground">Keywords:</span>
+                              <p className="truncate">{item.keywords}</p>
+                            </div>
+                          )}
+                          {(item.latitude && item.longitude) && (
+                            <div className="col-span-2">
+                              <span className="text-muted-foreground">GPS:</span>
+                              <p className="text-green-600">
+                                {parseFloat(item.latitude).toFixed(6)}, {parseFloat(item.longitude).toFixed(6)}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {item.error && (
+                        <p className="text-xs text-red-600 mt-2">{item.error}</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
 
@@ -785,7 +914,7 @@ export function AdminMassUpload() {
               </Button>
               <Button
                 onClick={handleStartUpload}
-                disabled={isProcessing || uploadItems.length === 0}
+                disabled={isProcessing || readyCount === 0 || isExtracting}
                 className="flex-1 bg-blue-600 hover:bg-blue-700"
               >
                 {isProcessing ? (
@@ -796,7 +925,7 @@ export function AdminMassUpload() {
                 ) : (
                   <>
                     <Upload className="w-4 h-4 mr-2" />
-                    Start Upload ({uploadItems.reduce((sum, item) => sum + item.files.length, 0)} files)
+                    Upload {readyCount} Items
                   </>
                 )}
               </Button>
