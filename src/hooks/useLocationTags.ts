@@ -30,22 +30,53 @@ function isValidLocation(text: string): boolean {
   
   // Filter out common non-location tags
   const nonLocationTags = [
+    // General descriptive
     'travel', 'photography', 'photo', 'photos', 'video', 'videos',
     'landscape', 'nature', 'sunset', 'sunrise', 'beach', 'mountain',
-    'food', 'restaurant', 'cafe', 'hotel', 'review', 'trip',
+    'sea', 'ocean', 'water', 'lake', 'river', 'waterfall',
+    'forest', 'jungle', 'desert', 'valley', 'hill', 'peak',
+    // Place descriptors
+    'old town', 'old', 'town', 'new', 'historic', 'ancient', 'modern',
+    'downtown', 'center', 'centre', 'district', 'area', 'zone',
+    'north', 'south', 'east', 'west', 'central', 'upper', 'lower',
+    // Place types
+    'food', 'restaurant', 'cafe', 'hotel', 'hostel', 'resort',
+    'review', 'trip', 'tour', 'guide', 'visit',
+    // Activities
     'adventure', 'explore', 'wanderlust', 'vacation', 'holiday',
+    'hiking', 'walking', 'cycling', 'swimming', 'diving',
+    // Themes
     'architecture', 'culture', 'art', 'history', 'urban', 'city',
     'street', 'night', 'day', 'summer', 'winter', 'spring', 'autumn',
-    'beautiful', 'amazing', 'stunning', 'picturesque', 'scenic',
+    'beautiful', 'amazing', 'stunning', 'picturesque', 'scenic', 'view',
+    // Categories
     'outdoor', 'indoor', 'people', 'portrait', 'lifestyle',
     'business', 'work', 'meeting', 'team', 'corporate',
     'animal', 'wildlife', 'pet', 'dog', 'cat', 'bird',
     'sport', 'fitness', 'health', 'yoga', 'gym',
     'technology', 'tech', 'computer', 'phone', 'gadget',
-    'nostr', 'bitcoin', 'lightning', 'crypto', 'web3'
+    // Tech/Platform
+    'nostr', 'bitcoin', 'lightning', 'crypto', 'web3',
+    // Common multi-word descriptors
+    'oldtown', 'newtown', 'seaside', 'beachfront', 'riverside',
+    'mountain view', 'city center', 'town center'
   ];
   
+  // Check exact match
   if (nonLocationTags.includes(lowerText)) {
+    return false;
+  }
+  
+  // Check if it contains any non-location words
+  const containsNonLocation = nonLocationTags.some(tag => {
+    // For multi-word non-location tags, check if the text contains them
+    if (tag.includes(' ')) {
+      return lowerText === tag || lowerText.includes(tag);
+    }
+    return false;
+  });
+  
+  if (containsNonLocation) {
     return false;
   }
   
