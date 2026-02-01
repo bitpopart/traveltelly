@@ -20,13 +20,27 @@ export interface ContentItem {
 }
 
 /**
- * Check if location string contains the search tag
+ * Check if event matches the search location tag
+ * Checks both location tag and hashtags (t tags)
  */
-function matchesLocation(location: string | undefined, searchTag: string): boolean {
-  if (!location || !searchTag) return false;
+function matchesLocation(event: NostrEvent, searchTag: string): boolean {
+  if (!searchTag) return false;
   
-  // Case-insensitive partial match
-  return location.toLowerCase().includes(searchTag.toLowerCase());
+  const searchLower = searchTag.toLowerCase();
+  
+  // Check location tag
+  const location = event.tags.find(([name]) => name === 'location')?.[1];
+  if (location && location.toLowerCase().includes(searchLower)) {
+    return true;
+  }
+  
+  // Check hashtags (t tags)
+  const hashtags = event.tags.filter(([name]) => name === 't').map(([, tag]) => tag?.toLowerCase());
+  if (hashtags.some(tag => tag && tag.includes(searchLower))) {
+    return true;
+  }
+  
+  return false;
 }
 
 /**
@@ -204,15 +218,17 @@ export function useContentByLocation(locationTag: string) {
         }], { signal }),
       ]);
 
-      // Parse and filter by location
-      const allContent: ContentItem[] = [
+      // Parse items first
+      const parsedContent = [
         ...reviews.map(parseReview),
         ...trips.map(parseTrip),
         ...stories.map(parseStory),
         ...stockMedia.map(parseStockMedia),
-      ]
-        .filter((item): item is ContentItem => item !== null)
-        .filter(item => matchesLocation(item.location, locationTag))
+      ].filter((item): item is ContentItem => item !== null);
+
+      // Filter by location using original events
+      const allContent: ContentItem[] = parsedContent
+        .filter(item => matchesLocation(item.event, locationTag))
         .sort((a, b) => b.createdAt - a.createdAt);
 
       return allContent;

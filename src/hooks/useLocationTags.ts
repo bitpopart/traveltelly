@@ -126,7 +126,7 @@ export function useLocationTags() {
       const cityCount = new Map<string, number>();
 
       allEvents.forEach(event => {
-        // Get location from tags
+        // Get location from location tag
         const location = event.tags.find(([name]) => name === 'location')?.[1];
         
         if (location) {
@@ -139,6 +139,34 @@ export function useLocationTags() {
             cityCount.set(city, (cityCount.get(city) || 0) + 1);
           }
         }
+
+        // Also extract from hashtags (t tags) for better coverage
+        const hashtags = event.tags.filter(([name]) => name === 't').map(([, tag]) => tag);
+        
+        hashtags.forEach(tag => {
+          if (!tag) return;
+          
+          // Check if hashtag looks like a location (not a street)
+          if (!isStreetName(tag)) {
+            // Capitalize for consistency
+            const capitalizedTag = tag
+              .split(/[-\s]/)
+              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(' ');
+            
+            // Try to determine if it's likely a country or city
+            // Common countries are usually one word, cities can be multiple
+            const wordCount = capitalizedTag.split(' ').length;
+            
+            if (wordCount === 1) {
+              // Single word tags are more likely countries
+              countryCount.set(capitalizedTag, (countryCount.get(capitalizedTag) || 0) + 1);
+            } else {
+              // Multi-word tags are more likely cities
+              cityCount.set(capitalizedTag, (cityCount.get(capitalizedTag) || 0) + 1);
+            }
+          }
+        });
       });
 
       // Convert to array and sort by count
