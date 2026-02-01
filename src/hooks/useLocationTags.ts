@@ -35,6 +35,7 @@ function isValidLocation(text: string): boolean {
     'landscape', 'nature', 'sunset', 'sunrise', 'beach', 'mountain',
     'sea', 'ocean', 'water', 'lake', 'river', 'waterfall',
     'forest', 'jungle', 'desert', 'valley', 'hill', 'peak',
+    'island', 'islands', 'coast', 'coastal',
     // Weather and conditions
     'sunny', 'cloudy', 'rainy', 'snowy', 'foggy', 'windy',
     // Place descriptors
@@ -48,6 +49,7 @@ function isValidLocation(text: string): boolean {
     'shrine', 'pagoda', 'stupa', 'basilica',
     'building', 'monument', 'statue', 'memorial', 'plaza', 'square',
     'market', 'bazaar', 'mall', 'shopping', 'store', 'shop',
+    'house', 'home', 'villa', 'apartment', 'flat', 'condo',
     // Activities and subjects
     'review', 'trip', 'tour', 'guide', 'visit',
     'adventure', 'explore', 'wanderlust', 'vacation', 'holiday',
