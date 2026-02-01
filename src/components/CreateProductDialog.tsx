@@ -309,6 +309,60 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
                   </span>
                 )}
               </p>
+              
+              {/* Manual GPS Input - Show if no GPS detected */}
+              {!gpsCoordinates && allPhotos.length > 0 && (
+                <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                  <p className="text-sm font-medium mb-3 text-yellow-900 dark:text-yellow-100">
+                    No GPS data found. Add location manually (optional):
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="manual-lat" className="text-xs">Latitude</Label>
+                      <Input
+                        id="manual-lat"
+                        type="number"
+                        step="0.000001"
+                        placeholder="e.g., 13.736717"
+                        value={gpsCoordinates?.latitude || ''}
+                        onChange={(e) => {
+                          const lat = parseFloat(e.target.value);
+                          if (!isNaN(lat) && lat >= -90 && lat <= 90) {
+                            setGpsCoordinates(prev => ({ 
+                              latitude: lat, 
+                              longitude: prev?.longitude || 0 
+                            }));
+                          }
+                        }}
+                        className="text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="manual-lng" className="text-xs">Longitude</Label>
+                      <Input
+                        id="manual-lng"
+                        type="number"
+                        step="0.000001"
+                        placeholder="e.g., 100.523186"
+                        value={gpsCoordinates?.longitude || ''}
+                        onChange={(e) => {
+                          const lng = parseFloat(e.target.value);
+                          if (!isNaN(lng) && lng >= -180 && lng <= 180) {
+                            setGpsCoordinates(prev => ({ 
+                              latitude: prev?.latitude || 0, 
+                              longitude: lng 
+                            }));
+                          }
+                        }}
+                        className="text-sm"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Or find coordinates on Google Maps and paste them here
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 

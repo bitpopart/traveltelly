@@ -534,11 +534,57 @@ function CreateReviewFormContent() {
           </div>
 
           {showMap && (
-            <div className="h-96 rounded-lg overflow-hidden border">
-              <LocationMap
-                onLocationSelect={handleLocationSelect}
-                initialLocation={location}
-              />
+            <div className="space-y-4">
+              <div className="h-96 rounded-lg overflow-hidden border">
+                <LocationMap
+                  onLocationSelect={handleLocationSelect}
+                  initialLocation={location}
+                />
+              </div>
+              
+              {/* Manual Coordinate Input */}
+              <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+                <p className="text-sm font-medium mb-3">Or enter coordinates manually:</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="manual-lat" className="text-xs">Latitude</Label>
+                    <Input
+                      id="manual-lat"
+                      type="number"
+                      step="0.000001"
+                      placeholder="e.g., 13.736717"
+                      value={location?.lat || ''}
+                      onChange={(e) => {
+                        const lat = parseFloat(e.target.value);
+                        if (!isNaN(lat) && lat >= -90 && lat <= 90) {
+                          setLocation(prev => prev ? { ...prev, lat } : { lat, lng: 0 });
+                        }
+                      }}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="manual-lng" className="text-xs">Longitude</Label>
+                    <Input
+                      id="manual-lng"
+                      type="number"
+                      step="0.000001"
+                      placeholder="e.g., 100.523186"
+                      value={location?.lng || ''}
+                      onChange={(e) => {
+                        const lng = parseFloat(e.target.value);
+                        if (!isNaN(lng) && lng >= -180 && lng <= 180) {
+                          setLocation(prev => prev ? { ...prev, lng } : { lat: 0, lng });
+                        }
+                      }}
+                      className="text-sm"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Enter decimal coordinates (e.g., from Google Maps)
+                </p>
+              </div>
             </div>
           )}
         </CardContent>
