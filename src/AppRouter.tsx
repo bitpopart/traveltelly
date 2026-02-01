@@ -43,6 +43,7 @@ import SearchTest from "./pages/SearchTest";
 import { SimpleMapDemoPage } from "./pages/SimpleMapDemo";
 import WhatIsNostr from "./pages/WhatIsNostr";
 import CategoryMigrationPage from "./pages/CategoryMigrationPage";
+import { AdminMassUpload } from "./pages/AdminMassUpload";
 import NotFound from "./pages/NotFound";
 
 export function AppRouter() {
@@ -71,6 +72,7 @@ export function AppRouter() {
         <Route path="/admin-debug" element={<AdminDebug />} />
         <Route path="/admin-simple" element={<AdminSimple />} />
         <Route path="/admin-basic" element={<AdminBasic />} />
+        <Route path="/admin/mass-upload" element={<AdminMassUpload />} />
         <Route path="/remove-reviews" element={<RemoveReviews />} />
         <Route path="/hide-reviews" element={<HideReviews />} />
         <Route path="/route-test" element={<RouteTest />} />
