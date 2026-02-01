@@ -41,6 +41,7 @@ function isValidLocation(text: string): boolean {
     'stone', 'stones', 'rock', 'rocks', 'boulder',
     'tree', 'trees', 'palm', 'palm tree', 'palm trees', 'pine', 'oak',
     'plant', 'plants', 'flower', 'flowers', 'grass', 'vegetation',
+    'park', 'parks', 'garden', 'gardens', 'botanical',
     // Weather and conditions
     'sunny', 'cloudy', 'rainy', 'snowy', 'foggy', 'windy',
     // Place descriptors
@@ -242,39 +243,9 @@ export function useLocationTags(parentLocation?: string) {
             }
           }
         }
-
-        // Also extract from hashtags (t tags) for better coverage
-        const hashtags = event.tags.filter(([name]) => name === 't').map(([, tag]) => tag);
         
-        hashtags.forEach(tag => {
-          if (!tag) return;
-          
-          // Check if hashtag is a valid location (country, city, town, province)
-          if (isValidLocation(tag)) {
-            // Capitalize for consistency
-            const capitalizedTag = tag
-              .split(/[-\s]/)
-              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-              .join(' ');
-            
-            // When filtering by parent location, only count cities/provinces
-            if (parentLocation) {
-              // Only add to cities (skip if it's the parent location itself)
-              if (capitalizedTag.toLowerCase() !== parentLocation.toLowerCase()) {
-                cityCount.set(capitalizedTag, (cityCount.get(capitalizedTag) || 0) + 1);
-              }
-            } else {
-              // Global view: categorize as country or city
-              const wordCount = capitalizedTag.split(' ').length;
-              
-              if (wordCount === 1) {
-                countryCount.set(capitalizedTag, (countryCount.get(capitalizedTag) || 0) + 1);
-              } else {
-                cityCount.set(capitalizedTag, (cityCount.get(capitalizedTag) || 0) + 1);
-              }
-            }
-          }
-        });
+        // NOTE: We do NOT extract from hashtags (t tags) for Popular Destinations
+        // Only use the location tag to ensure we only get actual geographic locations
       });
 
       // Convert to array and sort by count
