@@ -56,13 +56,8 @@ export function ShareToNostrButton({
       generatedContent += `\n\n💰 ${priceInfo.sats}`;
     }
     
-    // Add image URL if available
-    if (image) {
-      generatedContent += `\n\n${image}`;
-    }
-    
-    // Add link to TravelTelly
-    generatedContent += `\n\n📖 View on TravelTelly.com\n${shareUrl}`;
+    // Add link to TravelTelly (will render as clickable in Nostr clients)
+    generatedContent += `\n\n📖 traveltelly.com`;
   }
 
   const handleShare = () => {
@@ -83,7 +78,21 @@ export function ShareToNostrButton({
   };
 
   const handlePublish = () => {
-    const content = customMessage.trim() || generatedContent;
+    let content = customMessage.trim() || generatedContent;
+    
+    // Add image URL to content if not already there and image exists
+    if (image && !content.includes(image)) {
+      // Insert image URL before the TravelTelly link
+      const lines = content.split('\n');
+      const traveltellyIndex = lines.findIndex(line => line.includes('traveltelly.com'));
+      
+      if (traveltellyIndex !== -1) {
+        lines.splice(traveltellyIndex, 0, '', image);
+        content = lines.join('\n');
+      } else {
+        content += `\n\n${image}`;
+      }
+    }
     
     console.log('📤 Publishing to Nostr:', { content, shareUrl, image });
 
@@ -176,11 +185,25 @@ export function ShareToNostrButton({
               </p>
             </div>
 
-            <div className="text-sm text-muted-foreground bg-gray-50 dark:bg-gray-900 p-3 rounded-lg max-h-40 overflow-y-auto border border-gray-200 dark:border-gray-700">
-              <p className="font-semibold mb-2">Preview:</p>
-              <p className="whitespace-pre-wrap break-all leading-relaxed">
-                {customMessage.trim() || generatedContent}
-              </p>
+            <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-700 space-y-3">
+              <p className="font-semibold text-sm">Preview (How it will appear on Nostr):</p>
+              
+              <div className="space-y-2">
+                <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
+                  {customMessage.trim() || generatedContent}
+                </p>
+                
+                {image && (
+                  <div className="mt-3">
+                    <p className="text-xs text-muted-foreground mb-2">📷 Image will be attached:</p>
+                    <img
+                      src={image}
+                      alt="Preview"
+                      className="w-full max-h-32 object-cover rounded border"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex justify-end gap-3">
