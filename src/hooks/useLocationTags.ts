@@ -15,38 +15,59 @@ export interface LocationTag {
 }
 
 /**
- * Check if a string looks like a street name or address
- * Returns true if it appears to be a street rather than a city/country
+ * Check if a tag is a valid location (country, city, town, province)
+ * Returns true if it's a geographic location, false for other tags
  */
-function isStreetName(text: string): boolean {
+function isValidLocation(text: string): boolean {
   if (!text) return false;
   
-  const lowerText = text.toLowerCase();
+  const lowerText = text.toLowerCase().trim();
   
-  // Common street indicators
+  // Filter out very short texts (likely codes/numbers)
+  if (lowerText.length < 3) {
+    return false;
+  }
+  
+  // Filter out common non-location tags
+  const nonLocationTags = [
+    'travel', 'photography', 'photo', 'photos', 'video', 'videos',
+    'landscape', 'nature', 'sunset', 'sunrise', 'beach', 'mountain',
+    'food', 'restaurant', 'cafe', 'hotel', 'review', 'trip',
+    'adventure', 'explore', 'wanderlust', 'vacation', 'holiday',
+    'architecture', 'culture', 'art', 'history', 'urban', 'city',
+    'street', 'night', 'day', 'summer', 'winter', 'spring', 'autumn',
+    'beautiful', 'amazing', 'stunning', 'picturesque', 'scenic',
+    'outdoor', 'indoor', 'people', 'portrait', 'lifestyle',
+    'business', 'work', 'meeting', 'team', 'corporate',
+    'animal', 'wildlife', 'pet', 'dog', 'cat', 'bird',
+    'sport', 'fitness', 'health', 'yoga', 'gym',
+    'technology', 'tech', 'computer', 'phone', 'gadget',
+    'nostr', 'bitcoin', 'lightning', 'crypto', 'web3'
+  ];
+  
+  if (nonLocationTags.includes(lowerText)) {
+    return false;
+  }
+  
+  // Filter out street names
   const streetIndicators = [
     'road', 'street', 'avenue', 'boulevard', 'lane', 'drive', 'way', 'alley',
     'route', 'highway', 'path', 'plaza', 'square', 'court', 'circle', 'terrace',
     'quai', 'rue', 'strasse', 'gasse', 'platz', 'weg', 'via', 'corso',
-    'soi', 'thanon', 'rama', 'rajons', 'sattha', 'thetsaban', 'garbary'
+    'soi', 'thanon', 'rama', 'rajons', 'sattha', 'thetsaban'
   ];
   
-  // Check if any indicator is in the text
   if (streetIndicators.some(indicator => lowerText.includes(indicator))) {
-    return true;
+    return false;
   }
   
-  // Check for numbered streets (e.g., "Rama III Road", "Soi 1")
+  // Filter out numbered streets
   if (/\b(road|street|soi|rama|route)\s*\d+/i.test(text)) {
-    return true;
+    return false;
   }
   
-  // Very short texts are likely street numbers or codes
-  if (text.trim().length < 3) {
-    return true;
-  }
-  
-  return false;
+  // If it passes all filters, it's likely a valid location
+  return true;
 }
 
 /**
@@ -61,8 +82,8 @@ function extractLocationTags(locationText: string): { country?: string; city?: s
   
   if (parts.length === 0) return {};
   
-  // Filter out street names from all parts
-  const validParts = parts.filter(part => !isStreetName(part));
+  // Filter to keep only valid locations (countries, cities, towns, provinces)
+  const validParts = parts.filter(part => isValidLocation(part));
   
   if (validParts.length === 0) return {};
   
@@ -146,23 +167,23 @@ export function useLocationTags() {
         hashtags.forEach(tag => {
           if (!tag) return;
           
-          // Check if hashtag looks like a location (not a street)
-          if (!isStreetName(tag)) {
+          // Check if hashtag is a valid location (country, city, town, province)
+          if (isValidLocation(tag)) {
             // Capitalize for consistency
             const capitalizedTag = tag
               .split(/[-\s]/)
               .map(word => word.charAt(0).toUpperCase() + word.slice(1))
               .join(' ');
             
-            // Try to determine if it's likely a country or city
-            // Common countries are usually one word, cities can be multiple
+            // Try to determine if it's likely a country or city/province
+            // Common countries are usually one word, cities/provinces can be multiple
             const wordCount = capitalizedTag.split(' ').length;
             
             if (wordCount === 1) {
-              // Single word tags are more likely countries
+              // Single word tags are more likely countries or provinces
               countryCount.set(capitalizedTag, (countryCount.get(capitalizedTag) || 0) + 1);
             } else {
-              // Multi-word tags are more likely cities
+              // Multi-word tags are more likely cities or towns
               cityCount.set(capitalizedTag, (cityCount.get(capitalizedTag) || 0) + 1);
             }
           }
@@ -171,16 +192,16 @@ export function useLocationTags() {
 
       // Convert to array and sort by count
       const countries: LocationTag[] = Array.from(countryCount.entries())
-        .filter(([tag]) => !isStreetName(tag)) // Filter out streets
+        .filter(([tag]) => isValidLocation(tag)) // Keep only valid locations
         .map(([tag, count]) => ({ tag, count, type: 'country' as const }))
         .sort((a, b) => b.count - a.count)
-        .slice(0, 10); // Top 10 countries
+        .slice(0, 10); // Top 10 countries/provinces
 
       const cities: LocationTag[] = Array.from(cityCount.entries())
-        .filter(([tag]) => !isStreetName(tag)) // Filter out streets
+        .filter(([tag]) => isValidLocation(tag)) // Keep only valid locations
         .map(([tag, count]) => ({ tag, count, type: 'city' as const }))
         .sort((a, b) => b.count - a.count)
-        .slice(0, 10); // Top 10 cities
+        .slice(0, 10); // Top 10 cities/towns
 
       // Combine and limit to 15 total
       const combined = [...countries, ...cities]
