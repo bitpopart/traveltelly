@@ -695,6 +695,31 @@ export function AdminMassUpload() {
         </CardContent>
       </Card>
 
+      {/* Category Guide */}
+      {uploadItems.length > 0 && uploadItems.some(item => !item.category) && (
+        <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-900/20">
+          <AlertCircle className="h-4 w-4 text-blue-600" />
+          <AlertDescription>
+            <div className="space-y-2">
+              <p className="font-semibold text-blue-900 dark:text-blue-100">📖 How to Choose Category:</p>
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                Look at each photo thumbnail and select the category based on <strong>what's shown in the photo</strong>:
+              </p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-blue-800 dark:text-blue-200 mt-2">
+                <div>• People/portraits → <strong>People</strong></div>
+                <div>• Mountains/ocean → <strong>Landscape</strong></div>
+                <div>• Buildings/monuments → <strong>Buildings and Architecture</strong></div>
+                <div>• Food/meals → <strong>Food</strong></div>
+                <div>• Coffee/beverages → <strong>Drinks</strong></div>
+                <div>• Animals/pets → <strong>Animals</strong></div>
+                <div>• Cities/streets → <strong>Travel</strong></div>
+                <div>• Office/meetings → <strong>Business</strong></div>
+              </div>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Upload Queue */}
       {uploadItems.length > 0 && (
         <Card>
@@ -702,6 +727,11 @@ export function AdminMassUpload() {
             <CardTitle>Upload Queue</CardTitle>
             <CardDescription>
               {uploadItems.length} items • {readyCount} ready • {completedCount} completed
+              {uploadItems.filter(item => !item.category).length > 0 && (
+                <span className="text-orange-600 ml-2">
+                  • {uploadItems.filter(item => !item.category).length} need category
+                </span>
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -863,8 +893,17 @@ export function AdminMassUpload() {
                             onCheckedChange={() => toggleItemSelection(item.id)}
                             disabled={isProcessing}
                           />
-                          <ImageIcon className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                          <span className="text-sm font-medium truncate">{item.file.name}</span>
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              <ImageIcon className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                              <span className="text-sm font-medium truncate">{item.file.name}</span>
+                            </div>
+                            {!item.category && item.status === 'ready' && (
+                              <span className="text-xs text-orange-600 font-medium">
+                                ⚠️ Category required
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="flex items-center gap-2">
                           {item.status === 'extracting' && (
@@ -944,13 +983,13 @@ export function AdminMassUpload() {
                         </div>
                       </div>
 
-                      {/* Thumbnail Preview */}
+                      {/* Thumbnail Preview - Always show */}
                       {item.previewUrl && (
                         <div className="flex justify-center pt-2">
                           <img 
                             src={item.previewUrl} 
                             alt={item.title || 'Preview'} 
-                            className="w-full max-w-xs h-48 object-cover rounded-lg border"
+                            className="w-full max-w-sm h-56 object-cover rounded-lg border shadow-sm"
                           />
                         </div>
                       )}
