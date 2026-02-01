@@ -647,8 +647,7 @@ export function AllAdminReviewsMap({ zoomToLocation, onLocationChange }: AllAdmi
             const lng = parseFloat(result.lon);
             
             setTargetLocation({
-              lat,
-              lng,
+              coordinates: [lat, lng],
               zoom: 6, // Country/city level zoom
               label: zoomToLocation,
             });
