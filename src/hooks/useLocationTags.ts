@@ -56,6 +56,7 @@ function isValidLocation(text: string): boolean {
     'landmark', 'landmarks', 'attraction', 'attractions', 'site', 'sites',
     'market', 'bazaar', 'mall', 'shopping', 'store', 'shop',
     'house', 'home', 'villa', 'apartment', 'flat', 'condo',
+    'harbor', 'harbour', 'port', 'pier', 'dock', 'wharf', 'marina',
     // Activities and subjects
     'review', 'trip', 'tour', 'guide', 'visit',
     'adventure', 'explore', 'wanderlust', 'vacation', 'holiday',
