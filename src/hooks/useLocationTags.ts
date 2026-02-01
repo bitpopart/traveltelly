@@ -39,6 +39,8 @@ function isValidLocation(text: string): boolean {
     'sky', 'cloud', 'clouds', 'horizon', 'blue sky',
     'boat', 'boats', 'ship', 'ships', 'vessel',
     'stone', 'stones', 'rock', 'rocks', 'boulder',
+    'tree', 'trees', 'palm', 'palm tree', 'palm trees', 'pine', 'oak',
+    'plant', 'plants', 'flower', 'flowers', 'grass', 'vegetation',
     // Weather and conditions
     'sunny', 'cloudy', 'rainy', 'snowy', 'foggy', 'windy',
     // Place descriptors
@@ -58,6 +60,8 @@ function isValidLocation(text: string): boolean {
     'review', 'trip', 'tour', 'guide', 'visit',
     'adventure', 'explore', 'wanderlust', 'vacation', 'holiday',
     'hiking', 'walking', 'cycling', 'swimming', 'diving',
+    'tourism', 'tourist', 'tourists', 'travel', 'traveler', 'travelers',
+    'religion', 'religious', 'spiritual', 'faith', 'worship',
     // Themes
     'architecture', 'culture', 'art', 'history', 'urban', 'city',
     'street', 'night', 'day', 'summer', 'winter', 'spring', 'autumn',
