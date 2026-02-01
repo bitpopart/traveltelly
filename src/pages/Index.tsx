@@ -18,7 +18,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useReviewPermissions } from "@/hooks/useReviewPermissions";
 import { useLatestReview, useLatestStory, useLatestStockMedia, useLatestTrip, useReviewCount, useStoryCount, useStockMediaCount, useTripCount, useLatestReviews, useLatestStories, useLatestTrips, useLatestStockMediaItems } from "@/hooks/useLatestItems";
 import { MapPin, Star, Camera, Zap, Shield, BookOpen, Search, Navigation, FileImage, ArrowRight, Calendar, MessageCircle } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { ZapAuthorButton } from "@/components/ZapAuthorButton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -431,7 +431,11 @@ function MediaCard({ media }: MediaCardProps) {
   );
 }
 
-const Index = () => {
+interface IndexProps {
+  initialLocation?: string;
+}
+
+const Index = ({ initialLocation }: IndexProps = {}) => {
   const { user } = useCurrentUser();
   const navigate = useNavigate();
   const { isAdmin, isCheckingPermission } = useReviewPermissions();
@@ -440,7 +444,7 @@ const Index = () => {
   const { data: latestStockMedia } = useLatestStockMedia();
   const { data: latestTrip } = useLatestTrip();
   const [isCreateTripDialogOpen, setIsCreateTripDialogOpen] = useState(false);
-  const [selectedLocationTag, setSelectedLocationTag] = useState<string>('');
+  const [selectedLocationTag, setSelectedLocationTag] = useState<string>(initialLocation || '');
   
   // Get counts
   const reviewCount = useReviewCount();
@@ -745,7 +749,18 @@ const Index = () => {
           {/* Location Tag Cloud */}
           <div className="mb-8 md:mb-12">
             <LocationTagCloud 
-              onTagClick={(tag) => setSelectedLocationTag(tag === selectedLocationTag ? '' : tag)}
+              onTagClick={(tag) => {
+                const newTag = tag === selectedLocationTag ? '' : tag;
+                setSelectedLocationTag(newTag);
+                
+                // Update URL when tag clicked
+                if (newTag) {
+                  const urlFriendlyTag = newTag.replace(/\s+/g, '-');
+                  navigate(`/${urlFriendlyTag}`, { replace: true });
+                } else {
+                  navigate('/', { replace: true });
+                }
+              }}
               selectedTag={selectedLocationTag}
             />
           </div>

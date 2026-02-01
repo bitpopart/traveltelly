@@ -44,6 +44,7 @@ import { SimpleMapDemoPage } from "./pages/SimpleMapDemo";
 import WhatIsNostr from "./pages/WhatIsNostr";
 import CategoryMigrationPage from "./pages/CategoryMigrationPage";
 import { AdminMassUpload } from "./pages/AdminMassUpload";
+import { LocationPage } from "./pages/LocationPage";
 import NotFound from "./pages/NotFound";
 
 export function AppRouter() {
@@ -99,6 +100,8 @@ export function AppRouter() {
         <Route path="/admin-test/*" element={<AdminTest />} />
         <Route path="/admin-debug/*" element={<AdminDebug />} />
         <Route path="/admin-simple/*" element={<AdminSimple />} />
+        {/* Dynamic location routes - must be last before catch-all */}
+        <Route path="/:location" element={<LocationPage />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
