@@ -36,7 +36,9 @@ function isValidLocation(text: string): boolean {
     'sea', 'ocean', 'water', 'lake', 'river', 'waterfall',
     'forest', 'jungle', 'desert', 'valley', 'hill', 'peak',
     'island', 'islands', 'coast', 'coastal',
-    'sky', 'cloud', 'clouds', 'horizon',
+    'sky', 'cloud', 'clouds', 'horizon', 'blue sky',
+    'boat', 'boats', 'ship', 'ships', 'vessel',
+    'stone', 'stones', 'rock', 'rocks', 'boulder',
     // Weather and conditions
     'sunny', 'cloudy', 'rainy', 'snowy', 'foggy', 'windy',
     // Place descriptors
@@ -78,13 +80,20 @@ function isValidLocation(text: string): boolean {
     return false;
   }
   
-  // Check if it contains any non-location words
+  // Check if it contains any non-location words (more thorough check)
   const containsNonLocation = nonLocationTags.some(tag => {
-    // For multi-word non-location tags, check if the text contains them
-    if (tag.includes(' ')) {
-      return lowerText === tag || lowerText.includes(tag);
+    const tagLower = tag.toLowerCase();
+    // Exact match
+    if (lowerText === tagLower) return true;
+    
+    // For multi-word tags, check if text contains them
+    if (tag.includes(' ') && lowerText.includes(tagLower)) {
+      return true;
     }
-    return false;
+    
+    // Check if any word in the text matches a non-location tag
+    const words = lowerText.split(/[\s-]+/);
+    return words.some(word => word === tagLower);
   });
   
   if (containsNonLocation) {
