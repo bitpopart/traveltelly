@@ -11,6 +11,8 @@ import { AllAdminReviewsMap } from "@/components/AllAdminReviewsMap";
 import { AdminDebugInfo } from "@/components/AdminDebugInfo";
 import { UnifiedSearchBar } from "@/components/UnifiedSearchBar";
 import { CreateProductDialog } from "@/components/CreateProductDialog";
+import { LocationTagCloud } from "@/components/LocationTagCloud";
+import { LocationContentGrid } from "@/components/LocationContentGrid";
 import { CreateTripForm } from "@/components/CreateTripForm";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useReviewPermissions } from "@/hooks/useReviewPermissions";
@@ -438,6 +440,7 @@ const Index = () => {
   const { data: latestStockMedia } = useLatestStockMedia();
   const { data: latestTrip } = useLatestTrip();
   const [isCreateTripDialogOpen, setIsCreateTripDialogOpen] = useState(false);
+  const [selectedLocationTag, setSelectedLocationTag] = useState<string>('');
   
   // Get counts
   const reviewCount = useReviewCount();
@@ -736,10 +739,25 @@ const Index = () => {
 
           {/* Reviews Map */}
           <div className="mb-8 md:mb-12">
-            <AllAdminReviewsMap />
+            <AllAdminReviewsMap zoomToLocation={selectedLocationTag} />
           </div>
 
-          {/* Reviews Section */}
+          {/* Location Tag Cloud */}
+          <div className="mb-8 md:mb-12">
+            <LocationTagCloud 
+              onTagClick={(tag) => setSelectedLocationTag(tag === selectedLocationTag ? '' : tag)}
+              selectedTag={selectedLocationTag}
+            />
+          </div>
+
+          {/* Location-Filtered Content */}
+          {selectedLocationTag ? (
+            <div className="mb-8 md:mb-12">
+              <LocationContentGrid locationTag={selectedLocationTag} />
+            </div>
+          ) : (
+            <>
+              {/* Reviews Section */}
           {latestReviews.length > 0 && (
             <div className="mb-8 md:mb-12">
               <div className="flex justify-between items-center mb-6">
@@ -845,6 +863,8 @@ const Index = () => {
                 ))}
               </div>
             </div>
+          )}
+            </>
           )}
 
           {/* Lightning Tips Info */}

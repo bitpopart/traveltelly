@@ -601,7 +601,12 @@ function useStories() {
   });
 }
 
-export function AllAdminReviewsMap() {
+interface AllAdminReviewsMapProps {
+  zoomToLocation?: string;
+  onLocationChange?: (location: string) => void;
+}
+
+export function AllAdminReviewsMap({ zoomToLocation, onLocationChange }: AllAdminReviewsMapProps = {}) {
   const { mapProvider } = useMapProvider();
   const [targetLocation, setTargetLocation] = useState<MapLocation | null>(null);
   const [showControls, setShowControls] = useState(false);
@@ -628,6 +633,41 @@ export function AllAdminReviewsMap() {
       );
     }
   }, []);
+
+  // Handle zoom to location when tag is selected
+  useEffect(() => {
+    if (zoomToLocation) {
+      // Geocode the location
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(zoomToLocation)}&limit=1`)
+        .then(response => response.json())
+        .then(data => {
+          if (data && data.length > 0) {
+            const result = data[0];
+            const lat = parseFloat(result.lat);
+            const lng = parseFloat(result.lon);
+            
+            setTargetLocation({
+              lat,
+              lng,
+              zoom: 6, // Country/city level zoom
+              label: zoomToLocation,
+            });
+            setCurrentLocation(zoomToLocation);
+            
+            if (onLocationChange) {
+              onLocationChange(zoomToLocation);
+            }
+          }
+        })
+        .catch(error => {
+          console.error('Error geocoding location:', error);
+        });
+    } else {
+      // Reset to world view
+      setTargetLocation(null);
+      setCurrentLocation('World View');
+    }
+  }, [zoomToLocation, onLocationChange]);
 
   const {
     data,
