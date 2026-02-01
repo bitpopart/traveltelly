@@ -80,6 +80,11 @@ export function ShareToNostrButton({
   const handlePublish = () => {
     let content = customMessage.trim() || generatedContent;
     
+    // Add shareUrl to content if not already there
+    if (!content.includes(shareUrl) && !content.includes('traveltelly.com')) {
+      content += `\n\n${shareUrl}`;
+    }
+    
     // Add image URL to content if not already there and image exists
     if (image && !content.includes(image)) {
       // Insert image URL before the TravelTelly link

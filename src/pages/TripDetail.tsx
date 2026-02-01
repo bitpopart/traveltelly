@@ -134,7 +134,7 @@ export default function TripDetail() {
                 title={title}
                 description={summary || `Trip with ${allPhotos.length} photos`}
                 image={allPhotos[0]}
-                defaultContent={`🗺️ ${title}\n\n${summary || `Check out this amazing trip with ${allPhotos.length} photos!`}\n${distance ? `📏 ${distance} ${distanceUnit}\n` : ''}\ntraveltelly.com/trip/${naddr}`}
+                defaultContent={`🗺️ ${title}\n\n${summary || `Check out this amazing trip with ${allPhotos.length} photos!`}${distance ? `\n📏 ${distance} ${distanceUnit}` : ''}\n\n🔗 View on TravelTelly`}
                 variant="default"
                 size="default"
               />
