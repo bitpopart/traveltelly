@@ -498,8 +498,8 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
       <div className="container mx-auto px-3 md:px-4 py-4 md:py-8">
         <div className="max-w-6xl mx-auto">
           {/* Main Content Box */}
-          <Card className="overflow-hidden shadow-lg mb-8">
-            <CardContent className="p-6 md:p-8">
+          <Card className="shadow-lg mb-8 overflow-visible">
+            <CardContent className="p-6 md:p-8 overflow-visible">
               {/* Show full header only when no location is selected */}
               {!selectedLocationTag && (
                 <>
