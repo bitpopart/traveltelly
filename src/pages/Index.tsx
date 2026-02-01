@@ -147,7 +147,7 @@ function ReviewCard({ review }: ReviewCardProps) {
                 variant="secondary"
                 className="text-xs"
               >
-                #{tag}
+                {tag}
               </Badge>
             ))}
           </div>
