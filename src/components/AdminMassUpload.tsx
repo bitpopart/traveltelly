@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -61,6 +61,7 @@ const CURRENCIES = [
 interface UploadItem {
   id: string;
   file: File;
+  previewUrl?: string; // Thumbnail preview URL
   title: string;
   description: string;
   price: string;
@@ -106,6 +107,17 @@ export function AdminMassUpload() {
   // Check if user is admin
   const isAdmin = user?.pubkey === nip19.decode(ADMIN_NPUB).data;
 
+  // Cleanup preview URLs on unmount
+  useEffect(() => {
+    return () => {
+      uploadItems.forEach(item => {
+        if (item.previewUrl) {
+          URL.revokeObjectURL(item.previewUrl);
+        }
+      });
+    };
+  }, [uploadItems]);
+
   if (!user || !isAdmin) {
     return (
       <Card>
@@ -143,10 +155,16 @@ export function AdminMassUpload() {
     for (const file of files) {
       const itemId = `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
+      // Create preview URL for images
+      const previewUrl = file.type.startsWith('image/') 
+        ? URL.createObjectURL(file) 
+        : undefined;
+
       // Create initial item
       const item: UploadItem = {
         id: itemId,
         file,
+        previewUrl,
         title: '',
         description: '',
         price: '25',
@@ -926,6 +944,17 @@ export function AdminMassUpload() {
                         </div>
                       </div>
 
+                      {/* Thumbnail Preview */}
+                      {item.previewUrl && (
+                        <div className="flex justify-center pt-2">
+                          <img 
+                            src={item.previewUrl} 
+                            alt={item.title || 'Preview'} 
+                            className="w-full max-w-xs h-48 object-cover rounded-lg border"
+                          />
+                        </div>
+                      )}
+
                       {/* Editable Fields */}
                       {(item.status === 'ready' || item.status === 'error') && item.isEditing && (
                         <div className="grid grid-cols-2 gap-3 pt-2">
@@ -988,12 +1017,15 @@ export function AdminMassUpload() {
                             </Select>
                           </div>
                           <div>
-                            <Label className="text-xs">Category</Label>
+                            <Label className="text-xs">
+                              Category 
+                              <span className="text-muted-foreground ml-1">(What's in the photo?)</span>
+                            </Label>
                             <Select value={item.category} onValueChange={(value) => updateItem(item.id, { category: value })}>
                               <SelectTrigger className="text-sm">
-                                <SelectValue placeholder="Select category" />
+                                <SelectValue placeholder="Select what's in the photo" />
                               </SelectTrigger>
-                              <SelectContent>
+                              <SelectContent className="max-h-64">
                                 {CATEGORIES.map((cat) => (
                                   <SelectItem key={cat} value={cat}>
                                     {cat}
@@ -1001,6 +1033,11 @@ export function AdminMassUpload() {
                                 ))}
                               </SelectContent>
                             </Select>
+                            {!item.category && (
+                              <p className="text-xs text-orange-600 mt-1">
+                                ⚠️ Required: Choose what's shown in this photo
+                              </p>
+                            )}
                           </div>
                           <div className="col-span-2">
                             <Label className="text-xs">Keywords (comma-separated)</Label>
@@ -1062,12 +1099,14 @@ export function AdminMassUpload() {
                             <span className="text-muted-foreground">Price:</span>
                             <p className="font-medium">{item.price} {item.currency}</p>
                           </div>
-                          {item.category && (
-                            <div>
-                              <span className="text-muted-foreground">Category:</span>
+                          <div>
+                            <span className="text-muted-foreground">Category:</span>
+                            {item.category ? (
                               <p className="font-medium">{item.category}</p>
-                            </div>
-                          )}
+                            ) : (
+                              <p className="text-orange-600 font-medium">⚠️ Not set - Click Edit</p>
+                            )}
+                          </div>
                           {item.keywords && (
                             <div className="col-span-2">
                               <span className="text-muted-foreground">Keywords:</span>
