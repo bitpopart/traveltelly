@@ -479,8 +479,11 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
           {/* Main Content Box */}
           <Card className="overflow-hidden shadow-lg mb-8">
             <CardContent className="p-6 md:p-8">
-              {/* Header - Purple and orange buttons */}
-              <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
+              {/* Show full header only when no location is selected */}
+              {!selectedLocationTag && (
+                <>
+                  {/* Header - Purple and orange buttons */}
+                  <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
                 <Link to="/what-is-nostr">
                   <Button 
                     className="rounded-full font-semibold text-white hover:opacity-90 transition-opacity text-sm md:text-base px-6 md:px-8 py-3 h-auto"
@@ -641,11 +644,6 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                 </Card>
               </div>
 
-              {/* Search Bar - Under thumbnails */}
-              <div className="mb-6">
-                <UnifiedSearchBar />
-              </div>
-
               {/* Action Buttons */}
               {user && (
                 <div className="flex flex-wrap justify-center gap-2 md:gap-3">
@@ -733,13 +731,20 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                       Search Test
                     </Button>
                   </Link>
-                </div>
+                 </div>
               )}
+                </>
+              )}
+
+              {/* Search Bar - Always visible */}
+              <div className={selectedLocationTag ? 'mb-6' : 'mb-6'}>
+                <UnifiedSearchBar />
+              </div>
             </CardContent>
           </Card>
 
           {/* Admin Debug Info (Development Only) */}
-          <AdminDebugInfo />
+          {!selectedLocationTag && <AdminDebugInfo />}
 
           {/* Reviews Map */}
           <div className="mb-8 md:mb-12">
@@ -753,9 +758,9 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                 const newTag = tag === selectedLocationTag ? '' : tag;
                 setSelectedLocationTag(newTag);
                 
-                // Update URL when tag clicked
+                // Update URL when tag clicked (lowercase)
                 if (newTag) {
-                  const urlFriendlyTag = newTag.replace(/\s+/g, '-');
+                  const urlFriendlyTag = newTag.toLowerCase().replace(/\s+/g, '-');
                   navigate(`/${urlFriendlyTag}`, { replace: true });
                 } else {
                   navigate('/', { replace: true });
