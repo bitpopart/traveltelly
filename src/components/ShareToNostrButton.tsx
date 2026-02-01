@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
+import { usePriceConversion } from '@/hooks/usePriceConversion';
 import { Zap, Share2 } from 'lucide-react';
 
 interface ShareToNostrButtonProps {
@@ -13,6 +14,8 @@ interface ShareToNostrButtonProps {
   description?: string;
   defaultContent?: string;
   image?: string;
+  price?: string;
+  currency?: string;
   variant?: 'default' | 'outline' | 'secondary';
   size?: 'default' | 'sm' | 'lg';
   className?: string;
@@ -24,6 +27,8 @@ export function ShareToNostrButton({
   description,
   defaultContent,
   image,
+  price,
+  currency,
   variant = 'default',
   size = 'default',
   className = '',
@@ -34,11 +39,31 @@ export function ShareToNostrButton({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [customMessage, setCustomMessage] = useState('');
 
-  // Ensure URL is absolute
-  const shareUrl = url.startsWith('http') ? url : `${window.location.origin}${url}`;
+  // Get price conversion to sats if price is provided
+  const priceInfo = usePriceConversion(price || '0', currency || 'USD');
 
-  // Generate default content for the note
-  const generatedContent = defaultContent || `Check out this on Traveltelly:\n\n${title}\n\n${shareUrl}`;
+  // Ensure URL is absolute
+  const shareUrl = url.startsWith('http') ? url : `https://traveltelly.com${url}`;
+
+  // Generate default content for the note - simple format like review sharing
+  let generatedContent = defaultContent;
+  
+  if (!generatedContent) {
+    generatedContent = `${title}`;
+    
+    // Add price in sats if available
+    if (price && priceInfo.sats) {
+      generatedContent += `\n\n💰 ${priceInfo.sats}`;
+    }
+    
+    // Add image URL if available
+    if (image) {
+      generatedContent += `\n\n${image}`;
+    }
+    
+    // Add link to TravelTelly
+    generatedContent += `\n\n📖 View on TravelTelly.com\n${shareUrl}`;
+  }
 
   const handleShare = () => {
     console.log('🔵 Share to Nostr clicked', { user: !!user, url, title });
@@ -60,15 +85,23 @@ export function ShareToNostrButton({
   const handlePublish = () => {
     const content = customMessage.trim() || generatedContent;
     
-    console.log('📤 Publishing to Nostr:', { content, shareUrl });
+    console.log('📤 Publishing to Nostr:', { content, shareUrl, image });
+
+    // Build tags
+    const tags: string[][] = [
+      ['r', shareUrl],
+    ];
+
+    // Add image tag if image is provided
+    if (image) {
+      tags.push(['image', image]);
+    }
 
     publish(
       {
         kind: 1,
         content,
-        tags: [
-          ['r', shareUrl],
-        ],
+        tags,
       },
       {
         onSuccess: () => {

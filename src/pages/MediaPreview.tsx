@@ -242,7 +242,8 @@ const MediaPreview = () => {
                 title={product?.title || 'Stock Media'}
                 description={product?.description}
                 image={product?.images[0]}
-                defaultContent={`📸 ${product?.title}\n\n${product?.description || 'Check out this stock media on Traveltelly!'}\n\n💰 ${product?.price} ${product?.currency}\n\ntraveltelly.com/media/preview/${naddr}`}
+                price={product?.price}
+                currency={product?.currency}
                 variant="default"
                 size="default"
               />
