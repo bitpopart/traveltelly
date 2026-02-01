@@ -22,6 +22,8 @@ import { extractGPSFromImage, canContainEXIF } from '@/lib/exifUtils';
 import { compressImage, COMPRESSION_PRESETS } from '@/lib/imageCompression';
 import { useNavigate } from 'react-router-dom';
 import { GPSDebugger } from '@/components/GPSDebugger';
+import { nip19 } from 'nostr-tools';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import * as geohash from 'ngeohash';
 import { testGeohashAccuracy, getGeohashPrecisionInfo } from '@/lib/geohashTest';
 import { trackCoordinates, analyzeCoordinateDrift } from '@/lib/coordinateVerification';
@@ -66,6 +68,9 @@ function CreateReviewFormContent() {
   const [location, setLocation] = useState<LocationData | null>(null);
   const [showMap, setShowMap] = useState(false);
   const [extractingLocation, setExtractingLocation] = useState(false);
+
+  // Get current user for naddr creation
+  const { user } = useCurrentUser();
 
   // Load dynamic categories
   const { data: categories = [], isLoading: categoriesLoading } = useReviewCategories();
@@ -224,9 +229,10 @@ function CreateReviewFormContent() {
         imageUrl = url;
       }
 
-      // Create review event
+      // Create review event with unique ID
+      const reviewId = `review-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const tags: string[][] = [
-        ['d', `review-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`],
+        ['d', reviewId],
         ['title', data.title],
         ['rating', data.rating.toString()],
         ['category', data.category],
@@ -347,6 +353,20 @@ function CreateReviewFormContent() {
       }
 
       noteContent += `\n\n${hashtagsText}`;
+
+      // Add TravelTelly review link if user is available
+      if (user) {
+        try {
+          const naddr = nip19.naddrEncode({
+            kind: 34879,
+            pubkey: user.pubkey,
+            identifier: reviewId,
+          });
+          noteContent += `\n\n📖 Read more at TravelTelly.com\nhttps://traveltelly.com/review/${naddr}`;
+        } catch (error) {
+          console.error('Error creating naddr:', error);
+        }
+      }
 
       // Create the regular note with relevant tags
       const noteTags: string[][] = [
