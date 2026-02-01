@@ -425,11 +425,14 @@ function MapController({ targetLocation }: { targetLocation: MapLocation | null 
   const map = useMap();
 
   useEffect(() => {
-    if (targetLocation) {
-      map.setView(targetLocation.coordinates, targetLocation.zoom, {
-        animate: true,
-        duration: 1.5,
-      });
+    if (targetLocation && targetLocation.coordinates && targetLocation.coordinates.length === 2) {
+      const [lat, lng] = targetLocation.coordinates;
+      if (typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng)) {
+        map.setView(targetLocation.coordinates, targetLocation.zoom, {
+          animate: true,
+          duration: 1.5,
+        });
+      }
     }
   }, [map, targetLocation]);
 
