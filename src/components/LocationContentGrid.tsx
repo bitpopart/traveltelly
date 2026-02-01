@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { OptimizedImage } from '@/components/OptimizedImage';
 import { useContentByLocation, type ContentItem } from '@/hooks/useContentByLocation';
 import { useAuthor } from '@/hooks/useAuthor';
@@ -14,6 +16,8 @@ import { formatDistanceToNow } from 'date-fns';
 interface LocationContentGridProps {
   locationTag: string;
 }
+
+type ContentType = 'all' | 'review' | 'story' | 'trip' | 'media';
 
 function ContentCard({ item }: { item: ContentItem }) {
   const author = useAuthor(item.event.pubkey);
@@ -121,6 +125,7 @@ function ContentCard({ item }: { item: ContentItem }) {
 
 export function LocationContentGrid({ locationTag }: LocationContentGridProps) {
   const { data: content, isLoading } = useContentByLocation(locationTag);
+  const [activeTab, setActiveTab] = useState<ContentType>('review');
 
   if (isLoading) {
     return (
@@ -154,25 +159,90 @@ export function LocationContentGrid({ locationTag }: LocationContentGridProps) {
     );
   }
 
+  // Separate content by type
+  const reviews = content.filter(c => c.type === 'review');
+  const stories = content.filter(c => c.type === 'story');
+  const trips = content.filter(c => c.type === 'trip');
+  const media = content.filter(c => c.type === 'media');
+
+  // Get filtered content based on active tab
+  const getFilteredContent = () => {
+    switch (activeTab) {
+      case 'review': return reviews;
+      case 'story': return stories;
+      case 'trip': return trips;
+      case 'media': return media;
+      case 'all': return content;
+    }
+  };
+
+  const filteredContent = getFilteredContent();
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-xl font-bold">
-          {content.length} {content.length === 1 ? 'item' : 'items'} in {locationTag}
+          Content from {locationTag}
         </h3>
-        <Badge variant="secondary">
-          {content.filter(c => c.type === 'review').length} Reviews • 
-          {content.filter(c => c.type === 'trip').length} Trips • 
-          {content.filter(c => c.type === 'story').length} Stories • 
-          {content.filter(c => c.type === 'media').length} Media
-        </Badge>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {content.map((item) => (
-          <ContentCard key={item.id} item={item} />
-        ))}
-      </div>
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as ContentType)}>
+        <TabsList className="grid w-full grid-cols-5 mb-6">
+          <TabsTrigger value="review" className="flex items-center gap-2">
+            <Star className="w-4 h-4" />
+            <span className="hidden sm:inline">Reviews</span>
+            <Badge variant="secondary" className="ml-1">
+              {reviews.length}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger value="story" className="flex items-center gap-2">
+            <BookOpen className="w-4 h-4" />
+            <span className="hidden sm:inline">Stories</span>
+            <Badge variant="secondary" className="ml-1">
+              {stories.length}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger value="trip" className="flex items-center gap-2">
+            <MapPin className="w-4 h-4" />
+            <span className="hidden sm:inline">Trips</span>
+            <Badge variant="secondary" className="ml-1">
+              {trips.length}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger value="media" className="flex items-center gap-2">
+            <FileImage className="w-4 h-4" />
+            <span className="hidden sm:inline">Media</span>
+            <Badge variant="secondary" className="ml-1">
+              {media.length}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger value="all" className="flex items-center gap-2">
+            <Camera className="w-4 h-4" />
+            <span className="hidden sm:inline">All</span>
+            <Badge variant="secondary" className="ml-1">
+              {content.length}
+            </Badge>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value={activeTab} className="mt-0">
+          {filteredContent.length === 0 ? (
+            <Card className="border-dashed">
+              <CardContent className="py-12 text-center">
+                <p className="text-muted-foreground">
+                  No {activeTab === 'all' ? 'content' : `${activeTab}s`} found in {locationTag}.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredContent.map((item) => (
+                <ContentCard key={item.id} item={item} />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
