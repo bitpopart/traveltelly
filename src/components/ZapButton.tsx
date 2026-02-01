@@ -27,8 +27,8 @@ export function ZapButton({
   }
 
   const baseClasses = variant === 'prominent'
-    ? 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white border-0 shadow-lg hover:shadow-xl'
-    : 'text-yellow-600 hover:text-yellow-700 border-yellow-300 hover:border-yellow-400 bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:hover:bg-yellow-900/30 dark:border-yellow-600';
+    ? 'bg-orange-600 hover:bg-orange-700 text-white border-0 shadow-lg hover:shadow-xl'
+    : 'text-orange-600 hover:text-orange-700 border-orange-300 hover:border-orange-400 bg-orange-50 hover:bg-orange-100 dark:bg-orange-900/20 dark:hover:bg-orange-900/30 dark:border-orange-600';
 
   const sizeClasses = size === 'default' ? 'h-10 px-4' : size === 'lg' ? 'h-12 px-6' : 'h-8 px-3';
 
@@ -40,7 +40,7 @@ export function ZapButton({
         className={`rounded-full ${sizeClasses} ${baseClasses} transition-all duration-200 ${className}`}
       >
         <Zap className={`${size === 'lg' ? 'w-5 h-5' : 'w-4 h-4'} mr-2 fill-current`} />
-        ⚡ Zap
+        Zap
       </Button>
     </LightningZapDialog>
   );

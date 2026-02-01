@@ -40,9 +40,9 @@ export function ZapAuthorButton({
   const displayName = metadata?.name || genUserName(authorPubkey);
   
   const baseClassName = variant === 'outline' 
-    ? 'text-yellow-600 hover:text-yellow-700 border-yellow-300 hover:border-yellow-400 bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:hover:bg-yellow-900/30'
+    ? 'text-orange-600 hover:text-orange-700 border-orange-300 hover:border-orange-400 bg-orange-50 hover:bg-orange-100 dark:bg-orange-900/20 dark:hover:bg-orange-900/30'
     : variant === 'default'
-    ? 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white shadow-lg hover:shadow-xl transition-all duration-200'
+    ? 'bg-orange-600 hover:bg-orange-700 text-white shadow-lg hover:shadow-xl transition-all duration-200'
     : '';
 
   return (
@@ -53,7 +53,7 @@ export function ZapAuthorButton({
         className={`${baseClassName} ${className}`}
       >
         <Zap className={`${size === 'sm' ? 'w-3 h-3' : 'w-4 h-4'} mr-1 fill-current`} />
-        ⚡ Tip {showAuthorName ? displayName : 'Author'}
+        Tip {showAuthorName ? displayName : 'Author'}
       </Button>
     </LightningZapDialog>
   );
