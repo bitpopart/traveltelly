@@ -28,6 +28,12 @@ function isValidLocation(text: string): boolean {
     return false;
   }
   
+  // Filter out Thai script and other non-Latin characters
+  // Only accept locations with Latin alphabet for Popular Destinations
+  if (!/^[a-zA-Z\s\-']+$/.test(text)) {
+    return false;
+  }
+  
   // Filter out common non-location tags
   const nonLocationTags = [
     // General descriptive
@@ -134,7 +140,7 @@ function isValidLocation(text: string): boolean {
 function extractLocationTags(locationText: string): { country?: string; city?: string } {
   if (!locationText) return {};
 
-  // Common patterns: "City, Country" or "City, State, Country"
+  // Common patterns: "City, Country" or "District, City, Country"
   const parts = locationText.split(',').map(p => p.trim()).filter(Boolean);
   
   if (parts.length === 0) return {};
@@ -146,8 +152,13 @@ function extractLocationTags(locationText: string): { country?: string; city?: s
   
   // Last valid part is usually country
   const country = validParts[validParts.length - 1];
-  // First valid part is usually city (if more than one part)
-  const city = validParts.length > 1 ? validParts[0] : undefined;
+  
+  // For city, prefer second-to-last part to skip neighborhood/district names
+  // Examples: "Sam Yan, Bangkok, Thailand" -> city = "Bangkok"
+  //           "Paris, France" -> city = "Paris"
+  const city = validParts.length > 2 ? validParts[validParts.length - 2] : 
+               validParts.length > 1 ? validParts[0] : 
+               undefined;
   
   return { country, city };
 }
