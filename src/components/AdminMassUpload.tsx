@@ -94,7 +94,7 @@ export function AdminMassUpload() {
   const [showBulkEdit, setShowBulkEdit] = useState(false);
   const [bulkEditPrice, setBulkEditPrice] = useState('');
   const [bulkEditCurrency, setBulkEditCurrency] = useState('USD');
-  const [bulkEditCategory, setBulkEditCategory] = useState('');
+  const [bulkEditCategory, setBulkEditCategory] = useState('__KEEP_UNCHANGED__');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
   
@@ -378,7 +378,7 @@ export function AdminMassUpload() {
     if (bulkEditCurrency) {
       updates.currency = bulkEditCurrency;
     }
-    if (bulkEditCategory) {
+    if (bulkEditCategory && bulkEditCategory !== '__KEEP_UNCHANGED__') {
       updates.category = bulkEditCategory;
     }
 
@@ -391,7 +391,7 @@ export function AdminMassUpload() {
 
     setShowBulkEdit(false);
     setBulkEditPrice('');
-    setBulkEditCategory('');
+    setBulkEditCategory('__KEEP_UNCHANGED__');
     
     toast({
       title: 'Bulk Edit Applied',
@@ -790,13 +790,13 @@ export function AdminMassUpload() {
                               </Select>
                             </div>
                             <div className="space-y-2">
-                              <Label>Category (leave empty to keep unchanged)</Label>
+                              <Label>Category</Label>
                               <Select value={bulkEditCategory} onValueChange={setBulkEditCategory}>
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Select category" />
+                                  <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="">Keep unchanged</SelectItem>
+                                  <SelectItem value="__KEEP_UNCHANGED__">Keep unchanged</SelectItem>
                                   {CATEGORIES.map((cat) => (
                                     <SelectItem key={cat} value={cat}>
                                       {cat}
