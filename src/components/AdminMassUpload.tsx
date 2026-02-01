@@ -15,7 +15,9 @@ import { useUploadFile } from '@/hooks/useUploadFile';
 import { useToast } from '@/hooks/useToast';
 import { extractPhotoMetadata, type PhotoMetadata } from '@/lib/exifUtils';
 import { nip19 } from 'nostr-tools';
-import { Upload, FileText, CheckCircle2, XCircle, Loader2, Download, AlertCircle, Image as ImageIcon, X, FileUp, Edit2, Save } from 'lucide-react';
+import { Upload, FileText, CheckCircle2, XCircle, Loader2, Download, AlertCircle, Image as ImageIcon, X, FileUp, Edit2, Save, CheckSquare, Square, Repeat } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import * as geohash from 'ngeohash';
 
 const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642';
@@ -88,6 +90,11 @@ export function AdminMassUpload() {
   const [currentUploadIndex, setCurrentUploadIndex] = useState(-1);
   const [isDragging, setIsDragging] = useState(false);
   const [showCsvUpload, setShowCsvUpload] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [showBulkEdit, setShowBulkEdit] = useState(false);
+  const [bulkEditPrice, setBulkEditPrice] = useState('');
+  const [bulkEditCurrency, setBulkEditCurrency] = useState('USD');
+  const [bulkEditCategory, setBulkEditCategory] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
   
@@ -334,6 +341,66 @@ export function AdminMassUpload() {
 
   const removeItem = (id: string) => {
     setUploadItems(prev => prev.filter(item => item.id !== id));
+    setSelectedItems(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(id);
+      return newSet;
+    });
+  };
+
+  const toggleItemSelection = (id: string) => {
+    setSelectedItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAll = () => {
+    const allItemIds = uploadItems.map(item => item.id);
+    setSelectedItems(new Set(allItemIds));
+  };
+
+  const deselectAll = () => {
+    setSelectedItems(new Set());
+  };
+
+  const applyBulkEdit = () => {
+    const updates: Partial<UploadItem> = {};
+    
+    if (bulkEditPrice) {
+      updates.price = bulkEditPrice;
+    }
+    if (bulkEditCurrency) {
+      updates.currency = bulkEditCurrency;
+    }
+    if (bulkEditCategory) {
+      updates.category = bulkEditCategory;
+    }
+
+    setUploadItems(prev => prev.map(item => {
+      if (selectedItems.has(item.id)) {
+        return { ...item, ...updates };
+      }
+      return item;
+    }));
+
+    setShowBulkEdit(false);
+    setBulkEditPrice('');
+    setBulkEditCategory('');
+    
+    toast({
+      title: 'Bulk Edit Applied',
+      description: `Updated ${selectedItems.size} items.`,
+    });
+  };
+
+  const unlockItem = (id: string) => {
+    updateItem(id, { status: 'ready' });
   };
 
   const validateItem = (item: UploadItem): string | null => {
@@ -655,6 +722,106 @@ export function AdminMassUpload() {
               )}
             </div>
 
+            {/* Bulk Actions */}
+            {uploadItems.length > 0 && (
+              <Card className="border-dashed">
+                <CardContent className="py-3">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={selectedItems.size === uploadItems.length ? deselectAll : selectAll}
+                      >
+                        {selectedItems.size === uploadItems.length ? (
+                          <>
+                            <Square className="w-4 h-4 mr-2" />
+                            Deselect All
+                          </>
+                        ) : (
+                          <>
+                            <CheckSquare className="w-4 h-4 mr-2" />
+                            Select All
+                          </>
+                        )}
+                      </Button>
+                      {selectedItems.size > 0 && (
+                        <span className="text-sm text-muted-foreground">
+                          {selectedItems.size} selected
+                        </span>
+                      )}
+                    </div>
+                    
+                    {selectedItems.size > 0 && (
+                      <Dialog open={showBulkEdit} onOpenChange={setShowBulkEdit}>
+                        <DialogTrigger asChild>
+                          <Button variant="default" size="sm">
+                            <Repeat className="w-4 h-4 mr-2" />
+                            Bulk Edit ({selectedItems.size})
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Bulk Edit {selectedItems.size} Items</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                              <Label>Price (leave empty to keep unchanged)</Label>
+                              <Input
+                                type="number"
+                                placeholder="e.g., 25"
+                                value={bulkEditPrice}
+                                onChange={(e) => setBulkEditPrice(e.target.value)}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Currency</Label>
+                              <Select value={bulkEditCurrency} onValueChange={setBulkEditCurrency}>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {CURRENCIES.map((curr) => (
+                                    <SelectItem key={curr.code} value={curr.code}>
+                                      {curr.code} - {curr.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Category (leave empty to keep unchanged)</Label>
+                              <Select value={bulkEditCategory} onValueChange={setBulkEditCategory}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select category" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="">Keep unchanged</SelectItem>
+                                  {CATEGORIES.map((cat) => (
+                                    <SelectItem key={cat} value={cat}>
+                                      {cat}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button variant="outline" onClick={() => setShowBulkEdit(false)}>
+                              Cancel
+                            </Button>
+                            <Button onClick={applyBulkEdit}>
+                              Apply to {selectedItems.size} Items
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Items List */}
             <div className="max-h-[600px] overflow-y-auto space-y-3 border rounded-lg p-4">
               {uploadItems.map((item) => (
@@ -673,6 +840,11 @@ export function AdminMassUpload() {
                       {/* Header */}
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2">
+                          <Checkbox
+                            checked={selectedItems.has(item.id)}
+                            onCheckedChange={() => toggleItemSelection(item.id)}
+                            disabled={isProcessing}
+                          />
                           <ImageIcon className="w-5 h-5 text-blue-600 flex-shrink-0" />
                           <span className="text-sm font-medium truncate">{item.file.name}</span>
                         </div>
@@ -711,16 +883,36 @@ export function AdminMassUpload() {
                             </Badge>
                           )}
                           {item.status === 'completed' && (
-                            <Badge variant="default" className="bg-green-600">
-                              <CheckCircle2 className="w-3 h-3 mr-1" />
-                              Done
-                            </Badge>
+                            <>
+                              <Badge variant="default" className="bg-green-600">
+                                <CheckCircle2 className="w-3 h-3 mr-1" />
+                                Done
+                              </Badge>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => unlockItem(item.id)}
+                                title="Unlock to edit again"
+                              >
+                                <Edit2 className="w-3 h-3" />
+                              </Button>
+                            </>
                           )}
                           {item.status === 'error' && (
-                            <Badge variant="destructive">
-                              <XCircle className="w-3 h-3 mr-1" />
-                              Failed
-                            </Badge>
+                            <>
+                              <Badge variant="destructive">
+                                <XCircle className="w-3 h-3 mr-1" />
+                                Failed
+                              </Badge>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => unlockItem(item.id)}
+                                title="Unlock to retry"
+                              >
+                                <Repeat className="w-3 h-3" />
+                              </Button>
+                            </>
                           )}
                           {!isProcessing && item.status !== 'completed' && (
                             <Button
