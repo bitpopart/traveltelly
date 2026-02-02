@@ -402,28 +402,32 @@ export function CreateVideoStoryForm() {
                   </p>
                 </div>
               ) : (
-                <div className="relative">
-                  <video
-                    ref={videoRef}
-                    src={videoPreview}
-                    controls
-                    className="w-full max-h-96 rounded-lg bg-black"
-                  />
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    className="absolute top-2 right-2"
-                    onClick={() => {
-                      setVideoFile(null);
-                      setVideoPreview('');
-                      setVideoDuration('');
-                    }}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
+                <div className="space-y-3">
+                  <div className="relative inline-block max-w-full">
+                    <video
+                      ref={videoRef}
+                      src={videoPreview}
+                      controls
+                      className="max-w-md w-auto max-h-80 rounded-lg bg-black"
+                      style={{ display: 'block' }}
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      className="absolute top-2 right-2"
+                      onClick={() => {
+                        setVideoFile(null);
+                        setVideoPreview('');
+                        setVideoDuration(0);
+                        setVideoDimensions(null);
+                      }}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
                   {videoFile && (
-                    <p className="text-xs text-muted-foreground mt-2">
+                    <p className="text-xs text-muted-foreground">
                       {videoFile.name} ({(videoFile.size / 1024 / 1024).toFixed(2)} MB)
                       {videoDuration > 0 && ` • ${Math.floor(videoDuration / 60)}:${(Math.floor(videoDuration) % 60).toString().padStart(2, '0')}`}
                       {videoDimensions && ` • ${videoDimensions.width}x${videoDimensions.height}`}
