@@ -17,7 +17,7 @@ import { MarkdownEditor } from '@/components/MarkdownEditor';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { nip19 } from 'nostr-tools';
-import { BookOpen, Trash2, Loader2, Download, ExternalLink, Edit, Save } from 'lucide-react';
+import { BookOpen, Trash2, Loader2, Download, ExternalLink, Edit, Save, Video, FileText, Play } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642';
@@ -43,9 +43,12 @@ interface StoryCardProps {
 function StoryCard({ story, onDelete, onEdit }: StoryCardProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-  const title = story.tags.find(([name]) => name === 'title')?.[1] || 'Untitled Story';
+  const isVideo = story.kind === 34235;
+  const title = story.tags.find(([name]) => name === 'title')?.[1] || (isVideo ? 'Untitled Video' : 'Untitled Story');
   const summary = story.tags.find(([name]) => name === 'summary')?.[1];
   const image = story.tags.find(([name]) => name === 'image')?.[1];
+  const thumb = story.tags.find(([name]) => name === 'thumb')?.[1];
+  const duration = story.tags.find(([name]) => name === 'duration')?.[1];
   const location = story.tags.find(([name]) => name === 'location')?.[1];
   const publishedAt = story.tags.find(([name]) => name === 'published_at')?.[1];
   const hashtags = story.tags.filter(([name]) => name === 't').map(([, tag]) => tag);
@@ -53,6 +56,8 @@ function StoryCard({ story, onDelete, onEdit }: StoryCardProps) {
   const displayDate = publishedAt ?
     new Date(parseInt(publishedAt) * 1000) :
     new Date(story.created_at * 1000);
+  
+  const displayImage = isVideo ? thumb : image;
 
   return (
     <>
@@ -93,15 +98,27 @@ function StoryCard({ story, onDelete, onEdit }: StoryCardProps) {
         </CardHeader>
 
         <CardContent>
-          {image && (
-            <div className="mb-3">
+          {displayImage && (
+            <div className="mb-3 relative">
               <OptimizedImage
-                src={image}
+                src={displayImage}
                 alt={title}
                 className="w-full h-48 object-cover rounded-lg"
                 blurUp={true}
                 thumbnail={true}
               />
+              {isVideo && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
+                    <Play className="w-6 h-6 text-gray-900 ml-0.5" fill="currentColor" />
+                  </div>
+                </div>
+              )}
+              {duration && (
+                <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
+                  {duration}
+                </div>
+              )}
             </div>
           )}
 
@@ -161,6 +178,7 @@ export function AdminStoryManager() {
   const { toast } = useToast();
   const { mutate: publish, isPending } = useNostrPublish();
   
+  const [storyType, setStoryType] = useState<'write' | 'video'>('write');
   const [primalUrl, setPrimalUrl] = useState('');
   const [isImporting, setIsImporting] = useState(false);
   const [editingStory, setEditingStory] = useState<StoryEvent | null>(null);
@@ -174,16 +192,22 @@ export function AdminStoryManager() {
   });
 
   const { data: stories = [], isLoading, refetch } = useQuery({
-    queryKey: ['admin-stories', ADMIN_HEX],
+    queryKey: ['admin-stories', ADMIN_HEX, storyType],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(10000)]);
+      const kind = storyType === 'video' ? 34235 : 30023;
       const events = await nostr.query([{
-        kinds: [30023],
+        kinds: [kind],
         authors: [ADMIN_HEX],
         limit: 100,
       }], { signal });
 
-      return events.filter(validateStoryEvent).sort((a, b) => b.created_at - a.created_at);
+      if (storyType === 'write') {
+        return events.filter(validateStoryEvent).sort((a, b) => b.created_at - a.created_at);
+      } else {
+        // For videos, just sort by date
+        return events.sort((a, b) => b.created_at - a.created_at);
+      }
     },
     enabled: !!user && user.pubkey === ADMIN_HEX,
   });
@@ -408,10 +432,26 @@ export function AdminStoryManager() {
 
   return (
     <>
+      {/* Story Type Selector */}
+      <div className="mb-6">
+        <Tabs value={storyType} onValueChange={(v) => setStoryType(v as 'write' | 'video')} className="w-full">
+          <TabsList className="grid w-full max-w-md" style={{ gridTemplateColumns: '1fr 1fr' }}>
+            <TabsTrigger value="write" className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Write Stories
+            </TabsTrigger>
+            <TabsTrigger value="video" className="flex items-center gap-2">
+              <Video className="w-4 h-4" />
+              Video Stories
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
       <Tabs defaultValue="manage-stories" className="w-full">
         <TabsList>
-          <TabsTrigger value="manage-stories">Manage Stories</TabsTrigger>
-          <TabsTrigger value="import-story">Import from Primal</TabsTrigger>
+          <TabsTrigger value="manage-stories">Manage {storyType === 'write' ? 'Stories' : 'Videos'}</TabsTrigger>
+          {storyType === 'write' && <TabsTrigger value="import-story">Import from Primal</TabsTrigger>}
         </TabsList>
 
       <TabsContent value="manage-stories" className="mt-6">

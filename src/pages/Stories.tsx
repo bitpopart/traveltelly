@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { RelaySelector } from '@/components/RelaySelector';
 import { OptimizedImage } from '@/components/OptimizedImage';
 import { CreateArticleForm } from '@/components/CreateArticleForm';
+import { CreateVideoStoryForm } from '@/components/CreateVideoStoryForm';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostr } from '@nostrify/react';
@@ -19,12 +20,117 @@ import {
   Calendar,
   MapPin,
   Plus,
-  List
+  List,
+  Video,
+  FileText,
+  Play
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { nip19 } from 'nostr-tools';
 import { Link, useSearchParams } from 'react-router-dom';
 import type { NostrEvent } from '@nostrify/nostrify';
+
+interface VideoStoryCardProps {
+  story: NostrEvent;
+}
+
+function VideoStoryCard({ story }: VideoStoryCardProps) {
+  const author = useAuthor(story.pubkey);
+  const metadata = author.data?.metadata;
+
+  const displayName = metadata?.name || genUserName(story.pubkey);
+  const profileImage = metadata?.picture;
+
+  const title = story.tags.find(([name]) => name === 'title')?.[1] || 'Untitled Video';
+  const thumb = story.tags.find(([name]) => name === 'thumb')?.[1];
+  const summary = story.tags.find(([name]) => name === 'summary')?.[1];
+  const duration = story.tags.find(([name]) => name === 'duration')?.[1];
+
+  const topicTags = story.tags
+    .filter(([name]) => name === 't')
+    .map(([, value]) => value)
+    .filter((tag): tag is string => typeof tag === 'string' && tag.length > 0 && !['travel', 'traveltelly'].includes(tag))
+    .slice(0, 2);
+
+  // Create naddr for linking
+  const identifier = story.tags.find(([name]) => name === 'd')?.[1];
+  if (!identifier || typeof identifier !== 'string') {
+    console.error('Invalid video story identifier:', identifier);
+    return null;
+  }
+  
+  const naddr = nip19.naddrEncode({
+    kind: story.kind,
+    pubkey: story.pubkey,
+    identifier,
+  });
+
+  return (
+    <Link to={`/video/${naddr}`}>
+      <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group">
+        {thumb && (
+          <div className="relative aspect-video overflow-hidden bg-black">
+            <OptimizedImage
+              src={thumb}
+              alt={title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              blurUp={true}
+              priority={false}
+              thumbnail={true}
+            />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/20 transition-colors">
+              <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center">
+                <Play className="w-8 h-8 text-gray-900 ml-1" fill="currentColor" />
+              </div>
+            </div>
+            {duration && (
+              <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
+                {duration}
+              </div>
+            )}
+          </div>
+        )}
+
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex items-center space-x-3">
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={profileImage} alt={displayName} />
+                <AvatarFallback>
+                  {displayName[0]?.toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="font-semibold">{displayName}</p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Calendar className="w-3 h-3" />
+                  {formatDistanceToNow(new Date(story.created_at * 1000), { addSuffix: true })}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-semibold mb-2">{title}</h3>
+            {summary && (
+              <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{summary}</p>
+            )}
+          </div>
+
+          {topicTags.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {topicTags.map(tag => (
+                <Badge key={tag} variant="outline" className="bg-purple-50 dark:bg-purple-900/20">
+                  #{tag}
+                </Badge>
+              ))}
+            </div>
+          )}
+        </CardHeader>
+      </Card>
+    </Link>
+  );
+}
 
 interface StoryCardProps {
   story: NostrEvent;
@@ -158,55 +264,81 @@ function validateNIP23Article(event: NostrEvent): boolean {
   return !!(d && title && event.content.length > 100);
 }
 
-function useStories() {
+function useStories(type: 'write' | 'video' = 'write') {
   const { nostr } = useNostr();
 
   return useQuery({
-    queryKey: ['traveltelly-nip23-articles-all'],
+    queryKey: ['traveltelly-stories', type],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
 
-      // Query stories with traveltelly tag to filter out template/demo stories
-      const events = await nostr.query([
-        {
-          kinds: [30023],
-          '#t': ['traveltelly'],
-          limit: 100,
-        }
-      ], { signal });
+      if (type === 'video') {
+        // Query video stories (kind 34235 - divine.video format)
+        const events = await nostr.query([
+          {
+            kinds: [34235],
+            '#t': ['traveltelly'],
+            limit: 100,
+          }
+        ], { signal });
 
-      const validArticles = events.filter(validateNIP23Article);
+        return events.sort((a, b) => b.created_at - a.created_at);
+      } else {
+        // Query written stories with traveltelly tag to filter out template/demo stories
+        const events = await nostr.query([
+          {
+            kinds: [30023],
+            '#t': ['traveltelly'],
+            limit: 100,
+          }
+        ], { signal });
 
-      return validArticles.sort((a, b) => {
-        const aPublished = a.tags.find(([name]) => name === 'published_at')?.[1];
-        const bPublished = b.tags.find(([name]) => name === 'published_at')?.[1];
+        const validArticles = events.filter(validateNIP23Article);
 
-        const aTime = aPublished ? parseInt(aPublished) : a.created_at;
-        const bTime = bPublished ? parseInt(bPublished) : b.created_at;
+        return validArticles.sort((a, b) => {
+          const aPublished = a.tags.find(([name]) => name === 'published_at')?.[1];
+          const bPublished = b.tags.find(([name]) => name === 'published_at')?.[1];
 
-        return bTime - aTime;
-      });
+          const aTime = aPublished ? parseInt(aPublished) : a.created_at;
+          const bTime = bPublished ? parseInt(bPublished) : b.created_at;
+
+          return bTime - aTime;
+        });
+      }
     },
   });
 }
 
 export default function Stories() {
   const { user } = useCurrentUser();
-  const { data: stories, isLoading, error } = useStories();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [storyType, setStoryType] = useState<'write' | 'video'>(
+    (searchParams.get('type') as 'write' | 'video') || 'write'
+  );
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'browse');
 
-  // Update tab from URL on mount and when searchParams change
+  const { data: stories, isLoading, error } = useStories(storyType);
+
+  // Update from URL on mount and when searchParams change
   useEffect(() => {
     const tab = searchParams.get('tab');
+    const type = searchParams.get('type') as 'write' | 'video';
     if (tab === 'create' || tab === 'browse') {
       setActiveTab(tab);
+    }
+    if (type === 'write' || type === 'video') {
+      setStoryType(type);
     }
   }, [searchParams]);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-    setSearchParams({ tab: value });
+    setSearchParams({ tab: value, type: storyType });
+  };
+
+  const handleStoryTypeChange = (type: 'write' | 'video') => {
+    setStoryType(type);
+    setSearchParams({ tab: activeTab, type });
   };
 
   return (
@@ -228,16 +360,32 @@ export default function Stories() {
             </div>
           </div>
 
-          {/* Tabs */}
+          {/* Story Type Tabs (Write/Video) */}
+          <div className="mb-6">
+            <Tabs value={storyType} onValueChange={(v) => handleStoryTypeChange(v as 'write' | 'video')} className="w-full">
+              <TabsList className="grid w-full max-w-md" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                <TabsTrigger value="write" className="flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Write
+                </TabsTrigger>
+                <TabsTrigger value="video" className="flex items-center gap-2">
+                  <Video className="w-4 h-4" />
+                  Video
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+
+          {/* Action Tabs (Browse/Create) */}
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <TabsList className="grid w-full max-w-md mb-8" style={{ gridTemplateColumns: '1fr 1fr' }}>
               <TabsTrigger value="browse" className="flex items-center gap-2">
                 <List className="w-4 h-4" />
-                Browse Stories
+                Browse {storyType === 'write' ? 'Stories' : 'Videos'}
               </TabsTrigger>
               <TabsTrigger value="create" className="flex items-center gap-2">
                 <Plus className="w-4 h-4" />
-                Create Story
+                Create {storyType === 'write' ? 'Story' : 'Video'}
               </TabsTrigger>
             </TabsList>
 
@@ -279,10 +427,17 @@ export default function Stories() {
               ) : (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {stories.map((story) => (
-                    <StoryCard
-                      key={story.id}
-                      story={story}
-                    />
+                    storyType === 'video' ? (
+                      <VideoStoryCard
+                        key={story.id}
+                        story={story}
+                      />
+                    ) : (
+                      <StoryCard
+                        key={story.id}
+                        story={story}
+                      />
+                    )
                   ))}
                 </div>
               )}
@@ -290,7 +445,11 @@ export default function Stories() {
 
             {/* Create Tab */}
             <TabsContent value="create" className="mt-0">
-              <CreateArticleForm />
+              {storyType === 'write' ? (
+                <CreateArticleForm />
+              ) : (
+                <CreateVideoStoryForm />
+              )}
             </TabsContent>
           </Tabs>
         </div>
