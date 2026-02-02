@@ -43,7 +43,7 @@ interface StoryCardProps {
 function StoryCard({ story, onDelete, onEdit }: StoryCardProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-  const isVideo = story.kind === 34235;
+  const isVideo = story.kind === 34235 || story.kind === 34236;
   const title = story.tags.find(([name]) => name === 'title')?.[1] || (isVideo ? 'Untitled Video' : 'Untitled Story');
   const summary = story.tags.find(([name]) => name === 'summary')?.[1];
   const image = story.tags.find(([name]) => name === 'image')?.[1];
@@ -195,9 +195,9 @@ export function AdminStoryManager() {
     queryKey: ['admin-stories', ADMIN_HEX, storyType],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(10000)]);
-      const kind = storyType === 'video' ? 34235 : 30023;
+      const kinds = storyType === 'video' ? [34235, 34236] : [30023]; // NIP-71: landscape + portrait
       const events = await nostr.query([{
-        kinds: [kind],
+        kinds,
         authors: [ADMIN_HEX],
         limit: 100,
       }], { signal });

@@ -147,10 +147,44 @@ export default function VideoDetail() {
   // Extract video metadata
   const title = video.tags.find(([name]) => name === 'title')?.[1] || 'Untitled Video';
   const summary = video.tags.find(([name]) => name === 'summary')?.[1] || video.content;
-  const videoUrl = video.tags.find(([name]) => name === 'url')?.[1];
-  const thumb = video.tags.find(([name]) => name === 'thumb')?.[1];
-  const duration = video.tags.find(([name]) => name === 'duration')?.[1];
   const identifier = video.tags.find(([name]) => name === 'd')?.[1] || '';
+  
+  // Parse imeta tag for video URL and metadata (NIP-71)
+  const imetaTag = video.tags.find(([name]) => name === 'imeta');
+  let videoUrl = '';
+  let thumb = '';
+  let duration = '';
+  let dimensions = '';
+  
+  if (imetaTag) {
+    // Parse imeta properties
+    for (let i = 1; i < imetaTag.length; i++) {
+      const part = imetaTag[i];
+      if (part.startsWith('url ')) {
+        videoUrl = part.substring(4);
+      } else if (part.startsWith('image ')) {
+        thumb = part.substring(6);
+      } else if (part.startsWith('duration ')) {
+        const durationSec = parseFloat(part.substring(9));
+        const minutes = Math.floor(durationSec / 60);
+        const seconds = Math.floor(durationSec % 60);
+        duration = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      } else if (part.startsWith('dim ')) {
+        dimensions = part.substring(4);
+      }
+    }
+  }
+  
+  // Fallback to legacy tags if imeta not present
+  if (!videoUrl) {
+    videoUrl = video.tags.find(([name]) => name === 'url')?.[1] || '';
+  }
+  if (!thumb) {
+    thumb = video.tags.find(([name]) => name === 'thumb')?.[1] || '';
+  }
+  if (!duration) {
+    duration = video.tags.find(([name]) => name === 'duration')?.[1] || '';
+  }
 
   const topicTags = video.tags
     .filter(([name]) => name === 't')
@@ -214,7 +248,7 @@ export default function VideoDetail() {
   const videoNaddr = nip19.naddrEncode({
     identifier,
     pubkey: video.pubkey,
-    kind: 34235,
+    kind: video.kind, // Use actual kind (34235 or 34236)
   });
 
   return (

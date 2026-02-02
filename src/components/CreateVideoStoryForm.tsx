@@ -49,7 +49,8 @@ export function CreateVideoStoryForm() {
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string>('');
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [videoDuration, setVideoDuration] = useState<string>('');
+  const [videoDuration, setVideoDuration] = useState<number>(0);
+  const [videoDimensions, setVideoDimensions] = useState<{ width: number; height: number } | null>(null);
 
   const videoInputRef = useRef<HTMLInputElement>(null);
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
@@ -84,14 +85,16 @@ export function CreateVideoStoryForm() {
     const url = URL.createObjectURL(file);
     setVideoPreview(url);
 
-    // Load video to get duration
+    // Load video to get duration and dimensions
     const video = document.createElement('video');
     video.preload = 'metadata';
     video.onloadedmetadata = () => {
-      const duration = Math.floor(video.duration);
-      const minutes = Math.floor(duration / 60);
-      const seconds = duration % 60;
-      setVideoDuration(`${minutes}:${seconds.toString().padStart(2, '0')}`);
+      const duration = video.duration;
+      setVideoDuration(duration);
+      setVideoDimensions({
+        width: video.videoWidth,
+        height: video.videoHeight,
+      });
       URL.revokeObjectURL(video.src);
     };
     video.src = url;
@@ -160,31 +163,45 @@ export function CreateVideoStoryForm() {
 
       const identifier = formData.identifier.trim() || generateIdentifier();
 
-      // Build tags according to divine.video format (kind 34235)
+      // Determine if video is portrait or landscape based on dimensions
+      const isPortrait = videoDimensions ? videoDimensions.height > videoDimensions.width : false;
+      const videoKind = isPortrait ? 34236 : 34235; // 34236 for portrait (short), 34235 for landscape (normal)
+
+      // Build imeta tag according to NIP-71
+      const imetaTag = ['imeta'];
+      
+      // Add dimensions
+      if (videoDimensions) {
+        imetaTag.push(`dim ${videoDimensions.width}x${videoDimensions.height}`);
+      }
+      
+      // Add URL
+      imetaTag.push(`url ${videoUrl}`);
+      
+      // Add mime type
+      imetaTag.push(`m ${videoFile.type}`);
+      
+      // Add thumbnail
+      if (thumbnailUrl) {
+        imetaTag.push(`image ${thumbnailUrl}`);
+      }
+      
+      // Add duration in seconds
+      if (videoDuration) {
+        imetaTag.push(`duration ${videoDuration.toFixed(3)}`);
+      }
+
+      // Build tags according to NIP-71 format
       const tags: string[][] = [
         ['d', identifier],
         ['title', formData.title.trim()],
         ['published_at', Math.floor(Date.now() / 1000).toString()],
-        ['url', videoUrl],
-        ['m', videoFile.type],
         ['alt', `Video: ${formData.title.trim()}`],
+        imetaTag,
       ];
 
       if (formData.summary.trim()) {
         tags.push(['summary', formData.summary.trim()]);
-      }
-
-      if (thumbnailUrl) {
-        tags.push(['thumb', thumbnailUrl]);
-      }
-
-      if (videoDuration) {
-        tags.push(['duration', videoDuration]);
-      }
-
-      // Add video dimensions if available
-      if (videoRef.current) {
-        tags.push(['dim', `${videoRef.current.videoWidth}x${videoRef.current.videoHeight}`]);
       }
 
       // Add topic tags
@@ -207,7 +224,7 @@ export function CreateVideoStoryForm() {
 
       // Publish to Nostr
       createEvent({
-        kind: 34235, // divine.video format
+        kind: videoKind, // NIP-71: 34235 for landscape, 34236 for portrait
         content: formData.summary.trim(),
         tags,
       }, {
@@ -278,14 +295,14 @@ export function CreateVideoStoryForm() {
           Create Video Story
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Share your travel adventures in video format using the divine.video standard (Kind 34235).
+          Share your travel adventures in video format using NIP-71 (Kind 34235 landscape / 34236 portrait).
         </p>
         <div className="flex gap-2">
           <Badge variant="outline" className="bg-purple-50 dark:bg-purple-900/20">
-            Kind 34235
+            NIP-71
           </Badge>
           <Badge variant="outline" className="bg-pink-50 dark:bg-pink-900/20">
-            Divine.video
+            Kinds 34235/34236
           </Badge>
           <Badge variant="outline" className="bg-orange-50 dark:bg-orange-900/20">
             Addressable
@@ -335,7 +352,13 @@ export function CreateVideoStoryForm() {
                   {videoFile && (
                     <p className="text-xs text-muted-foreground mt-2">
                       {videoFile.name} ({(videoFile.size / 1024 / 1024).toFixed(2)} MB)
-                      {videoDuration && ` • ${videoDuration}`}
+                      {videoDuration > 0 && ` • ${Math.floor(videoDuration / 60)}:${(Math.floor(videoDuration) % 60).toString().padStart(2, '0')}`}
+                      {videoDimensions && ` • ${videoDimensions.width}x${videoDimensions.height}`}
+                      {videoDimensions && (
+                        <Badge variant="outline" className="ml-2">
+                          {videoDimensions.height > videoDimensions.width ? 'Portrait' : 'Landscape'}
+                        </Badge>
+                      )}
                     </p>
                   )}
                 </div>
@@ -452,14 +475,14 @@ export function CreateVideoStoryForm() {
             </p>
           </div>
 
-          {/* Divine.video info */}
+          {/* NIP-71 info */}
           <Alert>
             <AlertCircle className="w-4 h-4" />
             <AlertDescription className="text-sm">
-              <p className="font-medium mb-1">Divine.video Compatible</p>
+              <p className="font-medium mb-1">NIP-71 Video Events</p>
               <p className="text-xs text-muted-foreground">
-                This video will be published in divine.video format (Kind 34235), making it compatible
-                with divine.video and other Nostr video platforms.
+                Your video will use Kind 34235 (landscape) or 34236 (portrait) automatically based on dimensions.
+                This makes it compatible with Nostr video platforms like divine.video, Flare, and others.
               </p>
             </AlertDescription>
           </Alert>

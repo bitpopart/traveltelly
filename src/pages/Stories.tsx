@@ -42,9 +42,34 @@ function VideoStoryCard({ story }: VideoStoryCardProps) {
   const profileImage = metadata?.picture;
 
   const title = story.tags.find(([name]) => name === 'title')?.[1] || 'Untitled Video';
-  const thumb = story.tags.find(([name]) => name === 'thumb')?.[1];
   const summary = story.tags.find(([name]) => name === 'summary')?.[1];
-  const duration = story.tags.find(([name]) => name === 'duration')?.[1];
+  
+  // Parse imeta tag for video metadata (NIP-71)
+  const imetaTag = story.tags.find(([name]) => name === 'imeta');
+  let thumb = '';
+  let duration = '';
+  
+  if (imetaTag) {
+    for (let i = 1; i < imetaTag.length; i++) {
+      const part = imetaTag[i];
+      if (part.startsWith('image ')) {
+        thumb = part.substring(6);
+      } else if (part.startsWith('duration ')) {
+        const durationSec = parseFloat(part.substring(9));
+        const minutes = Math.floor(durationSec / 60);
+        const seconds = Math.floor(durationSec % 60);
+        duration = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      }
+    }
+  }
+  
+  // Fallback to legacy tags if imeta not present
+  if (!thumb) {
+    thumb = story.tags.find(([name]) => name === 'thumb')?.[1] || '';
+  }
+  if (!duration) {
+    duration = story.tags.find(([name]) => name === 'duration')?.[1] || '';
+  }
 
   const topicTags = story.tags
     .filter(([name]) => name === 't')
@@ -273,10 +298,10 @@ function useStories(type: 'write' | 'video' = 'write') {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
 
       if (type === 'video') {
-        // Query video stories (kind 34235 - divine.video format)
+        // Query video stories (NIP-71: kind 34235 landscape + kind 34236 portrait)
         const events = await nostr.query([
           {
-            kinds: [34235],
+            kinds: [34235, 34236],
             '#t': ['traveltelly'],
             limit: 100,
           }
