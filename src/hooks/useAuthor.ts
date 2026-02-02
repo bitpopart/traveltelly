@@ -4,16 +4,19 @@ import { useQuery } from '@tanstack/react-query';
 
 export function useAuthor(pubkey: string | undefined) {
   const { nostr } = useNostr();
+  
+  // Ensure pubkey is a string for queryKey to prevent React error #310
+  const safePubkey = typeof pubkey === 'string' ? pubkey : '';
 
   return useQuery<{ event?: NostrEvent; metadata?: NostrMetadata }>({
-    queryKey: ['author', pubkey ?? ''],
+    queryKey: ['author', safePubkey],
     queryFn: async ({ signal }) => {
-      if (!pubkey) {
+      if (!safePubkey) {
         return {};
       }
 
       const [event] = await nostr.query(
-        [{ kinds: [0], authors: [pubkey!], limit: 1 }],
+        [{ kinds: [0], authors: [safePubkey], limit: 1 }],
         { signal: AbortSignal.any([signal, AbortSignal.timeout(1500)]) },
       );
 
