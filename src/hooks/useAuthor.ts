@@ -21,7 +21,7 @@ export function useAuthor(pubkey: string | undefined) {
       );
 
       if (!event) {
-        throw new Error('No event found');
+        return {}; // Return empty object instead of throwing
       }
 
       try {
@@ -31,6 +31,7 @@ export function useAuthor(pubkey: string | undefined) {
         return { event };
       }
     },
-    retry: 3,
+    retry: false, // Disable retry to prevent serialization issues
+    enabled: !!safePubkey && safePubkey.length === 64, // Only run if valid hex pubkey
   });
 }
