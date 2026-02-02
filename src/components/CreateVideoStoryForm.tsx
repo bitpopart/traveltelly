@@ -70,6 +70,13 @@ export function CreateVideoStoryForm() {
       return;
     }
 
+    // Log file info for debugging
+    console.log('Selected video file:', {
+      name: file.name,
+      type: file.type,
+      size: (file.size / 1024 / 1024).toFixed(2) + ' MB'
+    });
+
     // Check file size (max 500MB for now)
     const maxSize = 500 * 1024 * 1024; // 500MB
     if (file.size > maxSize) {
@@ -470,6 +477,8 @@ export function CreateVideoStoryForm() {
                       src={videoPreview}
                       controls
                       preload="metadata"
+                      playsInline
+                      muted
                       className="max-w-md w-auto max-h-80 rounded-lg bg-black"
                       style={{ display: 'block' }}
                       onLoadedMetadata={(e) => {
@@ -482,13 +491,40 @@ export function CreateVideoStoryForm() {
                       }}
                       onError={(e) => {
                         console.error('Video load error:', e);
+                        const video = e.currentTarget;
+                        const error = video.error;
+                        let errorMessage = 'Failed to load video preview';
+                        
+                        if (error) {
+                          switch (error.code) {
+                            case error.MEDIA_ERR_ABORTED:
+                              errorMessage = 'Video loading was aborted';
+                              break;
+                            case error.MEDIA_ERR_NETWORK:
+                              errorMessage = 'Network error while loading video';
+                              break;
+                            case error.MEDIA_ERR_DECODE:
+                              errorMessage = 'Video format not supported or file corrupted';
+                              break;
+                            case error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                              errorMessage = 'Video format not supported by browser';
+                              break;
+                          }
+                          console.error('Video error details:', {
+                            code: error.code,
+                            message: error.message
+                          });
+                        }
+                        
                         toast({
                           title: 'Video load error',
-                          description: 'Failed to load video preview',
+                          description: errorMessage,
                           variant: 'destructive',
                         });
                       }}
-                    />
+                    >
+                      {videoFile && <source src={videoPreview} type={videoFile.type} />}
+                    </video>
                     <Button
                       type="button"
                       variant="destructive"
@@ -521,7 +557,7 @@ export function CreateVideoStoryForm() {
               <input
                 ref={videoInputRef}
                 type="file"
-                accept="video/*"
+                accept="video/mp4,video/webm,video/ogg,video/quicktime,video/*"
                 className="hidden"
                 onChange={handleVideoSelect}
               />
