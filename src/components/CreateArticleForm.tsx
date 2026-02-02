@@ -82,8 +82,10 @@ export function CreateArticleForm() {
 
     setIsImporting(true);
     try {
+      const url = importUrl.trim();
+      
       // Use webfetch via CORS proxy
-      const proxyUrl = `https://proxy.shakespeare.diy/?url=${encodeURIComponent(importUrl.trim())}`;
+      const proxyUrl = `https://proxy.shakespeare.diy/?url=${encodeURIComponent(url)}`;
       const response = await fetch(proxyUrl);
       
       if (!response.ok) {
@@ -95,6 +97,9 @@ export function CreateArticleForm() {
       // Parse HTML to extract content
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
+      
+      // Create a base URL for resolving relative links
+      const baseUrl = new URL(url);
       
       // Extract title
       let title = doc.querySelector('h1')?.textContent || 
@@ -114,37 +119,142 @@ export function CreateArticleForm() {
         '.post-content',
         '.article-content',
         '.entry-content',
-        '#content'
+        '#content',
+        '.content'
       ];
 
-      let content = '';
+      let contentElement: Element | null = null;
       for (const selector of contentSelectors) {
         const element = doc.querySelector(selector);
         if (element) {
-          // Remove script and style tags
-          element.querySelectorAll('script, style, nav, header, footer, aside').forEach(el => el.remove());
-          content = element.textContent || '';
+          contentElement = element;
           break;
         }
       }
 
       // Fallback to body if no article content found
-      if (!content) {
-        const body = doc.body.cloneNode(true) as HTMLElement;
-        body.querySelectorAll('script, style, nav, header, footer, aside').forEach(el => el.remove());
-        content = body.textContent || '';
+      if (!contentElement) {
+        contentElement = doc.body;
       }
 
-      // Clean up content
+      // Clone and clean the element
+      const cleanElement = contentElement.cloneNode(true) as HTMLElement;
+      cleanElement.querySelectorAll('script, style, nav, header, footer, aside, .comments, #comments, .sidebar, .navigation, .menu, .ad, .advertisement').forEach(el => el.remove());
+
+      // Convert HTML to Markdown-like format
+      let content = '';
+      
+      // Process the content recursively
+      const processNode = (node: Node): string => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          return node.textContent?.trim() || '';
+        }
+        
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          const element = node as HTMLElement;
+          const tagName = element.tagName.toLowerCase();
+          const children = Array.from(element.childNodes).map(processNode).join('');
+          
+          switch (tagName) {
+            case 'h1':
+              return `\n\n# ${children}\n\n`;
+            case 'h2':
+              return `\n\n## ${children}\n\n`;
+            case 'h3':
+              return `\n\n### ${children}\n\n`;
+            case 'h4':
+              return `\n\n#### ${children}\n\n`;
+            case 'h5':
+              return `\n\n##### ${children}\n\n`;
+            case 'h6':
+              return `\n\n###### ${children}\n\n`;
+            case 'p':
+              return `\n\n${children}\n\n`;
+            case 'br':
+              return '\n';
+            case 'strong':
+            case 'b':
+              return `**${children}**`;
+            case 'em':
+            case 'i':
+              return `*${children}*`;
+            case 'a':
+              let href = element.getAttribute('href') || '';
+              // Convert relative URLs to absolute
+              if (href && !href.startsWith('http') && !href.startsWith('mailto:')) {
+                try {
+                  href = new URL(href, baseUrl).href;
+                } catch {
+                  // If URL parsing fails, keep original
+                }
+              }
+              return href ? `[${children}](${href})` : children;
+            case 'ul':
+            case 'ol':
+              return `\n${children}\n`;
+            case 'li':
+              return `- ${children}\n`;
+            case 'blockquote':
+              return `\n> ${children}\n`;
+            case 'code':
+              return `\`${children}\``;
+            case 'pre':
+              return `\n\`\`\`\n${children}\n\`\`\`\n`;
+            case 'img':
+              let src = element.getAttribute('src') || '';
+              const alt = element.getAttribute('alt') || '';
+              // Convert relative URLs to absolute
+              if (src && !src.startsWith('http') && !src.startsWith('data:')) {
+                try {
+                  src = new URL(src, baseUrl).href;
+                } catch {
+                  // If URL parsing fails, keep original
+                }
+              }
+              return src ? `\n![${alt}](${src})\n` : '';
+            default:
+              return children;
+          }
+        }
+        
+        return '';
+      };
+
+      content = processNode(cleanElement);
+      
+      // Clean up excessive newlines and whitespace
       content = content
-        .split('\n')
-        .map(line => line.trim())
-        .filter(line => line.length > 0)
-        .join('\n\n')
+        .replace(/\n{3,}/g, '\n\n')
         .trim();
 
       // Extract image
-      const ogImage = doc.querySelector('meta[property="og:image"]')?.getAttribute('content') || '';
+      let ogImage = doc.querySelector('meta[property="og:image"]')?.getAttribute('content') || '';
+      // Convert relative URLs to absolute
+      if (ogImage && !ogImage.startsWith('http') && !ogImage.startsWith('data:')) {
+        try {
+          ogImage = new URL(ogImage, baseUrl).href;
+        } catch {
+          // If URL parsing fails, keep original
+        }
+      }
+      
+      // Debug logging
+      console.log('📥 Import results:', {
+        title,
+        summaryLength: metaDesc.trim().length,
+        contentLength: content.length,
+        contentPreview: content.substring(0, 200),
+        hasImage: !!ogImage,
+      });
+
+      // Validate we have content
+      if (!content || content.length < 50) {
+        toast({
+          title: 'Limited content extracted',
+          description: 'The content extraction found very little text. You may need to manually copy the content.',
+          variant: 'destructive',
+        });
+      }
       
       // Update form
       setFormData(prev => ({
@@ -157,7 +267,7 @@ export function CreateArticleForm() {
 
       toast({
         title: 'Content imported!',
-        description: 'Review and edit the imported content before publishing.',
+        description: `Imported ${content.length} characters. Review and edit before publishing.`,
       });
 
       setImportUrl('');
