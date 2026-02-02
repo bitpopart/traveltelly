@@ -6,6 +6,7 @@ import { defineConfig } from "vitest/config";
 // https://vitejs.dev/config/
 export default defineConfig(() => ({
   base: "/",
+  publicDir: "public",
   server: {
     host: "::",
     port: 8080,
