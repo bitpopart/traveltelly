@@ -124,6 +124,8 @@ export default function StoryDetail() {
         console.log('📊 Events found:', events.length);
         if (events.length > 0) {
           console.log('📄 First event:', events[0]);
+          console.log('📄 First event pubkey type:', typeof events[0].pubkey);
+          console.log('📄 First event id type:', typeof events[0].id);
         }
 
         const validArticles = events.filter(validateArticleEvent);
@@ -131,9 +133,22 @@ export default function StoryDetail() {
         
         if (validArticles.length === 0) {
           console.log('❌ No valid articles found');
+          return null;
+        }
+
+        const article = validArticles[0];
+        
+        // Additional validation to ensure the event structure is correct
+        if (!article.pubkey || typeof article.pubkey !== 'string') {
+          console.error('❌ Invalid pubkey in article:', article.pubkey);
+          return null;
+        }
+        if (!article.id || typeof article.id !== 'string') {
+          console.error('❌ Invalid id in article:', article.id);
+          return null;
         }
         
-        return validArticles[0] || null;
+        return article;
       } catch (error) {
         console.error('❌ Error in story query:', error);
         throw error;
@@ -160,6 +175,7 @@ export default function StoryDetail() {
   }
 
   if (error || !article) {
+    console.error('Story error or not found:', { error, article });
     return (
       <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
         <Navigation />
@@ -168,6 +184,29 @@ export default function StoryDetail() {
             <Card>
               <CardContent className="py-12 text-center">
                 <p className="text-muted-foreground mb-4">Story not found</p>
+                <Link to="/stories">
+                  <Button>Back to Stories</Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Validate article structure
+  if (!article.pubkey || typeof article.pubkey !== 'string' || 
+      !article.id || typeof article.id !== 'string') {
+    console.error('Invalid article structure:', article);
+    return (
+      <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
+        <Navigation />
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-4xl mx-auto">
+            <Card>
+              <CardContent className="py-12 text-center">
+                <p className="text-muted-foreground mb-4">Invalid story data</p>
                 <Link to="/stories">
                   <Button>Back to Stories</Button>
                 </Link>
