@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PhotoUpload, type UploadedPhoto } from '@/components/PhotoUpload';
 import { MarkdownEditor } from '@/components/MarkdownEditor';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -20,12 +21,11 @@ import {
   Send,
   Calendar,
   AlertCircle,
-  MapPin
+  MapPin,
+  Download,
+  Loader2,
+  Link as LinkIcon
 } from 'lucide-react';
-
-// The Traveltelly admin npub
-const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642';
-const ADMIN_HEX = nip19.decode(ADMIN_NPUB).data as string;
 
 interface ArticleFormData {
   title: string;
@@ -42,6 +42,10 @@ export function CreateArticleForm() {
   const { toast } = useToast();
   const [gpsCoordinates, setGpsCoordinates] = useState<GPSCoordinates | null>(null);
   const [uploadedPhotos, setUploadedPhotos] = useState<UploadedPhoto[]>([]);
+  const [manualLat, setManualLat] = useState('');
+  const [manualLng, setManualLng] = useState('');
+  const [importUrl, setImportUrl] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
 
   const [formData, setFormData] = useState<ArticleFormData>({
     title: '',
@@ -51,8 +55,6 @@ export function CreateArticleForm() {
     tags: '',
     identifier: '',
   });
-
-  const isAdmin = user?.pubkey === ADMIN_HEX;
 
   const handlePhotosChange = (photos: UploadedPhoto[]) => {
     setUploadedPhotos(photos);
@@ -66,6 +68,109 @@ export function CreateArticleForm() {
   const handleGPSExtracted = (coordinates: GPSCoordinates) => {
     setGpsCoordinates(coordinates);
     console.log('📍 GPS coordinates extracted from article photo:', coordinates);
+  };
+
+  const handleImportFromUrl = async () => {
+    if (!importUrl.trim()) {
+      toast({
+        title: 'URL required',
+        description: 'Please enter a URL to import content from.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsImporting(true);
+    try {
+      // Use webfetch via CORS proxy
+      const proxyUrl = `https://proxy.shakespeare.diy/?url=${encodeURIComponent(importUrl.trim())}`;
+      const response = await fetch(proxyUrl);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch: ${response.statusText}`);
+      }
+
+      const html = await response.text();
+      
+      // Parse HTML to extract content
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      
+      // Extract title
+      let title = doc.querySelector('h1')?.textContent || 
+                  doc.querySelector('title')?.textContent || 
+                  'Imported Article';
+      title = title.trim();
+
+      // Extract meta description as summary
+      const metaDesc = doc.querySelector('meta[name="description"]')?.getAttribute('content') || 
+                       doc.querySelector('meta[property="og:description"]')?.getAttribute('content') || '';
+
+      // Extract main content - try common article selectors
+      const contentSelectors = [
+        'article',
+        '[role="main"]',
+        'main',
+        '.post-content',
+        '.article-content',
+        '.entry-content',
+        '#content'
+      ];
+
+      let content = '';
+      for (const selector of contentSelectors) {
+        const element = doc.querySelector(selector);
+        if (element) {
+          // Remove script and style tags
+          element.querySelectorAll('script, style, nav, header, footer, aside').forEach(el => el.remove());
+          content = element.textContent || '';
+          break;
+        }
+      }
+
+      // Fallback to body if no article content found
+      if (!content) {
+        const body = doc.body.cloneNode(true) as HTMLElement;
+        body.querySelectorAll('script, style, nav, header, footer, aside').forEach(el => el.remove());
+        content = body.textContent || '';
+      }
+
+      // Clean up content
+      content = content
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0)
+        .join('\n\n')
+        .trim();
+
+      // Extract image
+      const ogImage = doc.querySelector('meta[property="og:image"]')?.getAttribute('content') || '';
+      
+      // Update form
+      setFormData(prev => ({
+        ...prev,
+        title,
+        summary: metaDesc.trim(),
+        content,
+        image: ogImage,
+      }));
+
+      toast({
+        title: 'Content imported!',
+        description: 'Review and edit the imported content before publishing.',
+      });
+
+      setImportUrl('');
+    } catch (error) {
+      console.error('Import error:', error);
+      toast({
+        title: 'Import failed',
+        description: 'Unable to import content from this URL. Please try copying the content manually.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   const generateIdentifier = () => {
@@ -168,24 +273,7 @@ export function CreateArticleForm() {
         <CardContent className="py-8 text-center">
           <BookOpen className="w-8 h-8 mx-auto mb-3 text-muted-foreground" />
           <p className="text-muted-foreground">
-            Please log in to create articles.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <Card className="border-dashed border-orange-200">
-        <CardContent className="py-8 text-center">
-          <AlertCircle className="w-8 h-8 mx-auto mb-3 text-orange-600" />
-          <h3 className="font-semibold mb-2">Admin Access Required</h3>
-          <p className="text-muted-foreground mb-4">
-            Only the Traveltelly admin can create official articles.
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Admin npub: {ADMIN_NPUB.slice(0, 20)}...
+            Please log in to create travel stories.
           </p>
         </CardContent>
       </Card>
@@ -197,10 +285,10 @@ export function CreateArticleForm() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <BookOpen className="w-5 h-5" />
-          Create NIP-23 Article
+          Create Travel Story
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Publish a long-form travel article using the NIP-23 standard. Articles support Markdown formatting.
+          Share your travel experiences as a long-form article using the NIP-23 standard. Articles support Markdown formatting.
         </p>
         <div className="flex gap-2">
           <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/20">
@@ -216,6 +304,45 @@ export function CreateArticleForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Import from URL */}
+          <Alert>
+            <LinkIcon className="w-4 h-4" />
+            <AlertDescription>
+              <div className="space-y-3">
+                <p className="text-sm font-medium">Import from URL (optional)</p>
+                <p className="text-xs text-muted-foreground">
+                  Have an existing blog post or article? Enter the URL below to automatically import the content.
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="https://example.com/your-article"
+                    value={importUrl}
+                    onChange={(e) => setImportUrl(e.target.value)}
+                    disabled={isImporting}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleImportFromUrl}
+                    disabled={isImporting || !importUrl.trim()}
+                  >
+                    {isImporting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Importing...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4 mr-2" />
+                        Import
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </AlertDescription>
+          </Alert>
+
           {/* Title */}
           <div>
             <Label htmlFor="title">

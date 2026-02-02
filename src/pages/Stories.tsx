@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navigation } from '@/components/Navigation';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { RelaySelector } from '@/components/RelaySelector';
 import { OptimizedImage } from '@/components/OptimizedImage';
 import { CreateArticleForm } from '@/components/CreateArticleForm';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
@@ -19,16 +19,12 @@ import {
   Calendar,
   MapPin,
   Plus,
-  Shield
+  List
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { nip19 } from 'nostr-tools';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import type { NostrEvent } from '@nostrify/nostrify';
-
-// The Traveltelly admin npub
-const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642';
-const ADMIN_HEX = nip19.decode(ADMIN_NPUB).data as string;
 
 interface StoryCardProps {
   story: NostrEvent;
@@ -166,15 +162,16 @@ function useStories() {
   const { nostr } = useNostr();
 
   return useQuery({
-    queryKey: ['traveltelly-nip23-articles', ADMIN_HEX],
+    queryKey: ['traveltelly-nip23-articles-all'],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
 
+      // Query ALL stories with travel-related tags
       const events = await nostr.query([
         {
           kinds: [30023],
-          authors: [ADMIN_HEX],
-          limit: 50,
+          '#t': ['travel'],
+          limit: 100,
         }
       ], { signal });
 
@@ -196,8 +193,21 @@ function useStories() {
 export default function Stories() {
   const { user } = useCurrentUser();
   const { data: stories, isLoading, error } = useStories();
-  const isAdmin = user?.pubkey === ADMIN_HEX;
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'browse');
+
+  // Update tab from URL on mount and when searchParams change
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'create' || tab === 'browse') {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    setSearchParams({ tab: value });
+  };
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
@@ -207,97 +217,82 @@ export default function Stories() {
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg" style={{ backgroundColor: '#b2d23520' }}>
-                  <BookOpen className="w-8 h-8" style={{ color: '#b2d235' }} />
-                </div>
-                <div>
-                  <h1 className="text-4xl font-bold">Stories</h1>
-                </div>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-lg" style={{ backgroundColor: '#b2d23520' }}>
+                <BookOpen className="w-8 h-8" style={{ color: '#b2d235' }} />
               </div>
-              
-              {isAdmin && (
-                <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                  <Button
-                    onClick={() => setIsCreateDialogOpen(true)}
-                    size="lg"
-                    className="rounded-full text-white font-semibold"
-                    style={{ backgroundColor: '#b2d235' }}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create Story
-                  </Button>
-                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle className="text-2xl">Create New Story</DialogTitle>
-                    </DialogHeader>
-                    <div className="mt-4">
-                      <CreateArticleForm />
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              )}
+              <div>
+                <h1 className="text-4xl font-bold">Stories</h1>
+                <p className="text-muted-foreground">Travel stories from the Nostr community</p>
+              </div>
             </div>
           </div>
 
-          {/* Stories Grid */}
-          {error ? (
-            <Card className="border-dashed">
-              <CardContent className="py-12 px-8 text-center">
-                <div className="max-w-sm mx-auto space-y-6">
-                  <p className="text-muted-foreground">
-                    Failed to load stories. Try another relay?
-                  </p>
-                  <RelaySelector className="w-full" />
+          {/* Tabs */}
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+            <TabsList className="grid w-full max-w-md mb-8" style={{ gridTemplateColumns: '1fr 1fr' }}>
+              <TabsTrigger value="browse" className="flex items-center gap-2">
+                <List className="w-4 h-4" />
+                Browse Stories
+              </TabsTrigger>
+              <TabsTrigger value="create" className="flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                Create Story
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Browse Tab */}
+            <TabsContent value="browse" className="mt-0">
+
+              {error ? (
+                <Card className="border-dashed">
+                  <CardContent className="py-12 px-8 text-center">
+                    <div className="max-w-sm mx-auto space-y-6">
+                      <p className="text-muted-foreground">
+                        Failed to load stories. Try another relay?
+                      </p>
+                      <RelaySelector className="w-full" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : isLoading ? (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {Array.from({ length: 6 }, (_, i) => (
+                    <StorySkeleton key={i} />
+                  ))}
                 </div>
-              </CardContent>
-            </Card>
-          ) : isLoading ? (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {Array.from({ length: 6 }, (_, i) => (
-                <StorySkeleton key={i} />
-              ))}
-            </div>
-          ) : !stories || stories.length === 0 ? (
-            <Card className="border-dashed">
-              <CardContent className="py-12 px-8 text-center">
-                <div className="max-w-sm mx-auto space-y-6">
-                  <BookOpen className="w-16 h-16 mx-auto" style={{ color: '#b2d235' }} />
-                  <div>
-                    <h3 className="font-semibold text-lg mb-2">No stories found</h3>
-                    <p className="text-muted-foreground mb-4">
-                      {isAdmin 
-                        ? 'Be the first to share a story!' 
-                        : 'No stories are available on this relay. Try switching to another relay.'}
-                    </p>
-                  </div>
-                  {isAdmin ? (
-                    <Button
-                      onClick={() => setIsCreateDialogOpen(true)}
-                      size="lg"
-                      className="rounded-full text-white font-semibold"
-                      style={{ backgroundColor: '#b2d235' }}
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Create Your First Story
-                    </Button>
-                  ) : (
-                    <RelaySelector className="w-full" />
-                  )}
+              ) : !stories || stories.length === 0 ? (
+                <Card className="border-dashed">
+                  <CardContent className="py-12 px-8 text-center">
+                    <div className="max-w-sm mx-auto space-y-6">
+                      <BookOpen className="w-16 h-16 mx-auto" style={{ color: '#b2d235' }} />
+                      <div>
+                        <h3 className="font-semibold text-lg mb-2">No stories found</h3>
+                        <p className="text-muted-foreground mb-4">
+                          No travel stories are available on this relay. Try switching to another relay or create your own!
+                        </p>
+                      </div>
+                      <RelaySelector className="w-full" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {stories.map((story) => (
+                    <StoryCard
+                      key={story.id}
+                      story={story}
+                    />
+                  ))}
                 </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {stories.map((story) => (
-                <StoryCard
-                  key={story.id}
-                  story={story}
-                />
-              ))}
-            </div>
-          )}
+              )}
+            </TabsContent>
+
+            {/* Create Tab */}
+            <TabsContent value="create" className="mt-0">
+              <CreateArticleForm />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>
