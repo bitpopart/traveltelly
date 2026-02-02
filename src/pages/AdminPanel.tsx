@@ -11,8 +11,9 @@ import { CategoryManager } from '@/components/CategoryManager';
 import { MediaManagement } from '@/components/MediaManagement';
 import { AdminReviewManager } from '@/components/AdminReviewManager';
 import { AdminTripManager } from '@/components/AdminTripManager';
+import { AdminStoryManager } from '@/components/AdminStoryManager';
 import { nip19 } from 'nostr-tools';
-import { Shield, ArrowLeft, Camera, MessageSquare, Settings, Tag, FileImage, Coffee, MapPin, Upload } from 'lucide-react';
+import { Shield, ArrowLeft, Camera, MessageSquare, Settings, Tag, FileImage, Coffee, MapPin, Upload, BookOpen } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function AdminPanel() {
@@ -158,10 +159,14 @@ export default function AdminPanel() {
 
           {/* Main Admin Tabs */}
           <Tabs defaultValue="manage-reviews" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="manage-reviews" className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4" />
                 Reviews
+              </TabsTrigger>
+              <TabsTrigger value="manage-stories" className="flex items-center gap-2">
+                <BookOpen className="w-4 h-4" />
+                Stories
               </TabsTrigger>
               <TabsTrigger value="manage-trips" className="flex items-center gap-2">
                 <MapPin className="w-4 h-4" />
@@ -183,6 +188,10 @@ export default function AdminPanel() {
 
             <TabsContent value="manage-reviews" className="mt-6">
               <AdminReviewManager />
+            </TabsContent>
+
+            <TabsContent value="manage-stories" className="mt-6">
+              <AdminStoryManager />
             </TabsContent>
 
             <TabsContent value="manage-trips" className="mt-6">
