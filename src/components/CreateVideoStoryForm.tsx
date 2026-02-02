@@ -118,6 +118,79 @@ export function CreateVideoStoryForm() {
     setThumbnailPreview(url);
   };
 
+  const generateThumbnailFromVideo = async () => {
+    if (!videoPreview || !videoRef.current) {
+      toast({
+        title: 'No video loaded',
+        description: 'Please upload a video first',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const video = videoRef.current;
+      
+      // Seek to 25% of video duration for a better frame
+      const seekTime = video.duration * 0.25;
+      video.currentTime = seekTime;
+
+      // Wait for the video to seek to the correct position
+      await new Promise<void>((resolve) => {
+        video.onseeked = () => resolve();
+      });
+
+      // Create a canvas to capture the frame
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        throw new Error('Failed to get canvas context');
+      }
+
+      // Draw the current video frame
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Convert canvas to blob
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(
+          (b) => {
+            if (b) resolve(b);
+            else reject(new Error('Failed to create blob'));
+          },
+          'image/jpeg',
+          0.85 // Quality
+        );
+      });
+
+      // Create file from blob
+      const thumbnailFileName = `thumbnail-${Date.now()}.jpg`;
+      const file = new File([blob], thumbnailFileName, { type: 'image/jpeg' });
+
+      // Set the thumbnail
+      setThumbnailFile(file);
+      const url = URL.createObjectURL(file);
+      setThumbnailPreview(url);
+
+      toast({
+        title: 'Thumbnail generated!',
+        description: 'Video thumbnail created successfully',
+      });
+
+      // Reset video to start
+      video.currentTime = 0;
+    } catch (error) {
+      console.error('Thumbnail generation error:', error);
+      toast({
+        title: 'Failed to generate thumbnail',
+        description: 'Please try uploading a custom thumbnail instead',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const generateIdentifier = () => {
     const timestamp = Date.now();
     const titleSlug = formData.title
@@ -375,17 +448,38 @@ export function CreateVideoStoryForm() {
 
           {/* Thumbnail Upload */}
           <div>
-            <Label htmlFor="thumbnail">Thumbnail (optional)</Label>
+            <div className="flex items-center justify-between mb-2">
+              <Label htmlFor="thumbnail">Thumbnail (optional)</Label>
+              {videoPreview && !thumbnailPreview && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={generateThumbnailFromVideo}
+                  className="text-xs"
+                >
+                  <Video className="w-3 h-3 mr-1" />
+                  Generate from Video
+                </Button>
+              )}
+            </div>
             <div className="mt-2">
               {!thumbnailPreview ? (
-                <div
-                  onClick={() => thumbnailInputRef.current?.click()}
-                  className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors"
-                >
-                  <ImageIcon className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">
-                    Click to upload thumbnail image
-                  </p>
+                <div>
+                  <div
+                    onClick={() => thumbnailInputRef.current?.click()}
+                    className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors"
+                  >
+                    <ImageIcon className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground">
+                      Click to upload thumbnail image
+                    </p>
+                  </div>
+                  {videoPreview && (
+                    <p className="text-xs text-muted-foreground mt-2 text-center">
+                      Or use the "Generate from Video" button above to auto-create a thumbnail
+                    </p>
+                  )}
                 </div>
               ) : (
                 <div className="relative">
@@ -406,6 +500,11 @@ export function CreateVideoStoryForm() {
                   >
                     <X className="w-4 h-4" />
                   </Button>
+                  {thumbnailFile && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {thumbnailFile.name} ({(thumbnailFile.size / 1024).toFixed(2)} KB)
+                    </p>
+                  )}
                 </div>
               )}
               <input
