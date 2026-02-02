@@ -22,7 +22,8 @@ import {
   TrendingUp,
   X,
   ChevronRight,
-  Loader2
+  Loader2,
+  Navigation
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { nip19 } from 'nostr-tools';
@@ -49,6 +50,8 @@ function SearchResultItem({ result, onSelect, onTagClick, isNavigating }: Search
         return <BookOpen className="h-4 w-4 text-blue-500" />;
       case 'media':
         return <Camera className="h-4 w-4 text-green-500" />;
+      case 'trip':
+        return <MapPin className="h-4 w-4 text-yellow-500" />;
     }
   };
 
@@ -60,6 +63,8 @@ function SearchResultItem({ result, onSelect, onTagClick, isNavigating }: Search
         return 'Story';
       case 'media':
         return 'Media';
+      case 'trip':
+        return 'Trip';
     }
   };
 
@@ -131,6 +136,12 @@ function SearchResultItem({ result, onSelect, onTagClick, isNavigating }: Search
                 <div className="flex items-center space-x-1">
                   <MapPin className="h-3 w-3" />
                   <span className="truncate max-w-20">{result.location}</span>
+                </div>
+              )}
+              {result.distance && (
+                <div className="flex items-center space-x-1">
+                  <Navigation className="h-3 w-3" />
+                  <span>{result.distance} {result.distanceUnit}</span>
                 </div>
               )}
               <Calendar className="h-3 w-3" />
@@ -261,6 +272,22 @@ export function UnifiedSearchBar({
           navigate(`/media/preview/${naddr}`);
           break;
         }
+        case 'trip': {
+          const dTag = result.event.tags.find(([name]) => name === 'd')?.[1];
+          if (!dTag) {
+            console.warn('Trip missing d tag, navigating to trips page');
+            navigate('/trips');
+            return;
+          }
+          const naddr = nip19.naddrEncode({
+            identifier: dTag,
+            pubkey: result.author,
+            kind: 30025,
+          });
+          console.log('Navigating to trip:', `/trip/${naddr}`);
+          navigate(`/trip/${naddr}`);
+          break;
+        }
         default:
           console.log('Unknown result type, navigating to home');
           navigate('/');
@@ -277,6 +304,9 @@ export function UnifiedSearchBar({
           break;
         case 'media':
           navigate('/marketplace');
+          break;
+        case 'trip':
+          navigate('/trips');
           break;
         default:
           navigate('/');

@@ -11,7 +11,7 @@ const ADMIN_HEX = nip19.decode(ADMIN_NPUB).data as string;
 
 export interface SearchResult {
   id: string;
-  type: 'review' | 'story' | 'media';
+  type: 'review' | 'story' | 'media' | 'trip';
   title: string;
   content: string;
   tags: string[];
@@ -25,6 +25,8 @@ export interface SearchResult {
   price?: string;
   currency?: string;
   images?: string[];
+  distance?: string;
+  distanceUnit?: string;
 }
 
 // Validation functions
@@ -54,6 +56,13 @@ function validateMediaEvent(event: NostrEvent): boolean {
   if (!amount || !currency) return false;
   const numAmount = parseFloat(amount);
   return !isNaN(numAmount) && numAmount > 0;
+}
+
+function validateTripEvent(event: NostrEvent): boolean {
+  if (event.kind !== 30025) return false;
+  const d = event.tags.find(([name]) => name === 'd')?.[1];
+  const title = event.tags.find(([name]) => name === 'title')?.[1];
+  return !!(d && title);
 }
 
 // Parsing functions
@@ -128,6 +137,31 @@ function parseMediaEvent(event: NostrEvent): SearchResult {
     price: amount,
     currency: currency?.toUpperCase(),
     location,
+    images,
+  };
+}
+
+function parseTripEvent(event: NostrEvent): SearchResult {
+  const title = event.tags.find(([name]) => name === 'title')?.[1] || 'Untitled Trip';
+  const summary = event.tags.find(([name]) => name === 'summary')?.[1] || '';
+  const category = event.tags.find(([name]) => name === 'category')?.[1] || 'trip';
+  const distance = event.tags.find(([name]) => name === 'distance')?.[1];
+  const distanceUnit = event.tags.find(([name]) => name === 'distance_unit')?.[1] || 'km';
+  const hashtags = event.tags.filter(([name]) => name === 't').map(([, tag]) => tag);
+  const images = event.tags.filter(([name]) => name === 'image').map(([, url]) => url);
+
+  return {
+    id: event.id,
+    type: 'trip',
+    title,
+    content: summary || event.content,
+    tags: hashtags,
+    author: event.pubkey,
+    createdAt: event.created_at,
+    event,
+    category,
+    distance,
+    distanceUnit,
     images,
   };
 }
@@ -222,6 +256,28 @@ export function useUnifiedSearch(query: string) {
 
           results.push(...mediaResults);
         }
+
+        // Search Trips (kind 30025) - only from admin
+        const tripEvents = await nostr.query([{
+          kinds: [30025],
+          authors: [ADMIN_HEX],
+          limit: 50,
+        }], { signal });
+
+        const tripResults = tripEvents
+          .filter(validateTripEvent)
+          .map(parseTripEvent)
+          .filter(result => {
+            const searchLower = query.toLowerCase();
+            return (
+              result.title.toLowerCase().includes(searchLower) ||
+              result.content.toLowerCase().includes(searchLower) ||
+              result.tags.some(tag => tag.toLowerCase().includes(searchLower)) ||
+              result.category?.toLowerCase().includes(searchLower)
+            );
+          });
+
+        results.push(...tripResults);
 
         // Sort by relevance and recency
         return results.sort((a, b) => {
