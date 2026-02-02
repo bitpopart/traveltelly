@@ -73,12 +73,12 @@ function NearbyReviewCard({ review }: NearbyReviewCardProps) {
 
   return (
     <Link to={`/review/${naddr}`}>
-      <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-        <CardContent className="p-4">
-          <div className="flex gap-3">
-            {/* Thumbnail */}
+      <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+        <CardContent className="p-3">
+          <div className="flex gap-2">
+            {/* Thumbnail - smaller on mobile */}
             {image && (
-              <div className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden">
+              <div className="w-16 h-16 md:w-20 md:h-20 flex-shrink-0 rounded-md overflow-hidden">
                 <OptimizedImage
                   src={image}
                   alt={title}
@@ -91,44 +91,31 @@ function NearbyReviewCard({ review }: NearbyReviewCardProps) {
 
             {/* Content */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-start gap-2 mb-1">
-                <span className="text-lg flex-shrink-0">{categoryEmojis[category] || '📍'}</span>
-                <h4 className="font-semibold text-sm line-clamp-2">{title}</h4>
+              <div className="flex items-start gap-1 mb-1">
+                <span className="text-sm flex-shrink-0">{categoryEmojis[category] || '📍'}</span>
+                <h4 className="font-semibold text-xs md:text-sm line-clamp-2 leading-tight">{title}</h4>
               </div>
 
               {/* Rating */}
-              <div className="flex items-center mb-2">
+              <div className="flex items-center mb-1">
                 {Array.from({ length: 5 }, (_, i) => (
                   <Star
                     key={i}
-                    className={`w-3 h-3 ${
+                    className={`w-2.5 h-2.5 md:w-3 md:h-3 ${
                       i < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
                     }`}
                   />
                 ))}
-                <span className="text-xs text-gray-600 ml-1">({rating}/5)</span>
+                <span className="text-xs text-gray-600 ml-1">({rating})</span>
               </div>
 
-              {/* Location */}
+              {/* Location - only show on larger screens */}
               {location && (
-                <div className="flex items-center text-xs text-gray-600 mb-2">
-                  <MapPin className="w-3 h-3 mr-1 flex-shrink-0" />
+                <div className="hidden sm:flex items-center text-xs text-gray-600">
+                  <MapPin className="w-2.5 h-2.5 mr-1 flex-shrink-0" />
                   <span className="truncate">{location}</span>
                 </div>
               )}
-
-              {/* Author */}
-              <div className="flex items-center gap-1">
-                <Avatar className="h-5 w-5">
-                  <AvatarImage src={metadata?.picture} alt={displayName} />
-                  <AvatarFallback className="text-xs">
-                    {displayName.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-xs text-muted-foreground truncate">
-                  {displayName}
-                </span>
-              </div>
             </div>
           </div>
         </CardContent>
@@ -216,22 +203,22 @@ export function NearbyReviews({ currentReviewId, geohashStr, category }: NearbyR
 
   if (isLoading) {
     return (
-      <Card className="mt-8">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Navigation className="w-5 h-5" />
+      <Card className="mt-6">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+            <Navigation className="w-4 h-4 md:w-5 md:h-5" />
             Nearby Reviews
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
+        <CardContent className="pt-0">
+          <div className="grid gap-2 md:gap-3 md:grid-cols-2">
             {Array.from({ length: 4 }, (_, i) => (
-              <div key={i} className="flex gap-3">
-                <Skeleton className="w-24 h-24 rounded-lg flex-shrink-0" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-3 w-20" />
-                  <Skeleton className="h-3 w-3/4" />
+              <div key={i} className="flex gap-2">
+                <Skeleton className="w-16 h-16 md:w-20 md:h-20 rounded-md flex-shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-2.5 w-16" />
+                  <Skeleton className="h-2.5 w-3/4" />
                 </div>
               </div>
             ))}
@@ -246,26 +233,26 @@ export function NearbyReviews({ currentReviewId, geohashStr, category }: NearbyR
   }
 
   return (
-    <Card className="mt-8">
-      <CardHeader>
+    <Card className="mt-6">
+      <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Navigation className="w-5 h-5" style={{ color: '#27b0ff' }} />
+          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+            <Navigation className="w-4 h-4 md:w-5 md:h-5" style={{ color: '#27b0ff' }} />
             Nearby Reviews
           </CardTitle>
           <Link to="/reviews">
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" className="h-8 text-xs md:text-sm">
               View All
-              <ArrowRight className="w-4 h-4 ml-1" />
+              <ArrowRight className="w-3 h-3 md:w-4 md:h-4 ml-1" />
             </Button>
           </Link>
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-xs md:text-sm text-muted-foreground">
           Discover other reviews in this area
         </p>
       </CardHeader>
-      <CardContent>
-        <div className="grid gap-4 md:grid-cols-2">
+      <CardContent className="pt-0">
+        <div className="grid gap-2 md:gap-3 md:grid-cols-2">
           {nearbyReviews.map((review) => (
             <NearbyReviewCard key={review.id} review={review} />
           ))}
