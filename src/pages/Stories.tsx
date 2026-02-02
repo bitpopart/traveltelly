@@ -54,11 +54,16 @@ function StoryCard({ story }: StoryCardProps) {
   const topicTags = story.tags
     .filter(([name]) => name === 't')
     .map(([, value]) => value)
-    .filter(tag => tag && !['travel', 'traveltelly'].includes(tag))
+    .filter((tag): tag is string => typeof tag === 'string' && tag.length > 0 && !['travel', 'traveltelly'].includes(tag))
     .slice(0, 2);
 
   // Create naddr for linking
-  const identifier = story.tags.find(([name]) => name === 'd')?.[1] || '';
+  const identifier = story.tags.find(([name]) => name === 'd')?.[1];
+  if (!identifier || typeof identifier !== 'string') {
+    console.error('Invalid story identifier:', identifier);
+    return null;
+  }
+  
   const naddr = nip19.naddrEncode({
     kind: story.kind,
     pubkey: story.pubkey,
