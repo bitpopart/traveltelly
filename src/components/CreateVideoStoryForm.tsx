@@ -82,12 +82,15 @@ export function CreateVideoStoryForm() {
     }
 
     setVideoFile(file);
+    
+    // Create object URL for the video
     const url = URL.createObjectURL(file);
     setVideoPreview(url);
 
     // Load video to get duration and dimensions
     const video = document.createElement('video');
     video.preload = 'metadata';
+    
     video.onloadedmetadata = () => {
       const duration = video.duration;
       setVideoDuration(duration);
@@ -95,8 +98,25 @@ export function CreateVideoStoryForm() {
         width: video.videoWidth,
         height: video.videoHeight,
       });
+      console.log('Video metadata loaded:', {
+        duration,
+        width: video.videoWidth,
+        height: video.videoHeight,
+        size: (file.size / 1024 / 1024).toFixed(2) + ' MB'
+      });
       URL.revokeObjectURL(video.src);
     };
+
+    video.onerror = (e) => {
+      console.error('Error loading video metadata:', e);
+      toast({
+        title: 'Video error',
+        description: 'Could not load video metadata. File may be corrupted.',
+        variant: 'destructive',
+      });
+      URL.revokeObjectURL(video.src);
+    };
+
     video.src = url;
   };
 
@@ -449,8 +469,25 @@ export function CreateVideoStoryForm() {
                       ref={videoRef}
                       src={videoPreview}
                       controls
+                      preload="metadata"
                       className="max-w-md w-auto max-h-80 rounded-lg bg-black"
                       style={{ display: 'block' }}
+                      onLoadedMetadata={(e) => {
+                        const video = e.currentTarget;
+                        console.log('Video loaded:', {
+                          duration: video.duration,
+                          width: video.videoWidth,
+                          height: video.videoHeight
+                        });
+                      }}
+                      onError={(e) => {
+                        console.error('Video load error:', e);
+                        toast({
+                          title: 'Video load error',
+                          description: 'Failed to load video preview',
+                          variant: 'destructive',
+                        });
+                      }}
                     />
                     <Button
                       type="button"
