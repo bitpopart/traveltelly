@@ -26,7 +26,8 @@ import {
   MapPin,
   Shield,
   ThumbsDown,
-  ArrowLeft
+  ArrowLeft,
+  BookOpen
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { NostrEvent } from '@nostrify/nostrify';
@@ -114,7 +115,7 @@ export default function StoryDetail() {
         const { kind, pubkey, identifier } = decoded.data;
         console.log('📋 Query params:', { kind, pubkey, identifier });
 
-        const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+        const signal = AbortSignal.any([c.signal, AbortSignal.timeout(10000)]);
         const events = await nostr.query([{
           kinds: [kind],
           authors: [pubkey],
@@ -126,6 +127,8 @@ export default function StoryDetail() {
           console.log('📄 First event:', events[0]);
           console.log('📄 First event pubkey type:', typeof events[0].pubkey);
           console.log('📄 First event id type:', typeof events[0].id);
+          console.log('📄 Content length:', events[0].content?.length);
+          console.log('📄 Content preview:', events[0].content?.substring(0, 200));
         }
 
         const validArticles = events.filter(validateArticleEvent);
@@ -133,6 +136,13 @@ export default function StoryDetail() {
         
         if (validArticles.length === 0) {
           console.log('❌ No valid articles found');
+          if (events.length > 0) {
+            console.log('❌ Events found but validation failed:', events.map(e => ({
+              kind: e.kind,
+              hasD: !!e.tags.find(([name]) => name === 'd'),
+              hasTitle: !!e.tags.find(([name]) => name === 'title'),
+            })));
+          }
           return null;
         }
 
@@ -155,6 +165,8 @@ export default function StoryDetail() {
       }
     },
     enabled: !!naddr,
+    retry: 2,
+    retryDelay: 1000,
   });
 
   if (isLoading) {
@@ -188,13 +200,35 @@ export default function StoryDetail() {
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-4xl mx-auto">
             <Card>
-              <CardContent className="py-12 text-center">
-                <p className="text-muted-foreground mb-4">
-                  {!isValidArticle ? 'Invalid story data' : 'Story not found'}
-                </p>
-                <Link to="/stories">
-                  <Button>Back to Stories</Button>
-                </Link>
+              <CardContent className="py-12 text-center space-y-4">
+                <BookOpen className="w-16 h-16 mx-auto text-muted-foreground opacity-50" />
+                <div>
+                  <h2 className="text-xl font-semibold mb-2">Story Not Found</h2>
+                  <p className="text-muted-foreground mb-4">
+                    This story couldn't be found on the current relay. This could mean:
+                  </p>
+                  <ul className="text-sm text-muted-foreground text-left max-w-md mx-auto space-y-2">
+                    <li>• The story is on a different Nostr relay</li>
+                    <li>• The story was deleted by the author</li>
+                    <li>• The story identifier is invalid</li>
+                  </ul>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center items-center pt-4">
+                  <Link to="/stories">
+                    <Button variant="default">
+                      <ArrowLeft className="w-4 h-4 mr-2" />
+                      Back to Stories
+                    </Button>
+                  </Link>
+                  <Link to="/">
+                    <Button variant="outline">Go to Home</Button>
+                  </Link>
+                </div>
+                <div className="pt-4 border-t max-w-md mx-auto">
+                  <p className="text-xs text-muted-foreground">
+                    💡 Tip: Try changing your relay in the homepage settings to access stories from different Nostr relays.
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </div>
