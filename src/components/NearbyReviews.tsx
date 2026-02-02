@@ -73,12 +73,12 @@ function NearbyReviewCard({ review }: NearbyReviewCardProps) {
 
   return (
     <Link to={`/review/${naddr}`}>
-      <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-        <CardContent className="p-3">
+      <Card className="hover:shadow-md transition-shadow cursor-pointer h-full border-gray-200">
+        <CardContent className="p-2 md:p-3">
           <div className="flex gap-2">
-            {/* Thumbnail - smaller on mobile */}
+            {/* Thumbnail - very compact on mobile */}
             {image && (
-              <div className="w-16 h-16 md:w-20 md:h-20 flex-shrink-0 rounded-md overflow-hidden">
+              <div className="w-14 h-14 md:w-20 md:h-20 flex-shrink-0 rounded overflow-hidden">
                 <OptimizedImage
                   src={image}
                   alt={title}
@@ -91,31 +91,23 @@ function NearbyReviewCard({ review }: NearbyReviewCardProps) {
 
             {/* Content */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-start gap-1 mb-1">
-                <span className="text-sm flex-shrink-0">{categoryEmojis[category] || '📍'}</span>
-                <h4 className="font-semibold text-xs md:text-sm line-clamp-2 leading-tight">{title}</h4>
+              <div className="flex items-start gap-1 mb-0.5">
+                <span className="text-xs md:text-sm flex-shrink-0">{categoryEmojis[category] || '📍'}</span>
+                <h4 className="font-semibold text-xs md:text-sm line-clamp-1 md:line-clamp-2 leading-tight">{title}</h4>
               </div>
 
               {/* Rating */}
-              <div className="flex items-center mb-1">
+              <div className="flex items-center">
                 {Array.from({ length: 5 }, (_, i) => (
                   <Star
                     key={i}
-                    className={`w-2.5 h-2.5 md:w-3 md:h-3 ${
+                    className={`w-2.5 h-2.5 ${
                       i < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
                     }`}
                   />
                 ))}
                 <span className="text-xs text-gray-600 ml-1">({rating})</span>
               </div>
-
-              {/* Location - only show on larger screens */}
-              {location && (
-                <div className="hidden sm:flex items-center text-xs text-gray-600">
-                  <MapPin className="w-2.5 h-2.5 mr-1 flex-shrink-0" />
-                  <span className="truncate">{location}</span>
-                </div>
-              )}
             </div>
           </div>
         </CardContent>
@@ -234,25 +226,22 @@ export function NearbyReviews({ currentReviewId, geohashStr, category }: NearbyR
 
   return (
     <Card className="mt-6">
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-2 md:pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+          <CardTitle className="flex items-center gap-1.5 md:gap-2 text-sm md:text-lg">
             <Navigation className="w-4 h-4 md:w-5 md:h-5" style={{ color: '#27b0ff' }} />
             Nearby Reviews
           </CardTitle>
           <Link to="/reviews">
-            <Button variant="ghost" size="sm" className="h-8 text-xs md:text-sm">
-              View All
-              <ArrowRight className="w-3 h-3 md:w-4 md:h-4 ml-1" />
+            <Button variant="ghost" size="sm" className="h-7 md:h-8 text-xs">
+              All
+              <ArrowRight className="w-3 h-3 ml-1" />
             </Button>
           </Link>
         </div>
-        <p className="text-xs md:text-sm text-muted-foreground">
-          Discover other reviews in this area
-        </p>
       </CardHeader>
-      <CardContent className="pt-0">
-        <div className="grid gap-2 md:gap-3 md:grid-cols-2">
+      <CardContent className="pt-0 pb-3 md:pb-6">
+        <div className="grid gap-1.5 md:gap-3 md:grid-cols-2">
           {nearbyReviews.map((review) => (
             <NearbyReviewCard key={review.id} review={review} />
           ))}
