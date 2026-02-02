@@ -7,15 +7,17 @@ import { useToast } from '@/hooks/useToast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { OptimizedImage } from '@/components/OptimizedImage';
+import { MarkdownEditor } from '@/components/MarkdownEditor';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { nip19 } from 'nostr-tools';
-import { BookOpen, Trash2, Loader2, Download, ExternalLink } from 'lucide-react';
+import { BookOpen, Trash2, Loader2, Download, ExternalLink, Edit, Save } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642';
@@ -35,9 +37,10 @@ function validateStoryEvent(event: NostrEvent): event is StoryEvent {
 interface StoryCardProps {
   story: StoryEvent;
   onDelete: (story: StoryEvent) => void;
+  onEdit: (story: StoryEvent) => void;
 }
 
-function StoryCard({ story, onDelete }: StoryCardProps) {
+function StoryCard({ story, onDelete, onEdit }: StoryCardProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const title = story.tags.find(([name]) => name === 'title')?.[1] || 'Untitled Story';
@@ -62,14 +65,24 @@ function StoryCard({ story, onDelete }: StoryCardProps) {
                 {formatDistanceToNow(displayDate, { addSuffix: true })}
               </p>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowDeleteDialog(true)}
-              className="hover:bg-red-50 hover:border-red-200 hover:text-red-600"
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onEdit(story)}
+                className="hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600"
+              >
+                <Edit className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDeleteDialog(true)}
+                className="hover:bg-red-50 hover:border-red-200 hover:text-red-600"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
 
           {location && (
@@ -146,10 +159,19 @@ export function AdminStoryManager() {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const { toast } = useToast();
-  const { mutate: publish } = useNostrPublish();
+  const { mutate: publish, isPending } = useNostrPublish();
   
   const [primalUrl, setPrimalUrl] = useState('');
   const [isImporting, setIsImporting] = useState(false);
+  const [editingStory, setEditingStory] = useState<StoryEvent | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    title: '',
+    summary: '',
+    content: '',
+    image: '',
+    location: '',
+    tags: '',
+  });
 
   const { data: stories = [], isLoading, refetch } = useQuery({
     queryKey: ['admin-stories', ADMIN_HEX],
@@ -165,6 +187,109 @@ export function AdminStoryManager() {
     },
     enabled: !!user && user.pubkey === ADMIN_HEX,
   });
+
+  const handleEdit = (story: StoryEvent) => {
+    const title = story.tags.find(([name]) => name === 'title')?.[1] || '';
+    const summary = story.tags.find(([name]) => name === 'summary')?.[1] || '';
+    const image = story.tags.find(([name]) => name === 'image')?.[1] || '';
+    const location = story.tags.find(([name]) => name === 'location')?.[1] || '';
+    const hashtags = story.tags
+      .filter(([name]) => name === 't')
+      .map(([, tag]) => tag)
+      .filter(tag => tag !== 'travel' && tag !== 'traveltelly')
+      .join(', ');
+
+    setEditFormData({
+      title,
+      summary,
+      content: story.content,
+      image,
+      location,
+      tags: hashtags,
+    });
+    setEditingStory(story);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingStory) return;
+
+    const dTag = editingStory.tags.find(([name]) => name === 'd')?.[1];
+    if (!dTag) {
+      toast({
+        title: 'Error',
+        description: 'Story identifier not found',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!editFormData.title.trim() || !editFormData.content.trim()) {
+      toast({
+        title: 'Missing fields',
+        description: 'Title and content are required',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Build tags
+    const tags: string[][] = [
+      ['d', dTag],
+      ['title', editFormData.title.trim()],
+      ['published_at', Math.floor(Date.now() / 1000).toString()],
+      ['alt', `Article: ${editFormData.title.trim()}`],
+    ];
+
+    if (editFormData.summary.trim()) {
+      tags.push(['summary', editFormData.summary.trim()]);
+    }
+
+    if (editFormData.image.trim()) {
+      tags.push(['image', editFormData.image.trim()]);
+    }
+
+    if (editFormData.location.trim()) {
+      tags.push(['location', editFormData.location.trim()]);
+    }
+
+    // Add topic tags
+    if (editFormData.tags.trim()) {
+      const topicTags = editFormData.tags
+        .split(',')
+        .map(tag => tag.trim().toLowerCase())
+        .filter(tag => tag.length > 0);
+
+      topicTags.forEach(tag => {
+        tags.push(['t', tag]);
+      });
+    }
+
+    // Always add travel-related tags
+    tags.push(['t', 'travel']);
+    tags.push(['t', 'traveltelly']);
+
+    publish({
+      kind: 30023,
+      content: editFormData.content.trim(),
+      tags,
+    }, {
+      onSuccess: () => {
+        toast({
+          title: 'Story updated!',
+          description: 'Your changes have been saved.',
+        });
+        setEditingStory(null);
+        setTimeout(() => refetch(), 1000);
+      },
+      onError: () => {
+        toast({
+          title: 'Failed to update story',
+          description: 'Please try again.',
+          variant: 'destructive',
+        });
+      },
+    });
+  };
 
   const handleDelete = (story: StoryEvent) => {
     const dTag = story.tags.find(([name]) => name === 'd')?.[1];
@@ -310,6 +435,7 @@ export function AdminStoryManager() {
                   key={story.id}
                   story={story}
                   onDelete={handleDelete}
+                  onEdit={handleEdit}
                 />
               ))}
             </div>
@@ -373,5 +499,138 @@ export function AdminStoryManager() {
         </Card>
       </TabsContent>
     </Tabs>
+
+    {/* Edit Story Dialog */}
+    <Dialog open={!!editingStory} onOpenChange={(open) => !open && setEditingStory(null)}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl flex items-center gap-2">
+            <Edit className="w-6 h-6" />
+            Edit Story
+          </DialogTitle>
+          <DialogDescription>
+            Update your travel story. Changes will be published as a new version.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 mt-4">
+          {/* Title */}
+          <div>
+            <Label htmlFor="edit-title">
+              Title <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="edit-title"
+              value={editFormData.title}
+              onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
+              placeholder="Enter story title..."
+              className="mt-1"
+            />
+          </div>
+
+          {/* Summary */}
+          <div>
+            <Label htmlFor="edit-summary">Summary (optional)</Label>
+            <Textarea
+              id="edit-summary"
+              value={editFormData.summary}
+              onChange={(e) => setEditFormData({ ...editFormData, summary: e.target.value })}
+              placeholder="Brief summary of the story..."
+              className="mt-1 min-h-[80px]"
+            />
+          </div>
+
+          {/* Featured Image URL */}
+          <div>
+            <Label htmlFor="edit-image">Featured Image URL (optional)</Label>
+            <Input
+              id="edit-image"
+              value={editFormData.image}
+              onChange={(e) => setEditFormData({ ...editFormData, image: e.target.value })}
+              placeholder="https://example.com/image.jpg"
+              className="mt-1"
+            />
+            {editFormData.image && (
+              <div className="mt-2">
+                <OptimizedImage
+                  src={editFormData.image}
+                  alt="Preview"
+                  className="w-full max-w-md rounded-lg border"
+                  blurUp={true}
+                  thumbnail={true}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Location */}
+          <div>
+            <Label htmlFor="edit-location">Location (optional)</Label>
+            <Input
+              id="edit-location"
+              value={editFormData.location}
+              onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })}
+              placeholder="City, Country"
+              className="mt-1"
+            />
+          </div>
+
+          {/* Tags */}
+          <div>
+            <Label htmlFor="edit-tags">Topic Tags (optional)</Label>
+            <Input
+              id="edit-tags"
+              value={editFormData.tags}
+              onChange={(e) => setEditFormData({ ...editFormData, tags: e.target.value })}
+              placeholder="destination, guide, photography (comma-separated)"
+              className="mt-1"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Separate multiple tags with commas. "travel" and "traveltelly" tags are added automatically.
+            </p>
+          </div>
+
+          {/* Content */}
+          <div>
+            <Label htmlFor="edit-content" className="mb-3 block text-base">
+              Story Content <span className="text-red-500">*</span>
+            </Label>
+            <MarkdownEditor
+              value={editFormData.content}
+              onChange={(content) => setEditFormData({ ...editFormData, content })}
+              placeholder="Write your travel story here..."
+              minHeight="400px"
+            />
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={() => setEditingStory(null)}
+              disabled={isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveEdit}
+              disabled={isPending || !editFormData.title.trim() || !editFormData.content.trim()}
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Changes
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
