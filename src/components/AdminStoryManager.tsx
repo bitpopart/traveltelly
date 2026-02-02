@@ -407,11 +407,12 @@ export function AdminStoryManager() {
   }
 
   return (
-    <Tabs defaultValue="manage-stories" className="w-full">
-      <TabsList>
-        <TabsTrigger value="manage-stories">Manage Stories</TabsTrigger>
-        <TabsTrigger value="import-story">Import from Primal</TabsTrigger>
-      </TabsList>
+    <>
+      <Tabs defaultValue="manage-stories" className="w-full">
+        <TabsList>
+          <TabsTrigger value="manage-stories">Manage Stories</TabsTrigger>
+          <TabsTrigger value="import-story">Import from Primal</TabsTrigger>
+        </TabsList>
 
       <TabsContent value="manage-stories" className="mt-6">
         <div className="space-y-4">
@@ -498,10 +499,10 @@ export function AdminStoryManager() {
           </CardContent>
         </Card>
       </TabsContent>
-    </Tabs>
+      </Tabs>
 
-    {/* Edit Story Dialog */}
-    <Dialog open={!!editingStory} onOpenChange={(open) => !open && setEditingStory(null)}>
+      {/* Edit Story Dialog */}
+      <Dialog open={!!editingStory} onOpenChange={(open) => !open && setEditingStory(null)}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl flex items-center gap-2">
@@ -631,6 +632,7 @@ export function AdminStoryManager() {
           </div>
         </div>
       </DialogContent>
-    </Dialog>
+      </Dialog>
+    </>
   );
 }
