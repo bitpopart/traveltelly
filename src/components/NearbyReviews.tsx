@@ -143,24 +143,28 @@ function useNearbyReviews(currentReviewId: string, geohashStr: string, category?
   return useQuery({
     queryKey: ['nearby-reviews', currentReviewId, geohashStr, category],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(10000)]);
 
-      // Query by geohash prefix for nearby locations
-      // Using precision 5 or 6 for neighborhood-level proximity
-      const geohashPrefix = geohashStr.substring(0, 6);
+      console.log('🔍 Searching for nearby reviews with geohash:', geohashStr);
 
+      // Get all reviews first, then filter by proximity in JavaScript
+      // This is more reliable than geohash prefix matching since relays may not support it well
       const events = await nostr.query([
         {
           kinds: [34879],
-          '#g': [geohashPrefix], // Exact match on prefix
-          limit: 50,
+          limit: 200, // Get more reviews to filter from
         }
       ], { signal });
 
-      // Filter valid reviews and exclude current review
+      console.log('📊 Total reviews fetched:', events.length);
+
+      // Filter valid reviews with geohash and exclude current review
       const validReviews = events
         .filter(validateReviewEvent)
-        .filter(e => e.id !== currentReviewId);
+        .filter(e => e.id !== currentReviewId)
+        .filter(e => e.tags.find(([name]) => name === 'g')?.[1]); // Must have geohash
+
+      console.log('✅ Valid reviews with geohash:', validReviews.length);
 
       // Calculate distance from current location and sort
       const currentCoords = geohash.decode(geohashStr);
@@ -168,28 +172,40 @@ function useNearbyReviews(currentReviewId: string, geohashStr: string, category?
         const reviewGeohash = review.tags.find(([name]) => name === 'g')?.[1];
         if (!reviewGeohash) return { review, distance: Infinity };
 
-        const reviewCoords = geohash.decode(reviewGeohash);
-        
-        // Haversine formula for distance
-        const R = 6371; // Earth's radius in km
-        const dLat = (reviewCoords.latitude - currentCoords.latitude) * Math.PI / 180;
-        const dLon = (reviewCoords.longitude - currentCoords.longitude) * Math.PI / 180;
-        const a = 
-          Math.sin(dLat/2) * Math.sin(dLat/2) +
-          Math.cos(currentCoords.latitude * Math.PI / 180) * 
-          Math.cos(reviewCoords.latitude * Math.PI / 180) *
-          Math.sin(dLon/2) * Math.sin(dLon/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        const distance = R * c;
+        try {
+          const reviewCoords = geohash.decode(reviewGeohash);
+          
+          // Haversine formula for distance
+          const R = 6371; // Earth's radius in km
+          const dLat = (reviewCoords.latitude - currentCoords.latitude) * Math.PI / 180;
+          const dLon = (reviewCoords.longitude - currentCoords.longitude) * Math.PI / 180;
+          const a = 
+            Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(currentCoords.latitude * Math.PI / 180) * 
+            Math.cos(reviewCoords.latitude * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+          const distance = R * c;
 
-        return { review, distance };
+          return { review, distance };
+        } catch (error) {
+          console.error('Error decoding geohash:', reviewGeohash, error);
+          return { review, distance: Infinity };
+        }
       });
 
-      // Sort by distance and return top 6
-      return reviewsWithDistance
+      // Filter to reviews within 50km and sort by distance
+      const nearby = reviewsWithDistance
+        .filter(item => item.distance < 50) // Within 50km
         .sort((a, b) => a.distance - b.distance)
         .slice(0, 6)
-        .map(item => item.review);
+        .map(item => {
+          console.log(`📍 Nearby review: ${item.review.tags.find(([name]) => name === 'title')?.[1]} - ${item.distance.toFixed(2)}km away`);
+          return item.review;
+        });
+
+      console.log('🎯 Found', nearby.length, 'nearby reviews');
+      return nearby;
     },
     enabled: !!geohashStr && !!currentReviewId,
   });
