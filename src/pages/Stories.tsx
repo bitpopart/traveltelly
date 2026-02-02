@@ -213,10 +213,7 @@ export default function Stories() {
                   <BookOpen className="w-8 h-8" style={{ color: '#b2d235' }} />
                 </div>
                 <div>
-                  <h1 className="text-4xl font-bold">Traveltelly Stories</h1>
-                  <p className="text-muted-foreground">
-                    Long-form travel guides and insights from {ADMIN_NPUB.slice(0, 12)}...
-                  </p>
+                  <h1 className="text-4xl font-bold">Stories</h1>
                 </div>
               </div>
               
