@@ -73,7 +73,21 @@ function ReviewCard({ review }: ReviewCardProps) {
   };
 
   return (
-    <Card className="hover:shadow-lg transition-shadow">
+    <Card className="hover:shadow-lg transition-shadow overflow-hidden">
+      {review.image && (
+        <Link to={`/review/${review.naddr}`} className="block">
+          <div className="relative aspect-[4/3] overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
+            <OptimizedImage
+              src={review.image}
+              alt={review.title}
+              className="w-full h-full object-cover"
+              blurUp={true}
+              thumbnail={true}
+            />
+          </div>
+        </Link>
+      )}
+
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-3">
@@ -104,7 +118,7 @@ function ReviewCard({ review }: ReviewCardProps) {
               <Star
                 key={i}
                 className={`w-4 h-4 ${
-                  i < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                  i < rating ? 'text-orange-400 fill-current' : 'text-gray-300'
                 }`}
               />
             ))}
@@ -117,20 +131,6 @@ function ReviewCard({ review }: ReviewCardProps) {
             </div>
           )}
         </div>
-
-        {review.image && (
-          <Link to={`/review/${review.naddr}`} className="block">
-            <div className="relative aspect-video rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
-              <OptimizedImage
-                src={review.image}
-                alt={review.title}
-                className="w-full h-full object-cover"
-                blurUp={true}
-                thumbnail={true}
-              />
-            </div>
-          </Link>
-        )}
 
         {review.event.content && (
           <div className="text-sm text-gray-700 dark:text-gray-300">
@@ -211,7 +211,21 @@ function StoryCard({ story }: StoryCardProps) {
     .slice(0, 2);
 
   return (
-    <Card className="hover:shadow-lg transition-shadow">
+    <Card className="hover:shadow-lg transition-shadow overflow-hidden">
+      {story.image && (
+        <Link to={`/story/${story.naddr}`} className="block">
+          <div className="relative aspect-[4/3] overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
+            <OptimizedImage
+              src={story.image}
+              alt={story.title}
+              className="w-full h-full object-cover"
+              blurUp={true}
+              thumbnail={true}
+            />
+          </div>
+        </Link>
+      )}
+
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center space-x-3">
@@ -232,20 +246,6 @@ function StoryCard({ story }: StoryCardProps) {
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {story.image && (
-          <Link to={`/story/${story.naddr}`} className="block">
-            <div className="relative aspect-video rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
-              <OptimizedImage
-                src={story.image}
-                alt={story.title}
-                className="w-full h-full object-cover"
-                blurUp={true}
-                thumbnail={true}
-              />
-            </div>
-          </Link>
-        )}
-
         <div>
           <h3 className="font-bold text-lg mb-2">{story.title}</h3>
           {location && (
@@ -262,7 +262,7 @@ function StoryCard({ story }: StoryCardProps) {
         <div className="flex justify-between items-center pt-2 border-t">
           <div className="flex items-center gap-2 flex-wrap">
             {topicTags.map(tag => (
-              <Badge key={tag} variant="outline" className="bg-green-50 dark:bg-green-900/20 text-xs">
+              <Badge key={tag} variant="outline" className="bg-gray-50 dark:bg-gray-900/20 text-xs">
                 #{tag}
               </Badge>
             ))}
@@ -299,7 +299,21 @@ function TripCard({ trip }: TripCardProps) {
   const imageCount = trip.event.tags.filter(([name]) => name === 'image').length;
 
   return (
-    <Card className="hover:shadow-lg transition-shadow">
+    <Card className="hover:shadow-lg transition-shadow overflow-hidden">
+      {trip.image && (
+        <Link to={`/trip/${trip.naddr}`} className="block">
+          <div className="relative aspect-[4/3] overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
+            <OptimizedImage
+              src={trip.image}
+              alt={trip.title}
+              className="w-full h-full object-cover"
+              blurUp={true}
+              thumbnail={true}
+            />
+          </div>
+        </Link>
+      )}
+
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center space-x-3">
@@ -320,20 +334,6 @@ function TripCard({ trip }: TripCardProps) {
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {trip.image && (
-          <Link to={`/trip/${trip.naddr}`} className="block">
-            <div className="relative aspect-video rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
-              <OptimizedImage
-                src={trip.image}
-                alt={trip.title}
-                className="w-full h-full object-cover"
-                blurUp={true}
-                thumbnail={true}
-              />
-            </div>
-          </Link>
-        )}
-
         <div>
           <h3 className="font-bold text-lg mb-2">{trip.title}</h3>
           {summary && (
@@ -390,7 +390,21 @@ function MediaCard({ media }: MediaCardProps) {
   const mediaType = media.event.tags.find(([name]) => name === 't')?.[1] || 'photo';
 
   return (
-    <Card className="hover:shadow-lg transition-shadow">
+    <Card className="hover:shadow-lg transition-shadow overflow-hidden">
+      {media.image && (
+        <Link to={`/media/preview/${media.naddr}`} className="block">
+          <div className="relative aspect-[4/3] overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
+            <OptimizedImage
+              src={media.image}
+              alt={media.title}
+              className="w-full h-full object-cover"
+              blurUp={true}
+              thumbnail={true}
+            />
+          </div>
+        </Link>
+      )}
+
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center space-x-3">
@@ -411,20 +425,6 @@ function MediaCard({ media }: MediaCardProps) {
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {media.image && (
-          <Link to={`/media/preview/${media.naddr}`} className="block">
-            <div className="relative aspect-video rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
-              <OptimizedImage
-                src={media.image}
-                alt={media.title}
-                className="w-full h-full object-cover"
-                blurUp={true}
-                thumbnail={true}
-              />
-            </div>
-          </Link>
-        )}
-
         <div>
           <h3 className="font-bold text-lg mb-2">{media.title}</h3>
           {summary && (
