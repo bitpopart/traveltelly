@@ -85,6 +85,7 @@ export function OptimizedImage({
   const [isError, setIsError] = useState(false);
   const [blurLoaded, setBlurLoaded] = useState(false);
   const [shouldLoad, setShouldLoad] = useState(priority); // Only load immediately if priority
+  const containerRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
 
   // Generate optimized URLs - use aggressive optimization for thumbnails
@@ -107,13 +108,14 @@ export function OptimizedImage({
         });
       },
       {
-        rootMargin: '100px', // Start loading 100px before entering viewport
+        rootMargin: '200px', // Start loading 200px before entering viewport
         threshold: 0.01,
       }
     );
 
-    if (imgRef.current?.parentElement) {
-      observer.observe(imgRef.current.parentElement);
+    const element = containerRef.current;
+    if (element) {
+      observer.observe(element);
     }
 
     return () => {
@@ -220,11 +222,15 @@ export function OptimizedImage({
 
   if (aspectRatio) {
     return (
-      <div style={wrapperStyle}>
+      <div ref={containerRef} style={wrapperStyle}>
         {imageContent}
       </div>
     );
   }
 
-  return <>{imageContent}</>;
+  return (
+    <div ref={containerRef} style={{ position: 'relative' }}>
+      {imageContent}
+    </div>
+  );
 }
