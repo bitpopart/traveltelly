@@ -131,14 +131,55 @@ export function CreateVideoStoryForm() {
     try {
       const video = videoRef.current;
       
-      // Seek to 25% of video duration for a better frame
-      const seekTime = video.duration * 0.25;
-      video.currentTime = seekTime;
+      // Ensure video metadata is loaded
+      if (!video.duration || video.duration === 0 || isNaN(video.duration)) {
+        toast({
+          title: 'Video still loading',
+          description: 'Please wait for the video to fully load',
+          variant: 'destructive',
+        });
+        return;
+      }
 
-      // Wait for the video to seek to the correct position
-      await new Promise<void>((resolve) => {
-        video.onseeked = () => resolve();
+      // Check if video has valid dimensions
+      if (!video.videoWidth || !video.videoHeight) {
+        toast({
+          title: 'Invalid video',
+          description: 'Cannot determine video dimensions',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      toast({
+        title: 'Generating thumbnail...',
+        description: 'Please wait',
       });
+
+      // Seek to 25% of video duration for a better frame (or 1 second, whichever is less)
+      const seekTime = Math.min(video.duration * 0.25, 1);
+      
+      // Wait for seek to complete
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Seek timeout'));
+        }, 5000);
+
+        video.onseeked = () => {
+          clearTimeout(timeout);
+          resolve();
+        };
+
+        video.onerror = () => {
+          clearTimeout(timeout);
+          reject(new Error('Video error during seek'));
+        };
+
+        video.currentTime = seekTime;
+      });
+
+      // Small delay to ensure frame is rendered
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Create a canvas to capture the frame
       const canvas = document.createElement('canvas');
@@ -185,7 +226,7 @@ export function CreateVideoStoryForm() {
       console.error('Thumbnail generation error:', error);
       toast({
         title: 'Failed to generate thumbnail',
-        description: 'Please try uploading a custom thumbnail instead',
+        description: error instanceof Error ? error.message : 'Please try uploading a custom thumbnail instead',
         variant: 'destructive',
       });
     }
