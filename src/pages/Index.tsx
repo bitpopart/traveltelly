@@ -527,7 +527,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                 {/* Share Reviews Card */}
                 <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
                   <Link to="/reviews" className="block relative">
-                    <div className="aspect-video md:aspect-[4/5] overflow-hidden relative" style={{ backgroundColor: '#27b0ff' }}>
+                    <div className="aspect-[4/3] overflow-hidden relative" style={{ backgroundColor: '#27b0ff' }}>
                        {latestReview?.image ? (
                         <OptimizedImage
                           src={latestReview.image}
@@ -545,7 +545,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                       <div className="absolute inset-x-0 bottom-0 p-4">
                         <Button 
                           className="w-full rounded-full font-medium shadow-lg text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2" 
-                          style={{ backgroundColor: '#27b0ff' }}
+                          style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(8px)' }}
                         >
                           <span>Reviews</span>
                           {reviewCount > 0 && (
@@ -562,7 +562,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                 {/* Travel Stories Card */}
                 <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
                   <Link to="/stories" className="block relative">
-                    <div className="aspect-video md:aspect-[4/5] overflow-hidden relative" style={{ backgroundColor: '#b2d235' }}>
+                    <div className="aspect-[4/3] overflow-hidden relative" style={{ backgroundColor: '#b2d235' }}>
                        {latestStory?.image ? (
                         <OptimizedImage
                           src={latestStory.image}
@@ -597,7 +597,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                 {/* Trips Card */}
                 <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
                   <Link to="/trips" className="block relative">
-                    <div className="aspect-video md:aspect-[4/5] overflow-hidden relative" style={{ backgroundColor: '#ffcc00' }}>
+                    <div className="aspect-[4/3] overflow-hidden relative" style={{ backgroundColor: '#ffcc00' }}>
                        {latestTrip?.image ? (
                         <OptimizedImage
                           src={latestTrip.image}
@@ -632,7 +632,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                 {/* Stock Media Card */}
                 <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
                   <Link to="/marketplace" className="block relative">
-                    <div className="aspect-video md:aspect-[4/5] overflow-hidden relative" style={{ backgroundColor: '#ec1a58' }}>
+                    <div className="aspect-[4/3] overflow-hidden relative" style={{ backgroundColor: '#ec1a58' }}>
                        {latestStockMedia?.image ? (
                         <OptimizedImage
                           src={latestStockMedia.image}
