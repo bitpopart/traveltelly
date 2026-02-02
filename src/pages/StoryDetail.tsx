@@ -174,8 +174,14 @@ export default function StoryDetail() {
     );
   }
 
-  if (error || !article) {
-    console.error('Story error or not found:', { error, article });
+  // Validate article structure early - before any hooks
+  const isValidArticle = article && 
+    typeof article.pubkey === 'string' && 
+    typeof article.id === 'string' &&
+    Array.isArray(article.tags);
+
+  if (error || !article || !isValidArticle) {
+    console.error('Story error or not found:', { error, article, isValidArticle });
     return (
       <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
         <Navigation />
@@ -183,7 +189,9 @@ export default function StoryDetail() {
           <div className="max-w-4xl mx-auto">
             <Card>
               <CardContent className="py-12 text-center">
-                <p className="text-muted-foreground mb-4">Story not found</p>
+                <p className="text-muted-foreground mb-4">
+                  {!isValidArticle ? 'Invalid story data' : 'Story not found'}
+                </p>
                 <Link to="/stories">
                   <Button>Back to Stories</Button>
                 </Link>
@@ -195,30 +203,7 @@ export default function StoryDetail() {
     );
   }
 
-  // Validate article structure
-  if (!article.pubkey || typeof article.pubkey !== 'string' || 
-      !article.id || typeof article.id !== 'string') {
-    console.error('Invalid article structure:', article);
-    return (
-      <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
-        <Navigation />
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-4xl mx-auto">
-            <Card>
-              <CardContent className="py-12 text-center">
-                <p className="text-muted-foreground mb-4">Invalid story data</p>
-                <Link to="/stories">
-                  <Button>Back to Stories</Button>
-                </Link>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Extract article metadata
+  // Extract article metadata (article is validated now)
   const title = article.tags.find(([name]) => name === 'title')?.[1] || 'Untitled Article';
   const summary = article.tags.find(([name]) => name === 'summary')?.[1];
   const image = article.tags.find(([name]) => name === 'image')?.[1];
@@ -238,7 +223,7 @@ export default function StoryDetail() {
     .map(([, value]) => value)
     .filter((tag): tag is string => typeof tag === 'string' && tag.length > 0 && !['travel', 'traveltelly'].includes(tag));
 
-  // Get author info
+  // Get author info (safe to call hooks now - article is validated)
   const author = useAuthor(article.pubkey);
   const authorMetadata = author.data?.metadata;
   const authorName = authorMetadata?.name || genUserName(article.pubkey);
@@ -427,7 +412,7 @@ export default function StoryDetail() {
                   className={reactions?.userReaction === '+' ? 'bg-red-600 hover:bg-red-700' : ''}
                 >
                   <Heart className="w-4 h-4 mr-1" />
-                  {reactionsLoading ? '...' : reactions?.likes || 0}
+                  {reactionsLoading ? '...' : (reactions?.likes ?? 0)}
                 </Button>
 
                 <Button
@@ -437,7 +422,7 @@ export default function StoryDetail() {
                   disabled={isReacting || !user}
                 >
                   <ThumbsDown className="w-4 h-4 mr-1" />
-                  {reactionsLoading ? '...' : reactions?.dislikes || 0}
+                  {reactionsLoading ? '...' : (reactions?.dislikes ?? 0)}
                 </Button>
 
                 <ShareButton
@@ -448,7 +433,7 @@ export default function StoryDetail() {
 
                 <div className="flex items-center gap-1 text-muted-foreground ml-auto">
                   <MessageCircle className="w-4 h-4" />
-                  <span>{commentsLoading ? '...' : comments?.length || 0} comments</span>
+                  <span>{commentsLoading ? '...' : (comments?.length ?? 0)} comments</span>
                 </div>
               </div>
 
