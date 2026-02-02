@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
+import { Switch } from '@/components/ui/switch';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useUploadFile } from '@/hooks/useUploadFile';
@@ -19,15 +20,18 @@ import {
   Play,
   AlertCircle,
   Image as ImageIcon,
-  Film
+  Film,
+  Share2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { nip19 } from 'nostr-tools';
 
 interface VideoFormData {
   title: string;
   summary: string;
   tags: string;
   identifier: string;
+  shareOnNostr: boolean;
 }
 
 export function CreateVideoStoryForm() {
@@ -42,6 +46,7 @@ export function CreateVideoStoryForm() {
     summary: '',
     tags: '',
     identifier: '',
+    shareOnNostr: true, // Default to true
   });
 
   const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -363,44 +368,121 @@ export function CreateVideoStoryForm() {
 
       setUploadProgress(90);
 
-      // Publish to Nostr
+      // Publish video event to Nostr (NIP-71)
       createEvent({
         kind: videoKind, // NIP-71: 34235 for landscape, 34236 for portrait
         content: formData.summary.trim(),
         tags,
-      }, {
-        onSuccess: () => {
-          setUploadProgress(100);
-          toast({
-            title: 'Video story published!',
-            description: 'Your travel video has been shared on Nostr.',
+      });
+
+      // Also create a regular Nostr note (kind 1) if shareOnNostr is checked
+      if (formData.shareOnNostr && user) {
+        const videoTypeEmoji = isPortrait ? '📱' : '🎬';
+        const durationText = videoDuration > 0 
+          ? `${Math.floor(videoDuration / 60)}:${(Math.floor(videoDuration) % 60).toString().padStart(2, '0')}`
+          : '';
+
+        let noteContent = `${videoTypeEmoji} ${formData.title.trim()}\n`;
+
+        if (formData.summary.trim()) {
+          noteContent += `\n${formData.summary.trim()}\n`;
+        }
+
+        if (durationText) {
+          noteContent += `\n⏱️ Duration: ${durationText}`;
+        }
+
+        if (thumbnailUrl) {
+          noteContent += `\n\n${thumbnailUrl}`;
+        }
+
+        // Add hashtags to note content
+        let hashtagsText = '#video #travel #traveltelly';
+        if (formData.tags.trim()) {
+          const hashtagList = formData.tags
+            .split(',')
+            .map(tag => tag.trim().toLowerCase())
+            .filter(tag => tag.length > 0);
+
+          if (hashtagList.length > 0) {
+            hashtagsText += ' #' + hashtagList.join(' #');
+          }
+        }
+
+        noteContent += `\n\n${hashtagsText}`;
+
+        // Add TravelTelly video link
+        try {
+          const naddr = nip19.naddrEncode({
+            kind: videoKind,
+            pubkey: user.pubkey,
+            identifier,
           });
-          
-          // Reset form
+          noteContent += `\n\n🎥 Watch on TravelTelly\nhttps://traveltelly.com/video/${naddr}`;
+        } catch (error) {
+          console.error('Error creating naddr:', error);
+        }
+
+        // Create the regular note with relevant tags
+        const noteTags: string[][] = [
+          ['t', 'video'],
+          ['t', 'travel'],
+          ['t', 'traveltelly'],
+        ];
+
+        if (thumbnailUrl) {
+          noteTags.push(['image', thumbnailUrl]);
+        }
+
+        if (videoUrl) {
+          noteTags.push(['r', videoUrl]);
+        }
+
+        // Add topic hashtags to note tags
+        if (formData.tags.trim()) {
+          const hashtagList = formData.tags
+            .split(',')
+            .map(tag => tag.trim().toLowerCase())
+            .filter(tag => tag.length > 0);
+
+          hashtagList.forEach(hashtag => {
+            noteTags.push(['t', hashtag]);
+          });
+        }
+
+        // Publish the regular note
+        createEvent({
+          kind: 1,
+          content: noteContent,
+          tags: noteTags,
+        });
+      }
+
+      setUploadProgress(100);
+      toast({
+        title: 'Video published!',
+        description: formData.shareOnNostr 
+          ? 'Your video has been shared on Nostr and is visible on all clients.'
+          : 'Your video has been published to TravelTelly.',
+      });
+      
+      // Reset form
           setFormData({
             title: '',
             summary: '',
             tags: '',
             identifier: '',
+            shareOnNostr: true,
           });
-          setVideoFile(null);
-          setVideoPreview('');
-          setThumbnailFile(null);
-          setThumbnailPreview('');
-          setUploadProgress(0);
-          setVideoDuration('');
-          
-          navigate('/stories?tab=browse&type=video');
-        },
-        onError: () => {
-          toast({
-            title: 'Failed to publish video',
-            description: 'Please try again.',
-            variant: 'destructive',
-          });
-          setUploadProgress(0);
-        },
-      });
+      setVideoFile(null);
+      setVideoPreview('');
+      setThumbnailFile(null);
+      setThumbnailPreview('');
+      setUploadProgress(0);
+      setVideoDuration(0);
+      setVideoDimensions(null);
+      
+      navigate('/stories?tab=browse&type=video');
 
     } catch (error) {
       console.error('Video upload error:', error);
@@ -690,6 +772,27 @@ export function CreateVideoStoryForm() {
             <p className="text-xs text-muted-foreground mt-1">
               Unique identifier for this video. Used for editing and linking.
             </p>
+          </div>
+
+          {/* Share on Nostr Switch */}
+          <div className="flex items-center justify-between p-4 border rounded-lg bg-purple-50/50 dark:bg-purple-900/10">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <Share2 className="w-4 h-4 text-purple-600" />
+                <Label htmlFor="share-on-nostr" className="font-semibold cursor-pointer">
+                  Share on Nostr
+                </Label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Also publish as a regular note (kind 1) for visibility on all Nostr clients. 
+                Your video will appear in followers' feeds just like reviews do.
+              </p>
+            </div>
+            <Switch
+              id="share-on-nostr"
+              checked={formData.shareOnNostr}
+              onCheckedChange={(checked) => setFormData({ ...formData, shareOnNostr: checked })}
+            />
           </div>
 
           {/* NIP-71 info */}
