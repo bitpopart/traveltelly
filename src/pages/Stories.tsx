@@ -9,6 +9,7 @@ import { RelaySelector } from '@/components/RelaySelector';
 import { OptimizedImage } from '@/components/OptimizedImage';
 import { CreateArticleForm } from '@/components/CreateArticleForm';
 import { CreateVideoStoryForm } from '@/components/CreateVideoStoryForm';
+import { VideoPlayerDialog } from '@/components/VideoPlayerDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostr } from '@nostrify/react';
@@ -35,6 +36,7 @@ interface VideoStoryCardProps {
 }
 
 function VideoStoryCard({ story }: VideoStoryCardProps) {
+  const [dialogOpen, setDialogOpen] = useState(false);
   const author = useAuthor(story.pubkey);
   const metadata = author.data?.metadata;
 
@@ -83,16 +85,13 @@ function VideoStoryCard({ story }: VideoStoryCardProps) {
     console.error('Invalid video story identifier:', identifier);
     return null;
   }
-  
-  const naddr = nip19.naddrEncode({
-    kind: story.kind,
-    pubkey: story.pubkey,
-    identifier,
-  });
 
   return (
-    <Link to={`/video/${naddr}`}>
-      <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group">
+    <>
+      <Card 
+        className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group"
+        onClick={() => setDialogOpen(true)}
+      >
         {thumb && (
           <div className="relative aspect-video overflow-hidden bg-black">
             <OptimizedImage
@@ -153,7 +152,13 @@ function VideoStoryCard({ story }: VideoStoryCardProps) {
           )}
         </CardHeader>
       </Card>
-    </Link>
+
+      <VideoPlayerDialog 
+        video={story} 
+        open={dialogOpen} 
+        onOpenChange={setDialogOpen} 
+      />
+    </>
   );
 }
 
