@@ -184,8 +184,10 @@ export default function StoryDetail() {
   const summary = article.tags.find(([name]) => name === 'summary')?.[1];
   const image = article.tags.find(([name]) => name === 'image')?.[1];
   const location = article.tags.find(([name]) => name === 'location')?.[1];
-  const identifier = article.tags.find(([name]) => name === 'd')?.[1] || '';
-  const publishedAt = article.tags.find(([name]) => name === 'published_at')?.[1];
+  const identifierRaw = article.tags.find(([name]) => name === 'd')?.[1];
+  const identifier = typeof identifierRaw === 'string' ? identifierRaw : '';
+  const publishedAtRaw = article.tags.find(([name]) => name === 'published_at')?.[1];
+  const publishedAt = typeof publishedAtRaw === 'string' ? publishedAtRaw : undefined;
 
   const displayDate = publishedAt ?
     new Date(parseInt(publishedAt) * 1000) :
@@ -195,7 +197,7 @@ export default function StoryDetail() {
   const topicTags = article.tags
     .filter(([name]) => name === 't')
     .map(([, value]) => value)
-    .filter(tag => tag && !['travel', 'traveltelly'].includes(tag));
+    .filter((tag): tag is string => typeof tag === 'string' && tag.length > 0 && !['travel', 'traveltelly'].includes(tag));
 
   // Get author info
   const author = useAuthor(article.pubkey);
@@ -347,10 +349,10 @@ export default function StoryDetail() {
                     </div>
                   )}
                 </div>
-                {topicTags.length > 0 && (
+                 {topicTags.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-3">
-                    {topicTags.map(tag => (
-                      <Badge key={tag} variant="outline" className="bg-green-50 dark:bg-green-900/20">
+                    {topicTags.map((tag, index) => (
+                      <Badge key={`${tag}-${index}`} variant="outline" className="bg-green-50 dark:bg-green-900/20">
                         #{tag}
                       </Badge>
                     ))}
