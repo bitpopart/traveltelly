@@ -154,8 +154,8 @@ export function OptimizedImage({
 
   const imageContent = (
     <>
-      {/* Blur placeholder image (loads first, very small file) */}
-      {blurUp && blurUrl && !isError && shouldLoad && (
+      {/* Blur placeholder image (loads immediately - very small file ~1-2KB) */}
+      {blurUp && blurUrl && !isError && (
         <img
           src={blurUrl}
           alt=""
@@ -173,7 +173,7 @@ export function OptimizedImage({
         />
       )}
       
-      {/* Main optimized image */}
+      {/* Main optimized image - only loads when shouldLoad is true */}
       {shouldLoad && (
         <img
           ref={imgRef}
@@ -193,8 +193,8 @@ export function OptimizedImage({
         />
       )}
 
-      {/* Loading skeleton - only show if blur hasn't loaded yet */}
-      {!blurLoaded && !isError && !blurUp && (
+      {/* Loading skeleton - only show if no blur-up and nothing loaded yet */}
+      {!blurLoaded && !isError && !blurUp && !shouldLoad && (
         <div className={cn(
           'absolute inset-0 bg-gray-200 dark:bg-gray-800 animate-pulse',
           aspectRatio && 'w-full h-full'
