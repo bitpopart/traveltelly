@@ -166,11 +166,11 @@ function useStories() {
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
 
-      // Query ALL stories with travel-related tags
+      // Query stories with traveltelly tag to filter out template/demo stories
       const events = await nostr.query([
         {
           kinds: [30023],
-          '#t': ['travel'],
+          '#t': ['traveltelly'],
           limit: 100,
         }
       ], { signal });
