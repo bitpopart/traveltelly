@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
 interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -29,9 +29,12 @@ function getThumbnailUrl(url: string, width: number = 600, quality: number = 75)
     const isBlossomServer = blossomDomains.some(domain => urlObj.hostname.includes(domain));
     
     if (isBlossomServer) {
-      // Add width and quality parameters for faster loading
+      // Clear existing params and add optimized ones for faster loading
+      urlObj.search = '';
       urlObj.searchParams.set('w', width.toString());
       urlObj.searchParams.set('q', quality.toString());
+      // Add format hint for better compression
+      urlObj.searchParams.set('f', 'webp');
       return urlObj.toString();
     }
     
@@ -53,9 +56,11 @@ function getBlurPlaceholderUrl(url: string): string {
     const isBlossomServer = blossomDomains.some(domain => urlObj.hostname.includes(domain));
     
     if (isBlossomServer) {
-      // Request very small size for blur placeholder
-      urlObj.searchParams.set('w', '40');
-      urlObj.searchParams.set('q', '30'); // Very low quality for tiny file size
+      // Clear existing params and request very small size for blur placeholder
+      urlObj.search = '';
+      urlObj.searchParams.set('w', '20'); // Even smaller for ultra-fast load
+      urlObj.searchParams.set('q', '20'); // Very low quality for tiny file size
+      urlObj.searchParams.set('f', 'webp'); // Force WebP for smallest size
       return urlObj.toString();
     }
     
@@ -79,12 +84,57 @@ export function OptimizedImage({
   const [isLoaded, setIsLoaded] = useState(false);
   const [isError, setIsError] = useState(false);
   const [blurLoaded, setBlurLoaded] = useState(false);
+  const [shouldLoad, setShouldLoad] = useState(priority); // Only load immediately if priority
+  const imgRef = useRef<HTMLImageElement>(null);
 
   // Generate optimized URLs - use aggressive optimization for thumbnails
-  const width = thumbnail ? 300 : 600; // Much smaller for thumbnails
-  const quality = thumbnail ? 60 : 75; // Lower quality for thumbnails
+  const width = thumbnail ? 400 : 800; // Optimized sizes for thumbnails
+  const quality = thumbnail ? 70 : 80; // Balanced quality for thumbnails
   const thumbnailUrl = getThumbnailUrl(src, width, quality);
   const blurUrl = blurUp ? getBlurPlaceholderUrl(src) : null;
+
+  // Intersection Observer for lazy loading non-priority images
+  useEffect(() => {
+    if (priority || shouldLoad) return; // Skip if already marked to load
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setShouldLoad(true);
+            observer.disconnect();
+          }
+        });
+      },
+      {
+        rootMargin: '100px', // Start loading 100px before entering viewport
+        threshold: 0.01,
+      }
+    );
+
+    if (imgRef.current?.parentElement) {
+      observer.observe(imgRef.current.parentElement);
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [priority, shouldLoad]);
+
+  // Preload priority images
+  useEffect(() => {
+    if (priority && thumbnailUrl) {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'image';
+      link.href = thumbnailUrl;
+      document.head.appendChild(link);
+      
+      return () => {
+        document.head.removeChild(link);
+      };
+    }
+  }, [priority, thumbnailUrl]);
 
   const handleLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     setIsLoaded(true);
@@ -105,7 +155,7 @@ export function OptimizedImage({
   const imageContent = (
     <>
       {/* Blur placeholder image (loads first, very small file) */}
-      {blurUp && blurUrl && !isError && (
+      {blurUp && blurUrl && !isError && shouldLoad && (
         <img
           src={blurUrl}
           alt=""
@@ -124,21 +174,24 @@ export function OptimizedImage({
       )}
       
       {/* Main optimized image */}
-      <img
-        src={thumbnailUrl}
-        alt={alt}
-        loading={priority ? 'eager' : 'lazy'}
-        decoding="async"
-        fetchPriority={priority ? 'high' : 'auto'}
-        onLoad={handleLoad}
-        onError={handleError}
-        className={cn(
-          'transition-opacity duration-150',
-          isLoaded ? 'opacity-100' : 'opacity-0',
-          aspectRatio ? 'absolute inset-0 w-full h-full object-cover' : className
-        )}
-        {...props}
-      />
+      {shouldLoad && (
+        <img
+          ref={imgRef}
+          src={thumbnailUrl}
+          alt={alt}
+          loading={priority ? 'eager' : 'lazy'}
+          decoding="async"
+          fetchPriority={priority ? 'high' : 'auto'}
+          onLoad={handleLoad}
+          onError={handleError}
+          className={cn(
+            'transition-opacity duration-150',
+            isLoaded ? 'opacity-100' : 'opacity-0',
+            aspectRatio ? 'absolute inset-0 w-full h-full object-cover' : className
+          )}
+          {...props}
+        />
+      )}
 
       {/* Loading skeleton - only show if blur hasn't loaded yet */}
       {!blurLoaded && !isError && !blurUp && (

@@ -528,12 +528,12 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                 <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
                   <Link to="/reviews" className="block relative">
                     <div className="aspect-video md:aspect-[4/5] overflow-hidden relative" style={{ backgroundColor: '#27b0ff' }}>
-                      {latestReview?.image ? (
+                       {latestReview?.image ? (
                         <OptimizedImage
                           src={latestReview.image}
                           alt={latestReview.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          priority={true}
+                          priority={false}
                           blurUp={true}
                           thumbnail={true}
                         />
@@ -563,12 +563,12 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                 <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
                   <Link to="/stories" className="block relative">
                     <div className="aspect-video md:aspect-[4/5] overflow-hidden relative" style={{ backgroundColor: '#b2d235' }}>
-                      {latestStory?.image ? (
+                       {latestStory?.image ? (
                         <OptimizedImage
                           src={latestStory.image}
                           alt={latestStory.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          priority={true}
+                          priority={false}
                           blurUp={true}
                           thumbnail={true}
                         />
@@ -598,12 +598,12 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                 <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
                   <Link to="/trips" className="block relative">
                     <div className="aspect-video md:aspect-[4/5] overflow-hidden relative" style={{ backgroundColor: '#ffcc00' }}>
-                      {latestTrip?.image ? (
+                       {latestTrip?.image ? (
                         <OptimizedImage
                           src={latestTrip.image}
                           alt={latestTrip.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          priority={true}
+                          priority={false}
                           blurUp={true}
                           thumbnail={true}
                         />
@@ -633,12 +633,12 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                 <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
                   <Link to="/marketplace" className="block relative">
                     <div className="aspect-video md:aspect-[4/5] overflow-hidden relative" style={{ backgroundColor: '#ec1a58' }}>
-                      {latestStockMedia?.image ? (
+                       {latestStockMedia?.image ? (
                         <OptimizedImage
                           src={latestStockMedia.image}
                           alt={latestStockMedia.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          priority={true}
+                          priority={false}
                           blurUp={true}
                           thumbnail={true}
                         />
