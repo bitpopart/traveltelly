@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNostr } from '@nostrify/react';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -21,9 +21,28 @@ import type { NostrEvent } from '@nostrify/nostrify';
 import { nip19 } from 'nostr-tools';
 import { MapPin, Pencil, Trash2, Camera, X, Upload, Loader2, Plus } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { TripCategoryManager } from './TripCategoryManager';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642';
 const ADMIN_HEX = nip19.decode(ADMIN_NPUB).data as string;
+
+interface TripCategory {
+  value: string;
+  label: string;
+  emoji: string;
+}
+
+const DEFAULT_CATEGORIES: TripCategory[] = [
+  { value: 'walk', label: 'Walk', emoji: '🚶' },
+  { value: 'hike', label: 'Hike', emoji: '🥾' },
+  { value: 'cycling', label: 'Cycling', emoji: '🚴' },
+  { value: 'running', label: 'Running', emoji: '🏃' },
+  { value: 'road-trip', label: 'Road Trip', emoji: '🚗' },
+  { value: 'flight', label: 'Flight', emoji: '✈️' },
+  { value: 'train', label: 'Train', emoji: '🚂' },
+  { value: 'boat', label: 'Boat', emoji: '⛵' },
+];
 
 interface TripEvent extends NostrEvent {
   kind: 30025;
@@ -201,6 +220,19 @@ export function AdminTripManager() {
   const [tags, setTags] = useState('');
   const [photos, setPhotos] = useState<PhotoWithGPS[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [categories, setCategories] = useState<TripCategory[]>(DEFAULT_CATEGORIES);
+
+  // Load categories from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem('trip-categories');
+    if (stored) {
+      try {
+        setCategories(JSON.parse(stored));
+      } catch (error) {
+        console.error('Error loading trip categories:', error);
+      }
+    }
+  }, []);
 
   const { data: trips = [], isLoading, refetch } = useQuery({
     queryKey: ['admin-trips', ADMIN_HEX],
@@ -460,33 +492,46 @@ export function AdminTripManager() {
 
   return (
     <>
-      <div className="space-y-4">
-        <div className="flex justify-between items-center mb-4">
-          <p className="text-sm text-muted-foreground">
-            {trips.length} trip{trips.length !== 1 ? 's' : ''} found
-          </p>
-        </div>
+      <Tabs defaultValue="manage-trips" className="w-full">
+        <TabsList>
+          <TabsTrigger value="manage-trips">Manage Trips</TabsTrigger>
+          <TabsTrigger value="trip-categories">Trip Categories</TabsTrigger>
+        </TabsList>
 
-        {trips.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <MapPin className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">No trips found</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {trips.map((trip) => (
-              <TripCard
-                key={trip.id}
-                trip={trip}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-              />
-            ))}
+        <TabsContent value="manage-trips" className="mt-6">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center mb-4">
+              <p className="text-sm text-muted-foreground">
+                {trips.length} trip{trips.length !== 1 ? 's' : ''} found
+              </p>
+            </div>
+
+            {trips.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <MapPin className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-muted-foreground">No trips found</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {trips.map((trip) => (
+                  <TripCard
+                    key={trip.id}
+                    trip={trip}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </TabsContent>
+
+        <TabsContent value="trip-categories" className="mt-6">
+          <TripCategoryManager />
+        </TabsContent>
+      </Tabs>
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
@@ -524,14 +569,11 @@ export function AdminTripManager() {
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="walk">🚶 Walk</SelectItem>
-                  <SelectItem value="hike">🥾 Hike</SelectItem>
-                  <SelectItem value="cycling">🚴 Cycling</SelectItem>
-                  <SelectItem value="running">🏃 Running</SelectItem>
-                  <SelectItem value="road-trip">🚗 Road Trip</SelectItem>
-                  <SelectItem value="flight">✈️ Flight</SelectItem>
-                  <SelectItem value="train">🚂 Train</SelectItem>
-                  <SelectItem value="boat">⛵ Boat</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.value} value={cat.value}>
+                      {cat.emoji} {cat.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

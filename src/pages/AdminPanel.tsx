@@ -158,22 +158,18 @@ export default function AdminPanel() {
 
           {/* Main Admin Tabs */}
           <Tabs defaultValue="manage-reviews" className="w-full">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="manage-reviews" className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4" />
-                Manage Reviews
+                Reviews
               </TabsTrigger>
               <TabsTrigger value="manage-trips" className="flex items-center gap-2">
                 <MapPin className="w-4 h-4" />
-                Manage Trips
+                Trips
               </TabsTrigger>
               <TabsTrigger value="review-permissions" className="flex items-center gap-2">
                 <Shield className="w-4 h-4" />
                 Review Permissions
-              </TabsTrigger>
-              <TabsTrigger value="categories" className="flex items-center gap-2">
-                <Tag className="w-4 h-4" />
-                Review Categories
               </TabsTrigger>
               <TabsTrigger value="media-permissions" className="flex items-center gap-2">
                 <Camera className="w-4 h-4" />
@@ -195,10 +191,6 @@ export default function AdminPanel() {
 
             <TabsContent value="review-permissions" className="mt-6">
               <AdminPermissionManager />
-            </TabsContent>
-
-            <TabsContent value="categories" className="mt-6">
-              <CategoryManager />
             </TabsContent>
 
             <TabsContent value="media-permissions" className="mt-6">

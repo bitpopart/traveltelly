@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,23 @@ import { useToast } from '@/hooks/useToast';
 import { extractGPSFromImage } from '@/lib/exifUtils';
 import { compressImage, COMPRESSION_PRESETS } from '@/lib/imageCompression';
 import { Camera, MapPin, Upload, X, FileUp, Info, Loader2 } from 'lucide-react';
+
+interface TripCategory {
+  value: string;
+  label: string;
+  emoji: string;
+}
+
+const DEFAULT_CATEGORIES: TripCategory[] = [
+  { value: 'walk', label: 'Walk', emoji: '🚶' },
+  { value: 'hike', label: 'Hike', emoji: '🥾' },
+  { value: 'cycling', label: 'Cycling', emoji: '🚴' },
+  { value: 'running', label: 'Running', emoji: '🏃' },
+  { value: 'road-trip', label: 'Road Trip', emoji: '🚗' },
+  { value: 'flight', label: 'Flight', emoji: '✈️' },
+  { value: 'train', label: 'Train', emoji: '🚂' },
+  { value: 'boat', label: 'Boat', emoji: '⛵' },
+];
 
 interface PhotoWithGPS {
   file: File;
@@ -40,6 +57,19 @@ export function CreateTripForm({ onSuccess }: CreateTripFormProps = {}) {
   const [photos, setPhotos] = useState<PhotoWithGPS[]>([]);
   const [gpxFile, setGpxFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [categories, setCategories] = useState<TripCategory[]>(DEFAULT_CATEGORIES);
+
+  // Load categories from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem('trip-categories');
+    if (stored) {
+      try {
+        setCategories(JSON.parse(stored));
+      } catch (error) {
+        console.error('Error loading trip categories:', error);
+      }
+    }
+  }, []);
 
   const handlePhotoUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -315,9 +345,11 @@ export function CreateTripForm({ onSuccess }: CreateTripFormProps = {}) {
             <SelectValue placeholder="Select trip type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="walk">🚶 Walk</SelectItem>
-            <SelectItem value="hike">🥾 Hike</SelectItem>
-            <SelectItem value="cycling">🚴 Cycling</SelectItem>
+            {categories.map((cat) => (
+              <SelectItem key={cat.value} value={cat.value}>
+                {cat.emoji} {cat.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

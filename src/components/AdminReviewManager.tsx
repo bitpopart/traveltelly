@@ -13,6 +13,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { EditReviewForm } from '@/components/EditReviewForm';
 import { RelaySelector } from '@/components/RelaySelector';
+import { CategoryManager } from '@/components/CategoryManager';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CategoryManager } from '@/components/CategoryManager';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
   SelectContent,
@@ -396,9 +400,16 @@ export function AdminReviewManager() {
   );
 
   return (
-    <div className="space-y-6">
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <Tabs defaultValue="manage-reviews" className="w-full">
+      <TabsList>
+        <TabsTrigger value="manage-reviews">Manage Reviews</TabsTrigger>
+        <TabsTrigger value="review-categories">Review Categories</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="manage-reviews" className="mt-6">
+        <div className="space-y-6">
+          {/* Statistics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
@@ -550,6 +561,12 @@ export function AdminReviewManager() {
           ))}
         </div>
       )}
-    </div>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="review-categories" className="mt-6">
+        <CategoryManager />
+      </TabsContent>
+    </Tabs>
   );
 }
