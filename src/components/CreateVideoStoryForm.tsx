@@ -655,23 +655,37 @@ export function CreateVideoStoryForm() {
               ) : (
                 <div className="space-y-3">
                   <div className="relative inline-block max-w-full">
-                    <video
-                      ref={videoRef}
-                      src={videoPreview}
-                      controls
-                      preload="metadata"
-                      playsInline
-                      muted
-                      className="max-w-md w-auto max-h-80 rounded-lg bg-black"
-                      style={{ display: 'block' }}
-                      onLoadedMetadata={(e) => {
-                        const video = e.currentTarget;
-                        console.log('Video loaded:', {
-                          duration: video.duration,
-                          width: video.videoWidth,
-                          height: video.videoHeight
-                        });
-                      }}
+                     <video
+                       ref={videoRef}
+                       src={videoPreview}
+                       controls
+                       preload="metadata"
+                       playsInline
+                       className="max-w-md w-auto max-h-80 rounded-lg bg-black"
+                       style={{ display: 'block' }}
+                       onLoadedMetadata={(e) => {
+                         const video = e.currentTarget;
+                         console.log('Video loaded:', {
+                           duration: video.duration,
+                           width: video.videoWidth,
+                           height: video.videoHeight
+                         });
+                       }}
+                       onPause={(e) => {
+                         if (isPreviewing) {
+                           console.log('Video paused unexpectedly at:', e.currentTarget.currentTime);
+                         }
+                       }}
+                       onEnded={(e) => {
+                         console.log('Video ended event fired at:', e.currentTarget.currentTime);
+                         if (isPreviewing) {
+                           setIsPreviewing(false);
+                           if (previewIntervalRef.current) {
+                             clearInterval(previewIntervalRef.current);
+                             previewIntervalRef.current = null;
+                           }
+                         }
+                       }}
                       onError={(e) => {
                         console.error('Video load error:', e);
                         const video = e.currentTarget;
@@ -850,18 +864,21 @@ export function CreateVideoStoryForm() {
                           
                           // If already previewing, stop it
                           if (isPreviewing) {
-                            console.log('Stopping preview');
+                            console.log('Stopping preview manually');
                             video.pause();
+                            video.currentTime = trimStart;
                             if (previewIntervalRef.current) {
                               clearInterval(previewIntervalRef.current);
                               previewIntervalRef.current = null;
                             }
                             setIsPreviewing(false);
-                            video.currentTime = trimStart;
                             return;
                           }
 
-                          console.log(`Starting preview from ${trimStart}s to ${trimEnd}s`);
+                          const startTime = trimStart;
+                          const endTime = trimEnd;
+                          
+                          console.log(`Starting preview from ${startTime.toFixed(2)}s to ${endTime.toFixed(2)}s (duration: ${(endTime - startTime).toFixed(2)}s)`);
 
                           // Clear any existing intervals
                           if (previewIntervalRef.current) {
@@ -873,7 +890,11 @@ export function CreateVideoStoryForm() {
                           video.pause();
                           
                           // Set to start position
-                          video.currentTime = trimStart;
+                          video.currentTime = startTime;
+                          
+                          // Unmute for preview (muted videos may behave differently)
+                          const wasMuted = video.muted;
+                          video.muted = false;
                           
                           // Small delay to ensure currentTime is set
                           setTimeout(() => {
@@ -883,7 +904,7 @@ export function CreateVideoStoryForm() {
                             
                             if (playPromise !== undefined) {
                               playPromise.then(() => {
-                                console.log('Video playing successfully');
+                                console.log('Video playing successfully from:', videoRef.current?.currentTime);
                                 setIsPreviewing(true);
 
                                 // Monitor playback with interval
@@ -899,13 +920,28 @@ export function CreateVideoStoryForm() {
                                   }
 
                                   const current = videoRef.current.currentTime;
-                                  console.log(`Current time: ${current.toFixed(2)}s, End: ${trimEnd.toFixed(2)}s`);
+                                  const remaining = endTime - current;
+                                  console.log(`Current: ${current.toFixed(2)}s | End: ${endTime.toFixed(2)}s | Remaining: ${remaining.toFixed(2)}s | Playing: ${!videoRef.current.paused}`);
                                   
-                                  // Stop when we reach the trim end
-                                  if (current >= trimEnd) {
-                                    console.log('Reached trim end, stopping');
+                                  // Check if video stopped playing unexpectedly
+                                  if (videoRef.current.paused && current < endTime - 0.2) {
+                                    console.warn('Video paused unexpectedly! Attempting to resume...');
+                                    videoRef.current.play().catch(err => {
+                                      console.error('Failed to resume:', err);
+                                      if (previewIntervalRef.current) {
+                                        clearInterval(previewIntervalRef.current);
+                                        previewIntervalRef.current = null;
+                                      }
+                                      setIsPreviewing(false);
+                                    });
+                                  }
+                                  
+                                  // Stop when we reach the trim end (with small buffer)
+                                  if (current >= endTime - 0.05) {
+                                    console.log('Reached trim end, stopping at:', current.toFixed(2));
                                     videoRef.current.pause();
-                                    videoRef.current.currentTime = trimStart;
+                                    videoRef.current.currentTime = startTime;
+                                    videoRef.current.muted = wasMuted;
                                     
                                     if (previewIntervalRef.current) {
                                       clearInterval(previewIntervalRef.current);
@@ -918,6 +954,7 @@ export function CreateVideoStoryForm() {
                               }).catch((error) => {
                                 console.error('Play error:', error);
                                 setIsPreviewing(false);
+                                video.muted = wasMuted;
                                 
                                 // Show user-friendly message based on error
                                 const errorMessage = error.name === 'NotAllowedError' 
