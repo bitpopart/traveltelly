@@ -49,8 +49,8 @@ export default function AnalyticsDashboard() {
 
   // Content counts
   const reviewCount = useReviewCount();
-  const storyCount = useStoryCount();
-  const tripCount = useTripCount();
+  const { data: storyCount = 0 } = useStoryCount();
+  const { data: tripCount = 0 } = useTripCount();
   const { data: stockMediaCount = 0 } = useStockMediaCount();
 
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('7d');
