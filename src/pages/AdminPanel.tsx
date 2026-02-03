@@ -13,7 +13,7 @@ import { AdminReviewManager } from '@/components/AdminReviewManager';
 import { AdminTripManager } from '@/components/AdminTripManager';
 import { AdminStoryManager } from '@/components/AdminStoryManager';
 import { nip19 } from 'nostr-tools';
-import { Shield, ArrowLeft, Camera, MessageSquare, Settings, Tag, FileImage, Coffee, MapPin, Upload, BookOpen, Smartphone } from 'lucide-react';
+import { Shield, ArrowLeft, Camera, MessageSquare, Settings, Tag, FileImage, Coffee, MapPin, Upload, BookOpen, Smartphone, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function AdminPanel() {
@@ -99,6 +99,12 @@ export default function AdminPanel() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-3">
+                <Link to="/admin/share-scheduler">
+                  <Button variant="default" className="bg-purple-600 hover:bg-purple-700">
+                    <Clock className="w-4 h-4 mr-2" />
+                    Share Scheduler
+                  </Button>
+                </Link>
                 <Link to="/admin/app-builder">
                   <Button variant="default" className="bg-purple-600 hover:bg-purple-700">
                     <Smartphone className="w-4 h-4 mr-2" />
