@@ -164,13 +164,12 @@ export function OptimizedImage({
           aria-hidden="true"
           onLoad={() => setBlurLoaded(true)}
           className={cn(
-            'absolute inset-0 w-full h-full object-cover transition-opacity duration-150',
+            'absolute inset-0 w-full h-full object-cover transition-opacity duration-300',
             isLoaded ? 'opacity-0' : 'opacity-100',
             aspectRatio ? '' : className
           )}
           style={{ 
-            filter: 'blur(20px)', 
-            transform: 'scale(1.1)',
+            filter: 'blur(10px)',
           }}
         />
       )}
