@@ -24,11 +24,13 @@ import {
   List,
   Video,
   FileText,
-  Play
+  Play,
+  Share2
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { nip19 } from 'nostr-tools';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useToast } from '@/hooks/useToast';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 interface VideoStoryCardProps {
@@ -39,6 +41,7 @@ function VideoStoryCard({ story }: VideoStoryCardProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const author = useAuthor(story.pubkey);
   const metadata = author.data?.metadata;
+  const { toast } = useToast();
 
   const displayName = metadata?.name || genUserName(story.pubkey);
   const profileImage = metadata?.picture;
@@ -50,11 +53,14 @@ function VideoStoryCard({ story }: VideoStoryCardProps) {
   const imetaTag = story.tags.find(([name]) => name === 'imeta');
   let thumb = '';
   let duration = '';
+  let videoUrl = '';
   
   if (imetaTag) {
     for (let i = 1; i < imetaTag.length; i++) {
       const part = imetaTag[i];
-      if (part.startsWith('image ')) {
+      if (part.startsWith('url ')) {
+        videoUrl = part.substring(4);
+      } else if (part.startsWith('image ')) {
         thumb = part.substring(6);
       } else if (part.startsWith('duration ')) {
         const durationSec = parseFloat(part.substring(9));
@@ -66,12 +72,38 @@ function VideoStoryCard({ story }: VideoStoryCardProps) {
   }
   
   // Fallback to legacy tags if imeta not present
+  if (!videoUrl) {
+    videoUrl = story.tags.find(([name]) => name === 'url')?.[1] || '';
+  }
   if (!thumb) {
     thumb = story.tags.find(([name]) => name === 'thumb')?.[1] || '';
   }
   if (!duration) {
     duration = story.tags.find(([name]) => name === 'duration')?.[1] || '';
   }
+
+  const handleShareToDevine = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent opening the dialog
+    
+    // Create naddr for the video
+    const identifier = story.tags.find(([name]) => name === 'd')?.[1];
+    if (!identifier) return;
+    
+    const naddr = nip19.naddrEncode({
+      kind: story.kind,
+      pubkey: story.pubkey,
+      identifier,
+    });
+    
+    // Open devine.video with the nostr event
+    const devineUrl = `https://www.devine.video/v/nostr:${naddr}`;
+    window.open(devineUrl, '_blank', 'noopener,noreferrer');
+    
+    toast({
+      title: 'Opening devine.video',
+      description: 'Share your video to your devine.video account',
+    });
+  };
 
   const topicTags = story.tags
     .filter(([name]) => name === 't')
@@ -108,10 +140,20 @@ function VideoStoryCard({ story }: VideoStoryCardProps) {
               </div>
             </div>
             {duration && (
-              <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
+              <div className="absolute bottom-2 left-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
                 {duration}
               </div>
             )}
+            
+            {/* Share to devine button */}
+            <button
+              onClick={handleShareToDevine}
+              className="absolute bottom-2 right-2 bg-purple-600 hover:bg-purple-700 text-white text-xs px-2 py-1 rounded flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+              title="Share to devine.video"
+            >
+              <Share2 className="w-3 h-3" />
+              <span className="hidden sm:inline">devine</span>
+            </button>
           </div>
         )}
 

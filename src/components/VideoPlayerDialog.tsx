@@ -96,8 +96,8 @@ export function VideoPlayerDialog({ video, open, onOpenChange }: VideoPlayerDial
   });
 
   const handleShareToDevine = () => {
-    // Create devine.video share URL
-    const devineUrl = `https://www.devine.video/share?url=${encodeURIComponent(videoUrl)}&title=${encodeURIComponent(title)}`;
+    // Create devine.video URL using nostr address
+    const devineUrl = `https://www.devine.video/v/nostr:${naddr}`;
     
     // Open in new window
     window.open(devineUrl, '_blank', 'noopener,noreferrer');
@@ -118,7 +118,7 @@ export function VideoPlayerDialog({ video, open, onOpenChange }: VideoPlayerDial
       <DialogContent className={dialogClassName}>
         {/* Video Player */}
         {videoUrl && (
-          <div className={`${isPortrait ? 'aspect-[9/16]' : 'aspect-video'} bg-black relative`}>
+          <div className={`${isPortrait ? 'aspect-[9/16]' : 'aspect-video'} bg-black`}>
             <video
               ref={videoRef}
               src={videoUrl}
@@ -130,18 +130,6 @@ export function VideoPlayerDialog({ video, open, onOpenChange }: VideoPlayerDial
               onLoadedMetadata={handleVideoLoad}
               className="w-full h-full"
             />
-            
-            {/* Share to devine.video button */}
-            <div className="absolute bottom-4 right-4">
-              <Button
-                onClick={handleShareToDevine}
-                size="sm"
-                className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg"
-              >
-                <Share2 className="w-3 h-3 mr-1" />
-                Share to devine
-              </Button>
-            </div>
           </div>
         )}
 
@@ -175,12 +163,23 @@ export function VideoPlayerDialog({ video, open, onOpenChange }: VideoPlayerDial
               </div>
             </div>
 
-            <Link to={`/video/${naddr}`} onClick={() => onOpenChange(false)}>
-              <Button variant="outline" size="sm">
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Full Page
+            <div className="flex gap-2">
+              <Button
+                onClick={handleShareToDevine}
+                size="sm"
+                className="bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                <Share2 className="w-3 h-3 mr-1" />
+                Share to devine
               </Button>
-            </Link>
+              
+              <Link to={`/video/${naddr}`} onClick={() => onOpenChange(false)}>
+                <Button variant="outline" size="sm">
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Full Page
+                </Button>
+              </Link>
+            </div>
           </div>
 
           {/* Description */}
