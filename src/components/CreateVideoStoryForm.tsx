@@ -61,16 +61,20 @@ export function CreateVideoStoryForm() {
   const [showTrimEditor, setShowTrimEditor] = useState<boolean>(false);
   const [isPreviewing, setIsPreviewing] = useState<boolean>(false);
   const previewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const previewIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const videoInputRef = useRef<HTMLInputElement>(null);
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Cleanup preview timeout on unmount
+  // Cleanup preview timeout/interval on unmount
   useEffect(() => {
     return () => {
       if (previewTimeoutRef.current) {
         clearTimeout(previewTimeoutRef.current);
+      }
+      if (previewIntervalRef.current) {
+        clearInterval(previewIntervalRef.current);
       }
     };
   }, []);
@@ -566,6 +570,10 @@ export function CreateVideoStoryForm() {
         clearTimeout(previewTimeoutRef.current);
         previewTimeoutRef.current = null;
       }
+      if (previewIntervalRef.current) {
+        clearInterval(previewIntervalRef.current);
+        previewIntervalRef.current = null;
+      }
       
       navigate('/stories?tab=browse&type=video');
 
@@ -717,6 +725,10 @@ export function CreateVideoStoryForm() {
                           clearTimeout(previewTimeoutRef.current);
                           previewTimeoutRef.current = null;
                         }
+                        if (previewIntervalRef.current) {
+                          clearInterval(previewIntervalRef.current);
+                          previewIntervalRef.current = null;
+                        }
                       }}
                     >
                       <X className="w-4 h-4" />
@@ -748,18 +760,25 @@ export function CreateVideoStoryForm() {
 
            {/* Video Trim Editor (shown when video > 6 seconds) */}
            {videoPreview && videoDuration > 0 && (
-             <div className="space-y-4 p-4 border rounded-lg bg-purple-50/50 dark:bg-purple-900/10">
-               <div className="flex items-center justify-between">
-                 <div>
-                   <Label className="text-base font-semibold">Video Length for devine.video</Label>
-                   <p className="text-xs text-muted-foreground mt-1">
-                     Videos must be 6 seconds or less. {videoDuration > 6 ? 'Trim your video below.' : 'Perfect length!'}
-                   </p>
-                 </div>
-                 <Badge variant={trimEnd - trimStart <= 6 ? 'default' : 'destructive'} className="text-sm">
-                   {(trimEnd - trimStart).toFixed(1)}s / 6s
-                 </Badge>
-               </div>
+              <div className="space-y-4 p-4 border rounded-lg bg-purple-50/50 dark:bg-purple-900/10">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex-1">
+                    <Label className="text-base font-semibold">Video Length for devine.video</Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Videos must be 6 seconds or less. {videoDuration > 6 ? 'Trim your video below.' : 'Perfect length!'}
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-1 items-end">
+                    <Badge variant={trimEnd - trimStart <= 6 ? 'default' : 'destructive'} className="text-sm whitespace-nowrap">
+                      {(trimEnd - trimStart).toFixed(1)}s / 6s
+                    </Badge>
+                    {videoDuration > 6 && (
+                      <span className="text-xs text-muted-foreground">
+                        Full: {videoDuration.toFixed(1)}s
+                      </span>
+                    )}
+                  </div>
+                </div>
 
                 {videoDuration > 6 && (
                   <div className="space-y-3">
@@ -769,14 +788,22 @@ export function CreateVideoStoryForm() {
                         <span>0:00</span>
                         <span>{Math.floor(videoDuration / 60)}:{(Math.floor(videoDuration) % 60).toString().padStart(2, '0')}</span>
                       </div>
-                      <div className="relative h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <div className="relative h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                         <div 
-                          className="absolute h-full bg-purple-500 transition-all"
+                          className={`absolute h-full transition-all ${isPreviewing ? 'bg-purple-600 animate-pulse' : 'bg-purple-500'}`}
                           style={{
                             left: `${(trimStart / videoDuration) * 100}%`,
                             width: `${((trimEnd - trimStart) / videoDuration) * 100}%`
                           }}
                         />
+                      </div>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-muted-foreground">
+                          Selected: {trimStart.toFixed(1)}s - {trimEnd.toFixed(1)}s
+                        </span>
+                        <Badge variant={isPreviewing ? 'default' : 'outline'} className="text-xs">
+                          {isPreviewing ? '▶ Playing' : `${(trimEnd - trimStart).toFixed(1)}s`}
+                        </Badge>
                       </div>
                     </div>
 
@@ -813,67 +840,72 @@ export function CreateVideoStoryForm() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={async () => {
+                        onClick={() => {
                           if (!videoRef.current) return;
                           
                           const video = videoRef.current;
-                          setIsPreviewing(true);
-
-                          // Clear any existing timeout
-                          if (previewTimeoutRef.current) {
-                            clearTimeout(previewTimeoutRef.current);
+                          
+                          // If already previewing, stop it
+                          if (isPreviewing) {
+                            video.pause();
+                            video.currentTime = trimStart;
+                            setIsPreviewing(false);
+                            if (previewIntervalRef.current) {
+                              clearInterval(previewIntervalRef.current);
+                              previewIntervalRef.current = null;
+                            }
+                            return;
                           }
 
-                          try {
-                            // Set to start position
-                            video.currentTime = trimStart;
-                            
-                            // Wait for seek to complete
-                            await new Promise<void>((resolve) => {
-                              const onSeeked = () => {
-                                video.removeEventListener('seeked', onSeeked);
-                                resolve();
-                              };
-                              video.addEventListener('seeked', onSeeked);
-                            });
+                          // Clear any existing intervals
+                          if (previewIntervalRef.current) {
+                            clearInterval(previewIntervalRef.current);
+                          }
 
-                            // Play the video
-                            await video.play();
+                          // Set to start position and play
+                          video.currentTime = trimStart;
+                          video.play().then(() => {
+                            setIsPreviewing(true);
 
-                            // Set up timeupdate listener to stop at trim end
-                            const onTimeUpdate = () => {
-                              if (video.currentTime >= trimEnd) {
-                                video.pause();
-                                video.currentTime = trimStart;
-                                video.removeEventListener('timeupdate', onTimeUpdate);
+                            // Check currentTime frequently to stop at trim end
+                            previewIntervalRef.current = setInterval(() => {
+                              if (!videoRef.current) {
+                                if (previewIntervalRef.current) {
+                                  clearInterval(previewIntervalRef.current);
+                                  previewIntervalRef.current = null;
+                                }
+                                setIsPreviewing(false);
+                                return;
+                              }
+
+                              const currentTime = videoRef.current.currentTime;
+                              
+                              // Stop when we reach or pass the trim end
+                              if (currentTime >= trimEnd - 0.05) {
+                                videoRef.current.pause();
+                                videoRef.current.currentTime = trimStart;
+                                if (previewIntervalRef.current) {
+                                  clearInterval(previewIntervalRef.current);
+                                  previewIntervalRef.current = null;
+                                }
                                 setIsPreviewing(false);
                               }
-                            };
-                            video.addEventListener('timeupdate', onTimeUpdate);
+                            }, 50); // Check every 50ms for smooth stopping
 
-                            // Fallback timeout in case timeupdate doesn't fire
-                            previewTimeoutRef.current = setTimeout(() => {
-                              video.pause();
-                              video.currentTime = trimStart;
-                              video.removeEventListener('timeupdate', onTimeUpdate);
-                              setIsPreviewing(false);
-                            }, (trimEnd - trimStart + 0.1) * 1000);
-
-                          } catch (error) {
-                            console.error('Preview error:', error);
+                          }).catch((error) => {
+                            console.error('Preview play error:', error);
                             setIsPreviewing(false);
                             toast({
                               title: 'Preview failed',
-                              description: 'Could not preview the trimmed video',
+                              description: 'Could not play the video. Try clicking the video to enable autoplay.',
                               variant: 'destructive',
                             });
-                          }
+                          });
                         }}
                         className="flex-1"
-                        disabled={isPreviewing}
                       >
                         <Play className="w-3 h-3 mr-1" />
-                        {isPreviewing ? 'Playing...' : 'Preview Trim'}
+                        {isPreviewing ? 'Stop Preview' : 'Preview Trim'}
                       </Button>
                       <Button
                         type="button"
@@ -888,6 +920,11 @@ export function CreateVideoStoryForm() {
                           }
                           if (previewTimeoutRef.current) {
                             clearTimeout(previewTimeoutRef.current);
+                            previewTimeoutRef.current = null;
+                          }
+                          if (previewIntervalRef.current) {
+                            clearInterval(previewIntervalRef.current);
+                            previewIntervalRef.current = null;
                           }
                           setIsPreviewing(false);
                         }}
