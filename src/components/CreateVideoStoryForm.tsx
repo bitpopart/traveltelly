@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,10 +59,21 @@ export function CreateVideoStoryForm() {
   const [trimStart, setTrimStart] = useState<number>(0);
   const [trimEnd, setTrimEnd] = useState<number>(6);
   const [showTrimEditor, setShowTrimEditor] = useState<boolean>(false);
+  const [isPreviewing, setIsPreviewing] = useState<boolean>(false);
+  const previewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const videoInputRef = useRef<HTMLInputElement>(null);
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Cleanup preview timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (previewTimeoutRef.current) {
+        clearTimeout(previewTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleVideoSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -550,6 +561,11 @@ export function CreateVideoStoryForm() {
       setTrimStart(0);
       setTrimEnd(6);
       setShowTrimEditor(false);
+      setIsPreviewing(false);
+      if (previewTimeoutRef.current) {
+        clearTimeout(previewTimeoutRef.current);
+        previewTimeoutRef.current = null;
+      }
       
       navigate('/stories?tab=browse&type=video');
 
@@ -696,6 +712,11 @@ export function CreateVideoStoryForm() {
                         setTrimStart(0);
                         setTrimEnd(6);
                         setShowTrimEditor(false);
+                        setIsPreviewing(false);
+                        if (previewTimeoutRef.current) {
+                          clearTimeout(previewTimeoutRef.current);
+                          previewTimeoutRef.current = null;
+                        }
                       }}
                     >
                       <X className="w-4 h-4" />
@@ -740,101 +761,155 @@ export function CreateVideoStoryForm() {
                  </Badge>
                </div>
 
-               {videoDuration > 6 && (
-                 <div className="space-y-3">
-                   <div>
-                     <div className="flex justify-between text-sm mb-2">
-                       <Label>Start Time</Label>
-                       <span className="text-muted-foreground">{trimStart.toFixed(1)}s</span>
-                     </div>
-                     <input
-                       type="range"
-                       min="0"
-                       max={Math.max(0, videoDuration - 6)}
-                       step="0.1"
-                       value={trimStart}
-                       onChange={(e) => {
-                         const newStart = parseFloat(e.target.value);
-                         setTrimStart(newStart);
-                         setTrimEnd(Math.min(newStart + 6, videoDuration));
-                         if (videoRef.current) {
-                           videoRef.current.currentTime = newStart;
-                         }
-                       }}
-                       className="w-full"
-                     />
-                   </div>
+                {videoDuration > 6 && (
+                  <div className="space-y-3">
+                    {/* Visual timeline */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>0:00</span>
+                        <span>{Math.floor(videoDuration / 60)}:{(Math.floor(videoDuration) % 60).toString().padStart(2, '0')}</span>
+                      </div>
+                      <div className="relative h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div 
+                          className="absolute h-full bg-purple-500 transition-all"
+                          style={{
+                            left: `${(trimStart / videoDuration) * 100}%`,
+                            width: `${((trimEnd - trimStart) / videoDuration) * 100}%`
+                          }}
+                        />
+                      </div>
+                    </div>
 
-                   <div>
-                     <div className="flex justify-between text-sm mb-2">
-                       <Label>End Time</Label>
-                       <span className="text-muted-foreground">{trimEnd.toFixed(1)}s</span>
-                     </div>
-                     <input
-                       type="range"
-                       min={trimStart}
-                       max={videoDuration}
-                       step="0.1"
-                       value={trimEnd}
-                       onChange={(e) => {
-                         const newEnd = parseFloat(e.target.value);
-                         const newStart = Math.max(0, newEnd - 6);
-                         setTrimStart(newStart);
-                         setTrimEnd(newEnd);
-                         if (videoRef.current) {
-                           videoRef.current.currentTime = newEnd;
-                         }
-                       }}
-                       className="w-full"
-                     />
-                   </div>
+                    <div>
+                      <div className="flex justify-between text-sm mb-2">
+                        <Label>Trim Position</Label>
+                        <span className="text-muted-foreground">
+                          {trimStart.toFixed(1)}s - {trimEnd.toFixed(1)}s
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max={Math.max(0, videoDuration - 6)}
+                        step="0.1"
+                        value={trimStart}
+                        onChange={(e) => {
+                          const newStart = parseFloat(e.target.value);
+                          setTrimStart(newStart);
+                          setTrimEnd(newStart + 6);
+                          if (videoRef.current && !isPreviewing) {
+                            videoRef.current.currentTime = newStart;
+                          }
+                        }}
+                        className="w-full accent-purple-600"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Slide to choose which 6 seconds of your video to use
+                      </p>
+                    </div>
 
-                   <div className="flex gap-2">
-                     <Button
-                       type="button"
-                       variant="outline"
-                       size="sm"
-                       onClick={() => {
-                         if (videoRef.current) {
-                           videoRef.current.currentTime = trimStart;
-                           videoRef.current.play();
-                           setTimeout(() => {
-                             if (videoRef.current) {
-                               videoRef.current.pause();
-                               videoRef.current.currentTime = trimStart;
-                             }
-                           }, (trimEnd - trimStart) * 1000);
-                         }
-                       }}
-                       className="flex-1"
-                     >
-                       <Play className="w-3 h-3 mr-1" />
-                       Preview Trim
-                     </Button>
-                     <Button
-                       type="button"
-                       variant="outline"
-                       size="sm"
-                       onClick={() => {
-                         setTrimStart(0);
-                         setTrimEnd(Math.min(6, videoDuration));
-                         if (videoRef.current) {
-                           videoRef.current.currentTime = 0;
-                         }
-                       }}
-                       className="flex-1"
-                     >
-                       Reset
-                     </Button>
-                   </div>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          if (!videoRef.current) return;
+                          
+                          const video = videoRef.current;
+                          setIsPreviewing(true);
 
-                   <Alert>
-                     <AlertCircle className="w-4 h-4" />
-                     <AlertDescription className="text-xs">
-                       <strong>Note:</strong> Use the sliders to select a 6-second segment from your video. 
-                       The selected portion will be uploaded to devine.video.
-                     </AlertDescription>
-                   </Alert>
+                          // Clear any existing timeout
+                          if (previewTimeoutRef.current) {
+                            clearTimeout(previewTimeoutRef.current);
+                          }
+
+                          try {
+                            // Set to start position
+                            video.currentTime = trimStart;
+                            
+                            // Wait for seek to complete
+                            await new Promise<void>((resolve) => {
+                              const onSeeked = () => {
+                                video.removeEventListener('seeked', onSeeked);
+                                resolve();
+                              };
+                              video.addEventListener('seeked', onSeeked);
+                            });
+
+                            // Play the video
+                            await video.play();
+
+                            // Set up timeupdate listener to stop at trim end
+                            const onTimeUpdate = () => {
+                              if (video.currentTime >= trimEnd) {
+                                video.pause();
+                                video.currentTime = trimStart;
+                                video.removeEventListener('timeupdate', onTimeUpdate);
+                                setIsPreviewing(false);
+                              }
+                            };
+                            video.addEventListener('timeupdate', onTimeUpdate);
+
+                            // Fallback timeout in case timeupdate doesn't fire
+                            previewTimeoutRef.current = setTimeout(() => {
+                              video.pause();
+                              video.currentTime = trimStart;
+                              video.removeEventListener('timeupdate', onTimeUpdate);
+                              setIsPreviewing(false);
+                            }, (trimEnd - trimStart + 0.1) * 1000);
+
+                          } catch (error) {
+                            console.error('Preview error:', error);
+                            setIsPreviewing(false);
+                            toast({
+                              title: 'Preview failed',
+                              description: 'Could not preview the trimmed video',
+                              variant: 'destructive',
+                            });
+                          }
+                        }}
+                        className="flex-1"
+                        disabled={isPreviewing}
+                      >
+                        <Play className="w-3 h-3 mr-1" />
+                        {isPreviewing ? 'Playing...' : 'Preview Trim'}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setTrimStart(0);
+                          setTrimEnd(6);
+                          if (videoRef.current) {
+                            videoRef.current.pause();
+                            videoRef.current.currentTime = 0;
+                          }
+                          if (previewTimeoutRef.current) {
+                            clearTimeout(previewTimeoutRef.current);
+                          }
+                          setIsPreviewing(false);
+                        }}
+                        className="flex-1"
+                      >
+                        Reset
+                      </Button>
+                    </div>
+
+                    <Alert>
+                      <AlertCircle className="w-4 h-4" />
+                      <AlertDescription className="text-xs">
+                        <div className="space-y-1">
+                          <p><strong>How to trim:</strong></p>
+                          <ul className="list-disc list-inside space-y-0.5 ml-2">
+                            <li>Use the slider to choose which 6-second portion to keep</li>
+                            <li>Click "Preview Trim" to watch your selected segment</li>
+                            <li>The purple bar shows your selected range</li>
+                          </ul>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
                  </div>
                )}
 
