@@ -545,7 +545,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                       <div className="absolute inset-x-0 bottom-0 p-4">
                         <Button 
                           className="w-full rounded-full font-medium shadow-lg text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2" 
-                          style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(8px)' }}
+                          style={{ backgroundColor: '#27b0ff' }}
                         >
                           <span>Reviews</span>
                           {reviewCount > 0 && (
