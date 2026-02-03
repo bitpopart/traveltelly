@@ -48,6 +48,7 @@ import { AdminMassUpload } from "./pages/AdminMassUpload";
 import { LocationPage } from "./pages/LocationPage";
 import AppBuilder from "./pages/AppBuilder";
 import ShareScheduler from "./pages/ShareScheduler";
+import AnalyticsDashboard from "./pages/AnalyticsDashboard";
 import NotFound from "./pages/NotFound";
 
 export function AppRouter() {
@@ -80,6 +81,7 @@ export function AppRouter() {
         <Route path="/admin/mass-upload" element={<AdminMassUpload />} />
         <Route path="/admin/app-builder" element={<AppBuilder />} />
         <Route path="/admin/share-scheduler" element={<ShareScheduler />} />
+        <Route path="/admin/analytics" element={<AnalyticsDashboard />} />
         <Route path="/remove-reviews" element={<RemoveReviews />} />
         <Route path="/hide-reviews" element={<HideReviews />} />
         <Route path="/route-test" element={<RouteTest />} />

@@ -1,0 +1,36 @@
+# TravelTelly - Robots.txt
+# Allow all search engines to crawl the site
+
+User-agent: *
+Allow: /
+
+# Disallow admin sections
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /admin-*
+Disallow: /remove-reviews
+Disallow: /hide-reviews
+Disallow: /category-test
+Disallow: /route-test
+Disallow: /photo-upload-demo
+Disallow: /gps-correction-demo
+Disallow: /search-test
+Disallow: /simple-map-demo
+Disallow: /category-migration
+Disallow: /map-marker-editor
+Disallow: /media-management
+Disallow: /stock-media-permissions
+
+# Important pages for search engines
+Allow: /reviews
+Allow: /stories
+Allow: /trips
+Allow: /marketplace
+Allow: /events
+Allow: /what-is-nostr
+
+# Sitemap location
+Sitemap: https://www.traveltelly.com/sitemap.xml
+
+# Crawl delay (be nice to servers)
+Crawl-delay: 1
