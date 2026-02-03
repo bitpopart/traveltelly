@@ -22,7 +22,8 @@ import {
   Activity,
   BarChart3,
   Calendar as CalendarIcon,
-  MousePointer
+  MousePointer,
+  Hash
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useReviewCount, useStoryCount, useTripCount, useStockMediaCount } from '@/hooks/useLatestItems';
