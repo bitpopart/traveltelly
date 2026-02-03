@@ -634,32 +634,17 @@ export function CreateVideoStoryForm() {
 
       // Also create a regular Nostr note (kind 1) if shareOnNostr is checked
       if (formData.shareOnNostr && user) {
-        const videoTypeEmoji = isPortrait ? '📱' : '🎬';
-        const finalDuration = trimEnd - trimStart;
-        const durationText = finalDuration > 0 
-          ? `${Math.floor(finalDuration / 60)}:${(Math.floor(finalDuration) % 60).toString().padStart(2, '0')}`
-          : '';
-
-        let noteContent = `${videoTypeEmoji} ${formData.title.trim()}\n`;
+        // Just share the description (summary) with video URL
+        let noteContent = '';
 
         if (formData.summary.trim()) {
-          noteContent += `\n${formData.summary.trim()}\n`;
+          noteContent += formData.summary.trim() + '\n\n';
         }
 
-        if (durationText) {
-          noteContent += `\n⏱️ Duration: ${durationText}`;
-        }
-
-        if (formData.muteAudio) {
-          noteContent += `\n🔇 No audio`;
-        }
-
-        if (thumbnailUrl) {
-          noteContent += `\n\n${thumbnailUrl}`;
-        }
+        // Add the video URL directly so it displays inline
+        noteContent += videoUrl;
 
         // Add hashtags to note content
-        let hashtagsText = '#video #travel #traveltelly';
         if (formData.tags.trim()) {
           const hashtagList = formData.tags
             .split(',')
@@ -667,33 +652,46 @@ export function CreateVideoStoryForm() {
             .filter(tag => tag.length > 0);
 
           if (hashtagList.length > 0) {
-            hashtagsText += ' #' + hashtagList.join(' #');
+            noteContent += '\n\n#' + hashtagList.join(' #');
           }
         }
 
-        noteContent += `\n\n${hashtagsText}`;
-
-        // Add TravelTelly video link
+        // Add TravelTelly link
         try {
           const naddr = nip19.naddrEncode({
             kind: videoKind,
             pubkey: user.pubkey,
             identifier,
           });
-          noteContent += `\n\n🎥 Watch on TravelTelly\nhttps://traveltelly.com/video/${naddr}`;
+          noteContent += `\n\nnostr:${naddr}`;
         } catch (error) {
           console.error('Error creating naddr:', error);
         }
 
         // Create the regular note with relevant tags
         const noteTags: string[][] = [
-          ['t', 'video'],
           ['t', 'travel'],
           ['t', 'traveltelly'],
         ];
 
+        // Add imeta tag for the video (NIP-94)
+        const noteImetaTag = ['imeta'];
+        if (videoDimensions) {
+          noteImetaTag.push(`dim ${videoDimensions.width}x${videoDimensions.height}`);
+        }
+        noteImetaTag.push(`url ${videoUrl}`);
+        noteImetaTag.push(`m ${processedVideo.type}`);
         if (thumbnailUrl) {
-          noteTags.push(['image', thumbnailUrl]);
+          noteImetaTag.push(`image ${thumbnailUrl}`);
+        }
+        const finalDuration = trimEnd - trimStart;
+        if (finalDuration > 0) {
+          noteImetaTag.push(`duration ${finalDuration.toFixed(3)}`);
+        }
+        noteTags.push(noteImetaTag);
+
+        if (thumbnailUrl) {
+          noteTags.push(['thumb', thumbnailUrl]);
         }
 
         if (videoUrl) {
