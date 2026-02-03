@@ -1,14 +1,15 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
-import { Calendar, ExternalLink } from 'lucide-react';
+import { Calendar, ExternalLink, Share2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { nip19 } from 'nostr-tools';
 import { Link } from 'react-router-dom';
+import { useToast } from '@/hooks/useToast';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 interface VideoPlayerDialogProps {
@@ -22,6 +23,9 @@ export function VideoPlayerDialog({ video, open, onOpenChange }: VideoPlayerDial
   const metadata = author.data?.metadata;
   const displayName = metadata?.name || genUserName(video.pubkey);
   const profileImage = metadata?.picture;
+  const { toast } = useToast();
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPortrait, setIsPortrait] = useState(false);
 
   const title = video.tags.find(([name]) => name === 'title')?.[1] || 'Untitled Video';
   const summary = video.tags.find(([name]) => name === 'summary')?.[1];
@@ -32,6 +36,7 @@ export function VideoPlayerDialog({ video, open, onOpenChange }: VideoPlayerDial
   let videoUrl = '';
   let thumb = '';
   let duration = '';
+  let dimensions = '';
 
   if (imetaTag) {
     for (let i = 1; i < imetaTag.length; i++) {
@@ -45,9 +50,27 @@ export function VideoPlayerDialog({ video, open, onOpenChange }: VideoPlayerDial
         const minutes = Math.floor(durationSec / 60);
         const seconds = Math.floor(durationSec % 60);
         duration = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      } else if (part.startsWith('dim ')) {
+        dimensions = part.substring(4);
       }
     }
   }
+
+  // Detect video orientation from dimensions or video element
+  useEffect(() => {
+    if (dimensions) {
+      const [width, height] = dimensions.split('x').map(Number);
+      setIsPortrait(height > width);
+    }
+  }, [dimensions]);
+
+  // Also detect when video loads
+  const handleVideoLoad = () => {
+    if (videoRef.current) {
+      const video = videoRef.current;
+      setIsPortrait(video.videoHeight > video.videoWidth);
+    }
+  };
 
   // Fallback to legacy tags
   if (!videoUrl) {
@@ -72,21 +95,53 @@ export function VideoPlayerDialog({ video, open, onOpenChange }: VideoPlayerDial
     identifier,
   });
 
+  const handleShareToDevine = () => {
+    // Create devine.video share URL
+    const devineUrl = `https://www.devine.video/share?url=${encodeURIComponent(videoUrl)}&title=${encodeURIComponent(title)}`;
+    
+    // Open in new window
+    window.open(devineUrl, '_blank', 'noopener,noreferrer');
+    
+    toast({
+      title: 'Opening devine.video',
+      description: 'Share your video to your devine.video account',
+    });
+  };
+
+  // Determine dialog size based on orientation
+  const dialogClassName = isPortrait 
+    ? "max-w-md max-h-[90vh] overflow-y-auto p-0" 
+    : "max-w-4xl max-h-[90vh] overflow-y-auto p-0";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
+      <DialogContent className={dialogClassName}>
         {/* Video Player */}
         {videoUrl && (
-          <div className="aspect-video bg-black">
+          <div className={`${isPortrait ? 'aspect-[9/16]' : 'aspect-video'} bg-black relative`}>
             <video
+              ref={videoRef}
               src={videoUrl}
               poster={thumb}
               controls
               autoPlay
               preload="metadata"
               playsInline
+              onLoadedMetadata={handleVideoLoad}
               className="w-full h-full"
             />
+            
+            {/* Share to devine.video button */}
+            <div className="absolute bottom-4 right-4">
+              <Button
+                onClick={handleShareToDevine}
+                size="sm"
+                className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg"
+              >
+                <Share2 className="w-3 h-3 mr-1" />
+                Share to devine
+              </Button>
+            </div>
           </div>
         )}
 
