@@ -80,6 +80,24 @@ export function CreateVideoStoryForm() {
     };
   }, []);
 
+  // Cleanup blob URL when videoPreview changes or component unmounts
+  useEffect(() => {
+    return () => {
+      if (videoPreview) {
+        URL.revokeObjectURL(videoPreview);
+      }
+    };
+  }, [videoPreview]);
+
+  // Cleanup thumbnail blob URL when thumbnailPreview changes or component unmounts
+  useEffect(() => {
+    return () => {
+      if (thumbnailPreview) {
+        URL.revokeObjectURL(thumbnailPreview);
+      }
+    };
+  }, [thumbnailPreview]);
+
   const handleVideoSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -110,6 +128,11 @@ export function CreateVideoStoryForm() {
         variant: 'destructive',
       });
       return;
+    }
+
+    // Revoke old blob URL if it exists
+    if (videoPreview) {
+      URL.revokeObjectURL(videoPreview);
     }
 
     setVideoFile(file);
@@ -153,7 +176,7 @@ export function CreateVideoStoryForm() {
         size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
         needsTrim: duration > 6
       });
-      URL.revokeObjectURL(video.src);
+      // DON'T revoke URL here - the main video player still needs it!
     };
 
     video.onerror = (e) => {
@@ -163,7 +186,7 @@ export function CreateVideoStoryForm() {
         description: 'Could not load video metadata. File may be corrupted.',
         variant: 'destructive',
       });
-      URL.revokeObjectURL(video.src);
+      // DON'T revoke URL here either
     };
 
     video.src = url;
@@ -180,6 +203,11 @@ export function CreateVideoStoryForm() {
         variant: 'destructive',
       });
       return;
+    }
+
+    // Revoke old thumbnail blob URL if it exists
+    if (thumbnailPreview) {
+      URL.revokeObjectURL(thumbnailPreview);
     }
 
     setThumbnailFile(file);
@@ -549,13 +577,22 @@ export function CreateVideoStoryForm() {
       });
       
       // Reset form
-          setFormData({
-            title: '',
-            summary: '',
-            tags: '',
-            identifier: '',
-            shareOnNostr: true,
-          });
+      setFormData({
+        title: '',
+        summary: '',
+        tags: '',
+        identifier: '',
+        shareOnNostr: true,
+      });
+      
+      // Revoke blob URLs before clearing
+      if (videoPreview) {
+        URL.revokeObjectURL(videoPreview);
+      }
+      if (thumbnailPreview) {
+        URL.revokeObjectURL(thumbnailPreview);
+      }
+      
       setVideoFile(null);
       setVideoPreview('');
       setThumbnailFile(null);
@@ -728,6 +765,10 @@ export function CreateVideoStoryForm() {
                       size="sm"
                       className="absolute top-2 right-2"
                       onClick={() => {
+                        // Revoke blob URL before clearing
+                        if (videoPreview) {
+                          URL.revokeObjectURL(videoPreview);
+                        }
                         setVideoFile(null);
                         setVideoPreview('');
                         setVideoDuration(0);
@@ -1102,6 +1143,10 @@ export function CreateVideoStoryForm() {
                     size="sm"
                     className="absolute top-2 right-2"
                     onClick={() => {
+                      // Revoke blob URL before clearing
+                      if (thumbnailPreview) {
+                        URL.revokeObjectURL(thumbnailPreview);
+                      }
                       setThumbnailFile(null);
                       setThumbnailPreview('');
                     }}
