@@ -11,7 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useReviewPermissions } from '@/hooks/useReviewPermissions';
 import { useScheduledPosts } from '@/hooks/useScheduledPosts';
+import { useNostr } from '@nostrify/react';
 import { nip19 } from 'nostr-tools';
+import type { NostrEvent } from '@nostrify/nostrify';
 import {
   Calendar,
   Clock,
@@ -29,7 +31,9 @@ import {
   MapPin,
   Camera,
   Edit,
-  Play
+  Play,
+  Loader2,
+  Wand2
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/useToast';
@@ -67,6 +71,7 @@ const POST_TYPE_LABELS = {
 export default function ShareScheduler() {
   const { user } = useCurrentUser();
   const { isAdmin, isCheckingPermission } = useReviewPermissions();
+  const { nostr } = useNostr();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -88,6 +93,129 @@ export default function ShareScheduler() {
   });
 
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isFetchingContent, setIsFetchingContent] = useState(false);
+
+  const autoFillFromUrl = async () => {
+    if (!formData.url) {
+      toast({
+        title: 'Enter URL first',
+        description: 'Please enter a TravelTelly URL to auto-fill',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setIsFetchingContent(true);
+
+      // Extract naddr from URL
+      const urlMatch = formData.url.match(/\/(review|story|trip|video|media\/preview)\/(naddr1[a-z0-9]+)/);
+      if (!urlMatch) {
+        toast({
+          title: 'Invalid URL',
+          description: 'Please enter a valid TravelTelly content URL',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const [, contentType, naddr] = urlMatch;
+      
+      // Decode naddr
+      const decoded = nip19.decode(naddr);
+      if (decoded.type !== 'naddr') {
+        throw new Error('Invalid naddr');
+      }
+
+      const { kind, pubkey, identifier } = decoded.data;
+
+      // Fetch the event
+      const signal = AbortSignal.timeout(5000);
+      const events = await nostr.query([{
+        kinds: [kind],
+        authors: [pubkey],
+        '#d': [identifier],
+      }], { signal });
+
+      if (events.length === 0) {
+        toast({
+          title: 'Content not found',
+          description: 'Could not fetch content from relay',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const event = events[0];
+
+      // Extract metadata based on content type
+      const title = event.tags.find(([name]) => name === 'title')?.[1] || '';
+      const summary = event.tags.find(([name]) => name === 'summary')?.[1] || event.content || '';
+      const description = event.tags.find(([name]) => name === 'description')?.[1] || '';
+      
+      // Get image URL
+      let imageUrl = '';
+      
+      // For videos, check imeta tag first
+      if (kind === 34235 || kind === 34236) {
+        const imetaTag = event.tags.find(([name]) => name === 'imeta');
+        if (imetaTag) {
+          for (let i = 1; i < imetaTag.length; i++) {
+            if (imetaTag[i].startsWith('image ')) {
+              imageUrl = imetaTag[i].substring(6);
+              break;
+            }
+          }
+        }
+        // Fallback to thumb tag
+        if (!imageUrl) {
+          imageUrl = event.tags.find(([name]) => name === 'thumb')?.[1] || '';
+        }
+      } else {
+        // For other content types, use image tag
+        imageUrl = event.tags.find(([name]) => name === 'image')?.[1] || '';
+      }
+
+      // Get hashtags
+      const tags = event.tags
+        .filter(([name]) => name === 't')
+        .map(([, value]) => value)
+        .filter(tag => tag && !['travel', 'traveltelly'].includes(tag))
+        .join(', ');
+
+      // Determine type
+      let postType: ScheduledPost['type'] = 'custom';
+      if (kind === 34879) postType = 'review';
+      else if (kind === 30023) postType = 'story';
+      else if (kind === 30024) postType = 'trip';
+      else if (kind === 30403) postType = 'stock-media';
+      else if (kind === 34235 || kind === 34236) postType = 'story'; // Videos are stories
+
+      // Update form
+      setFormData({
+        ...formData,
+        type: postType,
+        title: title || 'Untitled',
+        description: description || summary || '',
+        imageUrl: imageUrl || '',
+        hashtags: tags || '',
+      });
+
+      toast({
+        title: 'Content loaded!',
+        description: 'Form auto-filled with content details',
+      });
+    } catch (error) {
+      console.error('Error fetching content:', error);
+      toast({
+        title: 'Failed to fetch content',
+        description: 'Could not load content details from URL',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsFetchingContent(false);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -306,10 +434,32 @@ export default function ShareScheduler() {
 
                     {/* URL */}
                     <div>
-                      <Label htmlFor="url" className="flex items-center gap-2">
-                        <Link2 className="w-4 h-4" />
-                        URL <span className="text-red-500">*</span>
-                      </Label>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <Label htmlFor="url" className="flex items-center gap-2">
+                          <Link2 className="w-4 h-4" />
+                          URL <span className="text-red-500">*</span>
+                        </Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={autoFillFromUrl}
+                          disabled={!formData.url || isFetchingContent}
+                          className="text-xs h-7"
+                        >
+                          {isFetchingContent ? (
+                            <>
+                              <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                              Loading...
+                            </>
+                          ) : (
+                            <>
+                              <Wand2 className="w-3 h-3 mr-1" />
+                              Auto-Fill
+                            </>
+                          )}
+                        </Button>
+                      </div>
                       <Input
                         id="url"
                         type="url"
@@ -319,6 +469,9 @@ export default function ShareScheduler() {
                         className="mt-1.5"
                         required
                       />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Paste a TravelTelly URL and click Auto-Fill to scrape content details
+                      </p>
                     </div>
 
                     {/* Title */}
