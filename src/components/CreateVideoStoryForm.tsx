@@ -406,15 +406,20 @@ export function CreateVideoStoryForm() {
       let thumbnailUrl = '';
       if (thumbnailFile) {
         setUploadProgress(20);
+        toast({
+          title: 'Uploading thumbnail...',
+          description: 'Step 1 of 2',
+        });
         const [[_, thumbUrl]] = await uploadFile(thumbnailFile);
         thumbnailUrl = thumbUrl;
         setUploadProgress(40);
       }
 
       // Upload video
+      setUploadProgress(thumbnailFile ? 40 : 20);
       toast({
         title: 'Uploading video...',
-        description: 'This may take a while depending on video size',
+        description: `This may take a while for ${(videoFile.size / 1024 / 1024).toFixed(1)}MB video. Please be patient.`,
       });
       
       const [[__, videoUrl]] = await uploadFile(videoFile);
@@ -638,9 +643,24 @@ export function CreateVideoStoryForm() {
 
     } catch (error) {
       console.error('Video upload error:', error);
+      
+      let errorMessage = 'Failed to upload video. Please try again.';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('timeout')) {
+          errorMessage = 'Upload timed out. Your video might be too large. Try a shorter video or compress it.';
+        } else if (error.message.includes('network')) {
+          errorMessage = 'Network error. Please check your connection and try again.';
+        } else if (error.message.includes('All upload servers failed')) {
+          errorMessage = 'All upload servers are unavailable. Please try again later.';
+        } else {
+          errorMessage = `Upload error: ${error.message}`;
+        }
+      }
+      
       toast({
         title: 'Upload failed',
-        description: 'Failed to upload video. Please try again.',
+        description: errorMessage,
         variant: 'destructive',
       });
       setUploadProgress(0);
