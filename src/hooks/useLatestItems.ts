@@ -242,18 +242,23 @@ export function useLatestStockMedia() {
   const { data: authorizedUploaders } = useAuthorizedMediaUploaders();
 
   return useQuery({
-    queryKey: ['latest-stock-media-with-image'],
+    queryKey: ['latest-stock-media-with-image', authorizedUploaders?.size],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
       
       const authorizedAuthors = Array.from(authorizedUploaders || []);
+      
+      if (authorizedAuthors.length === 0) {
+        return null;
+      }
+
       const events = await nostr.query([{
         kinds: [30402],
         authors: authorizedAuthors,
-        limit: 25
+        limit: 50
       }], { signal });
 
-      // Find the first product with an image
+      // Find the first product with an image - use same filter as count
       const productWithImage = events
         .filter((event: NostrEvent) => {
           const d = event.tags.find(([name]) => name === 'd')?.[1];
@@ -261,12 +266,14 @@ export function useLatestStockMedia() {
           const price = event.tags.find(([name]) => name === 'price');
           const image = event.tags.find(([name]) => name === 'image')?.[1];
           const status = event.tags.find(([name]) => name === 'status')?.[1];
+          const deleted = event.tags.find(([name]) => name === 'deleted')?.[1];
+          const adminDeleted = event.tags.find(([name]) => name === 'admin_deleted')?.[1];
           
           // Check price validity
           const hasValidPrice = price && price.length >= 3 && price[1] && price[2];
           
-          // Only show active/available products
-          const isActive = !status || status === 'active';
+          // Match the same filter logic as count query
+          const isActive = status !== 'deleted' && deleted !== 'true' && adminDeleted !== 'true';
           
           return !!(d && title && hasValidPrice && image && isActive);
         })
@@ -292,9 +299,11 @@ export function useLatestStockMedia() {
       };
     },
     enabled: !!authorizedUploaders && authorizedUploaders.size > 0,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
     refetchInterval: 30000, // Auto-refresh every 30 seconds
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -306,16 +315,23 @@ export function useLatestStockMediaItems() {
   const { data: authorizedUploaders } = useAuthorizedMediaUploaders();
 
   return useQuery({
-    queryKey: ['latest-stock-media-items-with-images'],
+    queryKey: ['latest-stock-media-items-with-images', authorizedUploaders?.size],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
       
       const authorizedAuthors = Array.from(authorizedUploaders || []);
+      
+      if (authorizedAuthors.length === 0) {
+        return [];
+      }
+
       const events = await nostr.query([{
         kinds: [30402],
         authors: authorizedAuthors,
         limit: 50
       }], { signal });
+
+      console.log(`📸 Stock media items query: ${events.length} total events`);
 
       // Find products with images
       const productsWithImages = events
@@ -325,17 +341,21 @@ export function useLatestStockMediaItems() {
           const price = event.tags.find(([name]) => name === 'price');
           const image = event.tags.find(([name]) => name === 'image')?.[1];
           const status = event.tags.find(([name]) => name === 'status')?.[1];
+          const deleted = event.tags.find(([name]) => name === 'deleted')?.[1];
+          const adminDeleted = event.tags.find(([name]) => name === 'admin_deleted')?.[1];
           
           // Check price validity
           const hasValidPrice = price && price.length >= 3 && price[1] && price[2];
           
-          // Only show active/available products
-          const isActive = !status || status === 'active';
+          // Match the same filter logic as count query
+          const isActive = status !== 'deleted' && deleted !== 'true' && adminDeleted !== 'true';
           
           return !!(d && title && hasValidPrice && image && isActive);
         })
         .sort((a, b) => b.created_at - a.created_at)
         .slice(0, 3); // Get the last 3
+
+      console.log(`✅ Active stock media with images: ${productsWithImages.length}`);
 
       return productsWithImages.map((event) => {
         const image = event.tags.find(([name]) => name === 'image')?.[1];
@@ -357,9 +377,11 @@ export function useLatestStockMediaItems() {
       });
     },
     enabled: !!authorizedUploaders && authorizedUploaders.size > 0,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 2 * 60 * 1000, // 2 minutes (reduced from 5)
+    gcTime: 5 * 60 * 1000, // 5 minutes
     refetchInterval: 30000, // Auto-refresh every 30 seconds
+    refetchOnMount: true, // Always refetch on mount
+    refetchOnWindowFocus: true, // Refetch when window gains focus
   });
 }
 
@@ -407,16 +429,23 @@ export function useStockMediaCount() {
   const { data: authorizedUploaders } = useAuthorizedMediaUploaders();
 
   return useQuery({
-    queryKey: ['stock-media-count'],
+    queryKey: ['stock-media-count', authorizedUploaders?.size],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
       
       const authorizedAuthors = Array.from(authorizedUploaders || []);
+      
+      if (authorizedAuthors.length === 0) {
+        return 0;
+      }
+
       const events = await nostr.query([{
         kinds: [30402],
         authors: authorizedAuthors,
         limit: 1000
       }], { signal });
+
+      console.log(`📊 Stock media count query: ${events.length} total events from ${authorizedAuthors.length} authors`);
 
       // Filter out deleted items
       const activeProducts = events.filter(event => {
@@ -424,14 +453,24 @@ export function useStockMediaCount() {
         const deleted = event.tags.find(([name]) => name === 'deleted')?.[1];
         const adminDeleted = event.tags.find(([name]) => name === 'admin_deleted')?.[1];
         
-        return status !== 'deleted' && deleted !== 'true' && adminDeleted !== 'true';
+        const isActive = status !== 'deleted' && deleted !== 'true' && adminDeleted !== 'true';
+        
+        if (!isActive) {
+          console.log(`🗑️ Filtering out deleted media: ${event.id.substring(0, 8)}`);
+        }
+        
+        return isActive;
       });
 
+      console.log(`✅ Active stock media count: ${activeProducts.length}`);
       return activeProducts.length;
     },
     enabled: !!authorizedUploaders && authorizedUploaders.size > 0,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 2 * 60 * 1000, // 2 minutes (reduced from 5)
+    gcTime: 5 * 60 * 1000, // 5 minutes
     refetchInterval: 30000, // Auto-refresh every 30 seconds
+    refetchOnMount: true, // Always refetch on mount
+    refetchOnWindowFocus: true, // Refetch when window gains focus
   });
 }
 
