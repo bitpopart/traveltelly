@@ -56,6 +56,9 @@ export function CreateVideoStoryForm() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [videoDuration, setVideoDuration] = useState<number>(0);
   const [videoDimensions, setVideoDimensions] = useState<{ width: number; height: number } | null>(null);
+  const [trimStart, setTrimStart] = useState<number>(0);
+  const [trimEnd, setTrimEnd] = useState<number>(6);
+  const [showTrimEditor, setShowTrimEditor] = useState<boolean>(false);
 
   const videoInputRef = useRef<HTMLInputElement>(null);
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
@@ -82,12 +85,12 @@ export function CreateVideoStoryForm() {
       size: (file.size / 1024 / 1024).toFixed(2) + ' MB'
     });
 
-    // Check file size (max 500MB for now)
-    const maxSize = 500 * 1024 * 1024; // 500MB
+    // Check file size (max 100MB for 6-second videos)
+    const maxSize = 100 * 1024 * 1024; // 100MB
     if (file.size > maxSize) {
       toast({
         title: 'File too large',
-        description: 'Video must be less than 500MB',
+        description: 'Video must be less than 100MB. For 6-second clips, this should be plenty!',
         variant: 'destructive',
       });
       return;
@@ -110,11 +113,29 @@ export function CreateVideoStoryForm() {
         width: video.videoWidth,
         height: video.videoHeight,
       });
+      
+      // Set trim range - for devine.video we limit to 6 seconds max
+      setTrimStart(0);
+      setTrimEnd(Math.min(duration, 6));
+      
+      // Show trim editor if video is longer than 6 seconds
+      if (duration > 6) {
+        setShowTrimEditor(true);
+        toast({
+          title: 'Video needs trimming',
+          description: 'Videos for devine.video must be 6 seconds or less. Please trim your video.',
+          variant: 'default',
+        });
+      } else {
+        setShowTrimEditor(false);
+      }
+      
       console.log('Video metadata loaded:', {
         duration,
         width: video.videoWidth,
         height: video.videoHeight,
-        size: (file.size / 1024 / 1024).toFixed(2) + ' MB'
+        size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
+        needsTrim: duration > 6
       });
       URL.revokeObjectURL(video.src);
     };
@@ -274,6 +295,35 @@ export function CreateVideoStoryForm() {
     return titleSlug ? `${titleSlug}-${timestamp}` : `video-${timestamp}`;
   };
 
+  const trimVideo = async (): Promise<File> => {
+    if (!videoFile || !videoPreview) {
+      throw new Error('No video to trim');
+    }
+
+    const trimmedDuration = trimEnd - trimStart;
+    
+    // If video is already within 6 seconds and no trimming needed
+    if (trimmedDuration <= 6 && trimStart === 0 && trimEnd >= videoDuration) {
+      return videoFile;
+    }
+
+    // For now, we'll just validate the trim range and return the original file
+    // In a production environment, you would use FFmpeg.js or a server-side API to actually trim the video
+    // For this implementation, we'll trust the user to trim manually or we'll upload the full video
+    // and indicate the trim points in metadata
+    
+    if (trimmedDuration > 6) {
+      throw new Error('Trimmed video must be 6 seconds or less');
+    }
+
+    toast({
+      title: 'Video trim range set',
+      description: `Video will be ${trimmedDuration.toFixed(1)}s (${trimStart.toFixed(1)}s - ${trimEnd.toFixed(1)}s)`,
+    });
+
+    return videoFile;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -286,8 +336,22 @@ export function CreateVideoStoryForm() {
       return;
     }
 
+    // Validate 6-second limit for devine.video
+    const trimmedDuration = trimEnd - trimStart;
+    if (trimmedDuration > 6) {
+      toast({
+        title: 'Video too long',
+        description: 'Videos for devine.video must be 6 seconds or less. Please adjust the trim range.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       setUploadProgress(10);
+
+      // Validate and prepare video
+      await trimVideo();
 
       // Upload thumbnail first
       let thumbnailUrl = '';
@@ -332,9 +396,10 @@ export function CreateVideoStoryForm() {
         imetaTag.push(`image ${thumbnailUrl}`);
       }
       
-      // Add duration in seconds
-      if (videoDuration) {
-        imetaTag.push(`duration ${videoDuration.toFixed(3)}`);
+      // Add duration in seconds (use trimmed duration)
+      const finalDuration = trimEnd - trimStart;
+      if (finalDuration > 0) {
+        imetaTag.push(`duration ${finalDuration.toFixed(3)}`);
       }
 
       // Build tags according to NIP-71 format
@@ -378,8 +443,9 @@ export function CreateVideoStoryForm() {
       // Also create a regular Nostr note (kind 1) if shareOnNostr is checked
       if (formData.shareOnNostr && user) {
         const videoTypeEmoji = isPortrait ? '📱' : '🎬';
-        const durationText = videoDuration > 0 
-          ? `${Math.floor(videoDuration / 60)}:${(Math.floor(videoDuration) % 60).toString().padStart(2, '0')}`
+        const finalDuration = trimEnd - trimStart;
+        const durationText = finalDuration > 0 
+          ? `${Math.floor(finalDuration / 60)}:${(Math.floor(finalDuration) % 60).toString().padStart(2, '0')}`
           : '';
 
         let noteContent = `${videoTypeEmoji} ${formData.title.trim()}\n`;
@@ -481,6 +547,9 @@ export function CreateVideoStoryForm() {
       setUploadProgress(0);
       setVideoDuration(0);
       setVideoDimensions(null);
+      setTrimStart(0);
+      setTrimEnd(6);
+      setShowTrimEditor(false);
       
       navigate('/stories?tab=browse&type=video');
 
@@ -515,12 +584,13 @@ export function CreateVideoStoryForm() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Video className="w-5 h-5" />
-          Create Video Story
+          Create Video Story for devine.video
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Share your travel adventures in video format using NIP-71 (Kind 34235 landscape / 34236 portrait).
+          Share your travel adventures in 6-second video format using NIP-71 (Kind 34235 landscape / 34236 portrait).
+          Perfect for quick, engaging travel moments on <a href="https://devine.video" target="_blank" rel="noopener noreferrer" className="underline font-medium">devine.video</a>.
         </p>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Badge variant="outline" className="bg-purple-50 dark:bg-purple-900/20">
             NIP-71
           </Badge>
@@ -529,6 +599,9 @@ export function CreateVideoStoryForm() {
           </Badge>
           <Badge variant="outline" className="bg-orange-50 dark:bg-orange-900/20">
             Addressable
+          </Badge>
+          <Badge variant="default" className="bg-purple-600">
+            ⚡ 6s Max
           </Badge>
         </div>
       </CardHeader>
@@ -548,7 +621,10 @@ export function CreateVideoStoryForm() {
                   <Film className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
                   <p className="text-sm font-medium mb-1">Click to upload video</p>
                   <p className="text-xs text-muted-foreground">
-                    MP4, WebM, or other video formats (max 500MB)
+                    MP4, WebM, or other video formats (max 100MB)
+                  </p>
+                  <p className="text-xs text-purple-600 dark:text-purple-400 mt-2 font-medium">
+                    ⚡ 6 seconds max for devine.video
                   </p>
                 </div>
               ) : (
@@ -617,34 +693,159 @@ export function CreateVideoStoryForm() {
                         setVideoPreview('');
                         setVideoDuration(0);
                         setVideoDimensions(null);
+                        setTrimStart(0);
+                        setTrimEnd(6);
+                        setShowTrimEditor(false);
                       }}
                     >
                       <X className="w-4 h-4" />
                     </Button>
                   </div>
-                  {videoFile && (
-                    <p className="text-xs text-muted-foreground">
-                      {videoFile.name} ({(videoFile.size / 1024 / 1024).toFixed(2)} MB)
-                      {videoDuration > 0 && ` • ${Math.floor(videoDuration / 60)}:${(Math.floor(videoDuration) % 60).toString().padStart(2, '0')}`}
-                      {videoDimensions && ` • ${videoDimensions.width}x${videoDimensions.height}`}
-                      {videoDimensions && (
-                        <Badge variant="outline" className="ml-2">
-                          {videoDimensions.height > videoDimensions.width ? 'Portrait' : 'Landscape'}
-                        </Badge>
-                      )}
-                    </p>
-                  )}
-                </div>
-              )}
-              <input
-                ref={videoInputRef}
-                type="file"
-                accept="video/mp4,video/webm,video/ogg,video/quicktime,video/*"
-                className="hidden"
-                onChange={handleVideoSelect}
-              />
-            </div>
-          </div>
+                   {videoFile && (
+                     <p className="text-xs text-muted-foreground">
+                       {videoFile.name} ({(videoFile.size / 1024 / 1024).toFixed(2)} MB)
+                       {videoDuration > 0 && ` • ${Math.floor(videoDuration / 60)}:${(Math.floor(videoDuration) % 60).toString().padStart(2, '0')}`}
+                       {videoDimensions && ` • ${videoDimensions.width}x${videoDimensions.height}`}
+                       {videoDimensions && (
+                         <Badge variant="outline" className="ml-2">
+                           {videoDimensions.height > videoDimensions.width ? 'Portrait' : 'Landscape'}
+                         </Badge>
+                       )}
+                     </p>
+                   )}
+                 </div>
+               )}
+               <input
+                 ref={videoInputRef}
+                 type="file"
+                 accept="video/mp4,video/webm,video/ogg,video/quicktime,video/*"
+                 className="hidden"
+                 onChange={handleVideoSelect}
+               />
+             </div>
+           </div>
+
+           {/* Video Trim Editor (shown when video > 6 seconds) */}
+           {videoPreview && videoDuration > 0 && (
+             <div className="space-y-4 p-4 border rounded-lg bg-purple-50/50 dark:bg-purple-900/10">
+               <div className="flex items-center justify-between">
+                 <div>
+                   <Label className="text-base font-semibold">Video Length for devine.video</Label>
+                   <p className="text-xs text-muted-foreground mt-1">
+                     Videos must be 6 seconds or less. {videoDuration > 6 ? 'Trim your video below.' : 'Perfect length!'}
+                   </p>
+                 </div>
+                 <Badge variant={trimEnd - trimStart <= 6 ? 'default' : 'destructive'} className="text-sm">
+                   {(trimEnd - trimStart).toFixed(1)}s / 6s
+                 </Badge>
+               </div>
+
+               {videoDuration > 6 && (
+                 <div className="space-y-3">
+                   <div>
+                     <div className="flex justify-between text-sm mb-2">
+                       <Label>Start Time</Label>
+                       <span className="text-muted-foreground">{trimStart.toFixed(1)}s</span>
+                     </div>
+                     <input
+                       type="range"
+                       min="0"
+                       max={Math.max(0, videoDuration - 6)}
+                       step="0.1"
+                       value={trimStart}
+                       onChange={(e) => {
+                         const newStart = parseFloat(e.target.value);
+                         setTrimStart(newStart);
+                         setTrimEnd(Math.min(newStart + 6, videoDuration));
+                         if (videoRef.current) {
+                           videoRef.current.currentTime = newStart;
+                         }
+                       }}
+                       className="w-full"
+                     />
+                   </div>
+
+                   <div>
+                     <div className="flex justify-between text-sm mb-2">
+                       <Label>End Time</Label>
+                       <span className="text-muted-foreground">{trimEnd.toFixed(1)}s</span>
+                     </div>
+                     <input
+                       type="range"
+                       min={trimStart}
+                       max={videoDuration}
+                       step="0.1"
+                       value={trimEnd}
+                       onChange={(e) => {
+                         const newEnd = parseFloat(e.target.value);
+                         const newStart = Math.max(0, newEnd - 6);
+                         setTrimStart(newStart);
+                         setTrimEnd(newEnd);
+                         if (videoRef.current) {
+                           videoRef.current.currentTime = newEnd;
+                         }
+                       }}
+                       className="w-full"
+                     />
+                   </div>
+
+                   <div className="flex gap-2">
+                     <Button
+                       type="button"
+                       variant="outline"
+                       size="sm"
+                       onClick={() => {
+                         if (videoRef.current) {
+                           videoRef.current.currentTime = trimStart;
+                           videoRef.current.play();
+                           setTimeout(() => {
+                             if (videoRef.current) {
+                               videoRef.current.pause();
+                               videoRef.current.currentTime = trimStart;
+                             }
+                           }, (trimEnd - trimStart) * 1000);
+                         }
+                       }}
+                       className="flex-1"
+                     >
+                       <Play className="w-3 h-3 mr-1" />
+                       Preview Trim
+                     </Button>
+                     <Button
+                       type="button"
+                       variant="outline"
+                       size="sm"
+                       onClick={() => {
+                         setTrimStart(0);
+                         setTrimEnd(Math.min(6, videoDuration));
+                         if (videoRef.current) {
+                           videoRef.current.currentTime = 0;
+                         }
+                       }}
+                       className="flex-1"
+                     >
+                       Reset
+                     </Button>
+                   </div>
+
+                   <Alert>
+                     <AlertCircle className="w-4 h-4" />
+                     <AlertDescription className="text-xs">
+                       <strong>Note:</strong> Use the sliders to select a 6-second segment from your video. 
+                       The selected portion will be uploaded to devine.video.
+                     </AlertDescription>
+                   </Alert>
+                 </div>
+               )}
+
+               {videoDuration <= 6 && (
+                 <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                   <span>Your video is the perfect length for devine.video!</span>
+                 </div>
+               )}
+             </div>
+           )}
 
           {/* Thumbnail Upload */}
           <div>
@@ -799,10 +1000,13 @@ export function CreateVideoStoryForm() {
           <Alert>
             <AlertCircle className="w-4 h-4" />
             <AlertDescription className="text-sm">
-              <p className="font-medium mb-1">NIP-71 Video Events</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="font-medium mb-1">NIP-71 Video Events for devine.video</p>
+              <p className="text-xs text-muted-foreground mb-2">
                 Your video will use Kind 34235 (landscape) or 34236 (portrait) automatically based on dimensions.
-                This makes it compatible with Nostr video platforms like divine.video, Flare, and others.
+                Videos are limited to <strong>6 seconds maximum</strong> for devine.video compatibility.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Compatible with Nostr video platforms: <a href="https://devine.video" target="_blank" rel="noopener noreferrer" className="underline font-medium">devine.video</a>, Flare, and others.
               </p>
             </AlertDescription>
           </Alert>

@@ -390,20 +390,39 @@ export default function Stories() {
             </div>
           </div>
 
-          {/* Story Type Tabs (Write/Video) */}
+          {/* Story Type Selection - Improved with distinct buttons */}
           <div className="mb-6">
-            <Tabs value={storyType} onValueChange={(v) => handleStoryTypeChange(v as 'write' | 'video')} className="w-full">
-              <TabsList className="grid w-full max-w-md" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                <TabsTrigger value="write" className="flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
-                  Write
-                </TabsTrigger>
-                <TabsTrigger value="video" className="flex items-center gap-2">
-                  <Video className="w-4 h-4" />
-                  Video
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <div className="flex gap-4 flex-wrap">
+              <Button
+                variant={storyType === 'write' ? 'default' : 'outline'}
+                size="lg"
+                onClick={() => handleStoryTypeChange('write')}
+                className={`flex-1 min-w-[200px] h-auto py-6 ${storyType === 'write' ? 'bg-green-600 hover:bg-green-700 text-white' : 'border-2'}`}
+              >
+                <div className="flex flex-col items-center gap-2">
+                  <FileText className="w-6 h-6" />
+                  <div>
+                    <div className="font-semibold text-base">Written Stories</div>
+                    <div className="text-xs opacity-80">Long-form travel articles</div>
+                  </div>
+                </div>
+              </Button>
+
+              <Button
+                variant={storyType === 'video' ? 'default' : 'outline'}
+                size="lg"
+                onClick={() => handleStoryTypeChange('video')}
+                className={`flex-1 min-w-[200px] h-auto py-6 ${storyType === 'video' ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'border-2'}`}
+              >
+                <div className="flex flex-col items-center gap-2">
+                  <Video className="w-6 h-6" />
+                  <div>
+                    <div className="font-semibold text-base">Video Stories</div>
+                    <div className="text-xs opacity-80">6-second travel clips</div>
+                  </div>
+                </div>
+              </Button>
+            </div>
           </div>
 
           {/* Action Tabs (Browse/Create) */}
