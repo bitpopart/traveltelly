@@ -74,14 +74,15 @@ export function AppRouter() {
         <Route path="/review/:naddr" element={<ReviewDetail />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/admin" element={<AdminPanel />} />
-        <Route path="/admin-test" element={<AdminTest />} />
-        <Route path="/admin-debug" element={<AdminDebug />} />
-        <Route path="/admin-simple" element={<AdminSimple />} />
-        <Route path="/admin-basic" element={<AdminBasic />} />
         <Route path="/admin/mass-upload" element={<AdminMassUpload />} />
         <Route path="/admin/app-builder" element={<AppBuilder />} />
         <Route path="/admin/share-scheduler" element={<ShareScheduler />} />
         <Route path="/admin/analytics" element={<AnalyticsDashboard />} />
+        <Route path="/admin/events" element={<AdminEvents />} />
+        <Route path="/admin-test" element={<AdminTest />} />
+        <Route path="/admin-debug" element={<AdminDebug />} />
+        <Route path="/admin-simple" element={<AdminSimple />} />
+        <Route path="/admin-basic" element={<AdminBasic />} />
         <Route path="/remove-reviews" element={<RemoveReviews />} />
         <Route path="/hide-reviews" element={<HideReviews />} />
         <Route path="/route-test" element={<RouteTest />} />
@@ -97,7 +98,6 @@ export function AppRouter() {
         <Route path="/media-management" element={<MediaManagementPage />} />
         <Route path="/map-marker-editor" element={<MapMarkerEditor />} />
         <Route path="/events" element={<Events />} />
-        <Route path="/admin/events" element={<AdminEvents />} />
         <Route path="/search-test" element={<SearchTest />} />
         <Route path="/simple-map-demo" element={<SimpleMapDemoPage />} />
         <Route path="/what-is-nostr" element={<WhatIsNostr />} />
