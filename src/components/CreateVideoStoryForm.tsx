@@ -21,7 +21,8 @@ import {
   AlertCircle,
   Image as ImageIcon,
   Film,
-  Share2
+  Share2,
+  SkipForward
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
@@ -838,75 +839,132 @@ export function CreateVideoStoryForm() {
                     <div className="flex gap-2">
                       <Button
                         type="button"
-                        variant="outline"
+                        variant={isPreviewing ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => {
-                          if (!videoRef.current) return;
-                          
                           const video = videoRef.current;
+                          if (!video) {
+                            console.error('Video ref not available');
+                            return;
+                          }
                           
                           // If already previewing, stop it
                           if (isPreviewing) {
+                            console.log('Stopping preview');
                             video.pause();
-                            video.currentTime = trimStart;
-                            setIsPreviewing(false);
                             if (previewIntervalRef.current) {
                               clearInterval(previewIntervalRef.current);
                               previewIntervalRef.current = null;
                             }
+                            setIsPreviewing(false);
+                            video.currentTime = trimStart;
                             return;
                           }
+
+                          console.log(`Starting preview from ${trimStart}s to ${trimEnd}s`);
 
                           // Clear any existing intervals
                           if (previewIntervalRef.current) {
                             clearInterval(previewIntervalRef.current);
+                            previewIntervalRef.current = null;
                           }
 
-                          // Set to start position and play
+                          // Pause first to ensure clean state
+                          video.pause();
+                          
+                          // Set to start position
                           video.currentTime = trimStart;
-                          video.play().then(() => {
-                            setIsPreviewing(true);
+                          
+                          // Small delay to ensure currentTime is set
+                          setTimeout(() => {
+                            if (!videoRef.current) return;
+                            
+                            const playPromise = videoRef.current.play();
+                            
+                            if (playPromise !== undefined) {
+                              playPromise.then(() => {
+                                console.log('Video playing successfully');
+                                setIsPreviewing(true);
 
-                            // Check currentTime frequently to stop at trim end
-                            previewIntervalRef.current = setInterval(() => {
-                              if (!videoRef.current) {
-                                if (previewIntervalRef.current) {
-                                  clearInterval(previewIntervalRef.current);
-                                  previewIntervalRef.current = null;
-                                }
+                                // Monitor playback with interval
+                                previewIntervalRef.current = setInterval(() => {
+                                  if (!videoRef.current) {
+                                    console.log('Video ref lost, stopping interval');
+                                    if (previewIntervalRef.current) {
+                                      clearInterval(previewIntervalRef.current);
+                                      previewIntervalRef.current = null;
+                                    }
+                                    setIsPreviewing(false);
+                                    return;
+                                  }
+
+                                  const current = videoRef.current.currentTime;
+                                  console.log(`Current time: ${current.toFixed(2)}s, End: ${trimEnd.toFixed(2)}s`);
+                                  
+                                  // Stop when we reach the trim end
+                                  if (current >= trimEnd) {
+                                    console.log('Reached trim end, stopping');
+                                    videoRef.current.pause();
+                                    videoRef.current.currentTime = trimStart;
+                                    
+                                    if (previewIntervalRef.current) {
+                                      clearInterval(previewIntervalRef.current);
+                                      previewIntervalRef.current = null;
+                                    }
+                                    setIsPreviewing(false);
+                                  }
+                                }, 100); // Check every 100ms
+
+                              }).catch((error) => {
+                                console.error('Play error:', error);
                                 setIsPreviewing(false);
-                                return;
-                              }
-
-                              const currentTime = videoRef.current.currentTime;
-                              
-                              // Stop when we reach or pass the trim end
-                              if (currentTime >= trimEnd - 0.05) {
-                                videoRef.current.pause();
-                                videoRef.current.currentTime = trimStart;
-                                if (previewIntervalRef.current) {
-                                  clearInterval(previewIntervalRef.current);
-                                  previewIntervalRef.current = null;
-                                }
-                                setIsPreviewing(false);
-                              }
-                            }, 50); // Check every 50ms for smooth stopping
-
-                          }).catch((error) => {
-                            console.error('Preview play error:', error);
-                            setIsPreviewing(false);
-                            toast({
-                              title: 'Preview failed',
-                              description: 'Could not play the video. Try clicking the video to enable autoplay.',
-                              variant: 'destructive',
-                            });
-                          });
+                                
+                                // Show user-friendly message based on error
+                                const errorMessage = error.name === 'NotAllowedError' 
+                                  ? 'Please interact with the video first (click play on the video above), then try again.'
+                                  : 'Could not play the video. Please try again.';
+                                
+                                toast({
+                                  title: 'Preview failed',
+                                  description: errorMessage,
+                                  variant: 'destructive',
+                                });
+                              });
+                            }
+                          }, 100);
                         }}
                         className="flex-1"
                       >
                         <Play className="w-3 h-3 mr-1" />
                         {isPreviewing ? 'Stop Preview' : 'Preview Trim'}
                       </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (videoRef.current) {
+                            videoRef.current.pause();
+                            videoRef.current.currentTime = trimStart;
+                            if (previewIntervalRef.current) {
+                              clearInterval(previewIntervalRef.current);
+                              previewIntervalRef.current = null;
+                            }
+                            setIsPreviewing(false);
+                            toast({
+                              title: 'Jumped to start',
+                              description: `Video position set to ${trimStart.toFixed(1)}s. Use video controls to play manually.`,
+                            });
+                          }
+                        }}
+                        className="flex-1"
+                      >
+                        <SkipForward className="w-3 h-3 mr-1" />
+                        Jump to Start
+                      </Button>
+                    </div>
+
+                    <div className="flex gap-2">
                       <Button
                         type="button"
                         variant="outline"
@@ -928,9 +986,9 @@ export function CreateVideoStoryForm() {
                           }
                           setIsPreviewing(false);
                         }}
-                        className="flex-1"
+                        className="w-full"
                       >
-                        Reset
+                        Reset to First 6 Seconds
                       </Button>
                     </div>
 
@@ -938,12 +996,12 @@ export function CreateVideoStoryForm() {
                       <AlertCircle className="w-4 h-4" />
                       <AlertDescription className="text-xs">
                         <div className="space-y-1">
-                          <p><strong>How to trim:</strong></p>
-                          <ul className="list-disc list-inside space-y-0.5 ml-2">
-                            <li>Use the slider to choose which 6-second portion to keep</li>
-                            <li>Click "Preview Trim" to watch your selected segment</li>
-                            <li>The purple bar shows your selected range</li>
-                          </ul>
+                          <p><strong>How to select your 6-second clip:</strong></p>
+                          <ol className="list-decimal list-inside space-y-0.5 ml-2">
+                            <li>Slide to choose which 6 seconds you want (purple bar shows selection)</li>
+                            <li>Click "Jump to Start" to position the video, then use video controls to play</li>
+                            <li>OR click "Preview Trim" for automatic playback (may require interaction first)</li>
+                          </ol>
                         </div>
                       </AlertDescription>
                     </Alert>
