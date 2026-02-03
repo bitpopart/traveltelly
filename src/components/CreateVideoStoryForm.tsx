@@ -22,7 +22,9 @@ import {
   Image as ImageIcon,
   Film,
   Share2,
-  SkipForward
+  SkipForward,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
@@ -33,6 +35,7 @@ interface VideoFormData {
   tags: string;
   identifier: string;
   shareOnNostr: boolean;
+  muteAudio: boolean;
 }
 
 export function CreateVideoStoryForm() {
@@ -48,6 +51,7 @@ export function CreateVideoStoryForm() {
     tags: '',
     identifier: '',
     shareOnNostr: true, // Default to true
+    muteAudio: false, // Default to false (keep audio)
   });
 
   const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -250,11 +254,12 @@ export function CreateVideoStoryForm() {
 
       toast({
         title: 'Generating thumbnail...',
-        description: 'Please wait',
+        description: 'Capturing frame from your trimmed video',
       });
 
-      // Seek to 25% of video duration for a better frame (or 1 second, whichever is less)
-      const seekTime = Math.min(video.duration * 0.25, 1);
+      // Use the middle of the trimmed section for the thumbnail
+      const trimDuration = trimEnd - trimStart;
+      const seekTime = trimStart + (trimDuration / 2);
       
       // Wait for seek to complete
       await new Promise<void>((resolve, reject) => {
@@ -314,11 +319,11 @@ export function CreateVideoStoryForm() {
 
       toast({
         title: 'Thumbnail generated!',
-        description: 'Video thumbnail created successfully',
+        description: `Captured frame from ${seekTime.toFixed(1)}s (middle of your trimmed segment)`,
       });
 
-      // Reset video to start
-      video.currentTime = 0;
+      // Reset video to trim start
+      video.currentTime = trimStart;
     } catch (error) {
       console.error('Thumbnail generation error:', error);
       toast({
@@ -446,12 +451,21 @@ export function CreateVideoStoryForm() {
         imetaTag.push(`duration ${finalDuration.toFixed(3)}`);
       }
 
+      // Add audio status if muted
+      if (formData.muteAudio) {
+        imetaTag.push(`audio muted`);
+      }
+
       // Build tags according to NIP-71 format
+      const altText = formData.muteAudio 
+        ? `Video: ${formData.title.trim()} (no audio)`
+        : `Video: ${formData.title.trim()}`;
+        
       const tags: string[][] = [
         ['d', identifier],
         ['title', formData.title.trim()],
         ['published_at', Math.floor(Date.now() / 1000).toString()],
-        ['alt', `Video: ${formData.title.trim()}`],
+        ['alt', altText],
         imetaTag,
       ];
 
@@ -500,6 +514,10 @@ export function CreateVideoStoryForm() {
 
         if (durationText) {
           noteContent += `\n⏱️ Duration: ${durationText}`;
+        }
+
+        if (formData.muteAudio) {
+          noteContent += `\n🔇 No audio`;
         }
 
         if (thumbnailUrl) {
@@ -569,11 +587,13 @@ export function CreateVideoStoryForm() {
       }
 
       setUploadProgress(100);
+      const successMessage = formData.shareOnNostr 
+        ? `Your ${formData.muteAudio ? 'silent ' : ''}video has been shared on Nostr and is visible on all clients.`
+        : `Your ${formData.muteAudio ? 'silent ' : ''}video has been published to TravelTelly.`;
+      
       toast({
         title: 'Video published!',
-        description: formData.shareOnNostr 
-          ? 'Your video has been shared on Nostr and is visible on all clients.'
-          : 'Your video has been published to TravelTelly.',
+        description: successMessage,
       });
       
       // Reset form
@@ -583,6 +603,7 @@ export function CreateVideoStoryForm() {
         tags: '',
         identifier: '',
         shareOnNostr: true,
+        muteAudio: false,
       });
       
       // Revoke blob URLs before clearing
@@ -1225,6 +1246,30 @@ export function CreateVideoStoryForm() {
             <p className="text-xs text-muted-foreground mt-1">
               Unique identifier for this video. Used for editing and linking.
             </p>
+          </div>
+
+          {/* Mute Audio Switch */}
+          <div className="flex items-center justify-between p-4 border rounded-lg bg-blue-50/50 dark:bg-blue-900/10">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                {formData.muteAudio ? (
+                  <VolumeX className="w-4 h-4 text-blue-600" />
+                ) : (
+                  <Volume2 className="w-4 h-4 text-blue-600" />
+                )}
+                <Label htmlFor="mute-audio" className="font-semibold cursor-pointer">
+                  Mute Audio
+                </Label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Remove audio track from your video. Perfect for silent clips or videos with background music you want to remove.
+              </p>
+            </div>
+            <Switch
+              id="mute-audio"
+              checked={formData.muteAudio}
+              onCheckedChange={(checked) => setFormData({ ...formData, muteAudio: checked })}
+            />
           </div>
 
           {/* Share on Nostr Switch */}
