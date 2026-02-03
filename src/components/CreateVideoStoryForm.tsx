@@ -42,6 +42,7 @@ export function CreateVideoStoryForm() {
   const { user } = useCurrentUser();
   const { mutate: createEvent, isPending } = useNostrPublish();
   const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
+  const [currentUploadProgress, setCurrentUploadProgress] = useState<number>(0);
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -344,33 +345,139 @@ export function CreateVideoStoryForm() {
     return titleSlug ? `${titleSlug}-${timestamp}` : `video-${timestamp}`;
   };
 
-  const trimVideo = async (): Promise<File> => {
-    if (!videoFile || !videoPreview) {
-      throw new Error('No video to trim');
+  const processVideo = async (): Promise<File> => {
+    if (!videoFile || !videoPreview || !videoRef.current) {
+      throw new Error('No video to process');
     }
 
     const trimmedDuration = trimEnd - trimStart;
-    
-    // If video is already within 6 seconds and no trimming needed
-    if (trimmedDuration <= 6 && trimStart === 0 && trimEnd >= videoDuration) {
-      return videoFile;
-    }
-
-    // For now, we'll just validate the trim range and return the original file
-    // In a production environment, you would use FFmpeg.js or a server-side API to actually trim the video
-    // For this implementation, we'll trust the user to trim manually or we'll upload the full video
-    // and indicate the trim points in metadata
     
     if (trimmedDuration > 6) {
       throw new Error('Trimmed video must be 6 seconds or less');
     }
 
+    // If no processing needed (no mute, video already ≤6s, no trim)
+    if (!formData.muteAudio && trimmedDuration <= 6 && trimStart === 0 && trimEnd >= videoDuration) {
+      return videoFile;
+    }
+
+    // If only metadata changes needed (not actually removing audio or trimming)
+    if (!formData.muteAudio) {
+      toast({
+        title: 'Video trim range set',
+        description: `Video will be ${trimmedDuration.toFixed(1)}s (${trimStart.toFixed(1)}s - ${trimEnd.toFixed(1)}s)`,
+      });
+      return videoFile;
+    }
+
+    // If mute audio is enabled, we need to create a new video without audio
     toast({
-      title: 'Video trim range set',
-      description: `Video will be ${trimmedDuration.toFixed(1)}s (${trimStart.toFixed(1)}s - ${trimEnd.toFixed(1)}s)`,
+      title: 'Processing video...',
+      description: formData.muteAudio ? 'Removing audio track' : 'Preparing video',
     });
 
-    return videoFile;
+    try {
+      const video = videoRef.current;
+      
+      // Create a canvas to capture video frames
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        throw new Error('Could not get canvas context');
+      }
+
+      // Create a MediaStream from the canvas (video only, no audio)
+      const stream = canvas.captureStream(30); // 30 fps
+      
+      // Set up MediaRecorder to record the stream
+      const chunks: Blob[] = [];
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'video/webm;codecs=vp8',
+        videoBitsPerSecond: 2500000, // 2.5 Mbps
+      });
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunks.push(e.data);
+        }
+      };
+
+      // Start recording
+      mediaRecorder.start();
+
+      // Set video to trim start
+      video.currentTime = trimStart;
+      
+      // Wait for video to seek
+      await new Promise<void>((resolve) => {
+        video.onseeked = () => resolve();
+      });
+
+      // Start playing video (muted so we don't hear it during processing)
+      video.muted = true;
+      await video.play();
+
+      // Draw frames to canvas while video plays
+      const drawFrame = () => {
+        if (video.currentTime >= trimEnd || video.paused || video.ended) {
+          return;
+        }
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        requestAnimationFrame(drawFrame);
+      };
+      drawFrame();
+
+      // Wait for video to reach trim end
+      await new Promise<void>((resolve) => {
+        const checkTime = setInterval(() => {
+          if (video.currentTime >= trimEnd - 0.05 || video.ended) {
+            clearInterval(checkTime);
+            resolve();
+          }
+        }, 100);
+      });
+
+      // Stop recording
+      video.pause();
+      mediaRecorder.stop();
+
+      // Wait for final data
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(chunks, { type: 'video/webm' });
+          if (blob.size === 0) {
+            reject(new Error('Failed to create video'));
+          } else {
+            resolve(blob);
+          }
+        };
+        mediaRecorder.onerror = reject;
+      });
+
+      // Create File from blob
+      const fileName = videoFile.name.replace(/\.[^/.]+$/, '') + '_muted.webm';
+      const processedFile = new File([blob], fileName, { type: 'video/webm' });
+
+      toast({
+        title: 'Video processed!',
+        description: `Audio removed. New size: ${(processedFile.size / 1024 / 1024).toFixed(2)}MB`,
+      });
+
+      return processedFile;
+
+    } catch (error) {
+      console.error('Video processing error:', error);
+      toast({
+        title: 'Processing failed',
+        description: 'Could not process video. Uploading original file without audio removal.',
+        variant: 'destructive',
+      });
+      // Return original file if processing fails
+      return videoFile;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -397,33 +504,53 @@ export function CreateVideoStoryForm() {
     }
 
     try {
-      setUploadProgress(10);
+      setUploadProgress(5);
 
-      // Validate and prepare video
-      await trimVideo();
+      // Process video (mute audio if needed, validate trim range)
+      const processedVideo = await processVideo();
+      setUploadProgress(10);
 
       // Upload thumbnail first
       let thumbnailUrl = '';
       if (thumbnailFile) {
-        setUploadProgress(20);
+        setUploadProgress(15);
         toast({
           title: 'Uploading thumbnail...',
           description: 'Step 1 of 2',
         });
+        
+        // Simulate progress for thumbnail
+        const thumbProgressInterval = setInterval(() => {
+          setUploadProgress(prev => Math.min(prev + 2, 25));
+        }, 200);
+        
         const [[_, thumbUrl]] = await uploadFile(thumbnailFile);
+        clearInterval(thumbProgressInterval);
         thumbnailUrl = thumbUrl;
-        setUploadProgress(40);
+        setUploadProgress(30);
       }
 
       // Upload video
-      setUploadProgress(thumbnailFile ? 40 : 20);
+      const uploadStartProgress = thumbnailFile ? 30 : 15;
+      setUploadProgress(uploadStartProgress);
       toast({
         title: 'Uploading video...',
-        description: `This may take a while for ${(videoFile.size / 1024 / 1024).toFixed(1)}MB video. Please be patient.`,
+        description: `This may take a while for ${(processedVideo.size / 1024 / 1024).toFixed(1)}MB video. Please be patient.`,
       });
       
-      const [[__, videoUrl]] = await uploadFile(videoFile);
-      setUploadProgress(80);
+      // Simulate gradual progress during video upload
+      const videoProgressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          // Gradually increase from current to 85%
+          const target = 85;
+          const increment = (target - uploadStartProgress) / 30; // Reach 85% in ~30 intervals
+          return Math.min(prev + increment, target);
+        });
+      }, 500); // Update every 500ms
+      
+      const [[__, videoUrl]] = await uploadFile(processedVideo);
+      clearInterval(videoProgressInterval);
+      setUploadProgress(90);
 
       const identifier = formData.identifier.trim() || generateIdentifier();
 
@@ -494,7 +621,7 @@ export function CreateVideoStoryForm() {
       tags.push(['t', 'travel']);
       tags.push(['t', 'traveltelly']);
 
-      setUploadProgress(90);
+      setUploadProgress(92);
 
       // Publish video event to Nostr (NIP-71)
       createEvent({
@@ -502,6 +629,8 @@ export function CreateVideoStoryForm() {
         content: formData.summary.trim(),
         tags,
       });
+
+      setUploadProgress(95);
 
       // Also create a regular Nostr note (kind 1) if shareOnNostr is checked
       if (formData.shareOnNostr && user) {
@@ -589,6 +718,8 @@ export function CreateVideoStoryForm() {
           content: noteContent,
           tags: noteTags,
         });
+        
+        setUploadProgress(98);
       }
 
       setUploadProgress(100);
