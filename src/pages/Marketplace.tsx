@@ -443,7 +443,7 @@ const Marketplace = () => {
         </div>
       </div>
 
-      <Footer />
+      <Footer showStockMediaPartners={true} />
     </div>
   );
 };
