@@ -168,11 +168,17 @@ export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = 
   return useQuery({
     queryKey: ['marketplace-products', options, authorizedUploaders],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      console.log('🔍 MARKETPLACE QUERY STARTED');
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(15000)]); // Increased to 15 seconds
 
       // Query specifically for authorized uploaders' media
       const authorizedAuthors = Array.from(authorizedUploaders || []);
       console.log('🔍 Marketplace querying media from authorized authors:', authorizedAuthors);
+      
+      if (authorizedAuthors.length === 0) {
+        console.warn('⚠️ No authorized authors found, returning empty array');
+        return [];
+      }
 
       // Build filter for classified listings
       const filter: NostrFilter = {
@@ -202,7 +208,23 @@ export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = 
         console.error('Failed to decode admin npub:', e);
       }
 
-      const events = await nostr.query([filter], { signal });
+      console.log('🔍 Marketplace filter:', JSON.stringify(filter));
+      
+      let events = [];
+      try {
+        console.log('⏳ Starting marketplace query...');
+        events = await nostr.query([filter], { signal });
+        console.log('✅ Marketplace query completed successfully');
+        console.log('🔍 Marketplace raw events received:', events.length);
+      } catch (error) {
+        console.error('❌ Marketplace query failed:', error);
+        console.error('❌ Error details:', {
+          message: error instanceof Error ? error.message : String(error),
+          name: error instanceof Error ? error.name : 'Unknown',
+        });
+        // Return empty array on error
+        return [];
+      }
 
       // Also specifically query for admin events to debug
       if (adminHex) {
@@ -278,6 +300,9 @@ export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = 
         })
         .sort((a, b) => b.createdAt - a.createdAt); // Sort by newest first
 
+      console.log('📦 FINAL MARKETPLACE PRODUCTS COUNT:', products.length);
+      console.log('📦 Products with images:', products.filter(p => p.images.length > 0).length);
+      
       return products;
     },
     enabled: !!authorizedUploaders && authorizedUploaders.size > 0, // Only run when we have authorized uploaders

@@ -58,6 +58,14 @@ const Marketplace = () => {
 
     return true;
   }) || [];
+  
+  console.log('🏪 Marketplace filtering:', {
+    totalProducts: products?.length || 0,
+    filteredProducts: filteredProducts.length,
+    priceRange,
+    selectedCategory,
+    selectedMediaType,
+  });
 
   return (
     <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#f4f4f5' }}>
