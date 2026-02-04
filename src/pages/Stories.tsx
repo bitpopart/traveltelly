@@ -537,7 +537,21 @@ export default function Stories() {
 
             {/* Create Tab */}
             <TabsContent value="create" className="mt-0">
-              {storyType === 'write' ? (
+              {!user ? (
+                <Card className="border-dashed">
+                  <CardContent className="py-12 px-8 text-center">
+                    <div className="max-w-sm mx-auto space-y-6">
+                      <BookOpen className="w-16 h-16 mx-auto" style={{ color: '#b2d235' }} />
+                      <div>
+                        <h3 className="font-semibold text-lg mb-2">Login Required</h3>
+                        <p className="text-muted-foreground mb-4">
+                          Please log in to create stories
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : storyType === 'write' ? (
                 <CreateArticleForm />
               ) : (
                 <CreateVideoStoryForm />
