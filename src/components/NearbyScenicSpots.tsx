@@ -34,12 +34,16 @@ function useNearbyStockMedia(geohashStr: string) {
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
 
+      console.log('🔍 Searching for nearby scenic spots with geohash:', geohashStr);
+
       // Search with progressively shorter geohash prefixes for wider area
       const geohashPrefixes = [
         geohashStr.substring(0, 6), // ~1.2km
         geohashStr.substring(0, 5), // ~5km
         geohashStr.substring(0, 4), // ~20km
       ];
+
+      console.log('📍 Geohash prefixes for stock media:', geohashPrefixes);
 
       const events = await nostr.query(
         geohashPrefixes.map(prefix => ({
@@ -50,10 +54,18 @@ function useNearbyStockMedia(geohashStr: string) {
         { signal }
       );
 
+      console.log('📊 Total stock media fetched:', events.length);
+
       const validMedia = events.filter(validateStockMediaEvent);
 
+      console.log('✅ Valid stock media with images:', validMedia.length);
+
       // Sort by newest first
-      return validMedia.sort((a, b) => b.created_at - a.created_at).slice(0, 6);
+      const sorted = validMedia.sort((a, b) => b.created_at - a.created_at).slice(0, 6);
+      
+      console.log('🎯 Showing scenic spots:', sorted.length);
+
+      return sorted;
     },
   });
 }
@@ -61,8 +73,12 @@ function useNearbyStockMedia(geohashStr: string) {
 export function NearbyScenicSpots({ geohashStr }: NearbyScenicSpotsProps) {
   const { data: stockMedia, isLoading, error } = useNearbyStockMedia(geohashStr);
 
+  console.log('🎨 NearbyScenicSpots render:', { geohashStr, isLoading, hasData: !!stockMedia, count: stockMedia?.length, error: !!error });
+
+  // Hide if error or no results after loading
   if (error || (!isLoading && (!stockMedia || stockMedia.length === 0))) {
-    return null; // Don't show anything if no nearby spots
+    console.log('❌ Hiding NearbyScenicSpots - no data');
+    return null;
   }
 
   return (
