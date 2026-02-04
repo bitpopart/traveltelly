@@ -1,3 +1,14 @@
+/**
+ * EXIF Utilities for extracting metadata from photos
+ * 
+ * This module handles:
+ * - GPS coordinate extraction from EXIF data
+ * - Comprehensive metadata extraction (title, description, keywords)
+ * - Proper UTF-8 and special character handling for international text
+ * - Support for diacritics and accented characters (Polish ąćęłńóśźż, French éèêë, etc.)
+ * - Multiple encoding fallbacks (UTF-8, ISO-8859-1, Windows-1252)
+ * - Unicode normalization (NFC) for consistent character representation
+ */
 import { parse as parseExif } from 'exifr';
 import { trackCoordinates, verifyCoordinateSystem, testGeohashRoundTrip } from './coordinateVerification';
 import { validateCoordinates, suggestCoordinateCorrections, isReasonableLocation } from './coordinateValidation';
@@ -279,19 +290,60 @@ export async function extractPhotoMetadata(file: File): Promise<PhotoMetadata> {
 
     const metadata: PhotoMetadata = {};
 
-    // Helper function to safely extract and decode string values
+    // Helper function to safely extract and decode string values with proper encoding support
     const safeExtractString = (value: any): string | null => {
       if (!value) return null;
-      if (typeof value === 'string') return value.trim();
+      
+      // If already a string, ensure it's properly normalized
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        // Normalize Unicode characters (handle combining diacritics)
+        return trimmed.normalize('NFC');
+      }
+      
       // Handle Buffer or Uint8Array (might contain UTF-8 encoded text)
       if (value instanceof Uint8Array || Buffer.isBuffer(value)) {
         try {
-          const decoded = new TextDecoder('utf-8').decode(value);
-          return decoded.trim();
+          // Try UTF-8 decoding first (most common)
+          const decoder = new TextDecoder('utf-8', { fatal: false, ignoreBOM: false });
+          let decoded = decoder.decode(value).trim();
+          
+          // If the result contains replacement characters, try other encodings
+          if (decoded.includes('�')) {
+            console.log('🔄 UTF-8 decode had issues, trying alternative encodings...');
+            
+            // Try Latin-1 (ISO-8859-1) which is common for Western European languages
+            try {
+              const latin1Decoder = new TextDecoder('iso-8859-1');
+              const latin1Result = latin1Decoder.decode(value).trim();
+              if (!latin1Result.includes('�')) {
+                decoded = latin1Result;
+                console.log('✅ Successfully decoded with ISO-8859-1');
+              }
+            } catch (e) {
+              console.log('ISO-8859-1 decode failed, keeping UTF-8 result');
+            }
+            
+            // Try Windows-1252 (common for Polish and other Eastern European characters)
+            try {
+              const win1252Decoder = new TextDecoder('windows-1252');
+              const win1252Result = win1252Decoder.decode(value).trim();
+              if (!win1252Result.includes('�')) {
+                decoded = win1252Result;
+                console.log('✅ Successfully decoded with Windows-1252');
+              }
+            } catch (e) {
+              console.log('Windows-1252 decode failed, keeping current result');
+            }
+          }
+          
+          // Normalize the decoded string to ensure consistent character representation
+          return decoded.normalize('NFC');
         } catch (e) {
-          console.warn('Failed to decode buffer as UTF-8:', e);
+          console.warn('Failed to decode buffer:', e);
         }
       }
+      
       return null;
     };
 
@@ -309,7 +361,9 @@ export async function extractPhotoMetadata(file: File): Promise<PhotoMetadata> {
       const value = safeExtractString(exifData?.[field]);
       if (value) {
         metadata.title = value;
-        console.log(`✅ Title found from ${field}:`, metadata.title);
+        // Check if the title contains special characters
+        const hasSpecialChars = /[\u00C0-\u017F\u0100-\u024F]/.test(value);
+        console.log(`✅ Title found from ${field}:`, metadata.title, hasSpecialChars ? '(contains diacritics ✨)' : '');
         break;
       }
     }
@@ -328,7 +382,9 @@ export async function extractPhotoMetadata(file: File): Promise<PhotoMetadata> {
       const value = safeExtractString(exifData?.[field]);
       if (value) {
         metadata.description = value;
-        console.log(`✅ Description found from ${field}:`, metadata.description);
+        // Check if the description contains special characters
+        const hasSpecialChars = /[\u00C0-\u017F\u0100-\u024F]/.test(value);
+        console.log(`✅ Description found from ${field}:`, metadata.description, hasSpecialChars ? '(contains diacritics ✨)' : '');
         break;
       }
     }

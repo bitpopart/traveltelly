@@ -185,7 +185,13 @@ export function AdminMassUpload() {
         const metadata = await extractPhotoMetadata(file);
         
         // Update item with extracted metadata
-        item.title = metadata.title || file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+        // Normalize the filename to properly handle special characters
+        const normalizedFilename = file.name
+          .replace(/\.[^/.]+$/, '') // Remove extension
+          .replace(/[-_]/g, ' ')     // Replace dashes and underscores with spaces
+          .normalize('NFC');          // Normalize Unicode characters
+        
+        item.title = metadata.title || normalizedFilename;
         item.description = metadata.description || '';
         item.keywords = metadata.keywords?.join(', ') || '';
         item.metadata = metadata;
@@ -202,7 +208,13 @@ export function AdminMassUpload() {
       } catch (error) {
         console.error(`Error extracting metadata from ${file.name}:`, error);
         // Still create item but with basic info
-        item.title = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+        // Normalize the filename to properly handle special characters
+        const normalizedFilename = file.name
+          .replace(/\.[^/.]+$/, '') // Remove extension
+          .replace(/[-_]/g, ' ')     // Replace dashes and underscores with spaces
+          .normalize('NFC');          // Normalize Unicode characters
+        
+        item.title = normalizedFilename;
         item.status = 'ready';
       }
 
