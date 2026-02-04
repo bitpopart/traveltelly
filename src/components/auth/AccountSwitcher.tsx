@@ -23,7 +23,15 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
 
   if (!currentUser) return null;
 
+  // The Traveltelly admin npub
+  const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642';
+  const ADMIN_HEX = '7d33ba57d8a6e8869a1f1d5215254597594ac0dbfeb01b690def8c461b82db35';
+
   const getDisplayName = (account: Account): string => {
+    // Always show 'traveltelly' for the admin account, even before metadata loads
+    if (account.pubkey === ADMIN_HEX) {
+      return account.metadata.name ?? 'traveltelly';
+    }
     return account.metadata.name ?? genUserName(account.pubkey);
   }
 
@@ -32,7 +40,10 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
       <DropdownMenuTrigger asChild>
         <button className='flex items-center gap-3 p-3 rounded-full hover:bg-accent transition-all w-full text-foreground'>
           <Avatar className='w-10 h-10'>
-            <AvatarImage src={currentUser.metadata.picture} alt={getDisplayName(currentUser)} />
+            <AvatarImage 
+              src={currentUser.metadata.picture || (currentUser.pubkey === ADMIN_HEX ? 'https://nostr.build/i/nostr.build_1cdc4f4551701244d7d580b3bd500be0049a2d29c39e7c44949557875a8d4f00.png' : undefined)} 
+              alt={getDisplayName(currentUser)} 
+            />
             <AvatarFallback>{getDisplayName(currentUser).charAt(0)}</AvatarFallback>
           </Avatar>
           <div className='flex-1 text-left hidden md:block truncate'>
