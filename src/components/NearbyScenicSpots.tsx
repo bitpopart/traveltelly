@@ -88,9 +88,9 @@ export function NearbyScenicSpots({ geohashStr }: NearbyScenicSpotsProps) {
 
   console.log('🎨 NearbyScenicSpots render:', { geohashStr, isLoading, hasData: !!stockMedia, count: stockMedia?.length, error: !!error });
 
-  // Hide if error or no results after loading
-  if (error || (!isLoading && (!stockMedia || stockMedia.length === 0))) {
-    console.log('❌ Hiding NearbyScenicSpots - no data');
+  // Hide completely if loading, error, or no results
+  if (isLoading || error || !stockMedia || stockMedia.length === 0) {
+    console.log('❌ Hiding NearbyScenicSpots - loading, error, or no data');
     return null;
   }
 
@@ -103,7 +103,7 @@ export function NearbyScenicSpots({ geohashStr }: NearbyScenicSpotsProps) {
             Nearby Scenic Spots
           </CardTitle>
           <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/20">
-            {isLoading ? '...' : stockMedia?.length || 0}
+            {stockMedia.length}
           </Badge>
         </div>
         <p className="text-xs text-muted-foreground mt-1">
@@ -111,57 +111,49 @@ export function NearbyScenicSpots({ geohashStr }: NearbyScenicSpotsProps) {
         </p>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {Array.from({ length: 6 }, (_, i) => (
-              <Skeleton key={i} className="aspect-square w-full rounded" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {stockMedia?.map((media) => {
-              const title = media.tags.find(([name]) => name === 'title')?.[1] || 'Untitled';
-              const image = media.tags.find(([name]) => name === 'image')?.[1];
-              const location = media.tags.find(([name]) => name === 'location')?.[1];
-              const identifier = media.tags.find(([name]) => name === 'd')?.[1];
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {stockMedia.map((media) => {
+            const title = media.tags.find(([name]) => name === 'title')?.[1] || 'Untitled';
+            const image = media.tags.find(([name]) => name === 'image')?.[1];
+            const location = media.tags.find(([name]) => name === 'location')?.[1];
+            const identifier = media.tags.find(([name]) => name === 'd')?.[1];
 
-              if (!identifier || !image) return null;
+            if (!identifier || !image) return null;
 
-              const naddr = nip19.naddrEncode({
-                kind: media.kind,
-                pubkey: media.pubkey,
-                identifier,
-              });
+            const naddr = nip19.naddrEncode({
+              kind: media.kind,
+              pubkey: media.pubkey,
+              identifier,
+            });
 
-              return (
-                <Link key={media.id} to={`/media/preview/${naddr}`}>
-                  <div className="group relative aspect-square overflow-hidden rounded-lg border border-gray-200 hover:border-blue-400 transition-colors">
-                    <OptimizedImage
-                      src={image}
-                      alt={title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                      blurUp={true}
-                      thumbnail={true}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="absolute bottom-0 left-0 right-0 p-2">
-                        <p className="text-white text-xs font-medium line-clamp-2">
-                          {title}
+            return (
+              <Link key={media.id} to={`/media/preview/${naddr}`}>
+                <div className="group relative aspect-square overflow-hidden rounded-lg border border-gray-200 hover:border-blue-400 transition-colors">
+                  <OptimizedImage
+                    src={image}
+                    alt={title}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    blurUp={true}
+                    thumbnail={true}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute bottom-0 left-0 right-0 p-2">
+                      <p className="text-white text-xs font-medium line-clamp-2">
+                        {title}
+                      </p>
+                      {location && (
+                        <p className="text-white/80 text-[10px] flex items-center gap-1 mt-1">
+                          <MapPin className="w-2.5 h-2.5" />
+                          {location}
                         </p>
-                        {location && (
-                          <p className="text-white/80 text-[10px] flex items-center gap-1 mt-1">
-                            <MapPin className="w-2.5 h-2.5" />
-                            {location}
-                          </p>
-                        )}
-                      </div>
+                      )}
                     </div>
                   </div>
-                </Link>
-              );
-            })}
-          </div>
-        )}
+                </div>
+              </Link>
+            );
+          })}
+        </div>
       </CardContent>
     </Card>
   );
