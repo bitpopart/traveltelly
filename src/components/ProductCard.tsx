@@ -27,22 +27,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const author = useAuthor(product.seller.pubkey);
   const metadata = author.data?.metadata;
 
-  // Debug logging for product images
-  console.log('🖼️ ProductCard Debug:', {
-    title: product.title,
-    imageCount: product.images.length,
-    images: product.images,
-    firstImage: product.images[0],
-    hasImages: product.images.length > 0
-  });
 
-  // Test if first image URL is valid
-  if (product.images.length > 0) {
-    const testImg = new Image();
-    testImg.onload = () => console.log('✅ Image URL is valid:', product.images[0]);
-    testImg.onerror = () => console.error('❌ Image URL is invalid:', product.images[0]);
-    testImg.src = product.images[0];
-  }
 
   const displayName = metadata?.name || genUserName(product.seller.pubkey);
   const profileImage = metadata?.picture;

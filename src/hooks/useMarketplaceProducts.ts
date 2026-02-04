@@ -78,11 +78,7 @@ function parseMarketplaceProduct(event: NostrEvent): MarketplaceProduct | null {
       })
       .filter(Boolean) as string[];
     
-    console.log(`🔍 Processing event: ${title}`);
-    console.log(`   Regular image tags:`, imageTags);
-    console.log(`   Regular image URLs:`, images);
-    console.log(`   Imeta tags:`, imetaTags);
-    console.log(`   Imeta image URLs:`, imetaImages);
+
     
     // Combine regular images with imeta images
     const allTagImages = [...images, ...imetaImages];
@@ -111,14 +107,7 @@ function parseMarketplaceProduct(event: NostrEvent): MarketplaceProduct | null {
     // Combine tag images (including imeta) and content images, remove duplicates
     const allImages = [...new Set([...allTagImages, ...contentImages])].filter(Boolean);
 
-    // Debug: Log all tags and content to see what's available
-    console.log('🏷️ All tags for event:', event.tags);
-    console.log('📄 Event content:', event.content);
-    console.log('🖼️ Found regular tag images:', images);
-    console.log('🖼️ Found imeta images:', imetaImages);
-    console.log('🖼️ Found content images:', contentImages);
-    console.log('🖼️ All combined images:', allImages);
-    console.log(`📊 FINAL IMAGE COUNT for "${title}": ${allImages.length} images`);
+
 
     // Get media types from 't' tags (photos, videos, etc.)
     const mediaTypes = event.tags
@@ -164,27 +153,25 @@ function parseMarketplaceProduct(event: NostrEvent): MarketplaceProduct | null {
 export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = {}) {
   const { nostr } = useNostr();
   const { data: authorizedUploaders } = useAuthorizedMediaUploaders();
+  
+
 
   return useQuery({
-    queryKey: ['marketplace-products', options, authorizedUploaders],
+    queryKey: ['marketplace-products', JSON.stringify(options), Array.from(authorizedUploaders || [])],
     queryFn: async (c) => {
-      console.log('🔍 MARKETPLACE QUERY STARTED');
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(15000)]); // Increased to 15 seconds
-
-      // Query specifically for authorized uploaders' media
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(10000)]);
+      
       const authorizedAuthors = Array.from(authorizedUploaders || []);
-      console.log('🔍 Marketplace querying media from authorized authors:', authorizedAuthors);
       
       if (authorizedAuthors.length === 0) {
-        console.warn('⚠️ No authorized authors found, returning empty array');
         return [];
       }
 
       // Build filter for classified listings
       const filter: NostrFilter = {
-        kinds: [30402], // NIP-99 classified listings
-        authors: authorizedAuthors, // Only query for authorized authors
-        limit: 100,
+        kinds: [30402],
+        authors: authorizedAuthors,
+        limit: 50, // Reduced from 100 to match working queries
       };
 
       // Add category filter if specified
@@ -197,63 +184,7 @@ export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = 
         filter.authors = [options.seller];
       }
 
-      // Debug: Also query specifically for Traveltelly admin
-      const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642';
-      let adminHex = '';
-      try {
-        const decoded = nip19.decode(ADMIN_NPUB);
-        adminHex = decoded.data as string;
-        console.log('🔍 Admin hex:', adminHex);
-      } catch (e) {
-        console.error('Failed to decode admin npub:', e);
-      }
-
-      console.log('🔍 Marketplace filter:', JSON.stringify(filter));
-      
-      let events = [];
-      try {
-        console.log('⏳ Starting marketplace query...');
-        events = await nostr.query([filter], { signal });
-        console.log('✅ Marketplace query completed successfully');
-        console.log('🔍 Marketplace raw events received:', events.length);
-      } catch (error) {
-        console.error('❌ Marketplace query failed:', error);
-        console.error('❌ Error details:', {
-          message: error instanceof Error ? error.message : String(error),
-          name: error instanceof Error ? error.name : 'Unknown',
-        });
-        // Return empty array on error
-        return [];
-      }
-
-      // Also specifically query for admin events to debug
-      if (adminHex) {
-        const adminEvents = await nostr.query([{
-          kinds: [30402],
-          authors: [adminHex],
-          limit: 50
-        }], { signal });
-        console.log('🔍 Admin specific events found:', adminEvents.length);
-        if (adminEvents.length > 0) {
-          console.log('🔍 Admin event sample:', adminEvents[0]);
-        }
-      }
-
-      // Debug: Log events to see what we're getting
-      console.log('🔍 Marketplace Debug - Total events found:', events.length);
-      console.log('🔍 Current relay:', typeof nostr.relay);
-      if (events.length > 0) {
-        console.log('🔍 Sample event:', events[0]);
-        console.log('🔍 Sample event tags:', events[0].tags);
-        const imageTagsInSample = events[0].tags.filter(([name]) => ['image', 'img', 'photo', 'picture', 'url', 'imeta'].includes(name));
-        console.log('🔍 All image-related tags in sample:', imageTagsInSample);
-
-        // Log each event's image tags
-        events.slice(0, 3).forEach((event, idx) => {
-          const imageTags = event.tags.filter(([name]) => ['image', 'img', 'photo', 'picture', 'url', 'imeta'].includes(name));
-          console.log(`🔍 Event ${idx + 1} image tags:`, imageTags);
-        });
-      }
+      const events = await nostr.query([filter], { signal });
 
       // Filter and parse events
       const products = events
@@ -271,20 +202,7 @@ export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = 
             product.event.tags.some(tag => tag[0] === 'admin_deleted' && tag[1] === 'true') ||
             product.event.tags.some(tag => tag[0] === 'tombstone' && tag[1] === 'true');
 
-          if (isDeleted) {
-            console.log('🗑️ Filtering out deleted product:', product.title, 'Status:', product.status);
-            return false;
-          }
-          return true;
-        })
-        .map(product => {
-          // Debug: Log parsed products to see image data
-          if (product.images.length > 0) {
-            console.log('🖼️ Product with images:', product.title, 'Images:', product.images);
-          } else {
-            console.log('❌ Product without images:', product.title);
-          }
-          return product;
+          return !isDeleted;
         })
         .filter(product => {
           // Client-side search filtering
@@ -300,12 +218,9 @@ export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = 
         })
         .sort((a, b) => b.createdAt - a.createdAt); // Sort by newest first
 
-      console.log('📦 FINAL MARKETPLACE PRODUCTS COUNT:', products.length);
-      console.log('📦 Products with images:', products.filter(p => p.images.length > 0).length);
-      
       return products;
     },
-    enabled: !!authorizedUploaders && authorizedUploaders.size > 0, // Only run when we have authorized uploaders
+    // Don't use enabled check - handle empty case inside queryFn instead
     staleTime: 30000, // 30 seconds
     refetchInterval: 60000, // Refetch every minute
   });
