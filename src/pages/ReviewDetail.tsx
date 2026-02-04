@@ -25,6 +25,7 @@ import { ZapAuthorButton } from '@/components/ZapAuthorButton';
 import { ZapButton } from '@/components/ZapButton';
 import { CommentSection } from '@/components/CommentSection';
 import { NearbyReviews } from '@/components/NearbyReviews';
+import { NearbyScenicSpots } from '@/components/NearbyScenicSpots';
 import { ShareLocationButton } from '@/components/ShareLocationButton';
 import { getShortNpub, getFullNpub, getCategoryEmoji, normalizeCategory } from '@/lib/nostrUtils';
 import * as geohash from 'ngeohash';
@@ -530,6 +531,13 @@ const ReviewDetail = () => {
               currentReviewId={review.id}
               geohashStr={geohashStr}
               category={category}
+            />
+          )}
+
+          {/* Nearby Scenic Spots */}
+          {geohashStr && (
+            <NearbyScenicSpots
+              geohashStr={geohashStr}
             />
           )}
         </div>
