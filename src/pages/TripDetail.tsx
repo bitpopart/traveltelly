@@ -8,6 +8,7 @@ import { TripMap } from '@/components/TripMap';
 import { OptimizedImage } from '@/components/OptimizedImage';
 import { ShareButton } from '@/components/ShareButton';
 import { ShareToNostrButton } from '@/components/ShareToNostrButton';
+import { NearbyReviews } from '@/components/NearbyReviews';
 import { useTrip } from '@/hooks/useTrips';
 import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
@@ -21,6 +22,7 @@ import {
   Info
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import * as geohash from 'ngeohash';
 
 export default function TripDetail() {
   const { naddr } = useParams<{ naddr: string }>();
@@ -116,6 +118,12 @@ export default function TripDetail() {
   // Convert distance to miles for display
   const distanceInMiles = distance ? (parseFloat(distance) * 0.621371).toFixed(2) : null;
 
+  // Get geohash from first photo with GPS for nearby reviews
+  const firstPhotoWithGPS = photos[0];
+  const geohashStr = firstPhotoWithGPS 
+    ? geohash.encode(firstPhotoWithGPS.lat, firstPhotoWithGPS.lon, 8)
+    : null;
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
       <Navigation />
@@ -191,18 +199,13 @@ export default function TripDetail() {
               </div>
             </div>
 
-            {summary && (
+            {/* Show summary if available, otherwise show content if it's different */}
+            {(summary || (trip.content && trip.content !== summary)) && (
               <Card className="mb-6">
                 <CardContent className="pt-6">
-                  <p className="text-base leading-relaxed whitespace-pre-wrap">{summary}</p>
-                </CardContent>
-              </Card>
-            )}
-
-            {trip.content && (
-              <Card className="mb-6">
-                <CardContent className="pt-6">
-                  <p className="text-base leading-relaxed whitespace-pre-wrap">{trip.content}</p>
+                  <p className="text-base leading-relaxed whitespace-pre-wrap">
+                    {summary || trip.content}
+                  </p>
                 </CardContent>
               </Card>
             )}
@@ -264,6 +267,16 @@ export default function TripDetail() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Nearby Reviews */}
+          {geohashStr && (
+            <div className="mt-8">
+              <NearbyReviews
+                currentReviewId={trip.id}
+                geohashStr={geohashStr}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>
