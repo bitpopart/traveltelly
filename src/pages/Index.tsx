@@ -18,7 +18,7 @@ import { CreateTripForm } from "@/components/CreateTripForm";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useReviewPermissions } from "@/hooks/useReviewPermissions";
 import { useLatestReview, useLatestStory, useLatestStockMedia, useLatestTrip, useReviewCount, useStoryCount, useStockMediaCount, useTripCount, useLatestReviews, useLatestStories, useLatestTrips, useLatestStockMediaItems } from "@/hooks/useLatestItems";
-import { MapPin, Star, Camera, Zap, Shield, BookOpen, Search, Navigation, FileImage, ArrowRight, Calendar, MessageCircle, RefreshCw } from "lucide-react";
+import { MapPin, Star, Camera, Zap, Shield, BookOpen, Search, Navigation, FileImage, ArrowRight, Calendar, MessageCircle } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ZapAuthorButton } from "@/components/ZapAuthorButton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -29,7 +29,6 @@ import { formatDistanceToNow } from "date-fns";
 import { getShortNpub } from "@/lib/nostrUtils";
 import { ZapButton } from "@/components/ZapButton";
 import { useReviewComments } from "@/hooks/useReviewComments";
-import { useIndexRefresh } from "@/hooks/useIndexRefresh";
 import type { NostrEvent } from '@nostrify/nostrify';
 
 // Separate card components to avoid hooks in map functions
@@ -462,7 +461,6 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
   const { user } = useCurrentUser();
   const navigate = useNavigate();
   const { isAdmin, isCheckingPermission } = useReviewPermissions();
-  const { refreshAll, isRefreshing } = useIndexRefresh();
   const { data: latestReview } = useLatestReview();
   const { data: latestStory } = useLatestStory();
   const { data: latestStockMedia } = useLatestStockMedia();
@@ -506,7 +504,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
               {/* Show full header only when no location is selected */}
               {!selectedLocationTag && (
                 <>
-                  {/* Header - Purple and orange buttons with refresh */}
+                  {/* Header - Purple and orange buttons */}
                   <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
                 <Link to="/what-is-nostr">
                   <Button 
@@ -523,17 +521,6 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                   size="lg"
                   className="rounded-full bg-orange-500 hover:bg-orange-600 text-white font-semibold px-6 md:px-8 py-3 h-auto"
                 />
-                <Button
-                  onClick={refreshAll}
-                  disabled={isRefreshing}
-                  variant="outline"
-                  size="lg"
-                  className="rounded-full font-semibold text-sm md:text-base px-6 md:px-8 py-3 h-auto"
-                  title="Refresh all content"
-                >
-                  <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-                  Refresh
-                </Button>
               </div>
 
               {/* Feature Cards */}
