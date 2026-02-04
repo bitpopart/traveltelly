@@ -10,6 +10,7 @@ import { PhotoUpload, type UploadedPhoto } from '@/components/PhotoUpload';
 import { MarkdownEditor } from '@/components/MarkdownEditor';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
+import { useNostr } from '@nostrify/react';
 import { useToast } from '@/hooks/useToast';
 import { type GPSCoordinates } from '@/lib/exifUtils';
 import { nip19 } from 'nostr-tools';
@@ -24,7 +25,8 @@ import {
   MapPin,
   Download,
   Loader2,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Zap
 } from 'lucide-react';
 
 interface ArticleFormData {
@@ -38,6 +40,7 @@ interface ArticleFormData {
 
 export function CreateArticleForm() {
   const { user } = useCurrentUser();
+  const { nostr } = useNostr();
   const { mutate: createEvent, isPending } = useNostrPublish();
   const { toast } = useToast();
   const [gpsCoordinates, setGpsCoordinates] = useState<GPSCoordinates | null>(null);
@@ -45,6 +48,7 @@ export function CreateArticleForm() {
   const [manualLat, setManualLat] = useState('');
   const [manualLng, setManualLng] = useState('');
   const [importUrl, setImportUrl] = useState('');
+  const [nostrEventId, setNostrEventId] = useState('');
   const [isImporting, setIsImporting] = useState(false);
 
   const [formData, setFormData] = useState<ArticleFormData>({
@@ -319,6 +323,136 @@ export function CreateArticleForm() {
     }
   };
 
+  const handleImportFromNostr = async () => {
+    if (!nostrEventId.trim()) {
+      toast({
+        title: 'Event ID required',
+        description: 'Please enter a Nostr event ID (note1..., naddr1..., or nevent1...).',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsImporting(true);
+    try {
+      const eventId = nostrEventId.trim();
+      
+      // Decode the NIP-19 identifier
+      let decoded;
+      try {
+        decoded = nip19.decode(eventId);
+      } catch (error) {
+        toast({
+          title: 'Invalid event ID',
+          description: 'Please enter a valid Nostr event ID (note1..., naddr1..., or nevent1...).',
+          variant: 'destructive',
+        });
+        setIsImporting(false);
+        return;
+      }
+
+      console.log('Fetching Nostr event:', decoded);
+
+      // Build filter based on decoded type
+      let filter: any;
+      if (decoded.type === 'naddr') {
+        filter = {
+          kinds: [decoded.data.kind],
+          authors: [decoded.data.pubkey],
+          '#d': [decoded.data.identifier],
+          limit: 1,
+        };
+      } else if (decoded.type === 'nevent') {
+        filter = {
+          ids: [decoded.data.id],
+          limit: 1,
+        };
+      } else if (decoded.type === 'note') {
+        filter = {
+          ids: [decoded.data],
+          limit: 1,
+        };
+      } else {
+        toast({
+          title: 'Unsupported event type',
+          description: 'Please use note1..., naddr1..., or nevent1... identifiers.',
+          variant: 'destructive',
+        });
+        setIsImporting(false);
+        return;
+      }
+
+      // Query the event from Nostr
+      const signal = AbortSignal.timeout(10000);
+      const events = await nostr.query([filter], { signal });
+
+      if (!events || events.length === 0) {
+        toast({
+          title: 'Event not found',
+          description: 'Could not find this event on the connected relays. Try switching relays.',
+          variant: 'destructive',
+        });
+        setIsImporting(false);
+        return;
+      }
+
+      const event = events[0];
+      console.log('Found event:', event);
+
+      // Extract data based on event kind
+      let title = '';
+      let summary = '';
+      let content = '';
+      let image = '';
+
+      if (event.kind === 30023 || event.kind === 30024) {
+        // Long-form article (NIP-23)
+        title = event.tags.find(([name]) => name === 'title')?.[1] || 'Imported Article';
+        summary = event.tags.find(([name]) => name === 'summary')?.[1] || '';
+        image = event.tags.find(([name]) => name === 'image')?.[1] || '';
+        content = event.content;
+      } else if (event.kind === 1) {
+        // Short note - use content as both title and content
+        const firstLine = event.content.split('\n')[0].substring(0, 100);
+        title = firstLine || 'Imported Note';
+        content = event.content;
+      } else {
+        toast({
+          title: 'Unsupported event kind',
+          description: `Kind ${event.kind} is not supported for import. Try a long-form article (kind 30023) or note (kind 1).`,
+          variant: 'destructive',
+        });
+        setIsImporting(false);
+        return;
+      }
+
+      // Update form
+      setFormData(prev => ({
+        ...prev,
+        title,
+        summary,
+        content,
+        image,
+      }));
+
+      toast({
+        title: 'Event imported!',
+        description: `Imported from Nostr. Review and edit before publishing.`,
+      });
+
+      setNostrEventId('');
+    } catch (error) {
+      console.error('Nostr import error:', error);
+      toast({
+        title: 'Import failed',
+        description: error instanceof Error ? error.message : 'Unable to import from Nostr event.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   const generateIdentifier = () => {
     const timestamp = Date.now();
     const titleSlug = formData.title
@@ -480,6 +614,46 @@ export function CreateArticleForm() {
                     ) : (
                       <>
                         <Download className="w-4 h-4 mr-2" />
+                        Import
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </AlertDescription>
+          </Alert>
+
+          {/* Import from Nostr Event */}
+          <Alert className="bg-purple-50/50 dark:bg-purple-900/10">
+            <Zap className="w-4 h-4 text-purple-600" />
+            <AlertDescription>
+              <div className="space-y-3">
+                <p className="text-sm font-medium">Import from Nostr Event (optional)</p>
+                <p className="text-xs text-muted-foreground">
+                  Import content directly from a Nostr article or note. Works with note1..., naddr1..., or nevent1... identifiers.
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="naddr1... or note1... or nevent1..."
+                    value={nostrEventId}
+                    onChange={(e) => setNostrEventId(e.target.value)}
+                    disabled={isImporting}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleImportFromNostr}
+                    disabled={isImporting || !nostrEventId.trim()}
+                    className="shrink-0"
+                  >
+                    {isImporting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Importing...
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-4 h-4 mr-2" />
                         Import
                       </>
                     )}
