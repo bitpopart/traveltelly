@@ -47,8 +47,8 @@ function useNearbyStockMedia(geohashStr: string) {
 
       console.log('📍 Geohash prefixes for stock media:', geohashPrefixes);
 
-      // First try geohash-based search
-      let events = await nostr.query(
+      // Search for geohash-based stock media only
+      const events = await nostr.query(
         geohashPrefixes.map(prefix => ({
           kinds: [30402],
           '#g': [prefix],
@@ -59,14 +59,10 @@ function useNearbyStockMedia(geohashStr: string) {
 
       console.log('📊 Total stock media with geohash fetched:', events.length);
 
-      // If no results with geohash, fetch general stock media with images
+      // If no nearby results, return empty array (don't fall back to general media)
       if (events.length === 0) {
-        console.log('⚠️ No geohash results, fetching general stock media...');
-        events = await nostr.query([{
-          kinds: [30402],
-          limit: 100,
-        }], { signal });
-        console.log('📊 General stock media fetched:', events.length);
+        console.log('❌ No nearby scenic spots found');
+        return [];
       }
 
       const validMedia = events.filter(validateStockMediaEvent);
