@@ -12,13 +12,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useMarketplaceProducts } from "@/hooks/useMarketplaceProducts";
+import { useMarketplaceSubscription } from "@/hooks/useMarketplaceSubscription";
 import { ProductCard } from "@/components/ProductCard";
 import { CreateProductDialog } from "@/components/CreateProductDialog";
-import { ShoppingCart, Search, Plus, Store, Zap, CreditCard, Camera, Video, Music, Palette } from "lucide-react";
+import { MarketplaceSubscriptionDialog } from "@/components/MarketplaceSubscriptionDialog";
+import { ShoppingCart, Search, Plus, Store, Zap, CreditCard, Camera, Video, Music, Palette, Crown } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Marketplace = () => {
   const { user } = useCurrentUser();
+  const { data: subscription } = useMarketplaceSubscription(user?.pubkey);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMediaType, setSelectedMediaType] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -77,6 +80,16 @@ const Marketplace = () => {
 
             {user && (
               <div className="flex flex-wrap justify-center gap-3">
+                <MarketplaceSubscriptionDialog>
+                  <Button 
+                    size="lg" 
+                    className="rounded-full text-white font-semibold hover:opacity-90" 
+                    style={{ backgroundColor: subscription?.isActive ? '#22c55e' : '#ec1a58' }}
+                  >
+                    <Crown className="w-4 h-4 mr-2" />
+                    {subscription?.isActive ? 'Unlimited Access ✓' : 'Subscribe for Unlimited'}
+                  </Button>
+                </MarketplaceSubscriptionDialog>
                 <CreateProductDialog>
                   <Button size="lg" className="rounded-full text-white font-semibold hover:opacity-90" style={{ backgroundColor: '#ec1a58' }}>
                     <Plus className="w-4 h-4 mr-2" />

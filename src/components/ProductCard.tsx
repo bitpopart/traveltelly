@@ -8,9 +8,10 @@ import { OptimizedImage } from '@/components/OptimizedImage';
 import { ShareButton } from '@/components/ShareButton';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useMarketplaceSubscription } from '@/hooks/useMarketplaceSubscription';
 import { usePriceConversion } from '@/hooks/usePriceConversion';
 import { genUserName } from '@/lib/genUserName';
-import { MapPin, User, ShoppingCart, Zap, CreditCard, Download, Eye, Camera, Video, Music, Palette, Images } from 'lucide-react';
+import { MapPin, User, ShoppingCart, Zap, CreditCard, Download, Eye, Camera, Video, Music, Palette, Images, Crown } from 'lucide-react';
 import type { MarketplaceProduct } from '@/hooks/useMarketplaceProducts';
 import { Link } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
@@ -22,6 +23,7 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const { user } = useCurrentUser();
+  const { data: subscription } = useMarketplaceSubscription(user?.pubkey);
   const author = useAuthor(product.seller.pubkey);
   const metadata = author.data?.metadata;
 
@@ -232,6 +234,14 @@ export function ProductCard({ product }: ProductCardProps) {
           ) : product.status === 'inactive' ? (
             <Button variant="outline" className="w-full" disabled>
               Unavailable
+            </Button>
+          ) : subscription?.isActive ? (
+            <Button
+              className="w-full bg-green-600 hover:bg-green-700"
+              onClick={() => setShowPaymentDialog(true)}
+            >
+              <Crown className="w-4 h-4 mr-2" />
+              Download (Included)
             </Button>
           ) : (
             <Button

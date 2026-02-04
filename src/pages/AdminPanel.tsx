@@ -7,13 +7,14 @@ import { useReviewPermissions } from '@/hooks/useReviewPermissions';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { AdminPermissionManager } from '@/components/AdminPermissionManager';
 import { StockMediaPermissionManager } from '@/components/StockMediaPermissionManager';
+import { AdminSubscriptionManager } from '@/components/AdminSubscriptionManager';
 import { CategoryManager } from '@/components/CategoryManager';
 import { MediaManagement } from '@/components/MediaManagement';
 import { AdminReviewManager } from '@/components/AdminReviewManager';
 import { AdminTripManager } from '@/components/AdminTripManager';
 import { AdminStoryManager } from '@/components/AdminStoryManager';
 import { nip19 } from 'nostr-tools';
-import { Shield, ArrowLeft, Camera, MessageSquare, Settings, Tag, FileImage, Coffee, MapPin, Upload, BookOpen, Smartphone, Clock, BarChart3 } from 'lucide-react';
+import { Shield, ArrowLeft, Camera, MessageSquare, Settings, Tag, FileImage, Coffee, MapPin, Upload, BookOpen, Smartphone, Clock, BarChart3, Crown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function AdminPanel() {
@@ -177,7 +178,7 @@ export default function AdminPanel() {
 
           {/* Main Admin Tabs */}
           <Tabs defaultValue="manage-reviews" className="w-full">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="manage-reviews" className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4" />
                 Reviews
@@ -197,6 +198,10 @@ export default function AdminPanel() {
               <TabsTrigger value="media-permissions" className="flex items-center gap-2">
                 <Camera className="w-4 h-4" />
                 Media Permissions
+              </TabsTrigger>
+              <TabsTrigger value="subscriptions" className="flex items-center gap-2">
+                <Crown className="w-4 h-4" />
+                Subscriptions
               </TabsTrigger>
               <TabsTrigger value="media-management" className="flex items-center gap-2">
                 <FileImage className="w-4 h-4" />
@@ -222,6 +227,10 @@ export default function AdminPanel() {
 
             <TabsContent value="media-permissions" className="mt-6">
               <StockMediaPermissionManager />
+            </TabsContent>
+
+            <TabsContent value="subscriptions" className="mt-6">
+              <AdminSubscriptionManager />
             </TabsContent>
 
             <TabsContent value="media-management" className="mt-6">
