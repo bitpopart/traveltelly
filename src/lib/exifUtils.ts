@@ -256,6 +256,8 @@ export async function extractPhotoMetadata(file: File): Promise<PhotoMetadata> {
       translateKeys: true,
       translateValues: true,
       reviveValues: true,
+      sanitize: false, // Don't sanitize to preserve special characters
+      pick: undefined, // Extract all fields
     });
 
     console.log('📊 Full EXIF data (strategy 1):', exifData);
@@ -263,7 +265,7 @@ export async function extractPhotoMetadata(file: File): Promise<PhotoMetadata> {
     // Try alternative parsing if no data found
     if (!exifData || Object.keys(exifData).length < 3) {
       console.log('🔄 Trying alternative parsing...');
-      exifData = await parseExif(file);
+      exifData = await parseExif(file, { sanitize: false });
       console.log('📊 Full EXIF data (strategy 2 - all fields):', exifData);
     }
     
@@ -277,6 +279,22 @@ export async function extractPhotoMetadata(file: File): Promise<PhotoMetadata> {
 
     const metadata: PhotoMetadata = {};
 
+    // Helper function to safely extract and decode string values
+    const safeExtractString = (value: any): string | null => {
+      if (!value) return null;
+      if (typeof value === 'string') return value.trim();
+      // Handle Buffer or Uint8Array (might contain UTF-8 encoded text)
+      if (value instanceof Uint8Array || Buffer.isBuffer(value)) {
+        try {
+          const decoded = new TextDecoder('utf-8').decode(value);
+          return decoded.trim();
+        } catch (e) {
+          console.warn('Failed to decode buffer as UTF-8:', e);
+        }
+      }
+      return null;
+    };
+
     // Extract title from various possible fields (try all variations)
     const titleFields = [
       'Title',
@@ -288,29 +306,31 @@ export async function extractPhotoMetadata(file: File): Promise<PhotoMetadata> {
     ];
     
     for (const field of titleFields) {
-      if (exifData?.[field] && typeof exifData[field] === 'string' && exifData[field].trim()) {
-        metadata.title = exifData[field].trim();
+      const value = safeExtractString(exifData?.[field]);
+      if (value) {
+        metadata.title = value;
         console.log(`✅ Title found from ${field}:`, metadata.title);
         break;
       }
     }
 
     // Extract description from various possible fields
-    if (exifData?.ImageDescription) {
-      metadata.description = exifData.ImageDescription;
-      console.log('✅ Description found:', metadata.description);
-    } else if (exifData?.UserComment) {
-      metadata.description = exifData.UserComment;
-      console.log('✅ Description found (UserComment):', metadata.description);
-    } else if (exifData?.Caption || exifData?.['Caption-Abstract']) {
-      metadata.description = exifData.Caption || exifData['Caption-Abstract'];
-      console.log('✅ Description found (Caption):', metadata.description);
-    } else if (exifData?.XPComment) {
-      metadata.description = exifData.XPComment;
-      console.log('✅ Description found (XPComment):', metadata.description);
-    } else if (exifData?.Description) {
-      metadata.description = exifData.Description;
-      console.log('✅ Description found (Description):', metadata.description);
+    const descriptionFields = [
+      'Description',
+      'ImageDescription',
+      'UserComment',
+      'Caption',
+      'Caption-Abstract',
+      'XPComment',
+    ];
+    
+    for (const field of descriptionFields) {
+      const value = safeExtractString(exifData?.[field]);
+      if (value) {
+        metadata.description = value;
+        console.log(`✅ Description found from ${field}:`, metadata.description);
+        break;
+      }
     }
 
     // Extract keywords from various possible fields
@@ -331,13 +351,19 @@ export async function extractPhotoMetadata(file: File): Promise<PhotoMetadata> {
       
       if (Array.isArray(value)) {
         // Handle array of keywords
-        keywords.push(...value.filter(k => typeof k === 'string' && k.trim()));
+        for (const item of value) {
+          const keyword = safeExtractString(item);
+          if (keyword) keywords.push(keyword);
+        }
         console.log(`✅ Keywords found from ${field} (array):`, value);
-      } else if (typeof value === 'string' && value.trim()) {
-        // Handle comma or semicolon separated string
-        const parsed = value.split(/[,;]/).map(k => k.trim()).filter(Boolean);
-        keywords.push(...parsed);
-        console.log(`✅ Keywords found from ${field} (string):`, value);
+      } else {
+        const strValue = safeExtractString(value);
+        if (strValue) {
+          // Handle comma or semicolon separated string
+          const parsed = strValue.split(/[,;]/).map(k => k.trim()).filter(Boolean);
+          keywords.push(...parsed);
+          console.log(`✅ Keywords found from ${field} (string):`, strValue);
+        }
       }
     }
 
