@@ -1,6 +1,7 @@
 import { useSeoMeta } from '@unhead/react';
 import { useState } from 'react';
 import { Navigation as NavigationComponent } from "@/components/Navigation";
+import { Footer } from "@/components/Footer";
 import { LoginArea } from "@/components/auth/LoginArea";
 import { RelaySelector } from "@/components/RelaySelector";
 import { OptimizedImage } from "@/components/OptimizedImage";
@@ -963,6 +964,8 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <Footer />
     </div>
   );
 };

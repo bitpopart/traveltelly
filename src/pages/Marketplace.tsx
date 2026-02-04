@@ -1,6 +1,7 @@
 import { useSeoMeta } from '@unhead/react';
 import { useState } from 'react';
 import { Navigation } from "@/components/Navigation";
+import { Footer } from "@/components/Footer";
 import { LoginArea } from "@/components/auth/LoginArea";
 import { RelaySelector } from "@/components/RelaySelector";
 import { Button } from "@/components/ui/button";
@@ -441,6 +442,8 @@ const Marketplace = () => {
           </div>
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 };
