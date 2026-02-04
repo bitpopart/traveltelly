@@ -98,6 +98,7 @@ export function TripMap({ photos, className }: TripMapProps) {
         zoom={13}
         className="w-full h-[500px] rounded-lg"
         scrollWheelZoom={true}
+        zoomControl={true}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

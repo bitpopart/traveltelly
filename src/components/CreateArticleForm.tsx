@@ -721,6 +721,7 @@ export function CreateArticleForm() {
                     zoom={13}
                     style={{ height: '100%', width: '100%' }}
                     scrollWheelZoom={false}
+                    zoomControl={true}
                   >
                     <TileLayer
                       url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

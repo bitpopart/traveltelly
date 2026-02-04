@@ -922,8 +922,50 @@ export function AllAdminReviewsMap({ zoomToLocation, onLocationChange }: AllAdmi
       console.log(`✅ Total locations: ${upgradedLocations.length} (${allReviews.length} reviews + ${stockMediaCount} stock media + ${storyCount} stories)`);
     }
 
+    // Remove duplicate markers at the same location, prioritizing reviews over stock media
+    // Group by coordinates (rounded to avoid floating point issues)
+    const locationGroups = new Map<string, ReviewLocation[]>();
+    
+    for (const location of upgradedLocations) {
+      // Round to 5 decimal places (~1 meter precision) to group nearby items
+      const key = `${location.lat.toFixed(5)},${location.lng.toFixed(5)}`;
+      
+      if (!locationGroups.has(key)) {
+        locationGroups.set(key, []);
+      }
+      locationGroups.get(key)!.push(location);
+    }
+    
+    // For each location group, keep only the highest priority item
+    // Priority order: review > story > stock-media
+    const deduplicatedLocations: ReviewLocation[] = [];
+    
+    for (const [key, group] of locationGroups.entries()) {
+      if (group.length === 1) {
+        deduplicatedLocations.push(group[0]);
+      } else {
+        // Find the highest priority item
+        const review = group.find(item => item.type === 'review');
+        const story = group.find(item => item.type === 'story');
+        const stockMedia = group.find(item => item.type === 'stock-media');
+        
+        // Prioritize: review > story > stock-media
+        const selectedItem = review || story || stockMedia || group[0];
+        deduplicatedLocations.push(selectedItem);
+        
+        console.log(`🗺️ Deduplicated location ${key}:`, {
+          total: group.length,
+          types: group.map(g => g.type),
+          selected: selectedItem.type,
+          title: selectedItem.title,
+        });
+      }
+    }
+    
+    console.log(`✅ After deduplication: ${deduplicatedLocations.length} unique locations (removed ${upgradedLocations.length - deduplicatedLocations.length} duplicates)`);
+
     return {
-      reviewLocations: upgradedLocations,
+      reviewLocations: deduplicatedLocations,
       totalReviews: allReviews.length,
       reviewsWithoutLocation: withoutLocation,
     };

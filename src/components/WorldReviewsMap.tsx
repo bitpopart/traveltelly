@@ -404,6 +404,7 @@ export function WorldReviewsMap() {
               zoom={2}
               style={{ height: '100%', width: '100%' }}
               className="z-0"
+              zoomControl={true}
             >
               <TileLayer
                 attribution={tileConfig.attribution}
