@@ -545,8 +545,13 @@ export function AdminMassUpload() {
     
     toast({
       title: 'Upload Complete',
-      description: `Successfully uploaded ${completed} items. ${failed > 0 ? `${failed} failed.` : ''}`,
+      description: `Successfully uploaded ${completed} items. ${failed > 0 ? `${failed} failed.` : ''} Page will refresh in 2 seconds...`,
     });
+
+    // Refresh the page after 2 seconds to reset the form
+    setTimeout(() => {
+      window.location.reload();
+    }, 2000);
   };
 
   const handleReset = () => {
