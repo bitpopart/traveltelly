@@ -84,6 +84,31 @@ export function CreateArticleForm() {
     try {
       const url = importUrl.trim();
       
+      // Check if this is a Nostr client URL (Primal, etc.)
+      const nostrClientPatterns = [
+        /primal\.net\/([^\/]+)\/([^\/]+)/,  // primal.net/npub/eventid
+        /highlighter\.com\/([^\/]+)\/([^\/]+)/, // highlighter.com
+        /nostrudel\.ninja\/([^\/]+)\/([^\/]+)/, // nostrudel
+      ];
+      
+      let isNostrUrl = false;
+      for (const pattern of nostrClientPatterns) {
+        if (pattern.test(url)) {
+          isNostrUrl = true;
+          break;
+        }
+      }
+      
+      if (isNostrUrl) {
+        toast({
+          title: 'Nostr link detected',
+          description: 'This appears to be a Nostr client link. Please use the Nostr event ID (note1... or naddr1...) instead, or copy the actual article URL.',
+          variant: 'destructive',
+        });
+        setIsImporting(false);
+        return;
+      }
+      
       // Use webfetch via CORS proxy
       const proxyUrl = `https://proxy.shakespeare.diy/?url=${encodeURIComponent(url)}`;
       const response = await fetch(proxyUrl);
@@ -93,6 +118,17 @@ export function CreateArticleForm() {
       }
 
       const html = await response.text();
+      
+      // Check if it's a client-side rendered app
+      if (html.includes('You need to enable JavaScript to run this app')) {
+        toast({
+          title: 'Cannot import from this URL',
+          description: 'This is a JavaScript app that cannot be imported. Please copy the content manually or use the original article URL.',
+          variant: 'destructive',
+        });
+        setIsImporting(false);
+        return;
+      }
       
       // Parse HTML to extract content
       const parser = new DOMParser();
