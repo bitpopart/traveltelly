@@ -1,5 +1,5 @@
 import { useSeoMeta } from '@unhead/react';
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { Navigation as NavigationComponent } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { LoginArea } from "@/components/auth/LoginArea";
@@ -18,7 +18,7 @@ import { CreateTripForm } from "@/components/CreateTripForm";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useReviewPermissions } from "@/hooks/useReviewPermissions";
 import { useLatestReview, useLatestStory, useLatestStockMedia, useLatestTrip, useReviewCount, useStoryCount, useStockMediaCount, useTripCount, useLatestReviews, useLatestStories, useLatestTrips, useLatestStockMediaItems } from "@/hooks/useLatestItems";
-import { MapPin, Star, Camera, Zap, Shield, BookOpen, Search, Navigation, FileImage, ArrowRight, Calendar, MessageCircle } from "lucide-react";
+import { MapPin, Star, Camera, Zap, Shield, BookOpen, Search, Navigation, FileImage, ArrowRight, Calendar, MessageCircle, RefreshCw } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ZapAuthorButton } from "@/components/ZapAuthorButton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -29,6 +29,7 @@ import { formatDistanceToNow } from "date-fns";
 import { getShortNpub } from "@/lib/nostrUtils";
 import { ZapButton } from "@/components/ZapButton";
 import { useReviewComments } from "@/hooks/useReviewComments";
+import { useIndexRefresh } from "@/hooks/useIndexRefresh";
 import type { NostrEvent } from '@nostrify/nostrify';
 
 // Separate card components to avoid hooks in map functions
@@ -41,7 +42,7 @@ interface ReviewCardProps {
   };
 }
 
-function ReviewCard({ review }: ReviewCardProps) {
+const ReviewCard = memo(function ReviewCard({ review }: ReviewCardProps) {
   const author = useAuthor(review.event.pubkey);
   const metadata = author.data?.metadata;
   const displayName = metadata?.name || genUserName(review.event.pubkey);
@@ -183,275 +184,7 @@ function ReviewCard({ review }: ReviewCardProps) {
       </CardContent>
     </Card>
   );
-}
-
-interface StoryCardProps {
-  story: {
-    image?: string;
-    title: string;
-    naddr: string;
-    event: NostrEvent;
-  };
-}
-
-function StoryCard({ story }: StoryCardProps) {
-  const author = useAuthor(story.event.pubkey);
-  const metadata = author.data?.metadata;
-  const displayName = metadata?.name || genUserName(story.event.pubkey);
-  const shortNpub = getShortNpub(story.event.pubkey);
-  
-  const location = story.event.tags.find(([name]) => name === 'location')?.[1];
-  const summary = story.event.tags.find(([name]) => name === 'summary')?.[1];
-  const publishedAt = story.event.tags.find(([name]) => name === 'published_at')?.[1];
-  const displayDate = publishedAt ? new Date(parseInt(publishedAt) * 1000) : new Date(story.event.created_at * 1000);
-  
-  const topicTags = story.event.tags
-    .filter(([name]) => name === 't')
-    .map(([, value]) => value)
-    .filter(tag => tag && !['travel', 'traveltelly'].includes(tag))
-    .slice(0, 2);
-
-  return (
-    <Card className="hover:shadow-lg transition-shadow overflow-hidden">
-      {story.image && (
-        <Link to={`/story/${story.naddr}`} className="block">
-          <div className="relative aspect-[4/3] overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
-            <OptimizedImage
-              src={story.image}
-              alt={story.title}
-              className="w-full h-full object-cover"
-              blurUp={true}
-              thumbnail={true}
-            />
-          </div>
-        </Link>
-      )}
-
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center space-x-3">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={metadata?.picture} alt={displayName} />
-              <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="font-medium text-sm">{displayName}</p>
-              <p className="text-xs text-muted-foreground">{shortNpub}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Calendar className="w-3 h-3" />
-            <span>{formatDistanceToNow(displayDate, { addSuffix: true })}</span>
-          </div>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-4">
-        <div>
-          <h3 className="font-bold text-lg mb-2">{story.title}</h3>
-          {location && (
-            <div className="flex items-center text-sm text-gray-600 mb-2">
-              <MapPin className="w-3 h-3 mr-1" />
-              {location}
-            </div>
-          )}
-          {summary && (
-            <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">{summary}</p>
-          )}
-        </div>
-
-        <div className="flex justify-between items-center pt-2 border-t">
-          <div className="flex items-center gap-2 flex-wrap">
-            {topicTags.map(tag => (
-              <Badge key={tag} variant="outline" className="bg-gray-50 dark:bg-gray-900/20 text-xs">
-                #{tag}
-              </Badge>
-            ))}
-          </div>
-          <Link to={`/story/${story.naddr}`}>
-            <Button size="sm" variant="outline" className="rounded-full text-xs">
-              Read Story
-            </Button>
-          </Link>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-interface TripCardProps {
-  trip: {
-    image?: string;
-    title: string;
-    naddr: string;
-    event: NostrEvent;
-  };
-}
-
-function TripCard({ trip }: TripCardProps) {
-  const author = useAuthor(trip.event.pubkey);
-  const metadata = author.data?.metadata;
-  const displayName = metadata?.name || genUserName(trip.event.pubkey);
-  const shortNpub = getShortNpub(trip.event.pubkey);
-  
-  const summary = trip.event.tags.find(([name]) => name === 'summary')?.[1];
-  const startDate = trip.event.tags.find(([name]) => name === 'start')?.[1];
-  const endDate = trip.event.tags.find(([name]) => name === 'end')?.[1];
-  const imageCount = trip.event.tags.filter(([name]) => name === 'image').length;
-
-  return (
-    <Card className="hover:shadow-lg transition-shadow overflow-hidden">
-      {trip.image && (
-        <Link to={`/trip/${trip.naddr}`} className="block">
-          <div className="relative aspect-[4/3] overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
-            <OptimizedImage
-              src={trip.image}
-              alt={trip.title}
-              className="w-full h-full object-cover"
-              blurUp={true}
-              thumbnail={true}
-            />
-          </div>
-        </Link>
-      )}
-
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center space-x-3">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={metadata?.picture} alt={displayName} />
-              <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="font-medium text-sm">{displayName}</p>
-              <p className="text-xs text-muted-foreground">{shortNpub}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Calendar className="w-3 h-3" />
-            <span>{formatDistanceToNow(new Date(trip.event.created_at * 1000), { addSuffix: true })}</span>
-          </div>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-4">
-        <div>
-          <h3 className="font-bold text-lg mb-2">{trip.title}</h3>
-          {summary && (
-            <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2 mb-2">{summary}</p>
-          )}
-          {(startDate || endDate) && (
-            <div className="flex items-center text-sm text-gray-600 mb-2">
-              <Calendar className="w-3 h-3 mr-1" />
-              {startDate && new Date(parseInt(startDate) * 1000).toLocaleDateString()}
-              {endDate && ` - ${new Date(parseInt(endDate) * 1000).toLocaleDateString()}`}
-            </div>
-          )}
-        </div>
-
-        <div className="flex justify-between items-center pt-2 border-t">
-          <div className="flex items-center gap-2">
-            {imageCount > 1 && (
-              <Badge variant="outline" className="text-xs">
-                <Camera className="w-3 h-3 mr-1" />
-                {imageCount} photos
-              </Badge>
-            )}
-          </div>
-          <Link to={`/trip/${trip.naddr}`}>
-            <Button size="sm" variant="outline" className="rounded-full text-xs">
-              View Trip
-            </Button>
-          </Link>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-interface MediaCardProps {
-  media: {
-    image?: string;
-    title: string;
-    naddr: string;
-    event: NostrEvent;
-  };
-}
-
-function MediaCard({ media }: MediaCardProps) {
-  const author = useAuthor(media.event.pubkey);
-  const metadata = author.data?.metadata;
-  const displayName = metadata?.name || genUserName(media.event.pubkey);
-  const shortNpub = getShortNpub(media.event.pubkey);
-  
-  const price = media.event.tags.find(([name]) => name === 'price');
-  const priceAmount = price && price[1] ? parseFloat(price[1]) : 0;
-  const priceCurrency = price && price[2] ? price[2].toUpperCase() : 'SATS';
-  const summary = media.event.tags.find(([name]) => name === 'summary')?.[1];
-  const mediaType = media.event.tags.find(([name]) => name === 't')?.[1] || 'photo';
-
-  return (
-    <Card className="hover:shadow-lg transition-shadow overflow-hidden">
-      {media.image && (
-        <Link to={`/media/preview/${media.naddr}`} className="block">
-          <div className="relative aspect-[4/3] overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
-            <OptimizedImage
-              src={media.image}
-              alt={media.title}
-              className="w-full h-full object-cover"
-              blurUp={true}
-              thumbnail={true}
-            />
-          </div>
-        </Link>
-      )}
-
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center space-x-3">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={metadata?.picture} alt={displayName} />
-              <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="font-medium text-sm">{displayName}</p>
-              <p className="text-xs text-muted-foreground">{shortNpub}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Calendar className="w-3 h-3" />
-            <span>{formatDistanceToNow(new Date(media.event.created_at * 1000), { addSuffix: true })}</span>
-          </div>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-4">
-        <div>
-          <h3 className="font-bold text-lg mb-2">{media.title}</h3>
-          {summary && (
-            <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">{summary}</p>
-          )}
-        </div>
-
-        <div className="flex justify-between items-center pt-2 border-t">
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="capitalize text-xs">
-              {mediaType}
-            </Badge>
-            <div className="font-bold text-sm" style={{ color: '#ec1a58' }}>
-              {priceAmount.toLocaleString()} {priceCurrency}
-            </div>
-          </div>
-          <Link to={`/media/preview/${media.naddr}`}>
-            <Button size="sm" variant="outline" className="rounded-full text-xs">
-              View Media
-            </Button>
-          </Link>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
+});
 
 interface IndexProps {
   initialLocation?: string;
@@ -461,6 +194,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
   const { user } = useCurrentUser();
   const navigate = useNavigate();
   const { isAdmin, isCheckingPermission } = useReviewPermissions();
+  const { refreshAll, isRefreshing } = useIndexRefresh();
   const { data: latestReview } = useLatestReview();
   const { data: latestStory } = useLatestStory();
   const { data: latestStockMedia } = useLatestStockMedia();
@@ -504,7 +238,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
               {/* Show full header only when no location is selected */}
               {!selectedLocationTag && (
                 <>
-                  {/* Header - Purple and orange buttons */}
+                  {/* Header - Purple and orange buttons with refresh */}
                   <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
                 <Link to="/what-is-nostr">
                   <Button 
@@ -521,6 +255,17 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                   size="lg"
                   className="rounded-full bg-orange-500 hover:bg-orange-600 text-white font-semibold px-6 md:px-8 py-3 h-auto"
                 />
+                <Button
+                  onClick={refreshAll}
+                  disabled={isRefreshing}
+                  variant="outline"
+                  size="lg"
+                  className="rounded-full font-semibold text-sm md:text-base px-6 md:px-8 py-3 h-auto"
+                  title="Refresh all content"
+                >
+                  <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
               </div>
 
               {/* Feature Cards */}

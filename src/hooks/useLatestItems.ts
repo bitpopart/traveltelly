@@ -20,13 +20,13 @@ export function useLatestReview() {
   return useQuery({
     queryKey: ['latest-review-with-image'],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(2000)]); // Reduced timeout
       
       const authorizedAuthors = Array.from(authorizedReviewers || []);
       const events = await nostr.query([{
         kinds: [34879],
         authors: authorizedAuthors,
-        limit: 30
+        limit: 20 // Reduced limit for faster query
       }], { signal });
 
       // Find the first review with an image
@@ -135,13 +135,13 @@ export function useLatestStory() {
   return useQuery({
     queryKey: ['latest-story-with-image'],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(2000)]); // Reduced timeout
       
       // Query for articles (kind 30023) from admin
       const events = await nostr.query([{
         kinds: [30023],
         authors: [ADMIN_HEX],
-        limit: 20
+        limit: 15 // Reduced limit for faster query
       }], { signal });
 
       // Find the first story with an image
@@ -483,11 +483,11 @@ export function useLatestTrip() {
   return useQuery({
     queryKey: ['latest-trip-with-image'],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(2000)]); // Reduced timeout
       
       const events = await nostr.query([{
         kinds: [30025],
-        limit: 20
+        limit: 15 // Reduced limit for faster query
       }], { signal });
 
       // Find the first trip with an image
