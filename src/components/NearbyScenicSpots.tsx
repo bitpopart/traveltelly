@@ -41,11 +41,14 @@ function useNearbyStockMedia(geohashStr: string) {
         geohashStr.substring(0, 6), // ~1.2km
         geohashStr.substring(0, 5), // ~5km
         geohashStr.substring(0, 4), // ~20km
+        geohashStr.substring(0, 3), // ~150km
+        geohashStr.substring(0, 2), // ~600km (country level)
       ];
 
       console.log('📍 Geohash prefixes for stock media:', geohashPrefixes);
 
-      const events = await nostr.query(
+      // First try geohash-based search
+      let events = await nostr.query(
         geohashPrefixes.map(prefix => ({
           kinds: [30402],
           '#g': [prefix],
@@ -54,7 +57,17 @@ function useNearbyStockMedia(geohashStr: string) {
         { signal }
       );
 
-      console.log('📊 Total stock media fetched:', events.length);
+      console.log('📊 Total stock media with geohash fetched:', events.length);
+
+      // If no results with geohash, fetch general stock media with images
+      if (events.length === 0) {
+        console.log('⚠️ No geohash results, fetching general stock media...');
+        events = await nostr.query([{
+          kinds: [30402],
+          limit: 100,
+        }], { signal });
+        console.log('📊 General stock media fetched:', events.length);
+      }
 
       const validMedia = events.filter(validateStockMediaEvent);
 
