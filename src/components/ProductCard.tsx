@@ -90,13 +90,13 @@ export function ProductCard({ product }: ProductCardProps) {
         <CardHeader className="p-0">
           {/* Product Image - Clickable */}
           <Link to={`/media/preview/${generateProductNaddr()}`} className="block">
-            <div className="relative aspect-square bg-gray-100 dark:bg-gray-800 overflow-hidden cursor-pointer">
+            <div className="relative w-full pb-[100%] bg-gray-100 dark:bg-gray-800 overflow-hidden cursor-pointer">
               {product.images.length > 0 ? (
-                <div className="relative w-full h-full">
+                <div className="absolute inset-0">
                   <OptimizedImage
                     src={product.images[0]}
                     alt={product.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                     blurUp={true}
                     thumbnail={true}
                   />
@@ -108,8 +108,6 @@ export function ProductCard({ product }: ProductCardProps) {
                     </div>
                   </div>
 
-
-
                   {/* Very small TravelTelly watermark on thumbnail */}
                   <div className="absolute bottom-2 right-2 text-white/15 text-xs font-light select-none">
                     TravelTelly
@@ -118,12 +116,14 @@ export function ProductCard({ product }: ProductCardProps) {
               ) : null}
 
               {/* No images fallback */}
-              <div className={`w-full h-full flex items-center justify-center ${product.images.length > 0 ? 'hidden' : ''}`}>
-                <div className="text-center">
-                  <ShoppingCart className="w-16 h-16 mx-auto mb-2 text-gray-400" />
-                  <p className="text-xs text-gray-500">No preview available</p>
+              {product.images.length === 0 && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <ShoppingCart className="w-16 h-16 mx-auto mb-2 text-gray-400" />
+                    <p className="text-xs text-gray-500">No preview available</p>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Status Badge */}
               {product.status !== 'active' && (
