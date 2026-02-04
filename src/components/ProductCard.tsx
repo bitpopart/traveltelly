@@ -77,14 +77,12 @@ export function ProductCard({ product }: ProductCardProps) {
           <Link to={`/media/preview/${generateProductNaddr()}`} className="block">
             <div className="relative w-full pb-[100%] bg-gray-100 dark:bg-gray-800 overflow-hidden cursor-pointer">
               {product.images.length > 0 ? (
-                <div className="absolute inset-0">
-                  <OptimizedImage
+                <>
+                  <img
                     src={product.images[0]}
                     alt={product.title}
+                    loading="eager"
                     className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                    blurUp={true}
-                    thumbnail={true}
-                    priority={true}
                   />
 
                   {/* Preview Overlay */}
@@ -98,7 +96,7 @@ export function ProductCard({ product }: ProductCardProps) {
                   <div className="absolute bottom-2 right-2 text-white/15 text-xs font-light select-none">
                     TravelTelly
                   </div>
-                </div>
+                </>
               ) : null}
 
               {/* No images fallback */}
