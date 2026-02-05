@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ShareButton } from "@/components/ShareButton";
 import { ShareToNostrButton } from "@/components/ShareToNostrButton";
+import { ClawstrShare } from "@/components/ClawstrShare";
 import { PaymentDialog } from "@/components/PaymentDialog";
 import { MediaReviews } from "@/components/MediaReviews";
 import { EditMediaDialog } from "@/components/EditMediaDialog";
@@ -228,7 +229,7 @@ const MediaPreview = () => {
         <Navigation />
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-6xl mx-auto">
-            {/* Back Button and Share to Nostr */}
+            {/* Back Button and Share Buttons */}
             <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
               <Button
                 variant="ghost"
@@ -237,16 +238,22 @@ const MediaPreview = () => {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
               </Button>
-              <ShareToNostrButton
-                url={`/media/preview/${naddr}`}
-                title={product?.title || 'Stock Media'}
-                description={product?.description}
-                image={product?.images[0]}
-                price={product?.price}
-                currency={product?.currency}
-                variant="default"
-                size="default"
-              />
+              <div className="flex flex-wrap gap-2">
+                <ShareToNostrButton
+                  url={`/media/preview/${naddr}`}
+                  title={product?.title || 'Stock Media'}
+                  description={product?.description}
+                  image={product?.images[0]}
+                  price={product?.price}
+                  currency={product?.currency}
+                  variant="default"
+                  size="default"
+                />
+                <ClawstrShare
+                  event={media}
+                  contentType="media"
+                />
+              </div>
             </div>
 
             <div className="grid lg:grid-cols-2 gap-8">

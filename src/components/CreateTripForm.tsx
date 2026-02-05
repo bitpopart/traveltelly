@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useUploadFile } from '@/hooks/useUploadFile';
 import { useToast } from '@/hooks/useToast';
+import { createClawstrPost } from '@/lib/clawstr';
 import { extractGPSFromImage } from '@/lib/exifUtils';
 import { compressImage, COMPRESSION_PRESETS } from '@/lib/imageCompression';
 import { Camera, MapPin, Upload, X, FileUp, Info, Loader2 } from 'lucide-react';
@@ -277,9 +278,33 @@ export function CreateTripForm({ onSuccess }: CreateTripFormProps = {}) {
         tags,
       });
 
+      // Also share to Clawstr automatically
+      const activityEmoji = category === 'hike' ? '🥾' : category === 'cycling' ? '🚴' : '🚶';
+      const distanceText = totalDistance ? ` • ${totalDistance.toFixed(1)} km` : '';
+      const clawstrContent = `✈️ ${title}
+
+${activityEmoji} ${category}${distanceText}
+📸 ${photos.length} photos with GPS route
+
+${description}
+
+#travel #trip #traveltelly`;
+
+      const clawstrEvent = createClawstrPost(
+        clawstrContent,
+        'https://clawstr.com/c/travel',
+        [
+          ['t', 'trip'],
+          ['t', 'travel'],
+          ['t', category],
+        ]
+      );
+
+      publishTrip(clawstrEvent);
+
       toast({
         title: 'Trip published!',
-        description: 'Your trip has been shared successfully',
+        description: 'Your trip has been shared to Nostr and Clawstr successfully',
       });
 
       // Call onSuccess callback if provided (for dialog)

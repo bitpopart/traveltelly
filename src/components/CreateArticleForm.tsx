@@ -12,6 +12,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useNostr } from '@nostrify/react';
 import { useToast } from '@/hooks/useToast';
+import { createClawstrPost } from '@/lib/clawstr';
 import { type GPSCoordinates } from '@/lib/exifUtils';
 import { nip19 } from 'nostr-tools';
 import * as geohash from 'ngeohash';
@@ -521,9 +522,31 @@ export function CreateArticleForm() {
       tags,
     }, {
       onSuccess: () => {
+        // Also share to Clawstr automatically
+        const preview = formData.summary || formData.content.substring(0, 280);
+        const clawstrContent = `📝 ${formData.title}
+
+${preview}${preview.length >= 280 ? '...' : ''}
+
+Read more on Traveltelly ✈️
+
+#travel #story #traveltelly`;
+
+        const clawstrEvent = createClawstrPost(
+          clawstrContent,
+          'https://clawstr.com/c/travel',
+          [
+            ['t', 'story'],
+            ['t', 'travel'],
+            ['t', 'writing'],
+          ]
+        );
+
+        createEvent(clawstrEvent);
+
         toast({
-          title: 'Article published!',
-          description: `"${formData.title}" has been published as a NIP-23 article.`,
+          title: 'Story published!',
+          description: `"${formData.title}" has been published to Nostr and shared to Clawstr.`,
         });
         // Reset form
         setFormData({

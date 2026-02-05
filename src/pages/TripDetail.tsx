@@ -8,6 +8,7 @@ import { TripMap } from '@/components/TripMap';
 import { OptimizedImage } from '@/components/OptimizedImage';
 import { ShareButton } from '@/components/ShareButton';
 import { ShareToNostrButton } from '@/components/ShareToNostrButton';
+import { ClawstrShare } from '@/components/ClawstrShare';
 import { NearbyReviews } from '@/components/NearbyReviews';
 import { useTrip } from '@/hooks/useTrips';
 import { useAuthor } from '@/hooks/useAuthor';
@@ -129,7 +130,7 @@ export default function TripDetail() {
       <Navigation />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
-          {/* Back Button and Share to Nostr */}
+          {/* Back Button and Share Buttons */}
           <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <Link to="/trips">
               <Button variant="outline">
@@ -137,6 +138,7 @@ export default function TripDetail() {
                 Back to Trips
               </Button>
             </Link>
+            <div className="flex flex-wrap gap-2">
               <ShareToNostrButton
                 url={`/trip/${naddr}`}
                 title={title}
@@ -146,6 +148,11 @@ export default function TripDetail() {
                 variant="default"
                 size="default"
               />
+              <ClawstrShare
+                event={trip}
+                contentType="trip"
+              />
+            </div>
           </div>
 
           {/* Trip Header */}

@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 import { ShareButton } from '@/components/ShareButton';
 import { ShareToNostrButton } from '@/components/ShareToNostrButton';
+import { ClawstrShare } from '@/components/ClawstrShare';
 import { useArticleReactions, useReactToArticle } from '@/hooks/useArticleReactions';
 import { useArticleComments, useCommentOnArticle } from '@/hooks/useArticleComments';
 import { useAuthor } from '@/hooks/useAuthor';
@@ -355,21 +356,27 @@ export default function StoryDetail() {
       
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          {/* Back Button and Share to Nostr */}
+          {/* Back Button and Share Buttons */}
           <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <Button variant="outline" onClick={() => window.history.back()}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
-            <ShareToNostrButton
-              url={`/story/${articleNaddr}`}
-              title={title}
-              description={summary || article.content.slice(0, 200)}
-              image={image}
-              defaultContent={`📖 ${title}\n\n${summary || article.content.slice(0, 150) + '...'}\n\ntraveltelly.com/story/${articleNaddr}`}
-              variant="default"
-              size="default"
-            />
+            <div className="flex flex-wrap gap-2">
+              <ShareToNostrButton
+                url={`/story/${articleNaddr}`}
+                title={title}
+                description={summary || article.content.slice(0, 200)}
+                image={image}
+                defaultContent={`📖 ${title}\n\n${summary || article.content.slice(0, 150) + '...'}\n\ntraveltelly.com/story/${articleNaddr}`}
+                variant="default"
+                size="default"
+              />
+              <ClawstrShare
+                event={article}
+                contentType="story"
+              />
+            </div>
           </div>
 
           <Card>

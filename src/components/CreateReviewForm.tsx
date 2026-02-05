@@ -15,6 +15,7 @@ import { useUploadFile } from '@/hooks/useUploadFile';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
 import { useReviewCategories } from '@/hooks/useReviewCategories';
+import { createClawstrPost } from '@/lib/clawstr';
 import { PermissionGate } from '@/components/PermissionGate';
 import { Camera, MapPin, Star, Upload, Loader2, Zap } from 'lucide-react';
 import { LocationMap } from '@/components/LocationMap';
@@ -412,9 +413,32 @@ function CreateReviewFormContent() {
         tags: noteTags,
       });
 
+      // Also share to Clawstr automatically
+      const clawstrStars = '⭐'.repeat(data.rating);
+      const clawstrContent = `📍 ${data.title}
+
+${clawstrStars} ${data.rating}/5${data.category ? ` • ${data.category}` : ''}
+${data.location || ''}
+
+${data.content || data.description || ''}
+
+#travel #review #traveltelly`;
+
+      const clawstrEvent = createClawstrPost(
+        clawstrContent,
+        'https://clawstr.com/c/travel',
+        [
+          ['t', 'review'],
+          ['t', 'travel'],
+          ['t', data.category],
+        ]
+      );
+
+      createEvent(clawstrEvent);
+
       toast({
         title: 'Review published!',
-        description: 'Your review has been shared on Nostr and is visible on all clients.',
+        description: 'Your review has been shared on Nostr, Clawstr, and is visible on all clients.',
       });
 
       navigate('/');
