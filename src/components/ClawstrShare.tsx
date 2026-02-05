@@ -32,6 +32,7 @@ export function ClawstrShare({ event, contentType, defaultContent, trigger }: Cl
   const [selectedSubclaw, setSelectedSubclaw] = useState<string>('travel');
   const [customContent, setCustomContent] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
+  const [publishedEventId, setPublishedEventId] = useState<string | null>(null);
   
   const { user } = useCurrentUser();
   const { mutate: publishEvent, isPending } = useNostrPublish();
@@ -99,13 +100,11 @@ export function ClawstrShare({ event, contentType, defaultContent, trigger }: Cl
     }
 
     publishEvent(clawstrEvent, {
-      onSuccess: () => {
+      onSuccess: (publishedEvent) => {
+        console.log('✅ Published to Clawstr:', publishedEvent);
         setIsSuccess(true);
-        setTimeout(() => {
-          setIsOpen(false);
-          setIsSuccess(false);
-          setCustomContent('');
-        }, 2000);
+        setPublishedEventId(publishedEvent.id);
+        // Keep dialog open to show success message and link
       },
       onError: (error) => {
         console.error('Failed to share to Clawstr:', error);
@@ -116,6 +115,16 @@ export function ClawstrShare({ event, contentType, defaultContent, trigger }: Cl
 
   const selectedSubclawData = CLAWSTR_SUBCLAWS.find(s => s.id === selectedSubclaw);
   const previewContent = getFormattedContent();
+  
+  const handleClose = () => {
+    setIsOpen(false);
+    // Reset state after animation completes
+    setTimeout(() => {
+      setIsSuccess(false);
+      setPublishedEventId(null);
+      setCustomContent('');
+    }, 300);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -132,14 +141,17 @@ export function ClawstrShare({ event, contentType, defaultContent, trigger }: Cl
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-purple-600" />
-            Share to Clawstr
+            {isSuccess ? 'Successfully Shared!' : 'Share to Clawstr'}
           </DialogTitle>
           <DialogDescription>
-            Share this {contentType} with the Clawstr AI agent community
+            {isSuccess 
+              ? 'Your post has been published to Clawstr'
+              : `Share this ${contentType} with the Clawstr AI agent community`
+            }
           </DialogDescription>
         </DialogHeader>
 
-        {!user && (
+        {!user && !isSuccess && (
           <Alert>
             <AlertDescription>
               Please login with Nostr to share to Clawstr
@@ -151,13 +163,62 @@ export function ClawstrShare({ event, contentType, defaultContent, trigger }: Cl
           <Alert className="border-green-500 bg-green-50 dark:bg-green-950">
             <Check className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-green-600 dark:text-green-400">
-              Successfully shared to Clawstr!
+              <div className="space-y-3">
+                <p className="font-semibold">Successfully shared to Clawstr!</p>
+                <div className="flex flex-col gap-2">
+                  <a
+                    href={selectedSubclawData?.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-sm hover:underline"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    View in {selectedSubclawData?.icon} {selectedSubclawData?.name} subclaw
+                  </a>
+                  {publishedEventId && user?.pubkey && (
+                    <a
+                      href={`https://snort.social/e/${publishedEventId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-sm hover:underline"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      View on Nostr (Snort)
+                    </a>
+                  )}
+                </div>
+              </div>
             </AlertDescription>
           </Alert>
         )}
 
         <div className="space-y-4">
+          {/* Success Actions */}
+          {isSuccess && (
+            <div className="flex gap-2 pt-2">
+              <Button
+                onClick={handleClose}
+                className="flex-1"
+              >
+                Close
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsSuccess(false);
+                  setPublishedEventId(null);
+                  setSelectedSubclaw('travel');
+                  setCustomContent('');
+                }}
+              >
+                Share Another
+              </Button>
+            </div>
+          )}
+
           {/* Subclaw Selection */}
+          {!isSuccess && (
+          <>
           <div>
             <Label htmlFor="subclaw">Select Subclaw</Label>
             <Select value={selectedSubclaw} onValueChange={setSelectedSubclaw}>
@@ -286,6 +347,8 @@ export function ClawstrShare({ event, contentType, defaultContent, trigger }: Cl
               {' '}• Social network for AI agents on Nostr
             </p>
           </div>
+          </>
+          )}
         </div>
       </DialogContent>
     </Dialog>
