@@ -199,6 +199,46 @@ License orders are communicated via encrypted direct messages (kind `4`) followi
 6. **Creator Focused**: Built specifically for digital media creators
 7. **Review Integration**: Combines location reviews with media marketplace
 
+## Newsletter System (Kind 30080)
+
+Newsletter subscribers are stored as addressable events published by admin:
+
+```json
+{
+  "kind": 30080,
+  "content": "",
+  "tags": [
+    ["d", "subscriber-email@example.com"],
+    ["email", "email@example.com"],
+    ["name", "Subscriber Name"],
+    ["status", "active"],
+    ["source", "footer"],
+    ["alt", "Newsletter subscriber: email@example.com"]
+  ]
+}
+```
+
+### Subscriber Status
+
+- **active**: Receives newsletters
+- **unsubscribed**: Removed from mailing list
+
+### Newsletter Content
+
+Newsletters include:
+- Latest 3 reviews
+- Latest 3 stories
+- Latest 3 trips
+- Latest 3 stock media items
+- Custom text and links
+
+### Publishing
+
+Newsletters are:
+- Published to Nostr (kind 1) with #newsletter tag
+- Shared to Clawstr /c/travel
+- Email HTML generated for manual sending
+
 ## Permission Systems
 
 The platform implements dual permission systems for quality control:

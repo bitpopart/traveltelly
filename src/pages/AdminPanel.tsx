@@ -14,9 +14,10 @@ import { AdminReviewManager } from '@/components/AdminReviewManager';
 import { AdminTripManager } from '@/components/AdminTripManager';
 import { AdminStoryManager } from '@/components/AdminStoryManager';
 import { CustomerManagement } from '@/components/CustomerManagement';
+import { NewsletterManager } from '@/components/NewsletterManager';
 import { useInitializeTestCustomer } from '@/hooks/useInitializeTestCustomer';
 import { nip19 } from 'nostr-tools';
-import { Shield, ArrowLeft, Camera, MessageSquare, Settings, Tag, FileImage, Coffee, MapPin, Upload, BookOpen, Smartphone, Clock, BarChart3, Crown, Users } from 'lucide-react';
+import { Shield, ArrowLeft, Camera, MessageSquare, Settings, Tag, FileImage, Coffee, MapPin, Upload, BookOpen, Smartphone, Clock, BarChart3, Crown, Users, Mail } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function AdminPanel() {
@@ -183,7 +184,7 @@ export default function AdminPanel() {
 
           {/* Main Admin Tabs */}
           <Tabs defaultValue="manage-reviews" className="w-full">
-            <TabsList className="grid w-full grid-cols-8">
+            <TabsList className="grid w-full grid-cols-9">
               <TabsTrigger value="manage-reviews" className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4" />
                 Reviews
@@ -199,6 +200,10 @@ export default function AdminPanel() {
               <TabsTrigger value="customers" className="flex items-center gap-2">
                 <Users className="w-4 h-4" />
                 Customers
+              </TabsTrigger>
+              <TabsTrigger value="newsletter" className="flex items-center gap-2">
+                <Mail className="w-4 h-4" />
+                Newsletter
               </TabsTrigger>
               <TabsTrigger value="review-permissions" className="flex items-center gap-2">
                 <Shield className="w-4 h-4" />
@@ -232,6 +237,10 @@ export default function AdminPanel() {
 
             <TabsContent value="customers" className="mt-6">
               <CustomerManagement />
+            </TabsContent>
+
+            <TabsContent value="newsletter" className="mt-6">
+              <NewsletterManager />
             </TabsContent>
 
             <TabsContent value="review-permissions" className="mt-6">

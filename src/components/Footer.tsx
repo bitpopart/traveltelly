@@ -1,4 +1,5 @@
 import { ExternalLink } from 'lucide-react';
+import { NewsletterSubscribe } from './NewsletterSubscribe';
 
 interface FooterProps {
   showStockMediaPartners?: boolean;
@@ -14,6 +15,11 @@ export function Footer({ showStockMediaPartners = false }: FooterProps) {
   return (
     <footer className="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 mt-12">
       <div className="container mx-auto px-4 py-8">
+        {/* Newsletter Subscribe */}
+        <div className="max-w-2xl mx-auto mb-12">
+          <NewsletterSubscribe variant="inline" source="footer" />
+        </div>
+
         <div className={`grid grid-cols-1 ${showStockMediaPartners ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-8`}>
           {/* About */}
           <div>
