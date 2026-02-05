@@ -8,9 +8,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { LightningMarketplacePayment } from '@/components/LightningMarketplacePayment';
+import { GuestCheckout } from '@/components/GuestCheckout';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useMarketplaceSubscription } from '@/hooks/useMarketplaceSubscription';
+import { useCustomerAccess } from '@/hooks/useCustomers';
 import { usePriceConversion } from '@/hooks/usePriceConversion';
 import { genUserName } from '@/lib/genUserName';
 import { Zap, CreditCard, ShoppingCart, User, MapPin, Package, Crown, Download, Check } from 'lucide-react';
@@ -23,9 +25,11 @@ interface PaymentDialogProps {
 }
 
 export function PaymentDialog({ isOpen, onClose, product }: PaymentDialogProps) {
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'lightning' | 'stripe'>('lightning');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'lightning' | 'stripe' | 'guest'>('lightning');
+  const [guestEmail, setGuestEmail] = useState<string | null>(null);
   const { user } = useCurrentUser();
   const { data: subscription } = useMarketplaceSubscription(user?.pubkey);
+  const { hasAccess: guestHasAccess } = useCustomerAccess(guestEmail);
   const author = useAuthor(product.seller.pubkey);
   const metadata = author.data?.metadata;
 
@@ -33,6 +37,9 @@ export function PaymentDialog({ isOpen, onClose, product }: PaymentDialogProps) 
   const profileImage = metadata?.picture;
 
   const priceInfo = usePriceConversion(product.price, product.currency);
+  
+  // Check if user has access (either Nostr subscription or guest subscription)
+  const hasUnlimitedAccess = subscription?.isActive || guestHasAccess;
 
   // Handle subscription download
   const handleSubscriptionDownload = () => {
@@ -70,7 +77,7 @@ export function PaymentDialog({ isOpen, onClose, product }: PaymentDialogProps) 
 
         <div className="space-y-6">
           {/* Subscription Download */}
-          {subscription?.isActive && (
+          {hasUnlimitedAccess && (
             <Alert className="bg-green-50 dark:bg-green-900/20 border-green-200">
               <Crown className="w-4 h-4 text-green-600" />
               <AlertDescription className="text-green-800 dark:text-green-200">
@@ -186,29 +193,60 @@ export function PaymentDialog({ isOpen, onClose, product }: PaymentDialogProps) 
                     <CardTitle className="text-lg">Choose Payment Method</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <Tabs value={selectedPaymentMethod} onValueChange={(value) => setSelectedPaymentMethod(value as 'lightning' | 'stripe')}>
-                      <TabsList className="grid w-full grid-cols-2">
+                    <Tabs value={selectedPaymentMethod} onValueChange={(value) => setSelectedPaymentMethod(value as 'lightning' | 'stripe' | 'guest')}>
+                      <TabsList className="grid w-full grid-cols-3">
                         <TabsTrigger
                           value="lightning"
-                          className="flex items-center gap-2"
+                          className="flex items-center gap-1"
                         >
                           <Zap className="w-4 h-4" />
-                          Lightning
-                          <Badge variant="secondary" className="ml-1">Recommended</Badge>
+                          <span className="hidden sm:inline">Lightning</span>
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="guest"
+                          className="flex items-center gap-1"
+                        >
+                          <User className="w-4 h-4" />
+                          <span className="hidden sm:inline">Guest</span>
                         </TabsTrigger>
                         <TabsTrigger
                           value="stripe"
-                          className="flex items-center gap-2"
+                          className="flex items-center gap-1"
                           disabled={true}
                         >
                           <CreditCard className="w-4 h-4" />
-                          Card/Bank
-                          <Badge variant="outline" className="ml-1">Coming Soon</Badge>
+                          <span className="hidden sm:inline">Card</span>
                         </TabsTrigger>
                       </TabsList>
 
                       <TabsContent value="lightning" className="mt-6">
-                        <LightningMarketplacePayment product={product} onSuccess={onClose} />
+                        {user ? (
+                          <LightningMarketplacePayment product={product} onSuccess={onClose} />
+                        ) : (
+                          <div className="space-y-4">
+                            <Alert>
+                              <Zap className="w-4 h-4" />
+                              <AlertDescription>
+                                Lightning payment requires a Nostr account with a Lightning address.
+                                Use <strong>Guest Checkout</strong> tab for email-based purchase.
+                              </AlertDescription>
+                            </Alert>
+                          </div>
+                        )}
+                      </TabsContent>
+
+                      <TabsContent value="guest" className="mt-6">
+                        <GuestCheckout
+                          productTitle={product.title}
+                          price={product.price}
+                          currency={product.currency}
+                          onPurchaseComplete={(email, paymentMethod) => {
+                            setGuestEmail(email);
+                            // TODO: Record purchase
+                            onClose();
+                          }}
+                          onCancel={onClose}
+                        />
                       </TabsContent>
 
                       <TabsContent value="stripe" className="mt-6">
@@ -218,7 +256,7 @@ export function PaymentDialog({ isOpen, onClose, product }: PaymentDialogProps) 
                             Traditional payment methods are coming soon.
                           </p>
                           <p className="text-sm text-muted-foreground mt-2">
-                            For now, please use Lightning payment for instant, low-fee transactions.
+                            Use <strong>Guest Checkout</strong> tab for email-based purchase with Lightning/fiat options.
                           </p>
                         </div>
                       </TabsContent>

@@ -13,13 +13,18 @@ import { MediaManagement } from '@/components/MediaManagement';
 import { AdminReviewManager } from '@/components/AdminReviewManager';
 import { AdminTripManager } from '@/components/AdminTripManager';
 import { AdminStoryManager } from '@/components/AdminStoryManager';
+import { CustomerManagement } from '@/components/CustomerManagement';
+import { useInitializeTestCustomer } from '@/hooks/useInitializeTestCustomer';
 import { nip19 } from 'nostr-tools';
-import { Shield, ArrowLeft, Camera, MessageSquare, Settings, Tag, FileImage, Coffee, MapPin, Upload, BookOpen, Smartphone, Clock, BarChart3, Crown } from 'lucide-react';
+import { Shield, ArrowLeft, Camera, MessageSquare, Settings, Tag, FileImage, Coffee, MapPin, Upload, BookOpen, Smartphone, Clock, BarChart3, Crown, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function AdminPanel() {
   const { user } = useCurrentUser();
   const { isAdmin, isCheckingPermission } = useReviewPermissions();
+  
+  // Initialize test customer account automatically
+  useInitializeTestCustomer();
 
   // Double-check that this is specifically the Traveltelly admin npub
   const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642';
@@ -178,7 +183,7 @@ export default function AdminPanel() {
 
           {/* Main Admin Tabs */}
           <Tabs defaultValue="manage-reviews" className="w-full">
-            <TabsList className="grid w-full grid-cols-7">
+            <TabsList className="grid w-full grid-cols-8">
               <TabsTrigger value="manage-reviews" className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4" />
                 Reviews
@@ -190,6 +195,10 @@ export default function AdminPanel() {
               <TabsTrigger value="manage-trips" className="flex items-center gap-2">
                 <MapPin className="w-4 h-4" />
                 Trips
+              </TabsTrigger>
+              <TabsTrigger value="customers" className="flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                Customers
               </TabsTrigger>
               <TabsTrigger value="review-permissions" className="flex items-center gap-2">
                 <Shield className="w-4 h-4" />
@@ -219,6 +228,10 @@ export default function AdminPanel() {
 
             <TabsContent value="manage-trips" className="mt-6">
               <AdminTripManager />
+            </TabsContent>
+
+            <TabsContent value="customers" className="mt-6">
+              <CustomerManagement />
             </TabsContent>
 
             <TabsContent value="review-permissions" className="mt-6">

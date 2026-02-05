@@ -144,7 +144,7 @@ const Marketplace = () => {
           </div>
 
           {/* Payment Methods Info */}
-          <div className="grid md:grid-cols-2 gap-6 mb-12">
+          <div className="grid md:grid-cols-3 gap-6 mb-12">
             <Card className="border-pink-200 dark:border-pink-800 bg-gradient-to-r from-pink-50 to-red-50 dark:from-pink-900/20 dark:to-red-900/20">
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
@@ -180,6 +180,26 @@ const Marketplace = () => {
                 </div>
               </CardContent>
             </Card>
+
+            <Link to="/guest-portal" className="block">
+              <Card className="border-yellow-200 dark:border-yellow-800 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 hover:shadow-lg transition-shadow h-full">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 rounded-full bg-yellow-500">
+                      <Crown className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        👑 Unlimited Subscription
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Get unlimited downloads - No Nostr required
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           </div>
 
           {/* Search and Filters */}

@@ -49,6 +49,7 @@ import { LocationPage } from "./pages/LocationPage";
 import AppBuilder from "./pages/AppBuilder";
 import ShareScheduler from "./pages/ShareScheduler";
 import AnalyticsDashboard from "./pages/AnalyticsDashboard";
+import GuestPortal from "./pages/GuestPortal";
 import NotFound from "./pages/NotFound";
 
 export function AppRouter() {
@@ -91,6 +92,7 @@ export function AppRouter() {
         <Route path="/marketplace" element={<Marketplace />} />
         <Route path="/marketplace/orders" element={<MarketplaceOrders />} />
         <Route path="/marketplace/portfolio" element={<MarketplacePortfolio />} />
+        <Route path="/guest-portal" element={<GuestPortal />} />
         <Route path="/media/preview/:naddr" element={<MediaPreview />} />
         <Route path="/download/:orderId" element={<DownloadPage />} />
         <Route path="/category-test" element={<CategoryTest />} />
