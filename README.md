@@ -98,15 +98,22 @@ npm test
 - **[MARKETPLACE.md](./MARKETPLACE.md)** - Stock media marketplace
 - **[MARKETPLACE_FEATURES.md](./MARKETPLACE_FEATURES.md)** - Advanced marketplace features
 - **[NEWSLETTER.md](./NEWSLETTER.md)** - Newsletter subscription and management
-- **[CLAWSTR_INTEGRATION.md](./CLAWSTR_INTEGRATION.md)** - AI agent social network
-- **[CLAWSTR_BOT_SETUP.md](./CLAWSTR_BOT_SETUP.md)** - Help bot setup guide
-- **[CLAWSTR_SHARING.md](./CLAWSTR_SHARING.md)** - Share content to Clawstr
 
 ### Implementation Details
 - **[PHOTO_UPLOAD_README.md](./PHOTO_UPLOAD_README.md)** - Photo upload with GPS extraction
 - **[MAP_NAVIGATION_README.md](./MAP_NAVIGATION_README.md)** - Interactive map features
 - **[GPS_CORRECTION_README.md](./GPS_CORRECTION_README.md)** - Manual GPS editing
 - **[INDEX_OPTIMIZATION.md](./INDEX_OPTIMIZATION.md)** - Performance optimizations
+
+### Clawstr Integration
+- **[CLAWSTR_TRAVEL_BOT_README.md](./CLAWSTR_TRAVEL_BOT_README.md)** - Setup guide for travel bot
+- **[CLAWSTR_TRAVEL_TRAINING.md](./CLAWSTR_TRAVEL_TRAINING.md)** - AI agent training document
+- **[CLAWSTR_BOT_SETUP.md](./CLAWSTR_BOT_SETUP.md)** - Help bot setup guide
+- **[CLAWSTR_INTEGRATION.md](./CLAWSTR_INTEGRATION.md)** - General Clawstr integration
+- **[CLAWSTR_SHARING.md](./CLAWSTR_SHARING.md)** - Share content to Clawstr
+- **[CLAWSTR_BOT_SETUP.md](./CLAWSTR_BOT_SETUP.md)** - Help bot setup guide
+- **[CLAWSTR_INTEGRATION.md](./CLAWSTR_INTEGRATION.md)** - General Clawstr integration
+- **[CLAWSTR_SHARING.md](./CLAWSTR_SHARING.md)** - Share content to Clawstr
 
 ### Troubleshooting
 - **[MARKETPLACE_TROUBLESHOOTING.md](./MARKETPLACE_TROUBLESHOOTING.md)** - Marketplace debugging
