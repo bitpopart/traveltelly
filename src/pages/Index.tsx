@@ -39,9 +39,10 @@ interface ReviewCardProps {
     naddr: string;
     event: NostrEvent;
   };
+  priority?: boolean; // For eager loading of first image
 }
 
-const ReviewCard = memo(function ReviewCard({ review }: ReviewCardProps) {
+const ReviewCard = memo(function ReviewCard({ review, priority = false }: ReviewCardProps) {
   const author = useAuthor(review.event.pubkey);
   const metadata = author.data?.metadata;
   const displayName = metadata?.name || genUserName(review.event.pubkey);
@@ -84,6 +85,7 @@ const ReviewCard = memo(function ReviewCard({ review }: ReviewCardProps) {
               className="w-full h-full object-cover"
               blurUp={true}
               thumbnail={true}
+              priority={priority}
             />
           </div>
         </Link>
@@ -376,9 +378,10 @@ interface MediaCardProps {
     naddr: string;
     event: NostrEvent;
   };
+  priority?: boolean; // For eager loading of first image
 }
 
-const MediaCard = memo(function MediaCard({ media }: MediaCardProps) {
+const MediaCard = memo(function MediaCard({ media, priority = false }: MediaCardProps) {
   const author = useAuthor(media.event.pubkey);
   const metadata = author.data?.metadata;
   const displayName = metadata?.name || genUserName(media.event.pubkey);
@@ -401,6 +404,7 @@ const MediaCard = memo(function MediaCard({ media }: MediaCardProps) {
               className="w-full h-full object-cover"
               blurUp={true}
               thumbnail={true}
+              priority={priority}
             />
           </div>
         </Link>
@@ -819,8 +823,8 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                 </Link>
               </div>
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {latestReviews.map((review) => (
-                  <ReviewCard key={review.naddr} review={review} />
+                {latestReviews.map((review, index) => (
+                  <ReviewCard key={review.naddr} review={review} priority={index === 0} />
                 ))}
               </div>
             </div>
@@ -900,8 +904,8 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                 </Link>
               </div>
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {latestStockMediaItems.map((media) => (
-                  <MediaCard key={media.naddr} media={media} />
+                {latestStockMediaItems.map((media, index) => (
+                  <MediaCard key={media.naddr} media={media} priority={index === 0} />
                 ))}
               </div>
             </div>

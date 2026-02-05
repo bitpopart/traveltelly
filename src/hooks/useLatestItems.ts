@@ -20,13 +20,13 @@ export function useLatestReview() {
   return useQuery({
     queryKey: ['latest-review-with-image'],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(2000)]); // Reduced timeout
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(1500)]); // Further reduced timeout for speed
       
       const authorizedAuthors = Array.from(authorizedReviewers || []);
       const events = await nostr.query([{
         kinds: [34879],
         authors: authorizedAuthors,
-        limit: 20 // Reduced limit for faster query
+        limit: 10 // Further reduced limit - we only need 1 image
       }], { signal });
 
       // Find the first review with an image
@@ -77,13 +77,13 @@ export function useLatestReviews() {
   return useQuery({
     queryKey: ['latest-reviews-with-images'],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(1500)]); // Reduced for speed
       
       const authorizedAuthors = Array.from(authorizedReviewers || []);
       const events = await nostr.query([{
         kinds: [34879],
         authors: authorizedAuthors,
-        limit: 50
+        limit: 15 // Reduced - we only need 3 reviews with images
       }], { signal });
 
       // Find reviews with images
@@ -244,7 +244,7 @@ export function useLatestStockMedia() {
   return useQuery({
     queryKey: ['latest-stock-media-with-image', authorizedUploaders?.size],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(1500)]); // Reduced for speed
       
       const authorizedAuthors = Array.from(authorizedUploaders || []);
       
@@ -255,7 +255,7 @@ export function useLatestStockMedia() {
       const events = await nostr.query([{
         kinds: [30402],
         authors: authorizedAuthors,
-        limit: 50
+        limit: 15 // Reduced - we only need 1 image
       }], { signal });
 
       // Find the first product with an image - use same filter as count
@@ -317,7 +317,7 @@ export function useLatestStockMediaItems() {
   return useQuery({
     queryKey: ['latest-stock-media-items-with-images', authorizedUploaders?.size],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(1500)]); // Reduced for speed
       
       const authorizedAuthors = Array.from(authorizedUploaders || []);
       
@@ -328,7 +328,7 @@ export function useLatestStockMediaItems() {
       const events = await nostr.query([{
         kinds: [30402],
         authors: authorizedAuthors,
-        limit: 50
+        limit: 15 // Reduced - we only need 3 items
       }], { signal });
 
       console.log(`📸 Stock media items query: ${events.length} total events`);

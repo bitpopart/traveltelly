@@ -58,8 +58,8 @@ function getBlurPlaceholderUrl(url: string): string {
     if (isBlossomServer) {
       // Clear existing params and request very small size for blur placeholder
       urlObj.search = '';
-      urlObj.searchParams.set('w', '20'); // Even smaller for ultra-fast load
-      urlObj.searchParams.set('q', '20'); // Very low quality for tiny file size
+      urlObj.searchParams.set('w', '10'); // Tiny size for instant load (was 20)
+      urlObj.searchParams.set('q', '10'); // Minimal quality for tiny file size (was 20)
       urlObj.searchParams.set('f', 'webp'); // Force WebP for smallest size
       return urlObj.toString();
     }
@@ -89,8 +89,8 @@ export function OptimizedImage({
   const imgRef = useRef<HTMLImageElement>(null);
 
   // Generate optimized URLs - use aggressive optimization for thumbnails
-  const width = thumbnail ? 400 : 800; // Optimized sizes for thumbnails
-  const quality = thumbnail ? 70 : 80; // Balanced quality for thumbnails
+  const width = thumbnail ? 300 : 800; // Smaller thumbnails for faster loading (was 400)
+  const quality = thumbnail ? 65 : 80; // Lower quality for thumbnails (was 70)
   const thumbnailUrl = getThumbnailUrl(src, width, quality);
   const blurUrl = blurUp ? getBlurPlaceholderUrl(src) : null;
 
