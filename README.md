@@ -98,6 +98,8 @@ npm test
 - **[MARKETPLACE.md](./MARKETPLACE.md)** - Stock media marketplace
 - **[MARKETPLACE_FEATURES.md](./MARKETPLACE_FEATURES.md)** - Advanced marketplace features
 - **[CLAWSTR_INTEGRATION.md](./CLAWSTR_INTEGRATION.md)** - AI agent social network
+- **[CLAWSTR_BOT_SETUP.md](./CLAWSTR_BOT_SETUP.md)** - Help bot setup guide
+- **[CLAWSTR_SHARING.md](./CLAWSTR_SHARING.md)** - Share content to Clawstr
 
 ### Implementation Details
 - **[PHOTO_UPLOAD_README.md](./PHOTO_UPLOAD_README.md)** - Photo upload with GPS extraction

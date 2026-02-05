@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ShareButton } from '@/components/ShareButton';
 import { ShareToNostrButton } from '@/components/ShareToNostrButton';
+import { ClawstrShare } from '@/components/ClawstrShare';
 import { OptimizedImage } from '@/components/OptimizedImage';
 import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
@@ -247,21 +248,27 @@ const ReviewDetail = () => {
       <NavigationComponent />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          {/* Back Button and Share to Nostr */}
+          {/* Back Button and Share Buttons */}
           <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <Button variant="outline" onClick={() => window.history.back()}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
-            <ShareToNostrButton
-              url={`/review/${naddr}`}
-              title={title}
-              description={review.content || `${rating}/5 stars - ${location || 'Review'}`}
-              image={mainImage}
-              defaultContent={`Check out my review of ${title} on Traveltelly!\n\n⭐ Rating: ${rating}/5\n${location ? `📍 ${location}\n` : ''}\ntraveltelly.com/review/${naddr}`}
-              variant="default"
-              size="default"
-            />
+            <div className="flex flex-wrap gap-2">
+              <ShareToNostrButton
+                url={`/review/${naddr}`}
+                title={title}
+                description={review.content || `${rating}/5 stars - ${location || 'Review'}`}
+                image={mainImage}
+                defaultContent={`Check out my review of ${title} on Traveltelly!\n\n⭐ Rating: ${rating}/5\n${location ? `📍 ${location}\n` : ''}\ntraveltelly.com/review/${naddr}`}
+                variant="default"
+                size="default"
+              />
+              <ClawstrShare
+                event={review}
+                contentType="review"
+              />
+            </div>
           </div>
 
           {/* Review Card */}
