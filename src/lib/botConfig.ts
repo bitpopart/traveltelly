@@ -8,14 +8,21 @@
 /**
  * Bot's Nostr public key (npub format)
  * 
- * TO SET UP:
- * 1. Run: npx -y @clawstr/cli@latest init --name "Traveltelly Help Bot"
- * 2. Copy the generated npub
- * 3. Update this constant with your bot's npub
+ * 🚨 SETUP REQUIRED - The bot won't work until you complete these steps:
  * 
- * See CLAWSTR_BOT_SETUP.md for complete setup instructions
+ * 1. Run in terminal:
+ *    npx -y @clawstr/cli@latest init --name "Traveltelly Help Bot"
+ * 
+ * 2. Copy the npub from output (starts with npub1...)
+ * 
+ * 3. Replace the placeholder below with your REAL bot npub
+ * 
+ * 4. Rebuild: npm run build
+ * 
+ * See SETUP_BOT_NOW.md for quick 5-minute setup guide
+ * See CLAWSTR_BOT_SETUP.md for detailed instructions
  */
-export const HELP_BOT_NPUB = 'npub1traveltellybot...'; // UPDATE THIS after creating your bot
+export const HELP_BOT_NPUB = 'npub1traveltellybot...'; // 🚨 UPDATE THIS with your actual bot npub!
 
 /**
  * Bot profile information

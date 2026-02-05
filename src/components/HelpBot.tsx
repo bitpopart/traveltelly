@@ -21,7 +21,15 @@ export function HelpBot() {
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const { user } = useCurrentUser();
 
+  // Check if bot is configured (not using placeholder npub)
+  const isBotConfigured = HELP_BOT_NPUB !== 'npub1traveltellybot...';
+
   const handleChatWithBot = () => {
+    if (!isBotConfigured) {
+      alert('Bot setup required! See SETUP_BOT_NOW.md to create your bot in 5 minutes.');
+      return;
+    }
+    
     if (!user) {
       alert('Please login with Nostr to chat with the bot, or view the FAQ below.');
       return;
@@ -76,29 +84,56 @@ export function HelpBot() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  Send a direct message to the bot for personalized assistance with any Traveltelly feature.
-                </p>
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={handleChatWithBot}
-                    className="bg-purple-600 hover:bg-purple-700"
-                  >
-                    <MessageCircle className="mr-2 h-4 w-4" />
-                    Send Message
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={() => window.open(getBotProfileLink(), '_blank')}
-                  >
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    View Profile
-                  </Button>
-                </div>
-                {!user && (
-                  <p className="text-xs text-amber-600 dark:text-amber-400">
-                    ⚠️ Login with Nostr to chat with the bot
-                  </p>
+                {!isBotConfigured ? (
+                  <>
+                    <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4 space-y-2">
+                      <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+                        🚨 Bot Setup Required
+                      </p>
+                      <p className="text-xs text-amber-700 dark:text-amber-300">
+                        The help bot hasn't been configured yet. To enable bot chat:
+                      </p>
+                      <ol className="text-xs text-amber-700 dark:text-amber-300 space-y-1 ml-4 list-decimal">
+                        <li>Run: <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">npx -y @clawstr/cli@latest init</code></li>
+                        <li>Copy the generated npub</li>
+                        <li>Update <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">src/lib/botConfig.ts</code></li>
+                        <li>Rebuild the site</li>
+                      </ol>
+                      <p className="text-xs text-amber-700 dark:text-amber-300">
+                        See <strong>SETUP_BOT_NOW.md</strong> for a quick 5-minute guide.
+                      </p>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Meanwhile, browse the FAQ below for help →
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      Send a direct message to the bot for personalized assistance with any Traveltelly feature.
+                    </p>
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={handleChatWithBot}
+                        className="bg-purple-600 hover:bg-purple-700"
+                      >
+                        <MessageCircle className="mr-2 h-4 w-4" />
+                        Send Message
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        onClick={() => window.open(getBotProfileLink(), '_blank')}
+                      >
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        View Profile
+                      </Button>
+                    </div>
+                    {!user && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                        ⚠️ Login with Nostr to chat with the bot
+                      </p>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>
