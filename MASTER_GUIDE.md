@@ -546,10 +546,29 @@ npm run build
 
 ### Get Help
 
-1. **Check documentation** - Start with this guide
-2. **Search issues** - GitHub repository
-3. **Ask on Nostr** - Use `#traveltelly` tag
-4. **Contact admin** - `npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642`
+1. **Help Bot** 🤖 - Click the floating help button on any page, or send a Nostr DM to the Traveltelly Help Bot
+2. **Check documentation** - Start with this guide
+3. **Search issues** - GitHub repository
+4. **Ask on Nostr** - Use `#traveltelly` tag
+5. **Contact admin** - `npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642`
+
+### Traveltelly Help Bot
+
+The Help Bot is an AI assistant available 24/7 to answer questions about:
+- Creating reviews, stories, and trips
+- Using the stock media marketplace
+- Guest checkout and subscriptions
+- GPS extraction and maps
+- Nostr login and setup
+- Admin features
+
+**How to use:**
+- Click the purple sparkle button (✨) in the bottom-right corner
+- Browse FAQs by topic
+- Send a Nostr DM for personalized help
+- No Nostr account? View the built-in FAQ
+
+**See**: `CLAWSTR_BOT_SETUP.md` for bot setup and configuration
 
 ### Contribute
 

@@ -323,6 +323,7 @@ Contributions welcome! Please:
 
 ## 💡 Support
 
+- **Help Bot** 🤖: Click the sparkle button on the website, or see [`CLAWSTR_BOT_SETUP.md`](./CLAWSTR_BOT_SETUP.md)
 - **Documentation**: [`MASTER_GUIDE.md`](./MASTER_GUIDE.md)
 - **Quick Help**: [`QUICK_REFERENCE.md`](./QUICK_REFERENCE.md)
 - **Issues**: GitHub Issues
