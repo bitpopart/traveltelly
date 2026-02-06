@@ -11,10 +11,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Sparkles, MessageCircleQuestion, BarChart3, Share2, Plus, Trash2, Upload, Image as ImageIcon, Search, Loader2 } from 'lucide-react';
+import { Sparkles, MessageCircleQuestion, BarChart3, Share2, Plus, Trash2, Upload, Image as ImageIcon, Search, Loader2, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
 import { createClawstrPost } from '@/lib/clawstr';
 import type { NostrEvent } from '@nostrify/nostrify';
+import { Link } from 'react-router-dom';
 
 /**
  * Telly Bot - AI Agent for Travel Community
@@ -166,17 +167,13 @@ export function TellyBot() {
         // Include photo URL in content for kind 1 events (Nostr standard)
         const photoLine = photoUrl ? `\n${photoUrl}\n` : '';
 
-        nostrContent = `🤔 Question from Telly Bot:
-
-${question}
+        nostrContent = `🤔 ${question}
 ${photoLine}
 ${questionContext ? `${questionContext}\n\n` : ''}Comment down below 👇
 
 ${hashtagsText}`;
 
-        clawstrContent = `🤔 Question for the travel community:
-
-${question}
+        clawstrContent = `🤔 ${question}
 ${photoLine}
 ${questionContext ? `${questionContext}\n\n` : ''}Comment on this note 👇
 
@@ -207,9 +204,7 @@ ${hashtagsText}`;
         // Include photo URL in content for kind 1 events (Nostr standard)
         const photoLine = photoUrl ? `\n${photoUrl}\n` : '';
 
-        nostrContent = `📊 Poll from Telly Bot:
-
-${pollQuestion}
+        nostrContent = `📊 ${pollQuestion}
 
 ${optionsText}
 ${photoLine}
@@ -217,9 +212,7 @@ ${pollContext ? `${pollContext}\n\n` : ''}Comment down below with your choice (A
 
 ${hashtagsText}`;
 
-        clawstrContent = `📊 Poll for the travel community:
-
-${pollQuestion}
+        clawstrContent = `📊 ${pollQuestion}
 
 ${optionsText}
 ${photoLine}
@@ -490,6 +483,14 @@ ${hashtagsText}`;
 
   return (
     <div className="container max-w-4xl py-8 space-y-8">
+      {/* Back Button */}
+      <Link to="/admin">
+        <Button variant="outline" size="sm">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Admin
+        </Button>
+      </Link>
+
       {/* Header */}
       <div className="space-y-2">
         <div className="flex items-center gap-3">
