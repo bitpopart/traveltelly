@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useUploadFile } from '@/hooks/useUploadFile';
@@ -51,15 +51,17 @@ export function TellyBot() {
   const isAdmin = user?.pubkey === '7d33ba57d8a6e8869a1f1d5215254597594ac0dbfeb01b690def8c461b82db35';
 
   // Load stock media for selection
-  const { data: stockMedia = [] } = useMarketplaceProducts();
+  const { data: stockMedia = [], isLoading: isLoadingMedia } = useMarketplaceProducts();
   
-  // Filter media based on search
-  const filteredMedia = stockMedia.filter((product) => {
-    if (!mediaSearchQuery) return true;
+  // Filter media based on search - memoized to prevent re-renders
+  const filteredMedia = useMemo(() => {
+    if (!mediaSearchQuery) return stockMedia;
     const query = mediaSearchQuery.toLowerCase();
-    return product.title.toLowerCase().includes(query) || 
-           product.description.toLowerCase().includes(query);
-  });
+    return stockMedia.filter((product) => 
+      product.title.toLowerCase().includes(query) || 
+      product.description.toLowerCase().includes(query)
+    );
+  }, [stockMedia, mediaSearchQuery]);
 
   /**
    * Handle photo upload
@@ -370,41 +372,48 @@ ${pollContext ? `${pollContext}\n\n` : ''}What's your pick? Share your thoughts!
                 />
 
                 {/* Media grid */}
-                <div className="grid grid-cols-3 gap-4">
-                  {filteredMedia.length === 0 ? (
-                    <div className="col-span-3 text-center py-8 text-muted-foreground">
-                      {mediaSearchQuery ? 'No media found' : 'No media uploaded yet'}
-                    </div>
-                  ) : (
-                    filteredMedia.map((product) => {
-                      const imageUrl = product.images[0];
-                      
-                      if (!imageUrl) return null;
+                {isLoadingMedia ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-4 max-h-96 overflow-y-auto">
+                    {filteredMedia.length === 0 ? (
+                      <div className="col-span-3 text-center py-8 text-muted-foreground">
+                        {mediaSearchQuery ? 'No media found' : 'No media uploaded yet'}
+                      </div>
+                    ) : (
+                      filteredMedia.slice(0, 30).map((product) => {
+                        const imageUrl = product.images[0];
+                        
+                        if (!imageUrl) return null;
 
-                      return (
-                        <div
-                          key={product.id}
-                          onClick={() => selectMedia(product)}
-                          className="cursor-pointer group"
-                        >
-                          <div className="relative aspect-square rounded-lg overflow-hidden border-2 border-transparent group-hover:border-primary transition-colors">
-                            <img
-                              src={imageUrl}
-                              alt={product.title || 'Media'}
-                              className="w-full h-full object-cover"
-                            />
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                              <ImageIcon className="h-8 w-8 text-white" />
+                        return (
+                          <div
+                            key={product.id}
+                            onClick={() => selectMedia(product)}
+                            className="cursor-pointer group"
+                          >
+                            <div className="relative aspect-square rounded-lg overflow-hidden border-2 border-transparent group-hover:border-primary transition-colors">
+                              <img
+                                src={imageUrl}
+                                alt={product.title || 'Media'}
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                              />
+                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <ImageIcon className="h-8 w-8 text-white" />
+                              </div>
                             </div>
+                            <p className="text-xs mt-1 truncate text-muted-foreground">
+                              {product.title}
+                            </p>
                           </div>
-                          <p className="text-xs mt-1 truncate text-muted-foreground">
-                            {product.title}
-                          </p>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
               </div>
             </DialogContent>
           </Dialog>
