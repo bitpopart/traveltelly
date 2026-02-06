@@ -50,6 +50,7 @@ import AppBuilder from "./pages/AppBuilder";
 import ShareScheduler from "./pages/ShareScheduler";
 import AnalyticsDashboard from "./pages/AnalyticsDashboard";
 import GuestPortal from "./pages/GuestPortal";
+import { TellyBot } from "./pages/TellyBot";
 import NotFound from "./pages/NotFound";
 
 export function AppRouter() {
@@ -79,6 +80,7 @@ export function AppRouter() {
         <Route path="/admin/app-builder" element={<AppBuilder />} />
         <Route path="/admin/share-scheduler" element={<ShareScheduler />} />
         <Route path="/admin/analytics" element={<AnalyticsDashboard />} />
+        <Route path="/admin/telly-bot" element={<TellyBot />} />
         <Route path="/admin/events" element={<AdminEvents />} />
         <Route path="/admin-test" element={<AdminTest />} />
         <Route path="/admin-debug" element={<AdminDebug />} />

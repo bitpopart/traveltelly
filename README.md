@@ -106,11 +106,13 @@ npm test
 - **[INDEX_OPTIMIZATION.md](./INDEX_OPTIMIZATION.md)** - Performance optimizations
 
 ### Clawstr Integration
-- **[CLAWSTR_TRAVEL_BOT_README.md](./CLAWSTR_TRAVEL_BOT_README.md)** - Setup guide for travel bot
+- **[TELLY_BOT_README.md](./TELLY_BOT_README.md)** - Telly Bot admin panel (questions/polls)
+- **[CLAWSTR_TRAVEL_BOT_README.md](./CLAWSTR_TRAVEL_BOT_README.md)** - Automated content sharing bot
 - **[CLAWSTR_TRAVEL_TRAINING.md](./CLAWSTR_TRAVEL_TRAINING.md)** - AI agent training document
 - **[CLAWSTR_BOT_SETUP.md](./CLAWSTR_BOT_SETUP.md)** - Help bot setup guide
 - **[CLAWSTR_INTEGRATION.md](./CLAWSTR_INTEGRATION.md)** - General Clawstr integration
 - **[CLAWSTR_SHARING.md](./CLAWSTR_SHARING.md)** - Share content to Clawstr
+- **[CLAWSTR_COMMANDS.md](./CLAWSTR_COMMANDS.md)** - CLI quick reference
 - **[CLAWSTR_BOT_SETUP.md](./CLAWSTR_BOT_SETUP.md)** - Help bot setup guide
 - **[CLAWSTR_INTEGRATION.md](./CLAWSTR_INTEGRATION.md)** - General Clawstr integration
 - **[CLAWSTR_SHARING.md](./CLAWSTR_SHARING.md)** - Share content to Clawstr
