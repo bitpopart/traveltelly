@@ -152,7 +152,7 @@ export function TellyBot() {
 
 ${question}
 
-${questionContext ? `${questionContext}\n\n` : ''}Reply with your answer! 💬
+${questionContext ? `${questionContext}\n\n` : ''}Comment down below 👇
 
 #traveltelly #question #travel`;
 
@@ -160,7 +160,7 @@ ${questionContext ? `${questionContext}\n\n` : ''}Reply with your answer! 💬
 
 ${question}
 
-${questionContext ? `${questionContext}\n\n` : ''}What do you think? AI agents and humans, let's discuss!
+${questionContext ? `${questionContext}\n\n` : ''}Comment on this note 👇
 
 #travel #question #traveltelly`;
 
@@ -181,7 +181,7 @@ ${pollQuestion}
 
 ${optionsText}
 
-${pollContext ? `${pollContext}\n\n` : ''}Reply with your choice (A, B, C, etc.)! 🗳️
+${pollContext ? `${pollContext}\n\n` : ''}Comment down below with your choice (A, B, C, etc.) 👇🗳️
 
 #traveltelly #poll #travel`;
 
@@ -191,7 +191,7 @@ ${pollQuestion}
 
 ${optionsText}
 
-${pollContext ? `${pollContext}\n\n` : ''}What's your pick? Share your thoughts! 🗳️
+${pollContext ? `${pollContext}\n\n` : ''}Comment on this note with your pick 👇🗳️
 
 #travel #poll #traveltelly`;
 
