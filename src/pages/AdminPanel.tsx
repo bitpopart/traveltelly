@@ -190,42 +190,42 @@ export default function AdminPanel() {
 
           {/* Main Admin Tabs */}
           <Tabs defaultValue="manage-reviews" className="w-full">
-            <TabsList className="grid w-full grid-cols-9">
-              <TabsTrigger value="manage-reviews" className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4" />
-                Reviews
+            <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2">
+              <TabsTrigger value="manage-reviews" className="flex items-center gap-1.5 whitespace-nowrap px-3">
+                <MessageSquare className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">Reviews</span>
               </TabsTrigger>
-              <TabsTrigger value="manage-stories" className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4" />
-                Stories
+              <TabsTrigger value="manage-stories" className="flex items-center gap-1.5 whitespace-nowrap px-3">
+                <BookOpen className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">Stories</span>
               </TabsTrigger>
-              <TabsTrigger value="manage-trips" className="flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                Trips
+              <TabsTrigger value="manage-trips" className="flex items-center gap-1.5 whitespace-nowrap px-3">
+                <MapPin className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">Trips</span>
               </TabsTrigger>
-              <TabsTrigger value="customers" className="flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                Customers
+              <TabsTrigger value="customers" className="flex items-center gap-1.5 whitespace-nowrap px-3">
+                <Users className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">Customers</span>
               </TabsTrigger>
-              <TabsTrigger value="newsletter" className="flex items-center gap-2">
-                <Mail className="w-4 h-4" />
-                Newsletter
+              <TabsTrigger value="newsletter" className="flex items-center gap-1.5 whitespace-nowrap px-3">
+                <Mail className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">Newsletter</span>
               </TabsTrigger>
-              <TabsTrigger value="review-permissions" className="flex items-center gap-2">
-                <Shield className="w-4 h-4" />
-                Review Permissions
+              <TabsTrigger value="review-permissions" className="flex items-center gap-1.5 whitespace-nowrap px-3">
+                <Shield className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">Review Permissions</span>
               </TabsTrigger>
-              <TabsTrigger value="media-permissions" className="flex items-center gap-2">
-                <Camera className="w-4 h-4" />
-                Media Permissions
+              <TabsTrigger value="media-permissions" className="flex items-center gap-1.5 whitespace-nowrap px-3">
+                <Camera className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">Media Permissions</span>
               </TabsTrigger>
-              <TabsTrigger value="subscriptions" className="flex items-center gap-2">
-                <Crown className="w-4 h-4" />
-                Subscriptions
+              <TabsTrigger value="subscriptions" className="flex items-center gap-1.5 whitespace-nowrap px-3">
+                <Crown className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">Subscriptions</span>
               </TabsTrigger>
-              <TabsTrigger value="media-management" className="flex items-center gap-2">
-                <FileImage className="w-4 h-4" />
-                Media Management
+              <TabsTrigger value="media-management" className="flex items-center gap-1.5 whitespace-nowrap px-3">
+                <FileImage className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">Media Management</span>
               </TabsTrigger>
             </TabsList>
 
