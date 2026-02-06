@@ -72,6 +72,9 @@ export function TellyBot() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Reset file input
+    e.target.value = '';
+
     try {
       const tags = await uploadFile(file);
       const url = tags[0]?.[1];
@@ -160,10 +163,13 @@ export function TellyBot() {
           .map(tag => `#${tag}`)
           .join(' ');
 
+        // Include photo URL in content for kind 1 events (Nostr standard)
+        const photoLine = photoUrl ? `\n${photoUrl}\n` : '';
+
         nostrContent = `🤔 Question from Telly Bot:
 
 ${question}
-
+${photoLine}
 ${questionContext ? `${questionContext}\n\n` : ''}Comment down below 👇
 
 ${hashtagsText}`;
@@ -171,7 +177,7 @@ ${hashtagsText}`;
         clawstrContent = `🤔 Question for the travel community:
 
 ${question}
-
+${photoLine}
 ${questionContext ? `${questionContext}\n\n` : ''}Comment on this note 👇
 
 ${hashtagsText}`;
@@ -198,12 +204,15 @@ ${hashtagsText}`;
           .map(tag => `#${tag}`)
           .join(' ');
 
+        // Include photo URL in content for kind 1 events (Nostr standard)
+        const photoLine = photoUrl ? `\n${photoUrl}\n` : '';
+
         nostrContent = `📊 Poll from Telly Bot:
 
 ${pollQuestion}
 
 ${optionsText}
-
+${photoLine}
 ${pollContext ? `${pollContext}\n\n` : ''}Comment down below with your choice (A, B, C, etc.) 👇🗳️
 
 ${hashtagsText}`;
@@ -213,7 +222,7 @@ ${hashtagsText}`;
 ${pollQuestion}
 
 ${optionsText}
-
+${photoLine}
 ${pollContext ? `${pollContext}\n\n` : ''}Comment on this note with your pick 👇🗳️
 
 ${hashtagsText}`;
@@ -229,8 +238,11 @@ ${hashtagsText}`;
         ];
       }
 
-      // Add photo tag if present
-      const photoTags: string[][] = photoUrl ? [['image', photoUrl]] : [];
+      // Add photo tags if present (both image tag and imeta for NIP-92)
+      const photoTags: string[][] = photoUrl ? [
+        ['image', photoUrl],
+        ['imeta', `url ${photoUrl}`],
+      ] : [];
       const allBaseTags = [...baseTags, ...photoTags];
 
       // Publish to Nostr (kind 1)
@@ -346,21 +358,7 @@ ${hashtagsText}`;
       ) : (
         <div className="grid grid-cols-2 gap-2">
           {/* Upload new photo */}
-          <label htmlFor="photo-upload" className="cursor-pointer">
-            <div className="border-2 border-dashed rounded-lg p-4 hover:border-primary transition-colors text-center">
-              {isUploading ? (
-                <>
-                  <Loader2 className="h-8 w-8 mx-auto mb-2 animate-spin text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">Uploading...</p>
-                </>
-              ) : (
-                <>
-                  <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm font-medium">Upload Photo</p>
-                  <p className="text-xs text-muted-foreground mt-1">Click to browse</p>
-                </>
-              )}
-            </div>
+          <div>
             <input
               id="photo-upload"
               type="file"
@@ -369,7 +367,23 @@ ${hashtagsText}`;
               className="hidden"
               disabled={isUploading}
             />
-          </label>
+            <label htmlFor="photo-upload" className="cursor-pointer block">
+              <div className="border-2 border-dashed rounded-lg p-4 hover:border-primary transition-colors text-center">
+                {isUploading ? (
+                  <>
+                    <Loader2 className="h-8 w-8 mx-auto mb-2 animate-spin text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Uploading...</p>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm font-medium">Upload Photo</p>
+                    <p className="text-xs text-muted-foreground mt-1">Click to browse</p>
+                  </>
+                )}
+              </div>
+            </label>
+          </div>
 
           {/* Select from existing media */}
           <Dialog open={isMediaDialogOpen} onOpenChange={setIsMediaDialogOpen}>
