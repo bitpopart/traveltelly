@@ -17,7 +17,7 @@ import { CustomerManagement } from '@/components/CustomerManagement';
 import { NewsletterManager } from '@/components/NewsletterManager';
 import { useInitializeTestCustomer } from '@/hooks/useInitializeTestCustomer';
 import { nip19 } from 'nostr-tools';
-import { Shield, ArrowLeft, Camera, MessageSquare, Settings, Tag, FileImage, Coffee, MapPin, Upload, BookOpen, Smartphone, Clock, BarChart3, Crown, Users, Mail } from 'lucide-react';
+import { Shield, ArrowLeft, Camera, MessageSquare, Settings, Tag, FileImage, Coffee, MapPin, Upload, BookOpen, Smartphone, Clock, BarChart3, Crown, Users, Mail, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function AdminPanel() {
@@ -106,6 +106,12 @@ export default function AdminPanel() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-3">
+                <Link to="/admin/telly-bot">
+                  <Button variant="default" className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Telly Bot
+                  </Button>
+                </Link>
                 <Link to="/admin/analytics">
                   <Button variant="default" className="bg-purple-600 hover:bg-purple-700">
                     <BarChart3 className="w-4 h-4 mr-2" />
