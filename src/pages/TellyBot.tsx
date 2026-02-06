@@ -11,11 +11,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Sparkles, MessageCircleQuestion, BarChart3, Share2, Plus, Trash2, Upload, Image as ImageIcon, Search, Loader2, ArrowLeft } from 'lucide-react';
+import { Sparkles, MessageCircleQuestion, BarChart3, Share2, Plus, Trash2, Upload, Image as ImageIcon, Search, Loader2, ArrowLeft, Bot } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
 import { createClawstrPost } from '@/lib/clawstr';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { Link } from 'react-router-dom';
+import { TravelBot } from '@/components/TravelBot';
 
 /**
  * Telly Bot - AI Agent for Travel Community
@@ -536,7 +537,7 @@ ${hashtagsText}`;
 
       {/* Main Content */}
       <Tabs defaultValue="question" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="question" className="flex items-center gap-2">
             <MessageCircleQuestion className="h-4 w-4" />
             Question
@@ -544,6 +545,10 @@ ${hashtagsText}`;
           <TabsTrigger value="poll" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
             Poll
+          </TabsTrigger>
+          <TabsTrigger value="bot" className="flex items-center gap-2">
+            <Bot className="h-4 w-4" />
+            Auto Bot
           </TabsTrigger>
         </TabsList>
 
@@ -765,6 +770,11 @@ ${hashtagsText}`;
               </p>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Auto Bot Tab */}
+        <TabsContent value="bot">
+          <TravelBot />
         </TabsContent>
       </Tabs>
 
