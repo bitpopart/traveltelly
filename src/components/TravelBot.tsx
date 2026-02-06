@@ -173,26 +173,83 @@ export function TravelBot() {
       // Select top posts (up to config.postsPerBatch)
       const selectedPosts = recentContent.slice(0, config.postsPerBatch);
 
-      // Create nevent references
+      // Extract images and create enhanced references
+      const imageUrls: string[] = [];
+      const allTags: string[][] = [];
+
       const neventLinks = selectedPosts.map((event) => {
         const nevent = nip19.neventEncode({
           id: event.id,
           author: event.pubkey,
           kind: event.kind,
         });
-        return `nostr:${nevent}`;
+
+        // Create naddr for addressable events
+        const dTag = event.tags.find(([name]) => name === 'd')?.[1];
+        const naddr = dTag ? nip19.naddrEncode({
+          kind: event.kind,
+          pubkey: event.pubkey,
+          identifier: dTag,
+        }) : null;
+
+        // Extract title for better display
+        const title = event.tags.find(([name]) => name === 'title')?.[1];
+        
+        // Extract image URL from event
+        const imageTag = event.tags.find(([name]) => name === 'image')?.[1];
+        if (imageTag && !imageUrls.includes(imageTag)) {
+          imageUrls.push(imageTag);
+        }
+
+        // Generate TravelTelly URL based on event kind
+        let traveltellyUrl = '';
+        if (event.kind === 34879 && naddr) {
+          // Review
+          traveltellyUrl = `https://www.traveltelly.com/review/${naddr}`;
+        } else if (event.kind === 30023 && naddr) {
+          // Story
+          traveltellyUrl = `https://www.traveltelly.com/story/${naddr}`;
+        } else if (event.kind === 30025 && naddr) {
+          // Trip
+          traveltellyUrl = `https://www.traveltelly.com/trip/${naddr}`;
+        }
+        
+        // Create reference with title if available
+        let reference = `nostr:${nevent}`;
+        if (title) {
+          reference = `${title}\n${reference}`;
+        }
+        if (traveltellyUrl) {
+          reference += `\n${traveltellyUrl}`;
+        }
+        
+        return reference;
       }).join('\n\n');
 
-      // Build bot message
-      const postNumber = stats.totalPosts + 1;
+      // Build bot message without post number
       const greeting = getTimeBasedGreeting();
       
-      const content = `[BOT] ${postNumber}
+      // Add first image to content (Nostr standard for kind 1)
+      const imageInContent = imageUrls.length > 0 ? `\n${imageUrls[0]}\n` : '';
+      
+      const content = `[BOT]
 ${greeting} TravelBot has curated posts you might have missed!
-
+${imageInContent}
 ${neventLinks}
 
 ${config.hashtags.map(tag => `#${tag}`).join(' ')}`;
+
+      // Create tags with images and URLs
+      const baseTags = config.hashtags.map(tag => ['t', tag]);
+      
+      // Add image tags (for NIP-92 compatibility)
+      imageUrls.forEach(url => {
+        baseTags.push(['image', url]);
+        baseTags.push(['imeta', `url ${url}`]);
+      });
+
+      // Add website URL
+      baseTags.push(['r', 'https://www.traveltelly.com', 'web']);
 
       // Create event with PoW
       const baseEvent = {
@@ -200,7 +257,7 @@ ${config.hashtags.map(tag => `#${tag}`).join(' ')}`;
         content,
         created_at: now,
         pubkey: user.pubkey,
-        tags: config.hashtags.map(tag => ['t', tag]),
+        tags: baseTags,
       };
 
       // Mine nonce
@@ -225,16 +282,16 @@ ${config.hashtags.map(tag => `#${tag}`).join(' ')}`;
       await nostr.event(signedEvent, { signal: AbortSignal.timeout(5000) });
 
       // Update stats
-      setStats({
-        totalPosts: postNumber,
+      setStats(prev => ({
+        totalPosts: prev.totalPosts + 1,
         lastPostTime: now,
         nextPostTime: now + (config.intervalMinutes * 60),
         currentNonce: parseInt(nonce),
-      });
+      }));
 
       toast({
         title: '🤖 Bot Post Published!',
-        description: `Shared ${selectedPosts.length} curated posts with PoW nonce ${nonce}`,
+        description: `Shared ${selectedPosts.length} curated posts with ${imageUrls.length} images`,
       });
 
     } catch (error) {
@@ -610,19 +667,23 @@ ${config.hashtags.map(tag => `#${tag}`).join(' ')}`;
           <CardTitle className="text-sm">Example Bot Post</CardTitle>
         </CardHeader>
         <CardContent className="font-mono text-xs space-y-2">
-          <p>[BOT] {stats.totalPosts + 1}</p>
+          <p>[BOT]</p>
           <p>{getTimeBasedGreeting()} TravelBot has curated posts you might have missed!</p>
           <br />
-          <p className="text-blue-600">nostr:nevent1...</p>
+          <p className="text-blue-600">https://example.com/image.jpg (image preview)</p>
           <br />
+          <p className="font-semibold">Review of Rung Aroon Coffee Bar - 5 stars</p>
           <p className="text-blue-600">nostr:nevent1...</p>
+          <p className="text-blue-600">https://www.traveltelly.com/review/...</p>
           <br />
+          <p className="font-semibold">Journey through Thailand</p>
           <p className="text-blue-600">nostr:nevent1...</p>
+          <p className="text-blue-600">https://www.traveltelly.com/story/...</p>
           <br />
           <p>#travel #photography #traveltelly</p>
           <br />
           <p className="text-muted-foreground italic">
-            (With PoW nonce for visibility)
+            (With PoW nonce + images + clickable links)
           </p>
         </CardContent>
       </Card>

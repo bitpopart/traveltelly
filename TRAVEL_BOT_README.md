@@ -45,14 +45,18 @@ TravelBot uses the same PoW mining technique as the Thai Siamstr bot:
 ## Bot Post Format
 
 ```
-[BOT] 935206
+[BOT]
 Good afternoon! ☀️ TravelBot has curated posts you might have missed!
 
+https://example.com/image.jpg
+
+Review of Rung Aroon Coffee Bar - 5 stars
 nostr:nevent1qqs8v6aajkpeamkrh8ccugw0muaye7flc9kk6e528lfvp0kdut0wy0c...
+https://www.traveltelly.com/review/naddr1...
 
+Journey through Thailand
 nostr:nevent1qqs0wn04h5a8km6nqtpznvgl29vm7pvtn2zu2yv2768qqh6xr7t8h6q...
-
-nostr:nevent1qqsqelgvy0wz38j5dtemk5c3uzx5y8fvsf5p9ngdnqyh6p5x6m6v3ts...
+https://www.traveltelly.com/story/naddr1...
 
 #travel #photography #traveltelly
 ```
@@ -61,11 +65,15 @@ nostr:nevent1qqsqelgvy0wz38j5dtemk5c3uzx5y8fvsf5p9ngdnqyh6p5x6m6v3ts...
 
 | Part | Description |
 |------|-------------|
-| `[BOT] N` | Bot identifier with post number |
+| `[BOT]` | Bot identifier (no post number) |
 | Greeting | Time-based greeting (morning/afternoon/evening) |
-| Message | Informative description |
+| Image URL | First image from curated posts (for preview) |
+| Title | Post title (review/story/trip name) |
 | `nostr:nevent1...` | NIP-19 encoded event references |
+| TravelTelly URL | Clickable link to view on TravelTelly |
 | Hashtags | `#travel #photography #traveltelly` |
+| Image tags | Hidden NIP-92 image metadata tags |
+| Website tag | Hidden `r` tag with TravelTelly URL |
 | Nonce tag | Hidden PoW nonce in event tags |
 
 ---
@@ -166,11 +174,14 @@ Scheduled time for the next automatic post (only when bot is enabled).
 ```json
 {
   "kind": 1,
-  "content": "[BOT] N\nGreeting...\n\nnostr:nevent1...\n\n#travel #photography",
+  "content": "[BOT]\nGreeting...\n\nhttps://image.jpg\n\nTitle\nnostr:nevent1...\nhttps://www.traveltelly.com/review/...\n\n#travel #photography",
   "tags": [
     ["t", "travel"],
     ["t", "photography"],
     ["t", "traveltelly"],
+    ["image", "https://example.com/image.jpg"],
+    ["imeta", "url https://example.com/image.jpg"],
+    ["r", "https://www.traveltelly.com", "web"],
     ["nonce", "682784", "21"]
   ],
   "created_at": 1770354032,
@@ -239,7 +250,9 @@ These `nevent` references are rendered as clickable links in most Nostr clients.
 | **Hashtags** | `#siamstr` | `#travel #photography` |
 | **Content Type** | General notes | Reviews, Stories, Trips |
 | **PoW Difficulty** | 21 | 21 (configurable) |
-| **Post Format** | `[BOT] N` + nevents | Same |
+| **Post Format** | `[BOT] N` + nevents | `[BOT]` + titles + images + URLs |
+| **Images** | No | Yes (NIP-92 image tags) |
+| **Clickable URLs** | No | Yes (TravelTelly links) |
 | **Interval** | ~2 hours | Configurable (30-1440 min) |
 | **Language** | Thai greeting | English greeting |
 | **Admin Panel** | External script | Built-in TravelTelly UI |
