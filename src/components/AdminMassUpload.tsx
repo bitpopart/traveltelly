@@ -13,6 +13,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useUploadFile } from '@/hooks/useUploadFile';
 import { useToast } from '@/hooks/useToast';
+import { useNostr } from '@nostrify/react';
 import { extractPhotoMetadata, type PhotoMetadata } from '@/lib/exifUtils';
 import { nip19 } from 'nostr-tools';
 import { Upload, FileText, CheckCircle2, XCircle, Loader2, Download, AlertCircle, Image as ImageIcon, X, FileUp, Edit2, Save, CheckSquare, Square, Repeat } from 'lucide-react';
@@ -100,6 +101,7 @@ export function AdminMassUpload() {
   const csvInputRef = useRef<HTMLInputElement>(null);
   
   const { user } = useCurrentUser();
+  const { nostr } = useNostr();
   const { mutateAsync: publishEvent } = useNostrPublish();
   const { mutateAsync: uploadFile } = useUploadFile();
   const { toast } = useToast();
@@ -508,6 +510,144 @@ export function AdminMassUpload() {
     });
   };
 
+  // Batch upload and sign all events at once
+  const uploadAndSignBatch = async (items: UploadItem[]) => {
+    if (!user) throw new Error("User not logged in");
+
+    // Step 1: Upload all files to Blossom first
+    const uploadResults: Array<{ item: UploadItem; imageUrl: string; productId: string; tags: string[][] }> = [];
+    
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      setCurrentUploadIndex(i);
+      updateItem(item.id, { status: 'uploading' });
+
+      try {
+        // Validate
+        const validationError = validateItem(item);
+        if (validationError) {
+          throw new Error(validationError);
+        }
+
+        // Upload file to Blossom
+        const result = await uploadFile(item.file);
+        const imageUrl = result[0][1];
+
+        // Build tags for NIP-99 classified listing
+        const productId = `mass_upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const tags: string[][] = [
+          ['d', productId],
+          ['title', item.title],
+          ['summary', item.description.slice(0, 200)],
+          ['price', item.price, item.currency.toUpperCase()],
+          ['t', item.mediaType],
+          ['category', item.category],
+          ['status', 'active'],
+          ['published_at', Math.floor(Date.now() / 1000).toString()],
+          ['image', imageUrl],
+        ];
+
+        // Add location if provided
+        if (item.location?.trim()) {
+          tags.push(['location', item.location.trim()]);
+        }
+
+        // Add keywords as tags
+        if (item.keywords?.trim()) {
+          const keywordList = item.keywords
+            .split(',')
+            .map(k => k.trim())
+            .filter(Boolean);
+          
+          keywordList.forEach(keyword => {
+            tags.push(['t', keyword.toLowerCase()]);
+          });
+        }
+
+        // Add geohash if coordinates provided
+        if (item.latitude?.trim() && item.longitude?.trim()) {
+          const lat = parseFloat(item.latitude);
+          const lng = parseFloat(item.longitude);
+          
+          if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+            const hash = geohash.encode(lat, lng, 8);
+            tags.push(['g', hash]);
+          }
+        }
+
+        uploadResults.push({ item, imageUrl, productId, tags });
+        updateItem(item.id, { status: 'ready' }); // Mark as ready for signing
+      } catch (error) {
+        console.error(`Error uploading item ${i + 1}:`, error);
+        updateItem(item.id, { 
+          status: 'error',
+          error: error instanceof Error ? error.message : 'Upload failed'
+        });
+      }
+    }
+
+    // Step 2: Sign all events in rapid succession
+    toast({
+      title: 'Files Uploaded',
+      description: `All ${uploadResults.length} files uploaded. Now signing ${uploadResults.length} Nostr events. Please approve all signature requests in your extension.`,
+      duration: 5000,
+    });
+
+    const signedEvents: Array<{ item: UploadItem; event: any }> = [];
+    
+    for (let i = 0; i < uploadResults.length; i++) {
+      const { item, tags } = uploadResults[i];
+      setCurrentUploadIndex(items.indexOf(item));
+      updateItem(item.id, { status: 'uploading' }); // Reuse 'uploading' status for signing
+
+      try {
+        // Add client tag
+        const finalTags = [...tags];
+        if (location.protocol === "https:" && !finalTags.some(([name]) => name === "client")) {
+          finalTags.push(["client", location.hostname]);
+        }
+
+        // Sign the event
+        const event = await user.signer.signEvent({
+          kind: 30402,
+          content: item.description,
+          tags: finalTags,
+          created_at: Math.floor(Date.now() / 1000),
+        });
+
+        signedEvents.push({ item, event });
+      } catch (error) {
+        console.error(`Error signing event ${i + 1}:`, error);
+        updateItem(item.id, { 
+          status: 'error',
+          error: error instanceof Error ? error.message : 'Signing failed'
+        });
+      }
+    }
+
+    // Step 3: Publish all signed events
+    toast({
+      title: 'Events Signed',
+      description: `${signedEvents.length} events signed. Now publishing to relays...`,
+    });
+
+    for (let i = 0; i < signedEvents.length; i++) {
+      const { item, event } = signedEvents[i];
+      setCurrentUploadIndex(items.indexOf(item));
+
+      try {
+        await nostr.event(event, { signal: AbortSignal.timeout(5000) });
+        updateItem(item.id, { status: 'completed' });
+      } catch (error) {
+        console.error(`Error publishing event ${i + 1}:`, error);
+        updateItem(item.id, { 
+          status: 'error',
+          error: error instanceof Error ? error.message : 'Publishing failed'
+        });
+      }
+    }
+  };
+
   const handleStartUpload = async () => {
     if (uploadItems.length === 0) {
       toast({
@@ -530,23 +670,17 @@ export function AdminMassUpload() {
     }
 
     setIsProcessing(true);
-    
-    for (let i = 0; i < uploadItems.length; i++) {
-      const item = uploadItems[i];
-      setCurrentUploadIndex(i);
-      
-      updateItem(item.id, { status: 'uploading' });
 
-      try {
-        await uploadSingleItem(item);
-        updateItem(item.id, { status: 'completed' });
-      } catch (error) {
-        console.error(`Error uploading item ${i + 1}:`, error);
-        updateItem(item.id, { 
-          status: 'error',
-          error: error instanceof Error ? error.message : 'Upload failed'
-        });
-      }
+    try {
+      // Use batch upload and signing
+      await uploadAndSignBatch(uploadItems);
+    } catch (error) {
+      console.error('Batch upload error:', error);
+      toast({
+        title: 'Upload Error',
+        description: error instanceof Error ? error.message : 'An error occurred during batch upload',
+        variant: 'destructive',
+      });
     }
 
     setCurrentUploadIndex(-1);
