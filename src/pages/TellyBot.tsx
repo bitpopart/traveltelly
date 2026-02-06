@@ -34,11 +34,13 @@ export function TellyBot() {
   // Question state
   const [question, setQuestion] = useState('');
   const [questionContext, setQuestionContext] = useState('');
+  const [questionHashtags, setQuestionHashtags] = useState('');
   
   // Poll state
   const [pollQuestion, setPollQuestion] = useState('');
   const [pollOptions, setPollOptions] = useState<string[]>(['', '']);
   const [pollContext, setPollContext] = useState('');
+  const [pollHashtags, setPollHashtags] = useState('');
   
   // Photo state
   const [photoUrl, setPhotoUrl] = useState('');
@@ -148,13 +150,23 @@ export function TellyBot() {
       let baseTags: string[][];
 
       if (type === 'question') {
+        // Parse custom hashtags
+        const customHashtags = questionHashtags
+          .split(/[\s,]+/)
+          .map(tag => tag.replace(/^#/, '').trim())
+          .filter(Boolean);
+        
+        const hashtagsText = ['traveltelly', 'question', 'travel', ...customHashtags]
+          .map(tag => `#${tag}`)
+          .join(' ');
+
         nostrContent = `ðŸ¤” Question from Telly Bot:
 
 ${question}
 
 ${questionContext ? `${questionContext}\n\n` : ''}Comment down below ðŸ‘‡
 
-#traveltelly #question #travel`;
+${hashtagsText}`;
 
         clawstrContent = `ðŸ¤” Question for the travel community:
 
@@ -162,7 +174,7 @@ ${question}
 
 ${questionContext ? `${questionContext}\n\n` : ''}Comment on this note ðŸ‘‡
 
-#travel #question #traveltelly`;
+${hashtagsText}`;
 
         baseTags = [
           ['t', 'traveltelly'],
@@ -170,10 +182,21 @@ ${questionContext ? `${questionContext}\n\n` : ''}Comment on this note ðŸ‘‡
           ['t', 'travel'],
           ['L', 'telly-bot'],
           ['l', 'question', 'telly-bot'],
+          ...customHashtags.map(tag => ['t', tag] as [string, string]),
         ];
       } else {
         const validOptions = pollOptions.filter(opt => opt.trim());
         const optionsText = validOptions.map((opt, i) => `${String.fromCharCode(65 + i)}) ${opt}`).join('\n');
+
+        // Parse custom hashtags
+        const customHashtags = pollHashtags
+          .split(/[\s,]+/)
+          .map(tag => tag.replace(/^#/, '').trim())
+          .filter(Boolean);
+        
+        const hashtagsText = ['traveltelly', 'poll', 'travel', ...customHashtags]
+          .map(tag => `#${tag}`)
+          .join(' ');
 
         nostrContent = `ðŸ“Š Poll from Telly Bot:
 
@@ -183,7 +206,7 @@ ${optionsText}
 
 ${pollContext ? `${pollContext}\n\n` : ''}Comment down below with your choice (A, B, C, etc.) ðŸ‘‡ðŸ—³ï¸
 
-#traveltelly #poll #travel`;
+${hashtagsText}`;
 
         clawstrContent = `ðŸ“Š Poll for the travel community:
 
@@ -193,7 +216,7 @@ ${optionsText}
 
 ${pollContext ? `${pollContext}\n\n` : ''}Comment on this note with your pick ðŸ‘‡ðŸ—³ï¸
 
-#travel #poll #traveltelly`;
+${hashtagsText}`;
 
         baseTags = [
           ['t', 'traveltelly'],
@@ -202,6 +225,7 @@ ${pollContext ? `${pollContext}\n\n` : ''}Comment on this note with your pick ðŸ
           ['L', 'telly-bot'],
           ['l', 'poll', 'telly-bot'],
           ...validOptions.map(opt => ['poll_option', opt] as [string, string]),
+          ...customHashtags.map(tag => ['t', tag] as [string, string]),
         ];
       }
 
@@ -249,10 +273,12 @@ ${pollContext ? `${pollContext}\n\n` : ''}Comment on this note with your pick ðŸ
       if (type === 'question') {
         setQuestion('');
         setQuestionContext('');
+        setQuestionHashtags('');
       } else {
         setPollQuestion('');
         setPollOptions(['', '']);
         setPollContext('');
+        setPollHashtags('');
       }
       setPhotoUrl('');
 
@@ -534,6 +560,21 @@ ${pollContext ? `${pollContext}\n\n` : ''}Comment on this note with your pick ðŸ
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="question-hashtags">
+                  Additional Hashtags (Optional)
+                </Label>
+                <Input
+                  id="question-hashtags"
+                  placeholder="beach, sunset, photography (comma or space separated)"
+                  value={questionHashtags}
+                  onChange={(e) => setQuestionHashtags(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Always included: #traveltelly #question #travel
+                </p>
+              </div>
+
               <PhotoSelector />
 
               <Button 
@@ -566,6 +607,9 @@ ${pollContext ? `${pollContext}\n\n` : ''}Comment on this note with your pick ðŸ
               <p className="text-muted-foreground">
                 Context: I'm looking for recommendations for my next trip. Interested in both 
                 popular destinations and hidden gems!
+              </p>
+              <p className="text-muted-foreground">
+                Hashtags: beach, adventure, europe
               </p>
               <p className="text-muted-foreground">
                 Photo: Beautiful landscape or city photo to inspire responses
@@ -640,6 +684,21 @@ ${pollContext ? `${pollContext}\n\n` : ''}Comment on this note with your pick ðŸ
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="poll-hashtags">
+                  Additional Hashtags (Optional)
+                </Label>
+                <Input
+                  id="poll-hashtags"
+                  placeholder="japan, spain, usa, europe, asia (comma or space separated)"
+                  value={pollHashtags}
+                  onChange={(e) => setPollHashtags(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Always included: #traveltelly #poll #travel
+                </p>
+              </div>
+
               <PhotoSelector />
 
               <Button 
@@ -679,6 +738,9 @@ ${pollContext ? `${pollContext}\n\n` : ''}Comment on this note with your pick ðŸ
                 food, and scenic views!
               </p>
               <p className="text-muted-foreground">
+                Hashtags: japan, spain, usa, europe, asia
+              </p>
+              <p className="text-muted-foreground">
                 Photo: Collage of destination photos to visualize options
               </p>
             </CardContent>
@@ -696,6 +758,7 @@ ${pollContext ? `${pollContext}\n\n` : ''}Comment on this note with your pick ðŸ
             <li>Be specific and clear in your questions</li>
             <li>Provide context to help people give better answers</li>
             <li>Add photos to provide visual context and inspire responses</li>
+            <li>Add relevant hashtags to improve discoverability</li>
             <li>For polls, keep options concise and balanced</li>
             <li>Ask open-ended questions to encourage discussion</li>
             <li>Posts are shared to BOTH Nostr (humans) AND Clawstr (AI agents)</li>
