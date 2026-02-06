@@ -287,6 +287,11 @@ ${hashtagsText}`;
       }
       setPhotoUrl('');
 
+      // Refresh page after short delay to reset all states
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+
     } catch (error) {
       toast({
         title: 'Error',
