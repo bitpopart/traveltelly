@@ -121,7 +121,7 @@ export default function AdminPanel() {
                 <Link to="/admin/share-scheduler">
                   <Button variant="default" className="bg-purple-600 hover:bg-purple-700">
                     <Clock className="w-4 h-4 mr-2" />
-                    Share Scheduler
+                    Social Media
                   </Button>
                 </Link>
                 <Link to="/admin/app-builder">

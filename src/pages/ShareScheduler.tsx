@@ -39,7 +39,9 @@ import {
   Twitter,
   Instagram,
   Facebook,
-  Zap
+  Zap,
+  Info,
+  ExternalLink
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/useToast';
@@ -371,10 +373,10 @@ export default function ShareScheduler() {
             </Link>
             <div className="flex items-center gap-3 mb-2">
               <Clock className="w-8 h-8 text-purple-600" />
-              <h1 className="text-3xl font-bold">Share Scheduler</h1>
+              <h1 className="text-3xl font-bold">Social Media</h1>
             </div>
             <p className="text-muted-foreground">
-              Automate your social media posts across Nostr, Twitter, Instagram, and Facebook
+              Automate posts, sync X/Instagram to Nostr, and manage your social presence
             </p>
           </div>
 
@@ -922,6 +924,15 @@ function SocialMediaScheduler({ platform }: SocialMediaSchedulerProps) {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isFetchingContent, setIsFetchingContent] = useState(false);
+  
+  // xNostr-style sync state
+  const [syncConfig, setSyncConfig] = useState({
+    autoSync: false,
+    syncInterval: 60, // minutes
+    bulkSyncEnabled: false,
+    autoPostToNostr: false,
+    blossomUpload: false,
+  });
 
   const platformIcons = {
     twitter: Twitter,
@@ -1145,19 +1156,228 @@ function SocialMediaScheduler({ platform }: SocialMediaSchedulerProps) {
   const currentCharCount = formData.title.length + formData.description.length + formData.hashtags.length + formData.url.length + 10;
 
   return (
-    <div className="grid lg:grid-cols-2 gap-6">
-      {/* Schedule Form */}
-      <div>
-        <Card>
+    <div className="space-y-6">
+      {/* xNostr-style Sync Card (Full Width) */}
+      {(platform === 'twitter' || platform === 'instagram') && (
+        <Card className="border-2" style={{ borderColor: color }}>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Icon className="w-5 h-5" style={{ color }} />
-              {editingId ? `Edit ${platformName} Post` : `Schedule ${platformName} Post`}
-            </CardTitle>
-            <CardDescription>
-              Schedule content to post on {platformName}
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${color}20` }}>
+                  <Icon className="w-6 h-6" style={{ color }} />
+                </div>
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    Sync {platformName} to Nostr
+                    <Badge variant="secondary" className="bg-purple-100 text-purple-700">
+                      xNostr-Style
+                    </Badge>
+                  </CardTitle>
+                  <CardDescription>
+                    Automatically sync your {platformName} content to Nostr in real-time
+                  </CardDescription>
+                </div>
+              </div>
+            </div>
           </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Feature Cards */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border border-purple-200">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-semibold text-sm mb-1">Bulk Import</div>
+                    <div className="text-xs text-muted-foreground">
+                      Import all your existing {platformName} posts to Nostr in one go
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border border-purple-200">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-semibold text-sm mb-1">Auto-Sync</div>
+                    <div className="text-xs text-muted-foreground">
+                      Automatically sync new posts every {syncConfig.syncInterval} minutes
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border border-purple-200">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-semibold text-sm mb-1">Auto-Post to Nostr</div>
+                    <div className="text-xs text-muted-foreground">
+                      Automatically publish synced content to Nostr (NIP-46 signing)
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border border-purple-200">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-semibold text-sm mb-1">Blossom Upload</div>
+                    <div className="text-xs text-muted-foreground">
+                      Upload media to Blossom servers (decentralized storage)
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Configuration */}
+            <div className="space-y-4 p-4 bg-white rounded-lg border">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label className="text-base font-semibold">Connect {platformName} Account</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Link your account to enable automatic syncing
+                  </p>
+                </div>
+                <Button 
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                  onClick={() => {
+                    toast({
+                      title: 'Coming Soon!',
+                      description: `${platformName} sync integration is under development. Subscribe to our newsletter for updates!`,
+                    });
+                  }}
+                >
+                  <Icon className="w-4 h-4 mr-2" />
+                  Connect {platformName}
+                </Button>
+              </div>
+
+              <Alert className="bg-amber-50 border-amber-200">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
+                <AlertTitle className="text-amber-900">Premium Feature</AlertTitle>
+                <AlertDescription className="text-amber-800 text-sm">
+                  <div className="space-y-2 mt-2">
+                    <p>Similar to xNostr, this feature syncs your {platformName} content to Nostr automatically.</p>
+                    <div className="space-y-1">
+                      <div className="font-medium">Plans (Coming Soon):</div>
+                      <div className="text-xs space-y-0.5">
+                        <div>• Standard: $25/mo - 2 accounts, auto-sync, unlimited posts</div>
+                        <div>• Professional: $40/mo - 5 accounts, faster sync (5-30 min)</div>
+                        <div>• Business: $60/mo - 10 accounts, dedicated support</div>
+                      </div>
+                    </div>
+                    <p className="text-xs pt-2">
+                      💡 Payment via Lightning ⚡ • Instant activation • Secure signing
+                    </p>
+                  </div>
+                </AlertDescription>
+              </Alert>
+
+              {/* Demo Configuration (UI Preview) */}
+              <div className="space-y-3 pt-4 border-t">
+                <Label className="text-sm font-semibold">Sync Configuration (Preview)</Label>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-purple-600" />
+                      <span className="text-sm">Bulk Import Existing Posts</span>
+                    </div>
+                    <Button size="sm" variant="outline" disabled>
+                      Import All
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-purple-600" />
+                      <span className="text-sm">Auto-Sync Interval</span>
+                    </div>
+                    <Select value={String(syncConfig.syncInterval)} onValueChange={(v) => setSyncConfig({ ...syncConfig, syncInterval: parseInt(v) })} disabled>
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="5">5 minutes</SelectItem>
+                        <SelectItem value="15">15 minutes</SelectItem>
+                        <SelectItem value="30">30 minutes</SelectItem>
+                        <SelectItem value="60">1 hour</SelectItem>
+                        <SelectItem value="360">6 hours</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-purple-600" />
+                      <span className="text-sm">Auto-Post to Nostr (NIP-46)</span>
+                    </div>
+                    <Badge variant="outline" className="bg-gray-100">
+                      {syncConfig.autoPostToNostr ? 'Enabled' : 'Disabled'}
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <ImageIcon className="w-4 h-4 text-purple-600" />
+                      <span className="text-sm">Blossom Media Upload</span>
+                    </div>
+                    <Badge variant="outline" className="bg-gray-100">
+                      {syncConfig.blossomUpload ? 'Enabled' : 'Disabled'}
+                    </Badge>
+                  </div>
+                </div>
+
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertDescription className="text-xs">
+                    💡 <strong>How it works:</strong> Connect your {platformName} account, and we'll automatically sync new posts to Nostr. 
+                    Your private keys stay secure with NIP-46 remote signing. Media is uploaded to Blossom for decentralization.
+                  </AlertDescription>
+                </Alert>
+              </div>
+            </div>
+
+            {/* Learn More */}
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-100 to-pink-100 rounded-lg border border-purple-200">
+              <div className="flex items-center gap-3">
+                <ExternalLink className="w-5 h-5 text-purple-600" />
+                <div>
+                  <div className="font-semibold text-sm">Inspired by xNostr</div>
+                  <div className="text-xs text-muted-foreground">
+                    Check out xNostr.com for a similar X/Instagram → Nostr sync service
+                  </div>
+                </div>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => window.open('https://xnostr.com/', '_blank')}
+              >
+                Visit xNostr
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Grid for Manual Scheduler (original functionality) */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Schedule Form */}
+        <div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Icon className="w-5 h-5" style={{ color }} />
+                {editingId ? `Edit ${platformName} Post` : `Schedule ${platformName} Post`}
+              </CardTitle>
+              <CardDescription>
+                Manually schedule content to post on {platformName}
+              </CardDescription>
+            </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Post Type */}
@@ -1594,6 +1814,7 @@ function SocialMediaScheduler({ platform }: SocialMediaSchedulerProps) {
             )}
           </AlertDescription>
         </Alert>
+      </div>
       </div>
     </div>
   );
