@@ -365,7 +365,13 @@ As per user request, this implementation:
 - ✅ No backend server needed (for demo)
 - ✅ No security concerns (demo mode)
 
-**Production Considerations**:
+**Production Setup**:
+
+See these guides to enable real AI:
+- **[AI_SETUP_QUICKSTART.md](./AI_SETUP_QUICKSTART.md)** - Get real AI in 15 minutes
+- **[AI_CHAT_SETUP_GUIDE.md](./AI_CHAT_SETUP_GUIDE.md)** - Complete setup guide
+
+**Security**:
 - API keys should be server-side
 - Credit transactions need secure backend
 - Rate limiting to prevent abuse
