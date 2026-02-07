@@ -105,7 +105,8 @@ npm test
 - **[GPS_CORRECTION_README.md](./GPS_CORRECTION_README.md)** - Manual GPS editing
 - **[INDEX_OPTIMIZATION.md](./INDEX_OPTIMIZATION.md)** - Performance optimizations
 
-### Clawstr Integration
+### Clawstr & AI Integration
+- **[AI_CHAT_README.md](./AI_CHAT_README.md)** - AI Chat Assistant (NowClaw-style interface)
 - **[TELLY_BOT_README.md](./TELLY_BOT_README.md)** - Telly Bot admin panel (questions/polls)
 - **[CLAWSTR_TRAVEL_BOT_README.md](./CLAWSTR_TRAVEL_BOT_README.md)** - Automated content sharing bot
 - **[CLAWSTR_TRAVEL_TRAINING.md](./CLAWSTR_TRAVEL_TRAINING.md)** - AI agent training document
@@ -113,9 +114,6 @@ npm test
 - **[CLAWSTR_INTEGRATION.md](./CLAWSTR_INTEGRATION.md)** - General Clawstr integration
 - **[CLAWSTR_SHARING.md](./CLAWSTR_SHARING.md)** - Share content to Clawstr
 - **[CLAWSTR_COMMANDS.md](./CLAWSTR_COMMANDS.md)** - CLI quick reference
-- **[CLAWSTR_BOT_SETUP.md](./CLAWSTR_BOT_SETUP.md)** - Help bot setup guide
-- **[CLAWSTR_INTEGRATION.md](./CLAWSTR_INTEGRATION.md)** - General Clawstr integration
-- **[CLAWSTR_SHARING.md](./CLAWSTR_SHARING.md)** - Share content to Clawstr
 
 ### Troubleshooting
 - **[MARKETPLACE_TROUBLESHOOTING.md](./MARKETPLACE_TROUBLESHOOTING.md)** - Marketplace debugging

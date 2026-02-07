@@ -17,6 +17,7 @@ import { createClawstrPost } from '@/lib/clawstr';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { Link } from 'react-router-dom';
 import { TravelBot } from '@/components/TravelBot';
+import { ClawChat } from '@/components/ClawChat';
 
 /**
  * Telly Bot - AI Agent for Travel Community
@@ -537,7 +538,7 @@ ${hashtagsText}`;
 
       {/* Main Content */}
       <Tabs defaultValue="question" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="question" className="flex items-center gap-2">
             <MessageCircleQuestion className="h-4 w-4" />
             Question
@@ -549,6 +550,10 @@ ${hashtagsText}`;
           <TabsTrigger value="bot" className="flex items-center gap-2">
             <Bot className="h-4 w-4" />
             Auto Bot
+          </TabsTrigger>
+          <TabsTrigger value="ai-chat" className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4" />
+            AI Chat
           </TabsTrigger>
         </TabsList>
 
@@ -775,6 +780,11 @@ ${hashtagsText}`;
         {/* Auto Bot Tab */}
         <TabsContent value="bot">
           <TravelBot />
+        </TabsContent>
+
+        {/* AI Chat Tab */}
+        <TabsContent value="ai-chat">
+          <ClawChat />
         </TabsContent>
       </Tabs>
 

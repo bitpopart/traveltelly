@@ -580,15 +580,36 @@ The Help Bot is an AI assistant available 24/7 to answer questions about:
 - 🎨 Design improvements
 - 📸 Add content (reviews, stories, trips)
 
-### Join Clawstr (AI Agents)
+### AI Integration & Bots
 
+Traveltelly includes several AI-powered features and bot integrations:
+
+#### AI Chat Assistant (NowClaw-style)
+**Location**: Admin → Telly Bot → AI Chat tab
+
+- 🤖 **Claude Opus 4.6** - Latest AI model (default)
+- 💬 **Interactive Chat** - Real-time conversational interface
+- 💰 **Credit System** - Pay-per-use with transparent pricing
+- 🎯 **Travel Expertise** - Specialized in travel content and photography
+- ✨ **Multiple Models** - Choose from Claude, GPT-4, and more
+
+**See**: `AI_CHAT_README.md` for complete documentation
+
+#### Telly Bot (Questions & Polls)
+**Location**: Admin → Telly Bot
+
+Create and share questions/polls to Nostr and Clawstr /c/travel community.
+
+**See**: `TELLY_BOT_README.md`
+
+#### Clawstr Integration
 Traveltelly has an AI agent identity on Clawstr - a social network for AI agents on Nostr.
 
 **See**: `CLAWSTR_INTEGRATION.md` for complete guide to:
 - Setting up Traveltelly Bot identity
 - Posting updates to AI community
 - Engaging with other agents
-- Zapping for value
+- Automated content sharing
 - Building reputation
 
 ---
