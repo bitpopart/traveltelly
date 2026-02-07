@@ -23,7 +23,10 @@ import {
   ChevronDown,
   Settings,
   Coins,
-  Brain
+  Brain,
+  Rocket,
+  ExternalLink,
+  Clock
 } from 'lucide-react';
 
 /**
@@ -113,6 +116,7 @@ export function ClawChat() {
   const [credits, setCredits] = useState<number>(100); // Demo credits
   const [isLoading, setIsLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showSetupGuide, setShowSetupGuide] = useState(true);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const model = AI_MODELS.find(m => m.id === selectedModel) || AI_MODELS[0];
@@ -374,6 +378,173 @@ What would you like to explore?`;
           </div>
         </CardHeader>
       </Card>
+
+      {/* Quick Setup Guide Banner */}
+      {showSetupGuide && (
+        <Card className="border-2 border-dashed border-purple-300 bg-gradient-to-r from-purple-50 via-pink-50 to-purple-50">
+          <CardHeader className="pb-3">
+            <div className="flex items-start justify-between">
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center flex-shrink-0">
+                  <Rocket className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex-1">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-purple-600" />
+                    Enable Real AI in 15 Minutes!
+                    <Badge variant="secondary" className="bg-green-100 text-green-700">
+                      Currently: Demo Mode
+                    </Badge>
+                  </CardTitle>
+                  <CardDescription className="mt-1">
+                    You're seeing mock responses. Follow these steps to get real Claude Opus 4.6 AI
+                  </CardDescription>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowSetupGuide(false)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                Dismiss
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Quick Steps */}
+            <div className="grid gap-3">
+              <div className="flex items-start gap-3 p-3 bg-white rounded-lg border">
+                <div className="h-6 w-6 rounded-full bg-purple-600 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
+                  1
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm">Get Anthropic API Key</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Sign up at console.anthropic.com → Settings → API Keys → Create Key
+                  </div>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 mt-1 text-xs"
+                    onClick={() => window.open('https://console.anthropic.com/', '_blank')}
+                  >
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    Open Anthropic Console
+                  </Button>
+                </div>
+                <Badge variant="outline" className="flex-shrink-0">
+                  <Clock className="h-3 w-3 mr-1" />
+                  5 min
+                </Badge>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 bg-white rounded-lg border">
+                <div className="h-6 w-6 rounded-full bg-purple-600 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
+                  2
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm">Create Backend Function</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Create netlify/functions/ai-chat.mjs with the provided code
+                  </div>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 mt-1 text-xs"
+                    onClick={() => window.open('https://github.com/bitpopart/traveltelly/blob/main/AI_SETUP_QUICKSTART.md#step-2-create-backend-function-3-min', '_blank')}
+                  >
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    View Code Example
+                  </Button>
+                </div>
+                <Badge variant="outline" className="flex-shrink-0">
+                  <Clock className="h-3 w-3 mr-1" />
+                  3 min
+                </Badge>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 bg-white rounded-lg border">
+                <div className="h-6 w-6 rounded-full bg-purple-600 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
+                  3
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm">Update Frontend Code</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Replace handleSendMessage function in ClawChat.tsx
+                  </div>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 mt-1 text-xs"
+                    onClick={() => window.open('https://github.com/bitpopart/traveltelly/blob/main/AI_SETUP_QUICKSTART.md#step-3-update-frontend-2-min', '_blank')}
+                  >
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    View Code Changes
+                  </Button>
+                </div>
+                <Badge variant="outline" className="flex-shrink-0">
+                  <Clock className="h-3 w-3 mr-1" />
+                  2 min
+                </Badge>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 bg-white rounded-lg border">
+                <div className="h-6 w-6 rounded-full bg-purple-600 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
+                  4
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm">Configure & Deploy</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Set ANTHROPIC_API_KEY in Netlify and deploy
+                  </div>
+                  <div className="text-xs font-mono bg-gray-100 px-2 py-1 rounded mt-1">
+                    netlify env:set ANTHROPIC_API_KEY "sk-ant-..."
+                  </div>
+                </div>
+                <Badge variant="outline" className="flex-shrink-0">
+                  <Clock className="h-3 w-3 mr-1" />
+                  5 min
+                </Badge>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-3 pt-2">
+              <Button
+                className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                onClick={() => window.open('https://github.com/bitpopart/traveltelly/blob/main/AI_SETUP_QUICKSTART.md', '_blank')}
+              >
+                <Rocket className="h-4 w-4 mr-2" />
+                View Complete Setup Guide
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => window.open('https://github.com/bitpopart/traveltelly/blob/main/START_HERE_AI_CHAT.md', '_blank')}
+              >
+                <Info className="h-4 w-4 mr-2" />
+                Learn More
+              </Button>
+            </div>
+
+            {/* Cost Info */}
+            <Alert className="bg-amber-50 border-amber-200">
+              <Info className="h-4 w-4 text-amber-600" />
+              <AlertTitle className="text-amber-900">Cost Estimate</AlertTitle>
+              <AlertDescription className="text-amber-800 text-sm">
+                <div className="space-y-1 mt-2">
+                  <div>• Claude Haiku: ~$0.02/message (cheapest)</div>
+                  <div>• Claude Sonnet: ~$0.10/message (balanced)</div>
+                  <div>• Claude Opus: ~$0.30/message (best quality)</div>
+                  <div className="pt-2 text-xs">
+                    💡 Start with Haiku for testing, upgrade to Opus when ready. Set billing limits in Anthropic dashboard!
+                  </div>
+                </div>
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Settings Panel */}
       {showSettings && (
