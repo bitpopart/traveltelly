@@ -637,8 +637,16 @@ export function CreateVideoStoryForm() {
         // Just share the description (summary) with video URL
         let noteContent = '';
 
+        // Add title as the first line
+        noteContent += `🎥 ${formData.title.trim()}\n\n`;
+
         if (formData.summary.trim()) {
           noteContent += formData.summary.trim() + '\n\n';
+        }
+
+        // Add thumbnail if available (shows preview in Nostr clients)
+        if (thumbnailUrl) {
+          noteContent += thumbnailUrl + '\n\n';
         }
 
         // Add the video URL directly so it displays inline
@@ -663,7 +671,7 @@ export function CreateVideoStoryForm() {
             pubkey: user.pubkey,
             identifier,
           });
-          noteContent += `\n\nnostr:${naddr}`;
+          noteContent += `\n\n🎥 Watch on TravelTelly.com\nhttps://traveltelly.com/video/${naddr}`;
         } catch (error) {
           console.error('Error creating naddr:', error);
         }
