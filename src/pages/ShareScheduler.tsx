@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useReviewPermissions } from '@/hooks/useReviewPermissions';
 import { useScheduledPosts } from '@/hooks/useScheduledPosts';
@@ -46,6 +47,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/useToast';
 import { formatDistanceToNow, format } from 'date-fns';
+import { TwitterSync } from '@/components/TwitterSync';
 
 interface ScheduledPost {
   id: string;
@@ -881,7 +883,24 @@ export default function ShareScheduler() {
 
             {/* Twitter Tab */}
             <TabsContent value="twitter">
-              <SocialMediaScheduler platform="twitter" />
+              <div className="space-y-6">
+                {/* Nostr.Band Twitter Sync (xNostr-style) */}
+                <TwitterSync />
+                
+                <Separator className="my-8" />
+                
+                {/* Original Manual Scheduler */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                    <Clock className="h-5 w-5" />
+                    Manual Post Scheduler
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Schedule individual posts manually (for advanced control)
+                  </p>
+                  <SocialMediaScheduler platform="twitter" />
+                </div>
+              </div>
             </TabsContent>
 
             {/* Instagram Tab */}
