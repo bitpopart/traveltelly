@@ -633,7 +633,7 @@ export function CreateVideoStoryForm() {
 
       // Also create a regular Nostr note (kind 1) if shareOnNostr is checked
       if (formData.shareOnNostr && user) {
-        // Just share the description (summary) with video URL
+        // Share with thumbnail image and link to watch on TravelTelly
         let noteContent = '';
 
         // Add title as the first line
@@ -643,9 +643,10 @@ export function CreateVideoStoryForm() {
           noteContent += formData.summary.trim() + '\n\n';
         }
 
-        // Add the video URL directly so it displays inline
-        // The thumbnail is already attached via imeta tag, no need to add separately
-        noteContent += videoUrl;
+        // Add thumbnail image URL so it displays as clickable image in Nostr clients
+        if (thumbnailUrl) {
+          noteContent += thumbnailUrl + '\n\n';
+        }
 
         // Add hashtags to note content
         if (formData.tags.trim()) {
@@ -655,18 +656,18 @@ export function CreateVideoStoryForm() {
             .filter(tag => tag.length > 0);
 
           if (hashtagList.length > 0) {
-            noteContent += '\n\n#' + hashtagList.join(' #');
+            noteContent += '#' + hashtagList.join(' #') + '\n\n';
           }
         }
 
-        // Add TravelTelly link
+        // Add TravelTelly link with video naddr
         try {
           const naddr = nip19.naddrEncode({
             kind: videoKind,
             pubkey: user.pubkey,
             identifier,
           });
-          noteContent += `\n\n🎥 Watch on TravelTelly.com\nhttps://traveltelly.com/video/${naddr}`;
+          noteContent += `🎥 Watch the video:\nhttps://traveltelly.com/video/${naddr}`;
         } catch (error) {
           console.error('Error creating naddr:', error);
         }
@@ -693,12 +694,15 @@ export function CreateVideoStoryForm() {
         }
         noteTags.push(noteImetaTag);
 
+        // Add thumbnail and video URLs as tags for better client compatibility
         if (thumbnailUrl) {
           noteTags.push(['thumb', thumbnailUrl]);
+          noteTags.push(['image', thumbnailUrl]); // Alternative tag some clients use
         }
 
         if (videoUrl) {
           noteTags.push(['r', videoUrl]);
+          noteTags.push(['url', videoUrl]); // Add url tag for video
         }
 
         // Add topic hashtags to note tags

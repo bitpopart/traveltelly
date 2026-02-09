@@ -245,11 +245,19 @@ export default function VideoDetail() {
     });
   };
 
-  const videoNaddr = nip19.naddrEncode({
-    identifier,
-    pubkey: video.pubkey,
-    kind: video.kind, // Use actual kind (34235 or 34236)
-  });
+  // Only create videoNaddr if we have a valid identifier
+  let videoNaddr = '';
+  try {
+    if (identifier) {
+      videoNaddr = nip19.naddrEncode({
+        identifier,
+        pubkey: video.pubkey,
+        kind: video.kind, // Use actual kind (34235 or 34236)
+      });
+    }
+  } catch (error) {
+    console.error('Failed to create naddr:', error);
+  }
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
@@ -263,15 +271,17 @@ export default function VideoDetail() {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
-            <ShareToNostrButton
-              url={`/video/${videoNaddr}`}
-              title={title}
-              description={summary}
-              image={thumb}
-              defaultContent={`🎥 ${title}\n\n${summary}\n\ntraveltelly.com/video/${videoNaddr}`}
-              variant="default"
-              size="default"
-            />
+            {videoNaddr && (
+              <ShareToNostrButton
+                url={`/video/${videoNaddr}`}
+                title={title}
+                description={summary}
+                image={thumb}
+                defaultContent={`🎥 ${title}\n\n${summary}\n\ntraveltelly.com/video/${videoNaddr}`}
+                variant="default"
+                size="default"
+              />
+            )}
           </div>
 
           <Card>
@@ -358,11 +368,13 @@ export default function VideoDetail() {
                     {reactionsLoading ? '...' : (reactions?.dislikes ?? 0)}
                   </Button>
 
-                  <ShareButton
-                    url={`/video/${videoNaddr}`}
-                    title={title}
-                    description={summary}
-                  />
+                  {videoNaddr && (
+                    <ShareButton
+                      url={`/video/${videoNaddr}`}
+                      title={title}
+                      description={summary}
+                    />
+                  )}
 
                   <div className="flex items-center gap-1 text-muted-foreground ml-auto">
                     <MessageCircle className="w-4 h-4" />
