@@ -278,9 +278,19 @@ export function CreateTripForm({ onSuccess }: CreateTripFormProps = {}) {
         tags,
       });
 
+      toast({
+        title: 'Trip published!',
+        description: 'Your trip has been shared to Nostr successfully',
+      });
+
+      // Call onSuccess callback if provided (for dialog) - MUST be called before navigation
+      if (onSuccess) {
+        onSuccess();
+      }
+
       // Also share to Clawstr automatically
       const activityEmoji = category === 'hike' ? '🥾' : category === 'cycling' ? '🚴' : '🚶';
-      const distanceText = totalDistance ? ` • ${totalDistance.toFixed(1)} km` : '';
+      const distanceText = distance ? ` • ${distance.toFixed(1)} km` : '';
       const clawstrContent = `✈️ ${title}
 
 ${activityEmoji} ${category}${distanceText}
@@ -301,16 +311,6 @@ ${description}
       );
 
       publishTrip(clawstrEvent);
-
-      toast({
-        title: 'Trip published!',
-        description: 'Your trip has been shared to Nostr and Clawstr successfully',
-      });
-
-      // Call onSuccess callback if provided (for dialog)
-      if (onSuccess) {
-        onSuccess();
-      }
 
       // Navigate to trips page
       setTimeout(() => {
