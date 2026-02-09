@@ -356,24 +356,23 @@ export function CreateVideoStoryForm() {
       throw new Error('Trimmed video must be 6 seconds or less');
     }
 
-    // If no processing needed (no mute, video already ≤6s, no trim)
-    if (!formData.muteAudio && trimmedDuration <= 6 && trimStart === 0 && trimEnd >= videoDuration) {
+    // Check if we need to process the video (trim OR mute)
+    const needsTrimming = trimStart > 0.1 || trimEnd < videoDuration - 0.1;
+    const needsMuting = formData.muteAudio;
+
+    // If no processing needed (no mute, no trim)
+    if (!needsTrimming && !needsMuting) {
       return videoFile;
     }
 
-    // If only metadata changes needed (not actually removing audio or trimming)
-    if (!formData.muteAudio) {
-      toast({
-        title: 'Video trim range set',
-        description: `Video will be ${trimmedDuration.toFixed(1)}s (${trimStart.toFixed(1)}s - ${trimEnd.toFixed(1)}s)`,
-      });
-      return videoFile;
-    }
-
-    // If mute audio is enabled, we need to create a new video without audio
+    // Process video (trim and/or mute)
     toast({
       title: 'Processing video...',
-      description: formData.muteAudio ? 'Removing audio track' : 'Preparing video',
+      description: needsMuting && needsTrimming 
+        ? 'Trimming video and removing audio...' 
+        : needsMuting 
+        ? 'Removing audio track...' 
+        : 'Trimming video...',
     });
 
     try {
@@ -644,12 +643,8 @@ export function CreateVideoStoryForm() {
           noteContent += formData.summary.trim() + '\n\n';
         }
 
-        // Add thumbnail if available (shows preview in Nostr clients)
-        if (thumbnailUrl) {
-          noteContent += thumbnailUrl + '\n\n';
-        }
-
         // Add the video URL directly so it displays inline
+        // The thumbnail is already attached via imeta tag, no need to add separately
         noteContent += videoUrl;
 
         // Add hashtags to note content

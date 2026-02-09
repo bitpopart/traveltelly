@@ -89,13 +89,25 @@ export function VideoPlayerDialog({ video, open, onOpenChange }: VideoPlayerDial
     .filter((tag): tag is string => typeof tag === 'string' && tag.length > 0 && !['travel', 'traveltelly'].includes(tag))
     .slice(0, 5);
 
-  const naddr = nip19.naddrEncode({
+  // Only create naddr if this is a video event (34235/34236) with an identifier
+  // Kind 1 notes don't have 'd' tags and shouldn't be treated as video events
+  const isVideoEvent = (video.kind === 34235 || video.kind === 34236) && identifier;
+  const naddr = isVideoEvent ? nip19.naddrEncode({
     kind: video.kind,
     pubkey: video.pubkey,
     identifier,
-  });
+  }) : null;
 
   const handleShareToDevine = () => {
+    if (!naddr) {
+      toast({
+        title: 'Cannot share',
+        description: 'This is not a video event',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     // Create devine.video URL using nostr address
     const devineUrl = `https://www.devine.video/v/nostr:${naddr}`;
     
@@ -164,21 +176,25 @@ export function VideoPlayerDialog({ video, open, onOpenChange }: VideoPlayerDial
             </div>
 
             <div className="flex gap-2">
-              <Button
-                onClick={handleShareToDevine}
-                size="sm"
-                className="bg-purple-600 hover:bg-purple-700 text-white"
-              >
-                <Share2 className="w-3 h-3 mr-1" />
-                Share to devine
-              </Button>
-              
-              <Link to={`/video/${naddr}`} onClick={() => onOpenChange(false)}>
-                <Button variant="outline" size="sm">
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  Full Page
-                </Button>
-              </Link>
+              {isVideoEvent && (
+                <>
+                  <Button
+                    onClick={handleShareToDevine}
+                    size="sm"
+                    className="bg-purple-600 hover:bg-purple-700 text-white"
+                  >
+                    <Share2 className="w-3 h-3 mr-1" />
+                    Share to devine
+                  </Button>
+                  
+                  <Link to={`/video/${naddr}`} onClick={() => onOpenChange(false)}>
+                    <Button variant="outline" size="sm">
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Full Page
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
 
