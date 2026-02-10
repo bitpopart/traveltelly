@@ -81,6 +81,31 @@ const MediaPreview = () => {
 
   // Don't show buy button for own products
   const isOwnProduct = user && product && user.pubkey === product.seller.pubkey;
+  
+  // Check if this is a free item
+  const isFree = product?.event.tags.some(tag => tag[0] === 'free' && tag[1] === 'true') || false;
+
+  // Function to handle direct free download
+  const handleFreeDownload = () => {
+    if (!product || !isFree) return;
+    
+    // Download all images
+    product.images.forEach((imageUrl, index) => {
+      // Create a temporary anchor element to trigger download
+      const link = document.createElement('a');
+      link.href = imageUrl;
+      link.download = `${product.title.replace(/[^a-z0-9]/gi, '_')}_${index + 1}.jpg`;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Delay between downloads to avoid browser blocking
+      if (index < product.images.length - 1) {
+        setTimeout(() => {}, 500 * (index + 1));
+      }
+    });
+  };
 
   useSeoMeta({
     title: product ? `${product.title} - Media Preview` : 'Media Preview',
@@ -445,7 +470,12 @@ const MediaPreview = () => {
                             {getCategoryIcon(product.category)}
                             {product.category}
                           </Badge>
-                          {product.status !== 'active' && (
+                          {isFree && (
+                            <Badge className="bg-green-600 hover:bg-green-700 text-white font-bold">
+                              🎁 FREE
+                            </Badge>
+                          )}
+                          {!isFree && product.status !== 'active' && (
                             <Badge
                               variant={product.status === 'sold' ? 'destructive' : 'secondary'}
                             >
@@ -455,17 +485,30 @@ const MediaPreview = () => {
                         </div>
                         <CardTitle className="text-2xl">{product.title}</CardTitle>
                         <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            {getCurrencyIcon(product.currency)}
-                            <span className="text-2xl font-bold text-green-600 dark:text-green-400">
-                              {priceInfo?.primary}
-                            </span>
-                          </div>
-                          {priceInfo?.sats && (
-                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                              <Zap className="w-3 h-3 text-yellow-500" />
-                              <span>{priceInfo.sats}</span>
+                          {isFree ? (
+                            <div className="space-y-1">
+                              <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+                                FREE
+                              </div>
+                              <Badge className="bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700">
+                                🎁 No payment required
+                              </Badge>
                             </div>
+                          ) : (
+                            <>
+                              <div className="flex items-center gap-2">
+                                {getCurrencyIcon(product.currency)}
+                                <span className="text-2xl font-bold text-green-600 dark:text-green-400">
+                                  {priceInfo?.primary}
+                                </span>
+                              </div>
+                              {priceInfo?.sats && (
+                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                  <Zap className="w-3 h-3 text-yellow-500" />
+                                  <span>{priceInfo.sats}</span>
+                                </div>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
@@ -525,6 +568,14 @@ const MediaPreview = () => {
                           <Edit3 className="w-4 h-4 mr-2" />
                           Edit Media
                         </Button>
+                      ) : isFree ? (
+                        <Button
+                          className="w-full bg-green-600 hover:bg-green-700 text-white"
+                          onClick={handleFreeDownload}
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Free Download
+                        </Button>
                       ) : product.status === 'sold' ? (
                         <Button variant="outline" className="w-full" disabled>
                           Sold Out
@@ -561,7 +612,7 @@ const MediaPreview = () => {
                     </div>
 
                     {/* Purchase Info for all users */}
-                    {!user && (
+                    {!user && !isFree && (
                       <div className="border-t pt-4">
                         <p className="text-sm text-muted-foreground mb-3">
                           💡 No account required! Purchase instantly with Lightning payment.
@@ -570,6 +621,23 @@ const MediaPreview = () => {
                           <p>⚡ Pay with Bitcoin Lightning Network</p>
                           <p>📧 Download link sent to your email</p>
                           <p>🔒 Secure and instant transactions</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Free Download Info */}
+                    {isFree && (
+                      <div className="border-t pt-4">
+                        <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-700">
+                          <p className="text-sm font-semibold text-green-800 dark:text-green-200 mb-2">
+                            🎁 Free Download Available
+                          </p>
+                          <div className="text-xs text-green-700 dark:text-green-300 space-y-1">
+                            <p>✓ No payment required</p>
+                            <p>✓ High-resolution files included</p>
+                            <p>✓ Instant download - no checkout needed</p>
+                            <p>✓ Commercial license included</p>
+                          </div>
                         </div>
                       </div>
                     )}
