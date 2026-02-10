@@ -12,7 +12,6 @@ import { PhotoUpload, type UploadedPhoto } from '@/components/PhotoUpload';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
-import { useReviewPermissions } from '@/hooks/useReviewPermissions';
 import { type GPSCoordinates, extractPhotoMetadata } from '@/lib/exifUtils';
 import * as geohash from 'ngeohash';
 import { Plus, Loader2, Package, DollarSign, MapPin } from 'lucide-react';
@@ -94,7 +93,6 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
   const { user } = useCurrentUser();
   const { mutateAsync: publishEvent } = useNostrPublish();
   const { toast } = useToast();
-  const { isAdmin } = useReviewPermissions();
 
   const handleInputChange = (field: keyof ProductFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));

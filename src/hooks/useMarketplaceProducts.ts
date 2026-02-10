@@ -29,8 +29,6 @@ interface UseMarketplaceProductsOptions {
   search?: string;
   category?: string;
   seller?: string;
-  limit?: number;
-  freeOnly?: boolean;
 }
 
 function validateMarketplaceProduct(event: NostrEvent): boolean {
@@ -173,7 +171,7 @@ export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = 
       const filter: NostrFilter = {
         kinds: [30402],
         authors: authorizedAuthors,
-        limit: 1000, // Fetch all products for proper filtering
+        limit: 50, // Reduced from 100 to match working queries
       };
 
       // Add category filter if specified
@@ -207,12 +205,6 @@ export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = 
           return !isDeleted;
         })
         .filter(product => {
-          // Free items filter
-          if (options.freeOnly) {
-            const isFree = product.event.tags.some(tag => tag[0] === 'free' && tag[1] === 'true');
-            if (!isFree) return false;
-          }
-          
           // Client-side search filtering
           if (options.search) {
             const searchLower = options.search.toLowerCase();
@@ -226,10 +218,7 @@ export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = 
         })
         .sort((a, b) => b.createdAt - a.createdAt); // Sort by newest first
 
-      // Apply limit after all filtering if specified
-      const finalProducts = options.limit ? products.slice(0, options.limit) : products;
-
-      return finalProducts;
+      return products;
     },
     // Don't use enabled check - handle empty case inside queryFn instead
     staleTime: 30000, // 30 seconds

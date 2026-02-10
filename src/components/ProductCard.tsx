@@ -35,9 +35,6 @@ export function ProductCard({ product }: ProductCardProps) {
   // Don't show buy button for own products
   const isOwnProduct = user && user.pubkey === product.seller.pubkey;
 
-  // Check if this is a free item
-  const isFree = product.event.tags.some(tag => tag[0] === 'free' && tag[1] === 'true');
-  
   const priceInfo = usePriceConversion(product.price, product.currency);
 
   const getCurrencyIcon = (currency: string) => {
@@ -112,17 +109,8 @@ export function ProductCard({ product }: ProductCardProps) {
                 </div>
               )}
 
-              {/* Free Badge */}
-              {isFree && (
-                <Badge
-                  className="absolute top-2 right-2 bg-green-600 hover:bg-green-700 text-white font-bold"
-                >
-                  🎁 FREE
-                </Badge>
-              )}
-              
               {/* Status Badge */}
-              {!isFree && product.status !== 'active' && (
+              {product.status !== 'active' && (
                 <Badge
                   variant={product.status === 'sold' ? 'destructive' : 'secondary'}
                   className="absolute top-2 right-2"
@@ -171,30 +159,17 @@ export function ProductCard({ product }: ProductCardProps) {
               {product.title}
             </h3>
             <div className="space-y-1">
-              {isFree ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl font-bold text-green-600 dark:text-green-400">
-                    FREE
-                  </span>
-                  <Badge variant="outline" className="bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700">
-                    No payment required
-                  </Badge>
+              <div className="flex items-center gap-2">
+                {getCurrencyIcon(product.currency)}
+                <span className="text-xl font-bold text-green-600 dark:text-green-400">
+                  {priceInfo.primary}
+                </span>
+              </div>
+              {priceInfo.sats && (
+                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                  <Zap className="w-3 h-3 text-yellow-500" />
+                  <span>{priceInfo.sats}</span>
                 </div>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2">
-                    {getCurrencyIcon(product.currency)}
-                    <span className="text-xl font-bold text-green-600 dark:text-green-400">
-                      {priceInfo.primary}
-                    </span>
-                  </div>
-                  {priceInfo.sats && (
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Zap className="w-3 h-3 text-yellow-500" />
-                      <span>{priceInfo.sats}</span>
-                    </div>
-                  )}
-                </>
               )}
             </div>
           </div>
@@ -243,14 +218,6 @@ export function ProductCard({ product }: ProductCardProps) {
           ) : product.status === 'inactive' ? (
             <Button variant="outline" className="w-full" disabled>
               Unavailable
-            </Button>
-          ) : isFree ? (
-            <Button
-              className="w-full bg-green-600 hover:bg-green-700"
-              onClick={() => setShowPaymentDialog(true)}
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Download Free
             </Button>
           ) : subscription?.isActive ? (
             <Button
