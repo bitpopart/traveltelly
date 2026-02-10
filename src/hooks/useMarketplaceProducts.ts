@@ -29,6 +29,7 @@ interface UseMarketplaceProductsOptions {
   search?: string;
   category?: string;
   seller?: string;
+  freeOnly?: boolean;
 }
 
 function validateMarketplaceProduct(event: NostrEvent): boolean {
@@ -205,6 +206,12 @@ export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = 
           return !isDeleted;
         })
         .filter(product => {
+          // Free items filter
+          if (options.freeOnly) {
+            const isFree = product.event.tags.some(tag => tag[0] === 'free' && tag[1] === 'true');
+            return isFree;
+          }
+          
           // Client-side search filtering
           if (options.search) {
             const searchLower = options.search.toLowerCase();

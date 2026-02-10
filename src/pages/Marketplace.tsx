@@ -32,6 +32,11 @@ const Marketplace = () => {
     category: selectedMediaType === 'all' ? undefined : selectedMediaType,
   });
 
+  // Fetch free products separately
+  const { data: freeProducts } = useMarketplaceProducts({
+    freeOnly: true,
+  });
+
   useSeoMeta({
     title: 'Nostr Media Marketplace - Digital Assets & Creative Content',
     description: 'Decentralized marketplace for digital media, creative assets, and content on Nostr. Buy and sell photos, videos, audio, graphics, and more with Lightning payments.',
@@ -387,11 +392,37 @@ const Marketplace = () => {
             </Card>
           )}
 
+          {/* Free Downloads Section */}
+          {freeProducts && freeProducts.length > 0 && (
+            <div className="mb-12">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                    <span className="text-4xl">🎁</span>
+                    Free Downloads
+                  </h2>
+                  <p className="text-muted-foreground mt-1">
+                    High-quality travel media available for free - no payment required
+                  </p>
+                </div>
+                <Badge variant="secondary" className="text-lg px-3 py-1 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300">
+                  {freeProducts.length} free
+                </Badge>
+              </div>
+
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {freeProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Products Grid */}
           <div className="mb-8">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Digital Media
+                Premium Stock Media
               </h2>
               <Badge variant="secondary" className="text-lg px-3 py-1">
                 {filteredProducts.length} assets

@@ -29,7 +29,8 @@ import {
   Flag,
   Play,
   Pause,
-  AlertCircle
+  AlertCircle,
+  Gift
 } from 'lucide-react';
 import type { MarketplaceProduct } from '@/hooks/useMarketplaceProducts';
 import { nip19 } from 'nostr-tools';
@@ -39,6 +40,7 @@ interface MediaItemProps {
   onStatusUpdate: (product: MarketplaceProduct, status: 'active' | 'inactive' | 'flagged', reason?: string) => void;
   onDelete: (product: MarketplaceProduct, reason: string) => void;
   onEdit: (product: MarketplaceProduct, updates: Partial<MarketplaceProduct>) => void;
+  onToggleFree: (product: MarketplaceProduct, isFree: boolean) => void;
 }
 
 interface UserSelectorProps {
@@ -123,7 +125,7 @@ function UserSelector({ mediaAssets, selectedUsers, onSelectionChange }: UserSel
   );
 }
 
-function MediaItem({ product, onStatusUpdate, onDelete, onEdit }: MediaItemProps) {
+function MediaItem({ product, onStatusUpdate, onDelete, onEdit, onToggleFree }: MediaItemProps) {
   const author = useAuthor(product.seller.pubkey);
   const metadata = author.data?.metadata;
   const [statusReason, setStatusReason] = useState('');
@@ -140,6 +142,9 @@ function MediaItem({ product, onStatusUpdate, onDelete, onEdit }: MediaItemProps
   });
 
   const displayName = metadata?.name || genUserName(product.seller.pubkey);
+  
+  // Check if this item is marked as free
+  const isFree = product.event.tags.some(tag => tag[0] === 'free' && tag[1] === 'true');
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -298,6 +303,17 @@ function MediaItem({ product, onStatusUpdate, onDelete, onEdit }: MediaItemProps
               >
                 <Flag className="w-3 h-3 mr-1" />
                 Flag
+              </Button>
+
+              {/* Mark as Free Toggle */}
+              <Button
+                variant={isFree ? "default" : "outline"}
+                size="sm"
+                onClick={() => onToggleFree(product, !isFree)}
+                className={isFree ? "bg-green-600 hover:bg-green-700 text-white" : ""}
+              >
+                <Gift className="w-3 h-3 mr-1" />
+                {isFree ? 'Free ✓' : 'Mark Free'}
               </Button>
 
               {/* Edit Action */}
@@ -517,6 +533,15 @@ export function MediaManagement() {
   };
 
   const handleEdit = (product: MarketplaceProduct, updates: Partial<MarketplaceProduct>) => {
+    editMedia.mutate({ product, updates });
+  };
+
+  const handleToggleFree = (product: MarketplaceProduct, isFree: boolean) => {
+    // We'll update the product by republishing it with or without the free tag
+    const updates = {
+      ...product,
+      isFree, // This will be used to add/remove the free tag
+    };
     editMedia.mutate({ product, updates });
   };
 
@@ -903,6 +928,7 @@ export function MediaManagement() {
                   onStatusUpdate={handleStatusUpdate}
                   onDelete={handleDelete}
                   onEdit={handleEdit}
+                  onToggleFree={handleToggleFree}
                 />
               ))}
             </div>

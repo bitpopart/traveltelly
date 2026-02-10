@@ -407,23 +407,33 @@ export function useEditMediaAsset() {
   return useMutation({
     mutationFn: async ({ product, updates }: {
       product: MarketplaceProduct;
-      updates: Partial<MarketplaceProduct>;
+      updates: Partial<MarketplaceProduct & { isFree?: boolean }>;
     }) => {
       // Create updated tags
-      const updatedTags = product.event.tags.map(tag => {
-        switch (tag[0]) {
-          case 'title':
-            return ['title', updates.title || product.title];
-          case 'description':
-            return ['description', updates.description || product.description];
-          case 'price':
-            return ['price', updates.price || product.price, updates.currency || product.currency];
-          case 't':
-            return ['t', updates.category || product.category];
-          default:
-            return tag;
+      let updatedTags = product.event.tags
+        .filter(tag => tag[0] !== 'free') // Remove existing free tags
+        .map(tag => {
+          switch (tag[0]) {
+            case 'title':
+              return ['title', updates.title || product.title];
+            case 'description':
+              return ['description', updates.description || product.description];
+            case 'price':
+              return ['price', updates.price || product.price, updates.currency || product.currency];
+            case 't':
+              return ['t', updates.category || product.category];
+            default:
+              return tag;
+          }
+        });
+
+      // Add or remove free tag based on updates.isFree
+      if (updates.isFree !== undefined) {
+        if (updates.isFree) {
+          updatedTags.push(['free', 'true']);
         }
-      });
+        // If isFree is false, we already filtered it out above
+      }
 
       // Add admin action tags
       updatedTags.push(['admin_action', 'edit_media']);
