@@ -29,6 +29,8 @@ interface UseMarketplaceProductsOptions {
   search?: string;
   category?: string;
   seller?: string;
+  limit?: number;
+  freeOnly?: boolean;
 }
 
 function validateMarketplaceProduct(event: NostrEvent): boolean {
@@ -171,7 +173,7 @@ export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = 
       const filter: NostrFilter = {
         kinds: [30402],
         authors: authorizedAuthors,
-        limit: 50, // Reduced from 100 to match working queries
+        limit: options.limit || 100, // Customizable limit, default 100
       };
 
       // Add category filter if specified
@@ -205,6 +207,12 @@ export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = 
           return !isDeleted;
         })
         .filter(product => {
+          // Free items filter
+          if (options.freeOnly) {
+            const isFree = product.event.tags.some(tag => tag[0] === 'free' && tag[1] === 'true');
+            if (!isFree) return false;
+          }
+          
           // Client-side search filtering
           if (options.search) {
             const searchLower = options.search.toLowerCase();
@@ -216,7 +224,8 @@ export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = 
           }
           return true;
         })
-        .sort((a, b) => b.createdAt - a.createdAt); // Sort by newest first
+        .sort((a, b) => b.createdAt - a.createdAt) // Sort by newest first
+        .slice(0, options.limit || products.length); // Apply limit after filtering
 
       return products;
     },

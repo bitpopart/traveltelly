@@ -5,12 +5,14 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { PhotoUpload, type UploadedPhoto } from '@/components/PhotoUpload';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
+import { useReviewPermissions } from '@/hooks/useReviewPermissions';
 import { type GPSCoordinates, extractPhotoMetadata } from '@/lib/exifUtils';
 import * as geohash from 'ngeohash';
 import { Plus, Loader2, Package, DollarSign, MapPin } from 'lucide-react';
@@ -29,6 +31,7 @@ interface ProductFormData {
   location: string;
   keywords: string;
   images: string[];
+  isFree: boolean;
 }
 
 const MEDIA_TYPES = [
@@ -85,11 +88,13 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
     location: '',
     keywords: '',
     images: [],
+    isFree: false,
   });
 
   const { user } = useCurrentUser();
   const { mutateAsync: publishEvent } = useNostrPublish();
   const { toast } = useToast();
+  const { isAdmin } = useReviewPermissions();
 
   const handleInputChange = (field: keyof ProductFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -229,6 +234,11 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
         tags.push(['image', imageUrl]);
       });
 
+      // Add free tag if marked as free
+      if (formData.isFree) {
+        tags.push(['free', 'true']);
+      }
+
       // Create NIP-99 classified listing event
       await publishEvent({
         kind: 30402, // NIP-99 classified listing
@@ -248,6 +258,7 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
         price: '',
         currency: 'USD',
         mediaType: '',
+        isFree: false,
         category: '',
         location: '',
         keywords: '',
@@ -520,6 +531,25 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
                   </p>
                 </div>
               )}
+
+              {/* Admin-only: Mark as Free */}
+              {isAdmin && (
+                <div className="flex items-center space-x-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                  <Checkbox
+                    id="isFree"
+                    checked={formData.isFree}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isFree: checked === true }))}
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor="isFree" className="text-sm font-medium cursor-pointer text-green-900 dark:text-green-100">
+                      🎁 Offer as Free Download
+                    </Label>
+                    <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                      This item will be available for free download. Price is for display only.
+                    </p>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -549,6 +579,11 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
                     </p>
                   )}
                   <div className="flex gap-2 flex-wrap">
+                    {formData.isFree && (
+                      <Badge className="bg-green-600 hover:bg-green-700 text-white">
+                        🎁 FREE
+                      </Badge>
+                    )}
                     {formData.mediaType && (
                       <Badge variant="secondary" className="capitalize">
                         📁 {formData.mediaType}

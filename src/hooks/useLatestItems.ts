@@ -255,7 +255,7 @@ export function useLatestStockMedia() {
       const events = await nostr.query([{
         kinds: [30402],
         authors: authorizedAuthors,
-        limit: 15 // Reduced - we only need 1 image
+        limit: 50 // Increased to ensure we find images
       }], { signal });
 
       // Find the first product with an image - use same filter as count
@@ -328,7 +328,7 @@ export function useLatestStockMediaItems() {
       const events = await nostr.query([{
         kinds: [30402],
         authors: authorizedAuthors,
-        limit: 15 // Reduced - we only need 3 items
+        limit: 50 // Increased to ensure we find images
       }], { signal });
 
       console.log(`📸 Stock media items query: ${events.length} total events`);

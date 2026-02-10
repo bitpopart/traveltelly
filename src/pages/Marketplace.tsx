@@ -26,10 +26,19 @@ const Marketplace = () => {
   const [selectedMediaType, setSelectedMediaType] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [priceRange, setPriceRange] = useState('all');
+  const [showAll, setShowAll] = useState(false);
 
+  // Fetch regular products (limit to 20 initially)
   const { data: products, isLoading, error } = useMarketplaceProducts({
     search: searchQuery,
     category: selectedMediaType === 'all' ? undefined : selectedMediaType,
+    limit: showAll ? undefined : 20,
+  });
+
+  // Fetch free products separately
+  const { data: freeProducts } = useMarketplaceProducts({
+    freeOnly: true,
+    limit: 12,
   });
 
   useSeoMeta({
@@ -65,16 +74,16 @@ const Marketplace = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
             <div className="mb-6">
               <div className="p-4 rounded-full w-fit mx-auto mb-4" style={{ backgroundColor: '#ec1a5820' }}>
                 <Store className="w-16 h-16 mx-auto" style={{ color: '#ec1a58' }} />
               </div>
-              <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">
+              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-3">
                 Stock Media Marketplace
               </h1>
-              <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
-                Decentralized marketplace for travel photography with Lightning ⚡ payments
+              <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+                Premium travel photography and videos • Lightning ⚡ instant payments • Free downloads available
               </p>
             </div>
 
@@ -112,103 +121,53 @@ const Marketplace = () => {
             )}
           </div>
 
-          {/* Media Types Grid */}
-          <div className="grid md:grid-cols-2 gap-6 mb-12 max-w-3xl mx-auto">
-            <Card className="border-pink-200 dark:border-pink-800 bg-gradient-to-r from-pink-50 to-red-50 dark:from-pink-900/20 dark:to-red-900/20">
-              <CardContent className="p-6 text-center">
-                <div className="p-3 rounded-full w-fit mx-auto mb-3" style={{ backgroundColor: '#ec1a58' }}>
-                  <Camera className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                  📸 Photos
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  High-quality travel photography and stock photos
-                </p>
-              </CardContent>
+          {/* Quick Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 max-w-4xl mx-auto">
+            <Card className="text-center p-4">
+              <div className="text-3xl font-bold" style={{ color: '#ec1a58' }}>
+                {products?.length || 0}+
+              </div>
+              <div className="text-sm text-muted-foreground">Premium Assets</div>
             </Card>
-
-            <Card className="border-pink-200 dark:border-pink-800 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20">
-              <CardContent className="p-6 text-center">
-                <div className="p-3 rounded-full w-fit mx-auto mb-3" style={{ backgroundColor: '#ec1a58' }}>
-                  <Video className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                  🎥 Videos
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Travel video footage and cinematic content
-                </p>
-              </CardContent>
+            <Card className="text-center p-4">
+              <div className="text-3xl font-bold text-green-600">
+                {freeProducts?.length || 0}
+              </div>
+              <div className="text-sm text-muted-foreground">Free Downloads</div>
+            </Card>
+            <Card className="text-center p-4">
+              <div className="text-3xl font-bold text-yellow-600">⚡</div>
+              <div className="text-sm text-muted-foreground">Lightning Fast</div>
+            </Card>
+            <Card className="text-center p-4">
+              <div className="text-3xl font-bold text-blue-600">🌍</div>
+              <div className="text-sm text-muted-foreground">Travel Photos</div>
             </Card>
           </div>
 
-          {/* Payment Methods Info */}
-          <div className="grid md:grid-cols-3 gap-6 mb-12">
-            <Card className="border-pink-200 dark:border-pink-800 bg-gradient-to-r from-pink-50 to-red-50 dark:from-pink-900/20 dark:to-red-900/20">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-full" style={{ backgroundColor: '#ffcc00' }}>
-                    <Zap className="w-6 h-6 text-black fill-current" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      ⚡ Lightning Payments
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
-                      Instant, low-fee Bitcoin payments for digital media
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
 
-            <Card className="border-pink-200 dark:border-pink-800 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-full" style={{ backgroundColor: '#ec1a58' }}>
-                    <CreditCard className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      💳 Fiat Payments
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
-                      USD, EUR and other currencies for media licensing
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Link to="/guest-portal" className="block">
-              <Card className="border-yellow-200 dark:border-yellow-800 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 hover:shadow-lg transition-shadow h-full">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-full bg-yellow-500">
-                      <Crown className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        👑 Unlimited Subscription
-                      </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">
-                        Get unlimited downloads - No Nostr required
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          </div>
 
           {/* Search and Filters */}
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Search className="w-5 h-5" />
-                Find Digital Media
-              </CardTitle>
+          <Card className="mb-6">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Search className="w-5 h-5" />
+                  Search & Filter
+                </CardTitle>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Zap className="w-4 h-4 text-yellow-500" />
+                  Lightning
+                  <span className="mx-1">•</span>
+                  <CreditCard className="w-4 h-4" />
+                  Credit Card
+                  <span className="mx-1">•</span>
+                  <Link to="/guest-portal" className="hover:underline flex items-center gap-1">
+                    <Crown className="w-4 h-4 text-yellow-500" />
+                    Unlimited
+                  </Link>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="grid md:grid-cols-5 gap-4">
@@ -386,12 +345,43 @@ const Marketplace = () => {
             </Card>
           )}
 
+          {/* Free Downloads Section */}
+          {freeProducts && freeProducts.length > 0 && (
+            <div className="mb-12">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                    <span className="text-4xl">🎁</span>
+                    Free Downloads
+                  </h2>
+                  <p className="text-muted-foreground mt-1">
+                    High-quality travel media available for free - no payment required
+                  </p>
+                </div>
+                <Badge variant="secondary" className="text-lg px-3 py-1 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300">
+                  {freeProducts.length} free assets
+                </Badge>
+              </div>
+
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {freeProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Products Grid */}
           <div className="mb-8">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Digital Media
-              </h2>
+              <div>
+                <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+                  Premium Stock Media
+                </h2>
+                <p className="text-muted-foreground mt-1">
+                  {showAll ? 'All available' : 'Latest 20'} travel photos and videos from our photographers
+                </p>
+              </div>
               <Badge variant="secondary" className="text-lg px-3 py-1">
                 {filteredProducts.length} assets
               </Badge>
@@ -448,11 +438,30 @@ const Marketplace = () => {
                 </Card>
               </div>
             ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredProducts.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
+              <>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {filteredProducts.map((product) => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
+                
+                {/* Load More Button */}
+                {!showAll && products && products.length >= 20 && (
+                  <div className="mt-8 text-center">
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      onClick={() => setShowAll(true)}
+                      className="rounded-full px-8"
+                    >
+                      Load More Media
+                    </Button>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Showing 20 of {products.length}+ available items
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
