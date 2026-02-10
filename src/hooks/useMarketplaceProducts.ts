@@ -172,7 +172,7 @@ export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = 
       const filter: NostrFilter = {
         kinds: [30402],
         authors: authorizedAuthors,
-        limit: 50, // Reduced from 100 to match working queries
+        limit: 2000, // Increased to fetch all products
       };
 
       // Add category filter if specified

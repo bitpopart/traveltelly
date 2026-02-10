@@ -121,7 +121,7 @@ export function useAllMediaAssets(filters: MediaManagementFilters = {}) {
         const events = await nostr.query([{
           kinds: [30402],
           authors: authorizedAuthors, // Only query for authorized authors
-          limit: 200
+          limit: 2000 // Increased to fetch all media assets
         }], { signal });
 
         // Debug: Log events to see what we're getting
