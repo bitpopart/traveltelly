@@ -173,7 +173,7 @@ export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = 
       const filter: NostrFilter = {
         kinds: [30402],
         authors: authorizedAuthors,
-        limit: options.limit || 100, // Customizable limit, default 100
+        limit: 1000, // Fetch all products for proper filtering
       };
 
       // Add category filter if specified
@@ -224,10 +224,12 @@ export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = 
           }
           return true;
         })
-        .sort((a, b) => b.createdAt - a.createdAt) // Sort by newest first
-        .slice(0, options.limit || products.length); // Apply limit after filtering
+        .sort((a, b) => b.createdAt - a.createdAt); // Sort by newest first
 
-      return products;
+      // Apply limit after all filtering if specified
+      const finalProducts = options.limit ? products.slice(0, options.limit) : products;
+
+      return finalProducts;
     },
     // Don't use enabled check - handle empty case inside queryFn instead
     staleTime: 30000, // 30 seconds

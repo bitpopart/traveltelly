@@ -26,13 +26,11 @@ const Marketplace = () => {
   const [selectedMediaType, setSelectedMediaType] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [priceRange, setPriceRange] = useState('all');
-  const [showAll, setShowAll] = useState(false);
 
-  // Fetch regular products (limit to 20 initially)
+  // Fetch all products
   const { data: products, isLoading, error } = useMarketplaceProducts({
     search: searchQuery,
     category: selectedMediaType === 'all' ? undefined : selectedMediaType,
-    limit: showAll ? undefined : 20,
   });
 
   // Fetch free products separately
@@ -376,10 +374,10 @@ const Marketplace = () => {
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
-                  Premium Stock Media
+                  Stock Media Collection
                 </h2>
                 <p className="text-muted-foreground mt-1">
-                  {showAll ? 'All available' : 'Latest 20'} travel photos and videos from our photographers
+                  Professional travel photos and videos from our photographers
                 </p>
               </div>
               <Badge variant="secondary" className="text-lg px-3 py-1">
@@ -438,30 +436,11 @@ const Marketplace = () => {
                 </Card>
               </div>
             ) : (
-              <>
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {filteredProducts.map((product) => (
-                    <ProductCard key={product.id} product={product} />
-                  ))}
-                </div>
-                
-                {/* Load More Button */}
-                {!showAll && products && products.length >= 20 && (
-                  <div className="mt-8 text-center">
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      onClick={() => setShowAll(true)}
-                      className="rounded-full px-8"
-                    >
-                      Load More Media
-                    </Button>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Showing 20 of {products.length}+ available items
-                    </p>
-                  </div>
-                )}
-              </>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
             )}
           </div>
 
