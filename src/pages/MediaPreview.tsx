@@ -250,7 +250,7 @@ const MediaPreview = () => {
                   size="default"
                 />
                 <ClawstrShare
-                  event={media}
+                  event={product.event}
                   contentType="media"
                 />
               </div>
