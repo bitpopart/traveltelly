@@ -80,8 +80,8 @@ export function CheckInForm({ onSuccess }: CheckInFormProps = {}) {
     setIsProcessing(false);
 
     toast({
-      title: 'Photos added',
-      description: `${newPhotos.length} photo(s) ready to upload`,
+      title: 'Photos selected',
+      description: `${newPhotos.length} photo(s) ready. Click "Post Check-In" to upload.`,
     });
   };
 
@@ -281,28 +281,66 @@ export function CheckInForm({ onSuccess }: CheckInFormProps = {}) {
           </div>
 
           <div>
-            <Label>GPS Coordinates</Label>
-            <div className="flex items-center gap-2 mt-1">
-              {gpsCoords ? (
-                <p className="text-sm text-muted-foreground">
-                  📍 Location captured ({gpsCoords.lat.toFixed(4)}, {gpsCoords.lon.toFixed(4)})
-                </p>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No location set - add a photo with GPS or use current location
-                </p>
-              )}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={getCurrentLocation}
-                disabled={isProcessing}
-              >
-                <MapPin className="w-4 h-4 mr-1" />
-                Use Current Location
-              </Button>
-            </div>
+            <Label>GPS Coordinates *</Label>
+            {gpsCoords ? (
+              <div className="mt-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
+                      <MapPin className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-green-900 dark:text-green-100">
+                        Location Captured
+                      </p>
+                      <p className="text-xs text-green-700 dark:text-green-300 font-mono">
+                        {gpsCoords.lat.toFixed(4)}, {gpsCoords.lon.toFixed(4)}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={getCurrentLocation}
+                    disabled={isProcessing}
+                  >
+                    Update
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-2 space-y-2">
+                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                  <p className="text-sm text-amber-900 dark:text-amber-100">
+                    ⚠️ No GPS coordinates set
+                  </p>
+                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                    Click the button below to get your current location
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="default"
+                  size="lg"
+                  onClick={getCurrentLocation}
+                  disabled={isProcessing}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Getting Location...
+                    </>
+                  ) : (
+                    <>
+                      <MapPin className="w-4 h-4 mr-2" />
+                      Use Current Location
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
 
           <div>
@@ -356,23 +394,34 @@ export function CheckInForm({ onSuccess }: CheckInFormProps = {}) {
           </div>
 
           {photos.length > 0 && (
-            <div className="grid grid-cols-3 gap-3">
-              {photos.map((photo, index) => (
-                <div key={index} className="relative group">
-                  <img
-                    src={photo.url}
-                    alt={`Photo ${index + 1}`}
-                    className="w-full h-24 object-cover rounded-lg"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removePhoto(index)}
-                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-medium">{photos.length} photo{photos.length > 1 ? 's' : ''} selected</p>
+                <p className="text-xs text-muted-foreground">
+                  Photos will be uploaded when you post
+                </p>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                {photos.map((photo, index) => (
+                  <div key={index} className="relative group">
+                    <img
+                      src={photo.url}
+                      alt={`Photo ${index + 1}`}
+                      className="w-full h-24 object-cover rounded-lg border-2 border-green-200"
+                    />
+                    <div className="absolute top-1 left-1 bg-green-500 text-white text-xs px-2 py-0.5 rounded">
+                      Ready
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(index)}
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </CardContent>
@@ -395,12 +444,12 @@ export function CheckInForm({ onSuccess }: CheckInFormProps = {}) {
           {isPending || isProcessing ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Posting...
+              {photos.length > 0 ? 'Uploading Photos...' : 'Posting...'}
             </>
           ) : (
             <>
               <MapPin className="w-4 h-4 mr-2" />
-              Post Check-In
+              {photos.length > 0 ? `Post Check-In (${photos.length} photo${photos.length > 1 ? 's' : ''})` : 'Post Check-In'}
             </>
           )}
         </Button>
