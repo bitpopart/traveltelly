@@ -16,7 +16,7 @@ import { useQuery } from '@tanstack/react-query';
 import { genUserName } from '@/lib/genUserName';
 import { MapNavigationControls, type MapLocation } from '@/components/MapNavigationControls';
 import { getTileLayerConfig } from '@/lib/mapConfig';
-import { Star, MapPin, RefreshCw, Loader2, AlertCircle, Layers, Maximize2, Minimize2, Camera, BookOpen } from 'lucide-react';
+import { Star, MapPin, RefreshCw, Loader2, AlertCircle, Layers, Maximize2, Minimize2, Camera, BookOpen, Globe } from 'lucide-react';
 import { nip19 } from 'nostr-tools';
 import * as geohash from 'ngeohash';
 import { upgradeMultipleReviews, applyPrecisionUpgrades, getUpgradeStats } from '@/lib/precisionMigration';
@@ -1039,30 +1039,12 @@ export function AllAdminReviewsMap({ zoomToLocation, onLocationChange }: AllAdmi
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setShowControls(!showControls)}
-                    className="h-8 px-2 md:px-3 flex-1 sm:flex-none"
+                    onClick={() => handleLocationSelect({ name: "World View", coordinates: [20, 0], zoom: 2, emoji: "🌍" })}
+                    className="h-8 px-3 flex-1 sm:flex-none"
                   >
-                    {showControls ? (
-                      <>
-                        <Minimize2 className="w-4 h-4 md:mr-2" />
-                        <span className="hidden md:inline">Hide Navigation</span>
-                      </>
-                    ) : (
-                      <>
-                        <Maximize2 className="w-4 h-4 md:mr-2" />
-                        <span className="hidden md:inline">Show Navigation</span>
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => refetch()}
-                    disabled={isLoading}
-                    className="h-8 px-2 md:px-3 flex-1 sm:flex-none"
-                  >
-                    <RefreshCw className={`w-4 h-4 md:mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                    <span className="hidden md:inline">Refresh</span>
+                    <Globe className="w-4 h-4 mr-2" />
+                    <span className="hidden md:inline">World View</span>
+                    <span className="md:hidden">🌍</span>
                   </Button>
                 </div>
               </div>
