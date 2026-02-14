@@ -30,7 +30,8 @@ import {
   X,
   Loader2,
   Navigation as NavigationIcon,
-  Calendar
+  Calendar,
+  Zap
 } from 'lucide-react';
 import { Link, Navigate } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
@@ -307,8 +308,19 @@ export default function MyTravels() {
       <Navigation />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
-          {/* Check In Button */}
-          <div className="mb-6 flex justify-end">
+          {/* Action Buttons */}
+          <div className="mb-6 flex justify-end gap-3 flex-wrap">
+            <Link to="/zaplytics">
+              <Button
+                size="lg"
+                variant="outline"
+                className="rounded-full font-semibold"
+                style={{ borderColor: '#f97316', color: '#f97316' }}
+              >
+                <Zap className="w-4 h-4 mr-2" />
+                Zaplytics
+              </Button>
+            </Link>
             <Dialog open={isCheckInDialogOpen} onOpenChange={setIsCheckInDialogOpen}>
               <Button
                 onClick={() => setIsCheckInDialogOpen(true)}

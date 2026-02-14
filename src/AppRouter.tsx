@@ -52,6 +52,7 @@ import AnalyticsDashboard from "./pages/AnalyticsDashboard";
 import GuestPortal from "./pages/GuestPortal";
 import { TellyBot } from "./pages/TellyBot";
 import MyTravels from "./pages/MyTravels";
+import Zaplytics from "./pages/Zaplytics";
 import NotFound from "./pages/NotFound";
 
 export function AppRouter() {
@@ -73,6 +74,7 @@ export function AppRouter() {
         <Route path="/trips" element={<Trips />} />
         <Route path="/trip/:naddr" element={<TripDetail />} />
         <Route path="/my-travels" element={<MyTravels />} />
+        <Route path="/zaplytics" element={<Zaplytics />} />
         <Route path="/create-review" element={<CreateReview />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/review/:naddr" element={<ReviewDetail />} />
