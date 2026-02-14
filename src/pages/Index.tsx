@@ -743,108 +743,168 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
             <>
               {/* Reviews Section */}
           {latestReviews.length > 0 && (
-            <div className="mb-8 md:mb-12">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <div className="mb-6 md:mb-12">
+              <div className="flex justify-between items-center mb-4 md:mb-6">
+                <h2 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   Reviews
                   {reviewCount > 0 && (
-                    <span className="text-lg md:text-xl font-normal text-muted-foreground">
+                    <span className="text-sm md:text-xl font-normal text-muted-foreground">
                       ({reviewCount})
                     </span>
                   )}
                 </h2>
                 <Link to="/reviews">
-                  <Button variant="outline" className="rounded-full" style={{ borderColor: '#27b0ff', color: '#27b0ff' }}>
+                  <Button variant="outline" className="rounded-full text-xs md:text-sm px-3 md:px-4" style={{ borderColor: '#27b0ff', color: '#27b0ff' }}>
                     View All
-                    <ArrowRight className="w-4 h-4 ml-2" />
+                    <ArrowRight className="w-3 h-3 md:w-4 md:h-4 ml-1 md:ml-2" />
                   </Button>
                 </Link>
               </div>
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {latestReviews.map((review, index) => (
+              <div className="grid gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {latestReviews.slice(0, 1).map((review, index) => (
                   <ReviewCard key={review.naddr} review={review} priority={index === 0} />
                 ))}
+                {/* Show more reviews on desktop only */}
+                <div className="hidden md:grid md:grid-cols-1 md:col-span-1 lg:col-span-2 gap-4 md:gap-6">
+                  {latestReviews.slice(1, 3).map((review, index) => (
+                    <ReviewCard key={review.naddr} review={review} priority={false} />
+                  ))}
+                </div>
+              </div>
+              {/* Mobile View All Button */}
+              <div className="mt-4 text-center md:hidden">
+                <Link to="/reviews">
+                  <Button variant="outline" className="rounded-full w-full" style={{ borderColor: '#27b0ff', color: '#27b0ff' }}>
+                    View All Reviews
+                    <ArrowRight className="w-3 h-3 ml-2" />
+                  </Button>
+                </Link>
               </div>
             </div>
           )}
 
           {/* Stories Section */}
           {latestStories.length > 0 && (
-            <div className="mb-8 md:mb-12">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <div className="mb-6 md:mb-12">
+              <div className="flex justify-between items-center mb-4 md:mb-6">
+                <h2 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   Stories
                   {storyCount > 0 && (
-                    <span className="text-lg md:text-xl font-normal text-muted-foreground">
+                    <span className="text-sm md:text-xl font-normal text-muted-foreground">
                       ({storyCount})
                     </span>
                   )}
                 </h2>
                 <Link to="/stories">
-                  <Button variant="outline" className="rounded-full" style={{ borderColor: '#b2d235', color: '#b2d235' }}>
+                  <Button variant="outline" className="rounded-full text-xs md:text-sm px-3 md:px-4" style={{ borderColor: '#b2d235', color: '#b2d235' }}>
                     View All
-                    <ArrowRight className="w-4 h-4 ml-2" />
+                    <ArrowRight className="w-3 h-3 md:w-4 md:h-4 ml-1 md:ml-2" />
                   </Button>
                 </Link>
               </div>
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {latestStories.map((story) => (
+              <div className="grid gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {latestStories.slice(0, 1).map((story) => (
                   <StoryCard key={story.naddr} story={story} />
                 ))}
+                {/* Show more stories on desktop only */}
+                <div className="hidden md:grid md:grid-cols-1 md:col-span-1 lg:col-span-2 gap-4 md:gap-6">
+                  {latestStories.slice(1, 3).map((story) => (
+                    <StoryCard key={story.naddr} story={story} />
+                  ))}
+                </div>
+              </div>
+              {/* Mobile View All Button */}
+              <div className="mt-4 text-center md:hidden">
+                <Link to="/stories">
+                  <Button variant="outline" className="rounded-full w-full" style={{ borderColor: '#b2d235', color: '#b2d235' }}>
+                    View All Stories
+                    <ArrowRight className="w-3 h-3 ml-2" />
+                  </Button>
+                </Link>
               </div>
             </div>
           )}
 
           {/* Trips Section */}
           {latestTrips.length > 0 && (
-            <div className="mb-8 md:mb-12">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <div className="mb-6 md:mb-12">
+              <div className="flex justify-between items-center mb-4 md:mb-6">
+                <h2 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   Trips
                   {tripCount > 0 && (
-                    <span className="text-lg md:text-xl font-normal text-muted-foreground">
+                    <span className="text-sm md:text-xl font-normal text-muted-foreground">
                       ({tripCount})
                     </span>
                   )}
                 </h2>
                 <Link to="/trips">
-                  <Button variant="outline" className="rounded-full" style={{ borderColor: '#ffcc00', color: '#ffcc00' }}>
+                  <Button variant="outline" className="rounded-full text-xs md:text-sm px-3 md:px-4" style={{ borderColor: '#ffcc00', color: '#ffcc00' }}>
                     View All
-                    <ArrowRight className="w-4 h-4 ml-2" />
+                    <ArrowRight className="w-3 h-3 md:w-4 md:h-4 ml-1 md:ml-2" />
                   </Button>
                 </Link>
               </div>
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {latestTrips.map((trip) => (
+              <div className="grid gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {latestTrips.slice(0, 1).map((trip) => (
                   <TripCard key={trip.naddr} trip={trip} />
                 ))}
+                {/* Show more trips on desktop only */}
+                <div className="hidden md:grid md:grid-cols-1 md:col-span-1 lg:col-span-2 gap-4 md:gap-6">
+                  {latestTrips.slice(1, 3).map((trip) => (
+                    <TripCard key={trip.naddr} trip={trip} />
+                  ))}
+                </div>
+              </div>
+              {/* Mobile View All Button */}
+              <div className="mt-4 text-center md:hidden">
+                <Link to="/trips">
+                  <Button variant="outline" className="rounded-full w-full" style={{ borderColor: '#ffcc00', color: '#ffcc00' }}>
+                    View All Trips
+                    <ArrowRight className="w-3 h-3 ml-2" />
+                  </Button>
+                </Link>
               </div>
             </div>
           )}
 
           {/* Stock Media Section */}
           {latestStockMediaItems.length > 0 && (
-            <div className="mb-8 md:mb-12">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <div className="mb-6 md:mb-12">
+              <div className="flex justify-between items-center mb-4 md:mb-6">
+                <h2 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   Stock Media
                   {stockMediaCount > 0 && (
-                    <span className="text-lg md:text-xl font-normal text-muted-foreground">
+                    <span className="text-sm md:text-xl font-normal text-muted-foreground">
                       ({stockMediaCount})
                     </span>
                   )}
                 </h2>
                 <Link to="/marketplace">
-                  <Button variant="outline" className="rounded-full" style={{ borderColor: '#ec1a58', color: '#ec1a58' }}>
+                  <Button variant="outline" className="rounded-full text-xs md:text-sm px-3 md:px-4" style={{ borderColor: '#ec1a58', color: '#ec1a58' }}>
                     View All
-                    <ArrowRight className="w-4 h-4 ml-2" />
+                    <ArrowRight className="w-3 h-3 md:w-4 md:h-4 ml-1 md:ml-2" />
                   </Button>
                 </Link>
               </div>
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {latestStockMediaItems.map((media, index) => (
+              <div className="grid gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {latestStockMediaItems.slice(0, 1).map((media, index) => (
                   <MediaCard key={media.naddr} media={media} priority={index === 0} />
                 ))}
+                {/* Show more media on desktop only */}
+                <div className="hidden md:grid md:grid-cols-1 md:col-span-1 lg:col-span-2 gap-4 md:gap-6">
+                  {latestStockMediaItems.slice(1, 3).map((media, index) => (
+                    <MediaCard key={media.naddr} media={media} priority={false} />
+                  ))}
+                </div>
+              </div>
+              {/* Mobile View All Button */}
+              <div className="mt-4 text-center md:hidden">
+                <Link to="/marketplace">
+                  <Button variant="outline" className="rounded-full w-full" style={{ borderColor: '#ec1a58', color: '#ec1a58' }}>
+                    View All Stock Media
+                    <ArrowRight className="w-3 h-3 ml-2" />
+                  </Button>
+                </Link>
               </div>
             </div>
           )}
@@ -853,25 +913,25 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
 
           {/* Lightning Tips Info */}
           {user && (
-            <Card className="mb-6 md:mb-8 border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-700/50">
-              <CardContent className="p-4 md:p-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div className="flex items-center gap-3 md:gap-4">
-                    <div className="p-2 md:p-3 rounded-full flex-shrink-0" style={{ backgroundColor: '#393636' }}>
-                      <Zap className="w-5 h-5 md:w-6 md:h-6 text-white fill-current" />
+            <Card className="mb-4 md:mb-8 border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-700/50">
+              <CardContent className="p-3 md:p-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 md:gap-4">
+                  <div className="flex items-center gap-2 md:gap-4">
+                    <div className="p-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#393636' }}>
+                      <Zap className="w-4 h-4 md:w-6 md:h-6 text-white fill-current" />
                     </div>
                     <div>
-                      <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white">
+                      <h3 className="text-sm md:text-lg font-semibold text-gray-900 dark:text-white">
                         ⚡ Lightning Tips Enabled!
                       </h3>
-                      <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300">
-                        Support great reviewers with instant Bitcoin tips. Look for the ⚡ icon on reviews.
+                      <p className="text-[10px] md:text-sm text-gray-600 dark:text-gray-300">
+                        Support reviewers with instant Bitcoin tips
                       </p>
                     </div>
                   </div>
                   <Link to="/settings">
-                    <Button variant="outline" className="rounded-full text-sm md:text-base w-full sm:w-auto" style={{ borderColor: '#393636', color: '#393636' }}>
-                      Setup Tips
+                    <Button variant="outline" className="rounded-full text-xs md:text-base w-full sm:w-auto px-3 md:px-4" style={{ borderColor: '#393636', color: '#393636' }}>
+                      Setup
                     </Button>
                   </Link>
                 </div>
@@ -880,14 +940,14 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
           )}
 
           {/* Relay Configuration */}
-          <Card className="mb-6 md:mb-8 border-gray-200 dark:border-gray-700">
-            <CardHeader className="px-4 md:px-6">
-              <CardTitle className="text-base md:text-lg">Relay Configuration</CardTitle>
-              <CardDescription className="text-sm">
-                Choose your preferred Nostr relay to discover reviews from different communities
+          <Card className="mb-4 md:mb-8 border-gray-200 dark:border-gray-700">
+            <CardHeader className="px-3 md:px-6 pb-3 md:pb-4">
+              <CardTitle className="text-sm md:text-lg">Relay Configuration</CardTitle>
+              <CardDescription className="text-xs md:text-sm">
+                Choose your preferred Nostr relay
               </CardDescription>
             </CardHeader>
-            <CardContent className="px-4 md:px-6">
+            <CardContent className="px-3 md:px-6">
               <RelaySelector className="w-full max-w-md" />
             </CardContent>
           </Card>
