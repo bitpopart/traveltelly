@@ -158,36 +158,36 @@ function VideoStoryCard({ story }: VideoStoryCardProps) {
           </div>
         )}
 
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center space-x-3">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={profileImage} alt={displayName} />
-                <AvatarFallback>
-                  {displayName[0]?.toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="font-semibold">{displayName}</p>
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Calendar className="w-3 h-3" />
-                  {formatDistanceToNow(new Date(story.created_at * 1000), { addSuffix: true })}
-                </p>
-              </div>
+      <CardHeader className="pb-2 md:pb-3">
+        <div className="flex items-start justify-between mb-2 md:mb-3">
+          <div className="flex items-center space-x-2 md:space-x-3">
+            <Avatar className="h-8 w-8 md:h-10 md:w-10">
+              <AvatarImage src={profileImage} alt={displayName} />
+              <AvatarFallback className="text-xs md:text-sm">
+                {displayName[0]?.toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="font-semibold text-sm md:text-base">{displayName}</p>
+              <p className="text-[10px] md:text-xs text-muted-foreground flex items-center gap-1">
+                <Calendar className="w-2.5 h-2.5 md:w-3 md:h-3" />
+                {formatDistanceToNow(new Date(story.created_at * 1000), { addSuffix: true })}
+              </p>
             </div>
           </div>
+        </div>
 
-          <div>
-            <h3 className="text-lg font-semibold mb-2">{title}</h3>
-            {summary && (
-              <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{summary}</p>
-            )}
-          </div>
+        <div>
+          <h3 className="text-base md:text-lg font-semibold mb-1 md:mb-2">{title}</h3>
+          {summary && (
+            <p className="text-xs md:text-sm text-muted-foreground mb-2 md:mb-3 line-clamp-2">{summary}</p>
+          )}
+        </div>
 
           {topicTags.length > 0 && (
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1 md:gap-2 flex-wrap">
               {topicTags.map(tag => (
-                <Badge key={tag} variant="outline" className="bg-purple-50 dark:bg-purple-900/20">
+                <Badge key={tag} variant="outline" className="bg-purple-50 dark:bg-purple-900/20 text-[10px] md:text-xs">
                   #{tag}
                 </Badge>
               ))}
@@ -261,48 +261,48 @@ function StoryCard({ story }: StoryCardProps) {
         </div>
       )}
 
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center space-x-3">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={profileImage} alt={displayName} />
-              <AvatarFallback>
-                {displayName[0]?.toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="font-semibold">{displayName}</p>
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <Calendar className="w-3 h-3" />
-                {formatDistanceToNow(displayDate, { addSuffix: true })}
-              </p>
+        <CardHeader className="pb-2 md:pb-3">
+          <div className="flex items-start justify-between mb-2 md:mb-3">
+            <div className="flex items-center space-x-2 md:space-x-3">
+              <Avatar className="h-8 w-8 md:h-10 md:w-10">
+                <AvatarImage src={profileImage} alt={displayName} />
+                <AvatarFallback className="text-xs md:text-sm">
+                  {displayName[0]?.toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="font-semibold text-sm md:text-base">{displayName}</p>
+                <p className="text-[10px] md:text-xs text-muted-foreground flex items-center gap-1">
+                  <Calendar className="w-2.5 h-2.5 md:w-3 md:h-3" />
+                  {formatDistanceToNow(displayDate, { addSuffix: true })}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div>
-          <h3 className="text-lg font-semibold mb-2">{title}</h3>
-          {location && (
-            <p className="text-sm text-muted-foreground flex items-center gap-1 mb-2">
-              <MapPin className="w-3 h-3" />
-              {location}
-            </p>
-          )}
-          {summary && (
-            <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{summary}</p>
-          )}
-        </div>
-
-        {topicTags.length > 0 && (
-          <div className="flex items-center gap-2 flex-wrap">
-            {topicTags.map(tag => (
-              <Badge key={tag} variant="outline" className="bg-green-50 dark:bg-green-900/20">
-                #{tag}
-              </Badge>
-            ))}
+          <div>
+            <h3 className="text-base md:text-lg font-semibold mb-1 md:mb-2">{title}</h3>
+            {location && (
+              <p className="text-xs md:text-sm text-muted-foreground flex items-center gap-1 mb-1 md:mb-2">
+                <MapPin className="w-2.5 h-2.5 md:w-3 md:h-3" />
+                {location}
+              </p>
+            )}
+            {summary && (
+              <p className="text-xs md:text-sm text-muted-foreground mb-2 md:mb-3 line-clamp-2">{summary}</p>
+            )}
           </div>
-        )}
-      </CardHeader>
+
+          {topicTags.length > 0 && (
+            <div className="flex items-center gap-1 md:gap-2 flex-wrap">
+              {topicTags.map(tag => (
+                <Badge key={tag} variant="outline" className="bg-green-50 dark:bg-green-900/20 text-[10px] md:text-xs">
+                  #{tag}
+                </Badge>
+              ))}
+            </div>
+          )}
+        </CardHeader>
     </Card>
     </Link>
   );
@@ -418,50 +418,48 @@ export default function Stories() {
     <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
       <Navigation />
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-2 md:px-4 py-4 md:py-8">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-4">
+          <div className="mb-6 md:mb-8">
+            <div className="flex items-center gap-2 md:gap-3 mb-4">
               <div className="p-2 rounded-lg" style={{ backgroundColor: '#b2d23520' }}>
-                <BookOpen className="w-8 h-8" style={{ color: '#b2d235' }} />
+                <BookOpen className="w-6 h-6 md:w-8 md:h-8" style={{ color: '#b2d235' }} />
               </div>
               <div>
-                <h1 className="text-4xl font-bold">Stories</h1>
-                <p className="text-muted-foreground">Travel stories from the Nostr community</p>
+                <h1 className="text-2xl md:text-4xl font-bold">Stories</h1>
+                <p className="text-sm md:text-base text-muted-foreground">Travel stories from the Nostr community</p>
               </div>
             </div>
           </div>
 
-          {/* Story Type Selection - Improved with distinct buttons */}
-          <div className="mb-6">
-            <div className="flex gap-4 flex-wrap">
+          {/* Story Type Selection - Mobile Optimized */}
+          <div className="mb-4 md:mb-6">
+            <div className="flex gap-2 md:gap-4 flex-wrap">
               <Button
                 variant={storyType === 'write' ? 'default' : 'outline'}
-                size="lg"
                 onClick={() => handleStoryTypeChange('write')}
-                className={`flex-1 min-w-[200px] h-auto py-6 ${storyType === 'write' ? 'bg-green-600 hover:bg-green-700 text-white' : 'border-2'}`}
+                className={`flex-1 min-w-[140px] md:min-w-[200px] h-auto py-3 md:py-6 ${storyType === 'write' ? 'bg-green-600 hover:bg-green-700 text-white' : 'border-2'}`}
               >
-                <div className="flex flex-col items-center gap-2">
-                  <FileText className="w-6 h-6" />
+                <div className="flex flex-col items-center gap-1 md:gap-2">
+                  <FileText className="w-5 h-5 md:w-6 md:h-6" />
                   <div>
-                    <div className="font-semibold text-base">Written Stories</div>
-                    <div className="text-xs opacity-80">Long-form travel articles</div>
+                    <div className="font-semibold text-sm md:text-base">Written Stories</div>
+                    <div className="text-[10px] md:text-xs opacity-80 hidden sm:block">Long-form travel articles</div>
                   </div>
                 </div>
               </Button>
 
               <Button
                 variant={storyType === 'video' ? 'default' : 'outline'}
-                size="lg"
                 onClick={() => handleStoryTypeChange('video')}
-                className={`flex-1 min-w-[200px] h-auto py-6 ${storyType === 'video' ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'border-2'}`}
+                className={`flex-1 min-w-[140px] md:min-w-[200px] h-auto py-3 md:py-6 ${storyType === 'video' ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'border-2'}`}
               >
-                <div className="flex flex-col items-center gap-2">
-                  <Video className="w-6 h-6" />
+                <div className="flex flex-col items-center gap-1 md:gap-2">
+                  <Video className="w-5 h-5 md:w-6 md:h-6" />
                   <div>
-                    <div className="font-semibold text-base">Video Stories</div>
-                    <div className="text-xs opacity-80">6-second travel clips</div>
+                    <div className="font-semibold text-sm md:text-base">Video Stories</div>
+                    <div className="text-[10px] md:text-xs opacity-80 hidden sm:block">6-second travel clips</div>
                   </div>
                 </div>
               </Button>
@@ -470,14 +468,14 @@ export default function Stories() {
 
           {/* Action Tabs (Browse/Create) */}
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full max-w-md mb-8" style={{ gridTemplateColumns: '1fr 1fr' }}>
-              <TabsTrigger value="browse" className="flex items-center gap-2">
-                <List className="w-4 h-4" />
-                Browse {storyType === 'write' ? 'Stories' : 'Videos'}
+            <TabsList className="grid w-full max-w-md mb-6 md:mb-8" style={{ gridTemplateColumns: '1fr 1fr' }}>
+              <TabsTrigger value="browse" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+                <List className="w-3 h-3 md:w-4 md:h-4" />
+                <span className="hidden sm:inline">Browse </span>{storyType === 'write' ? 'Stories' : 'Videos'}
               </TabsTrigger>
-              <TabsTrigger value="create" className="flex items-center gap-2">
-                <Plus className="w-4 h-4" />
-                Create {storyType === 'write' ? 'Story' : 'Video'}
+              <TabsTrigger value="create" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+                <Plus className="w-3 h-3 md:w-4 md:h-4" />
+                <span className="hidden sm:inline">Create </span>{storyType === 'write' ? 'Story' : 'Video'}
               </TabsTrigger>
             </TabsList>
 
@@ -517,7 +515,7 @@ export default function Stories() {
                   </CardContent>
                 </Card>
               ) : (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {stories.map((story) => (
                     storyType === 'video' ? (
                       <VideoStoryCard
