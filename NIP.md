@@ -15,6 +15,51 @@ This platform leverages existing Nostr standards with minimal custom event kinds
 - **NIP-15 (Nostr Marketplace)**: Reference implementation for marketplace message types
 - **Custom Permission System**: For managing review and media upload permissions (kinds `31492`, `30384`)
 
+## Check-In System (Custom Kind 30026)
+
+Check-ins allow travelers to share their current location (approximate area within 2km) with photos and brief updates. Each check-in is stored as an addressable event:
+
+```json
+{
+  "kind": 30026,
+  "content": "Optional description of current location or experience",
+  "tags": [
+    ["d", "checkin-unique-id"],
+    ["location", "City, Country or Area Name"],
+    ["g", "geohash-encoded-location"],
+    ["image", "photo1_url"],
+    ["image", "photo2_url"],
+    ["t", "travel"],
+    ["alt", "Check-in at City, Country"]
+  ]
+}
+```
+
+### Check-In Features
+
+- **Approximate Location**: Location shared within 2km area (using geohash precision)
+- **Photo Gallery**: Multiple photos can be attached to each check-in
+- **Travel Marker**: Check-ins appear as pins on the world map
+- **Profile Integration**: Latest check-in shows on user's My Travels profile
+- **Location History**: Past check-ins remain visible on trips page world map
+- **Privacy Focused**: Exact coordinates not shared, only general area
+- **Profile Photo Display**: User's Nostr profile photo appears on map pin
+
+### Check-In Tag Format
+
+Each check-in includes:
+- **location** (required): Human-readable area name (e.g., "Barcelona, Spain")
+- **g** (required): Geohash for approximate location (precision level for ~2km)
+- **image** (optional): Multiple photo URLs
+- **content** (optional): Brief description or update
+
+### Display on Maps
+
+- Check-ins appear as pins on the Trips page world map
+- Clicking a pin shows: user profile photo, location area, photos (if available), description
+- Latest check-in per user is highlighted
+- Historical check-ins remain visible with thumbnail or default marker
+
 ## Trip System (Custom Kind 30025)
 
 Travel trips with multiple photos, GPS coordinates, and route visualization are published using custom kind `30025`:

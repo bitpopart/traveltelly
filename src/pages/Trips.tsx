@@ -9,12 +9,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { RelaySelector } from '@/components/RelaySelector';
 import { OptimizedImage } from '@/components/OptimizedImage';
 import { CreateTripForm } from '@/components/CreateTripForm';
+import { CheckInsMap } from '@/components/CheckInsMap';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useTrips } from '@/hooks/useTrips';
 import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { MapPin, Plus, Camera, Calendar, Navigation as NavigationIcon } from 'lucide-react';
+import { MapPin, Plus, Camera, Calendar, Navigation as NavigationIcon, Globe } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
 import { formatDistanceToNow } from 'date-fns';
@@ -206,6 +207,30 @@ export default function Trips() {
                 </Dialog>
               )}
             </div>
+          </div>
+
+          {/* World Map with Traveler Check-Ins */}
+          <div className="mb-8">
+            <div className="mb-4">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                  <Globe className="w-6 h-6 text-blue-600" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold">Travelers Around the World</h2>
+                  <p className="text-muted-foreground text-sm">
+                    See where fellow travelers are checking in
+                  </p>
+                </div>
+              </div>
+            </div>
+            <CheckInsMap />
+          </div>
+
+          {/* Section Title for Trips */}
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold">All Trips</h2>
+            <p className="text-muted-foreground">Browse travel adventures from the community</p>
           </div>
 
           {/* Trips Grid */}

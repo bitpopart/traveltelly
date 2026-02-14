@@ -51,6 +51,7 @@ import ShareScheduler from "./pages/ShareScheduler";
 import AnalyticsDashboard from "./pages/AnalyticsDashboard";
 import GuestPortal from "./pages/GuestPortal";
 import { TellyBot } from "./pages/TellyBot";
+import MyTravels from "./pages/MyTravels";
 import NotFound from "./pages/NotFound";
 
 export function AppRouter() {
@@ -71,6 +72,7 @@ export function AppRouter() {
         <Route path="/reviews" element={<Reviews />} />
         <Route path="/trips" element={<Trips />} />
         <Route path="/trip/:naddr" element={<TripDetail />} />
+        <Route path="/my-travels" element={<MyTravels />} />
         <Route path="/create-review" element={<CreateReview />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/review/:naddr" element={<ReviewDetail />} />

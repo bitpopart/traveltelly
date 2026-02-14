@@ -13,7 +13,8 @@ import {
   Shield,
   Menu,
   X,
-  MapPin
+  MapPin,
+  User
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -116,6 +117,12 @@ export function Navigation({ className }: NavigationProps) {
           <div className="hidden md:flex items-center gap-3">
             {user ? (
               <>
+                <Link to="/my-travels">
+                  <Button variant="ghost" size="sm" className="rounded-full">
+                    <User className="w-4 h-4 mr-2" />
+                    My Travels
+                  </Button>
+                </Link>
                 <Link to="/settings">
                   <Button variant="ghost" size="sm" className="rounded-full">
                     <Settings className="w-4 h-4 mr-2" />
@@ -170,6 +177,12 @@ export function Navigation({ className }: NavigationProps) {
             <div className="pt-4 border-t border-gray-200 dark:border-gray-800 space-y-2">
               {user ? (
                 <>
+                  <Link to="/my-travels" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start rounded-full">
+                      <User className="w-4 h-4 mr-2" />
+                      My Travels
+                    </Button>
+                  </Link>
                   <Link to="/settings" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start rounded-full">
                       <Settings className="w-4 h-4 mr-2" />
