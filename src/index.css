@@ -55,9 +55,9 @@
   }
 }
 
-/* Clean container styling */
+/* Clean container styling with natural colors */
 .leaflet-container {
-  background: #f8fafc;
+  background: #e0f2fe;
   font-family: inherit;
 }
 
