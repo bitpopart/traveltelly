@@ -87,39 +87,39 @@ function SearchResultItem({ result, onSelect, onTagClick, isNavigating }: Search
     >
       <button
         type="button"
-        className={`p-4 w-full hover:bg-muted/30 hover:shadow-sm transition-all duration-200 rounded-sm group text-left ${isNavigating ? 'opacity-50 pointer-events-none' : 'cursor-pointer'}`}
+        className={`p-3 md:p-4 w-full hover:bg-muted/30 hover:shadow-sm transition-all duration-200 rounded-sm group text-left ${isNavigating ? 'opacity-50 pointer-events-none' : 'cursor-pointer'}`}
         onClick={handleClick}
         disabled={isNavigating}
       >
-      <div className="flex items-start space-x-3 w-full">
+      <div className="flex items-start space-x-2 md:space-x-3 w-full">
         <div className="flex-shrink-0">
           {getTypeIcon()}
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center space-x-2 mb-1">
-            <h4 className="text-sm font-medium truncate">{result.title}</h4>
-            <Badge variant="outline" className="text-xs">
+          <div className="flex items-center space-x-1 md:space-x-2 mb-1">
+            <h4 className="text-xs md:text-sm font-medium truncate">{result.title}</h4>
+            <Badge variant="outline" className="text-[10px] md:text-xs flex-shrink-0">
               {getTypeLabel()}
             </Badge>
           </div>
 
-          <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+          <p className="text-[10px] md:text-xs text-muted-foreground line-clamp-2 mb-1 md:mb-2">
             {result.content}
           </p>
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Avatar className="h-4 w-4">
+          <div className="flex items-center justify-between flex-wrap gap-1">
+            <div className="flex items-center space-x-1 md:space-x-2">
+              <Avatar className="h-3 w-3 md:h-4 md:w-4">
                 <AvatarImage src={profileImage} alt={displayName} />
-                <AvatarFallback className="text-xs">
+                <AvatarFallback className="text-[8px] md:text-xs">
                   {displayName.slice(0, 1).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <span className="text-xs text-muted-foreground">{displayName}</span>
+              <span className="text-[10px] md:text-xs text-muted-foreground truncate max-w-20 md:max-w-none">{displayName}</span>
             </div>
 
-            <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+            <div className="flex items-center space-x-1 md:space-x-2 text-[10px] md:text-xs text-muted-foreground">
               {result.rating && (
                 <div className="flex items-center space-x-1">
                   <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
@@ -150,12 +150,12 @@ function SearchResultItem({ result, onSelect, onTagClick, isNavigating }: Search
           </div>
 
           {result.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
+            <div className="flex flex-wrap gap-1 mt-1 md:mt-2">
               {result.tags.slice(0, 3).map((tag, index) => (
                 <Badge
                   key={index}
                   variant="secondary"
-                  className={`text-xs ${onTagClick ? 'cursor-pointer hover:bg-primary/20 hover:text-primary transition-colors duration-200 hover:shadow-sm' : ''}`}
+                  className={`text-[10px] md:text-xs ${onTagClick ? 'cursor-pointer hover:bg-primary/20 hover:text-primary transition-colors duration-200 hover:shadow-sm' : ''}`}
                   onClick={onTagClick ? (e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -167,7 +167,7 @@ function SearchResultItem({ result, onSelect, onTagClick, isNavigating }: Search
                 </Badge>
               ))}
               {result.tags.length > 3 && (
-                <Badge variant="secondary" className="text-xs">
+                <Badge variant="secondary" className="text-[10px] md:text-xs">
                   +{result.tags.length - 3}
                 </Badge>
               )}
@@ -176,7 +176,7 @@ function SearchResultItem({ result, onSelect, onTagClick, isNavigating }: Search
         </div>
 
         {/* Clickable indicator */}
-        <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hidden sm:block">
           {isNavigating ? (
             <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
           ) : (
@@ -196,7 +196,7 @@ interface UnifiedSearchBarProps {
 
 export function UnifiedSearchBar({
   className = "",
-  placeholder = "Search reviews, stories, and media..."
+  placeholder = "Search reviews, stories, trips, and media..."
 }: UnifiedSearchBarProps) {
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
@@ -427,7 +427,7 @@ export function UnifiedSearchBar({
   return (
     <div className={`relative w-full max-w-2xl mx-auto ${className}`}>
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 md:h-5 md:w-5 text-muted-foreground pointer-events-none" />
         <Input
           ref={inputRef}
           type="text"
@@ -436,32 +436,33 @@ export function UnifiedSearchBar({
           onChange={(e) => handleInputChange(e.target.value)}
           onFocus={() => setIsOpen(true)}
           onClick={() => setIsOpen(true)}
-          className="pl-10 pr-20 h-12 text-base rounded-full cursor-pointer"
+          className="pl-9 md:pl-10 pr-16 md:pr-20 h-10 md:h-12 text-sm md:text-base rounded-full cursor-pointer"
         />
-        <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center space-x-1">
+        <div className="absolute right-1 md:right-2 top-1/2 transform -translate-y-1/2 flex items-center space-x-1">
           {query && (
             <Button
               variant="ghost"
               size="sm"
               onClick={clearSearch}
-              className="h-8 w-8 p-0 rounded-full"
+              className="h-7 w-7 md:h-8 md:w-8 p-0 rounded-full"
             >
-              <X className="h-4 w-4" />
+              <X className="h-3 w-3 md:h-4 md:w-4" />
             </Button>
           )}
           <Button
             onClick={handleSearch}
             disabled={!query.trim()}
-            className="h-8 rounded-full"
+            className="h-7 md:h-8 rounded-full text-xs md:text-sm px-3 md:px-4"
           >
-            Search
+            <span className="hidden sm:inline">Search</span>
+            <Search className="h-3 w-3 sm:hidden" />
           </Button>
         </div>
       </div>
 
       {/* Search Results Dropdown */}
       {isOpen && (
-        <Card ref={dropdownRef} className="absolute top-full left-0 right-0 mt-2 z-[100] max-h-96 overflow-hidden shadow-lg">
+        <Card ref={dropdownRef} className="absolute top-full left-0 right-0 mt-2 z-[100] max-h-[70vh] md:max-h-96 overflow-hidden shadow-lg">
           <CardContent className="p-0">
             {isLoading ? (
               <div className="p-4 space-y-3">
@@ -480,7 +481,7 @@ export function UnifiedSearchBar({
                 ))}
               </div>
             ) : searchResults && searchResults.length > 0 ? (
-              <div className="max-h-80 overflow-y-auto">
+              <div className="max-h-[60vh] md:max-h-80 overflow-y-auto">
                 <div>
                   {searchResults.map((result, index) => (
                     <div
@@ -499,8 +500,9 @@ export function UnifiedSearchBar({
                   ))}
                 </div>
                 {searchResults.length > 0 && (
-                  <div className="p-2 text-center text-xs text-muted-foreground/70 border-t border-border/50">
-                    💡 Click any result to view • Click tags to search
+                  <div className="p-2 text-center text-[10px] md:text-xs text-muted-foreground/70 border-t border-border/50">
+                    💡 <span className="hidden sm:inline">Click any result to view • Click tags to search</span>
+                    <span className="sm:hidden">Tap result or tag</span>
                   </div>
                 )}
               </div>
@@ -512,23 +514,23 @@ export function UnifiedSearchBar({
               </div>
             ) : (
               suggestions && suggestions.length > 0 && (
-                <div className="p-4">
-                  <div className="flex items-center space-x-2 mb-3">
-                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium text-muted-foreground">Popular tags</span>
-                    <span className="text-xs text-muted-foreground/70 bg-muted/50 px-2 py-1 rounded">(👆 click to go to item)</span>
+                <div className="p-3 md:p-4">
+                  <div className="flex items-center space-x-1 md:space-x-2 mb-2 md:mb-3">
+                    <TrendingUp className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
+                    <span className="text-xs md:text-sm font-medium text-muted-foreground">Popular tags</span>
+                    <span className="text-[10px] md:text-xs text-muted-foreground/70 bg-muted/50 px-1.5 md:px-2 py-0.5 md:py-1 rounded hidden sm:inline">(👆 click to go to item)</span>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5 md:gap-2">
                     {(showAllSuggestions ? suggestions : suggestions.slice(0, 12)).map((suggestion) => (
                       <Button
                         key={suggestion}
                         variant="outline"
                         size="sm"
                         onClick={() => handleSuggestionClick(suggestion)}
-                        className="h-7 text-xs rounded-full hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-all duration-200 hover:shadow-sm hover:scale-105 cursor-pointer"
+                        className="h-6 md:h-7 text-[10px] md:text-xs rounded-full hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-all duration-200 hover:shadow-sm hover:scale-105 cursor-pointer px-2 md:px-3"
                         title={`Click to go to first result for #${suggestion}`}
                       >
-                        <Hash className="h-3 w-3 mr-1" />
+                        <Hash className="h-2.5 w-2.5 md:h-3 md:w-3 mr-0.5 md:mr-1" />
                         {suggestion}
                       </Button>
                     ))}
@@ -537,7 +539,7 @@ export function UnifiedSearchBar({
                         variant="ghost"
                         size="sm"
                         onClick={() => setShowAllSuggestions(true)}
-                        className="h-7 text-xs rounded-full text-muted-foreground hover:text-primary"
+                        className="h-6 md:h-7 text-[10px] md:text-xs rounded-full text-muted-foreground hover:text-primary px-2 md:px-3"
                       >
                         +{suggestions.length - 12} more
                       </Button>
@@ -547,14 +549,14 @@ export function UnifiedSearchBar({
                         variant="ghost"
                         size="sm"
                         onClick={() => setShowAllSuggestions(false)}
-                        className="h-7 text-xs rounded-full text-muted-foreground hover:text-primary"
+                        className="h-6 md:h-7 text-[10px] md:text-xs rounded-full text-muted-foreground hover:text-primary px-2 md:px-3"
                       >
                         Show less
                       </Button>
                     )}
                   </div>
-                  <div className="mt-3 text-xs text-muted-foreground/70 text-center bg-muted/30 p-2 rounded">
-                    💡 <strong>Tip:</strong> Click any tag above to go directly to the first matching item, or type to browse results
+                  <div className="mt-2 md:mt-3 text-[10px] md:text-xs text-muted-foreground/70 text-center bg-muted/30 p-1.5 md:p-2 rounded">
+                    💡 <strong>Tip:</strong> <span className="hidden sm:inline">Click any tag above to go directly to the first matching item, or type to browse results</span><span className="sm:hidden">Tap any tag to search</span>
                   </div>
                 </div>
               )
