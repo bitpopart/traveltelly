@@ -500,16 +500,16 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
       <NavigationComponent />
-      <div className="container mx-auto px-3 md:px-4 py-4 md:py-8">
+      <div className="container mx-auto px-2 md:px-4 py-3 md:py-8">
         <div className="max-w-6xl mx-auto">
           {/* Main Content Box */}
-          <Card className="shadow-lg mb-8 overflow-visible">
-            <CardContent className="p-6 md:p-8 overflow-visible">
+          <Card className="shadow-lg mb-6 md:mb-8 overflow-visible">
+            <CardContent className="p-4 md:p-8 overflow-visible">
               {/* Show full header only when no location is selected */}
               {!selectedLocationTag && (
                 <>
                   {/* Header - My Travels or Nostr Community button */}
-                  <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
+                  <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3 mb-6 md:mb-8">
                 {user ? (
                   <Link to="/my-travels">
                     <Button 
@@ -538,166 +538,93 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                 />
               </div>
 
-              {/* Feature Cards */}
-              <div className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-4 w-full mb-6">
+              {/* Feature Cards - Mobile Optimized */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 w-full mb-6">
                 {/* Share Reviews Card */}
-                <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
-                  <Link to="/reviews" className="block relative">
-                    <div className="aspect-[4/3] overflow-hidden relative" style={{ backgroundColor: '#27b0ff' }}>
-                       {latestReview?.image ? (
-                        <OptimizedImage
-                          src={latestReview.image}
-                          alt={latestReview.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          priority={false}
-                          blurUp={true}
-                          thumbnail={true}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Star className="w-16 h-16 md:w-24 md:h-24 text-white opacity-50" />
-                        </div>
-                      )}
-                      <div className="absolute inset-x-0 bottom-0 p-4">
-                        <Button 
-                          className="w-full rounded-full font-medium shadow-lg text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2" 
-                          style={{ backgroundColor: '#27b0ff' }}
-                        >
-                          <span>Reviews</span>
-                          {reviewCount > 0 && (
-                            <span className="bg-white/20 px-2 py-0.5 rounded-full text-sm">
-                              {reviewCount}
-                            </span>
-                          )}
-                        </Button>
+                <Link to="/reviews" className="block">
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+                    <CardContent className="p-4 md:p-6 flex flex-col items-center justify-center text-center h-full">
+                      <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#27b0ff' }}>
+                        <Star className="w-6 h-6 md:w-8 md:h-8 text-white" />
                       </div>
-                    </div>
-                  </Link>
-                </Card>
+                      <h3 className="font-semibold text-sm md:text-base mb-1">Reviews</h3>
+                      {reviewCount > 0 && (
+                        <Badge variant="secondary" className="text-xs">
+                          {reviewCount}
+                        </Badge>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Link>
 
                 {/* Travel Stories Card */}
-                <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
-                  <Link to="/stories" className="block relative">
-                    <div className="aspect-[4/3] overflow-hidden relative" style={{ backgroundColor: '#b2d235' }}>
-                       {latestStory?.image ? (
-                        <OptimizedImage
-                          src={latestStory.image}
-                          alt={latestStory.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          priority={false}
-                          blurUp={true}
-                          thumbnail={true}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <BookOpen className="w-16 h-16 md:w-24 md:h-24 text-white opacity-50" />
-                        </div>
-                      )}
-                      <div className="absolute inset-x-0 bottom-0 p-4">
-                        <Button 
-                          className="w-full rounded-full font-medium shadow-lg text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2" 
-                          style={{ backgroundColor: '#b2d235' }}
-                        >
-                          <span>Stories</span>
-                          {storyCount > 0 && (
-                            <span className="bg-white/20 px-2 py-0.5 rounded-full text-sm">
-                              {storyCount}
-                            </span>
-                          )}
-                        </Button>
+                <Link to="/stories" className="block">
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+                    <CardContent className="p-4 md:p-6 flex flex-col items-center justify-center text-center h-full">
+                      <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#b2d235' }}>
+                        <BookOpen className="w-6 h-6 md:w-8 md:h-8 text-white" />
                       </div>
-                    </div>
-                  </Link>
-                </Card>
+                      <h3 className="font-semibold text-sm md:text-base mb-1">Stories</h3>
+                      {storyCount > 0 && (
+                        <Badge variant="secondary" className="text-xs">
+                          {storyCount}
+                        </Badge>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Link>
 
                 {/* Trips Card */}
-                <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
-                  <Link to="/trips" className="block relative">
-                    <div className="aspect-[4/3] overflow-hidden relative" style={{ backgroundColor: '#ffcc00' }}>
-                       {latestTrip?.image ? (
-                        <OptimizedImage
-                          src={latestTrip.image}
-                          alt={latestTrip.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          priority={false}
-                          blurUp={true}
-                          thumbnail={true}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <MapPin className="w-16 h-16 md:w-24 md:h-24 text-white opacity-50" />
-                        </div>
-                      )}
-                      <div className="absolute inset-x-0 bottom-0 p-4">
-                        <Button 
-                          className="w-full rounded-full font-medium shadow-lg text-black hover:opacity-90 transition-opacity flex items-center justify-center gap-2" 
-                          style={{ backgroundColor: '#ffcc00' }}
-                        >
-                          <span>Trips</span>
-                          {tripCount > 0 && (
-                            <span className="bg-black/20 px-2 py-0.5 rounded-full text-sm">
-                              {tripCount}
-                            </span>
-                          )}
-                        </Button>
+                <Link to="/trips" className="block">
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+                    <CardContent className="p-4 md:p-6 flex flex-col items-center justify-center text-center h-full">
+                      <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#ffcc00' }}>
+                        <MapPin className="w-6 h-6 md:w-8 md:h-8 text-white" />
                       </div>
-                    </div>
-                  </Link>
-                </Card>
+                      <h3 className="font-semibold text-sm md:text-base mb-1">Trips</h3>
+                      {tripCount > 0 && (
+                        <Badge variant="secondary" className="text-xs">
+                          {tripCount}
+                        </Badge>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Link>
 
                 {/* Stock Media Card */}
-                <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
-                  <Link to="/marketplace" className="block relative">
-                    <div className="aspect-[4/3] overflow-hidden relative" style={{ backgroundColor: '#ec1a58' }}>
-                       {latestStockMedia?.image ? (
-                        <OptimizedImage
-                          src={latestStockMedia.image}
-                          alt={latestStockMedia.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          priority={false}
-                          blurUp={true}
-                          thumbnail={true}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Camera className="w-16 h-16 md:w-24 md:h-24 text-white opacity-50" />
-                        </div>
-                      )}
-                      <div className="absolute inset-x-0 bottom-0 p-4">
-                        <Button 
-                          className="w-full rounded-full font-medium shadow-lg text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2" 
-                          style={{ backgroundColor: '#ec1a58' }}
-                        >
-                          <span>Stock Media</span>
-                          {stockMediaCount > 0 && (
-                            <span className="bg-white/20 px-2 py-0.5 rounded-full text-sm">
-                              {stockMediaCount}
-                            </span>
-                          )}
-                        </Button>
+                <Link to="/marketplace" className="block">
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+                    <CardContent className="p-4 md:p-6 flex flex-col items-center justify-center text-center h-full">
+                      <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#ec1a58' }}>
+                        <Camera className="w-6 h-6 md:w-8 md:h-8 text-white" />
                       </div>
-                    </div>
-                  </Link>
-                </Card>
+                      <h3 className="font-semibold text-sm md:text-base mb-1">Stock Media</h3>
+                      {stockMediaCount > 0 && (
+                        <Badge variant="secondary" className="text-xs">
+                          {stockMediaCount}
+                        </Badge>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Link>
               </div>
 
               {/* Action Buttons */}
               {user && (
-                <div className="flex flex-wrap justify-center gap-2 md:gap-3">
+                <div className="flex flex-wrap justify-center gap-2">
                   <Link to="/create-review">
-                    <Button size="lg" className="rounded-full text-white text-sm md:text-base" style={{ backgroundColor: '#393636' }}>
-                      <Camera className="w-4 h-4 mr-2" />
-                      Create Review
+                    <Button className="rounded-full text-white text-xs md:text-sm px-3 md:px-4 py-2" style={{ backgroundColor: '#393636' }}>
+                      <Camera className="w-4 h-4 mr-1 md:mr-2" />
+                      <span className="hidden sm:inline">Create </span>Review
                     </Button>
                   </Link>
                   <Button 
-                    size="lg" 
-                    className="rounded-full text-white text-sm md:text-base" 
+                    className="rounded-full text-white text-xs md:text-sm px-3 md:px-4 py-2" 
                     style={{ backgroundColor: '#b2d235' }}
                     onClick={() => navigate('/stories?tab=create')}
                   >
-                    <BookOpen className="w-4 h-4 mr-2" />
-                    Create Story
+                    <BookOpen className="w-4 h-4 mr-1 md:mr-2" />
+                    <span className="hidden sm:inline">Create </span>Story
                   </Button>
                   <Button 
                     size="lg" 
