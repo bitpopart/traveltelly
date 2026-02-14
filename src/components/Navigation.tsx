@@ -118,15 +118,12 @@ export function Navigation({ className }: NavigationProps) {
             {user ? (
               <>
                 <Link to="/my-travels">
-                  <Button variant="ghost" size="sm" className="rounded-full">
-                    <User className="w-4 h-4 mr-2" />
-                    My Travels
-                  </Button>
-                </Link>
-                <Link to="/settings">
-                  <Button variant="ghost" size="sm" className="rounded-full">
-                    <Settings className="w-4 h-4 mr-2" />
-                    Settings
+                  <Button 
+                    size="sm" 
+                    className="rounded-full w-10 h-10 p-0 flex items-center justify-center"
+                    style={{ backgroundColor: '#ff8c00', color: 'white' }}
+                  >
+                    <User className="w-5 h-5" strokeWidth={2} />
                   </Button>
                 </Link>
                 {isAdmin && (
@@ -178,15 +175,12 @@ export function Navigation({ className }: NavigationProps) {
               {user ? (
                 <>
                   <Link to="/my-travels" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start rounded-full">
+                    <Button 
+                      className="w-full justify-start rounded-full text-white"
+                      style={{ backgroundColor: '#ff8c00' }}
+                    >
                       <User className="w-4 h-4 mr-2" />
                       My Travels
-                    </Button>
-                  </Link>
-                  <Link to="/settings" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start rounded-full">
-                      <Settings className="w-4 h-4 mr-2" />
-                      Settings
                     </Button>
                   </Link>
                   {isAdmin && (
