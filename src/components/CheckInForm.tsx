@@ -104,6 +104,13 @@ export function CheckInForm({ onSuccess }: CheckInFormProps = {}) {
     }
 
     setIsProcessing(true);
+    
+    // Show loading toast
+    toast({
+      title: 'Getting your location...',
+      description: 'Please allow location access when prompted',
+    });
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setGpsCoords({
@@ -112,17 +119,36 @@ export function CheckInForm({ onSuccess }: CheckInFormProps = {}) {
         });
         setIsProcessing(false);
         toast({
-          title: 'Location set',
-          description: 'Your current location has been captured',
+          title: 'Location captured!',
+          description: `${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`,
         });
       },
       (error) => {
         setIsProcessing(false);
+        let errorMessage = 'Could not get your location';
+        
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Please allow location access in your browser settings';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Location information is unavailable';
+            break;
+          case error.TIMEOUT:
+            errorMessage = 'Location request timed out. Please try again';
+            break;
+        }
+        
         toast({
           title: 'Location error',
-          description: error.message,
+          description: errorMessage,
           variant: 'destructive',
         });
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
       }
     );
   };
