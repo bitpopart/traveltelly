@@ -52,7 +52,7 @@ interface ReviewLocation {
   upgraded?: boolean;
   gpsCorreected?: boolean;
   correctionConfidence?: number;
-  type?: 'review' | 'stock-media' | 'story'; // To distinguish between reviews, stock media, and stories
+  type?: 'review' | 'stock-media' | 'story' | 'check-in'; // To distinguish between reviews, stock media, stories, and check-ins
 }
 
 function decodeGeohash(geohashStr: string): { lat: number; lng: number; precision: number; accuracy: string } {
@@ -152,6 +152,7 @@ const createCustomIcon = (rating: number, precision?: number, upgraded?: boolean
   
   // Different colors for rating text based on type
   const ratingColor = type === 'story' ? '#8b5cf6' 
+    : type === 'check-in' ? '#10b981'
     : rating >= 4 ? '#22c55e' : rating >= 3 ? '#eab308' : '#ef4444';
 
   // Add visual indicator for low precision (old reviews) or upgraded reviews
@@ -168,7 +169,13 @@ const createCustomIcon = (rating: number, precision?: number, upgraded?: boolean
   let strokeDasharray = 'none';
   let indicator = '';
 
-  if (isStory) {
+  if (type === 'check-in') {
+    // Check-ins get a green pin icon
+    strokeColor = '#10b981';
+    strokeWidth = '3';
+    strokeDasharray = 'none';
+    indicator = `<circle cx="60" cy="20" r="10" fill="#10b981"/><text x="60" y="27" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold" fill="white">📍</text>`;
+  } else if (isStory) {
     // Stories get a book icon
     strokeColor = '#8b5cf6';
     strokeWidth = '3';
@@ -194,7 +201,7 @@ const createCustomIcon = (rating: number, precision?: number, upgraded?: boolean
     indicator = `<circle cx="60" cy="20" r="8" fill="#ff6b6b"/>`;
   }
 
-  // Use the custom review marker shape with star (only for reviews, not stories/stock media) and shadow
+  // Use the custom review marker shape with star (only for reviews, not stories/stock media/check-ins) and shadow
   const starElement = type === 'review' || !type 
     ? `<path d="M57.95,26.65l11.24,8.18-4.3-13.2,11.24-8h-13.78L57.95,0l-4.39,13.63h-13.78l11.24,8-4.3,13.2,11.24-8.18Z" fill="#fc0"/>`
     : '';
@@ -604,12 +611,32 @@ function useStories() {
   });
 }
 
+// Hook to fetch check-ins (kind 30026)
+function useCheckIns() {
+  const { nostr } = useNostr();
+
+  return useQuery({
+    queryKey: ['check-ins-map'],
+    queryFn: async (c) => {
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      const events = await nostr.query([
+        {
+          kinds: [30026], // Check-ins
+          limit: 200,
+        }
+      ], { signal });
+      return events;
+    },
+  });
+}
+
 interface AllAdminReviewsMapProps {
   zoomToLocation?: string;
   onLocationChange?: (location: string) => void;
+  showTitle?: boolean;
 }
 
-export function AllAdminReviewsMap({ zoomToLocation, onLocationChange }: AllAdminReviewsMapProps = {}) {
+export function AllAdminReviewsMap({ zoomToLocation, onLocationChange, showTitle = true }: AllAdminReviewsMapProps = {}) {
   const { mapProvider } = useMapProvider();
   const [targetLocation, setTargetLocation] = useState<MapLocation | null>(null);
   const [showControls, setShowControls] = useState(false);
@@ -686,6 +713,9 @@ export function AllAdminReviewsMap({ zoomToLocation, onLocationChange }: AllAdmi
   
   // Fetch stories (NIP-23 articles)
   const { data: stories } = useStories();
+  
+  // Fetch check-ins (kind 30026)
+  const { data: checkIns } = useCheckIns();
 
   // Auto-refresh every 30 seconds
   useEffect(() => {
@@ -922,6 +952,67 @@ export function AllAdminReviewsMap({ zoomToLocation, onLocationChange }: AllAdmi
       console.log(`✅ Total locations: ${upgradedLocations.length} (${allReviews.length} reviews + ${stockMediaCount} stock media + ${storyCount} stories)`);
     }
 
+    // Add check-ins (kind 30026)
+    let checkInCount = 0;
+    if (checkIns) {
+      console.log(`📍 Processing ${checkIns.length} check-ins for map`);
+      for (const checkIn of checkIns) {
+        // Check for geohash tag
+        const geohashTag = checkIn.tags.find(([name]) => name === 'g')?.[1];
+        const location = checkIn.tags.find(([name]) => name === 'location')?.[1];
+        const d = checkIn.tags.find(([name]) => name === 'd')?.[1];
+        const image = checkIn.tags.find(([name]) => name === 'image')?.[1];
+        
+        console.log(`📍 Check-in "${location}":`, {
+          hasGeohash: !!geohashTag,
+          geohash: geohashTag,
+          hasLocation: !!location,
+          hasIdentifier: !!d,
+        });
+        
+        if (geohashTag && location && d) {
+          try {
+            const coordinates = decodeGeohash(geohashTag);
+            
+            // Validate coordinates
+            if (coordinates.lat >= -90 && coordinates.lat <= 90 &&
+                coordinates.lng >= -180 && coordinates.lng <= 180) {
+              
+              const naddr = nip19.naddrEncode({
+                identifier: d,
+                pubkey: checkIn.pubkey,
+                kind: 30026,
+              });
+              
+              upgradedLocations.push({
+                id: checkIn.id,
+                lat: coordinates.lat,
+                lng: coordinates.lng,
+                title: location,
+                rating: 5, // Check-ins get 5 stars
+                category: '📍 Check-in',
+                authorPubkey: checkIn.pubkey,
+                naddr,
+                image,
+                precision: coordinates.precision,
+                accuracy: coordinates.accuracy,
+                type: 'check-in',
+              });
+              
+              checkInCount++;
+              console.log(`✅ Added check-in to map: ${location} at [${coordinates.lat}, ${coordinates.lng}]`);
+            }
+          } catch (error) {
+            console.error('❌ Error decoding check-in geohash:', checkIn.id, error);
+          }
+        } else {
+          console.log(`⚠️ Check-in "${location || 'untitled'}" has no geohash tag - won't appear on map`);
+        }
+      }
+      
+      console.log(`✅ Total locations: ${upgradedLocations.length} (${allReviews.length} reviews + ${stockMediaCount} stock media + ${storyCount} stories + ${checkInCount} check-ins)`);
+    }
+
     // Remove duplicate markers at the same location, prioritizing reviews over stock media
     // Group by coordinates (rounded to avoid floating point issues)
     const locationGroups = new Map<string, ReviewLocation[]>();
@@ -937,7 +1028,7 @@ export function AllAdminReviewsMap({ zoomToLocation, onLocationChange }: AllAdmi
     }
     
     // For each location group, keep only the highest priority item
-    // Priority order: review > story > stock-media
+    // Priority order: review > story > check-in > stock-media
     const deduplicatedLocations: ReviewLocation[] = [];
     
     for (const [key, group] of locationGroups.entries()) {
@@ -947,10 +1038,11 @@ export function AllAdminReviewsMap({ zoomToLocation, onLocationChange }: AllAdmi
         // Find the highest priority item
         const review = group.find(item => item.type === 'review');
         const story = group.find(item => item.type === 'story');
+        const checkIn = group.find(item => item.type === 'check-in');
         const stockMedia = group.find(item => item.type === 'stock-media');
         
-        // Prioritize: review > story > stock-media
-        const selectedItem = review || story || stockMedia || group[0];
+        // Prioritize: review > story > check-in > stock-media
+        const selectedItem = review || story || checkIn || stockMedia || group[0];
         deduplicatedLocations.push(selectedItem);
         
         console.log(`🗺️ Deduplicated location ${key}:`, {
@@ -969,7 +1061,7 @@ export function AllAdminReviewsMap({ zoomToLocation, onLocationChange }: AllAdmi
       totalReviews: allReviews.length,
       reviewsWithoutLocation: withoutLocation,
     };
-  }, [data, stockMediaProducts, stories]);
+  }, [data, stockMediaProducts, stories, checkIns]);
 
   const handleLocationSelect = (location: MapLocation) => {
     setTargetLocation(location);
@@ -1023,32 +1115,34 @@ export function AllAdminReviewsMap({ zoomToLocation, onLocationChange }: AllAdmi
         {/* Map */}
         <div className={showControls ? "lg:col-span-3" : "lg:col-span-4"}>
           <Card>
-            <CardHeader className="pb-3 px-3 md:px-6">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <CardTitle className="text-base md:text-lg">Review Locations</CardTitle>
-                  <Badge variant="secondary" className="text-xs">
-                    <Layers className="w-3 h-3 mr-1" />
-                    Clustered
-                  </Badge>
-                  <Badge variant="outline" className="text-xs">
-                    {currentLocation}
-                  </Badge>
+            {showTitle && (
+              <CardHeader className="pb-3 px-3 md:px-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <CardTitle className="text-base md:text-lg">Review Locations</CardTitle>
+                    <Badge variant="secondary" className="text-xs">
+                      <Layers className="w-3 h-3 mr-1" />
+                      Clustered
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">
+                      {currentLocation}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleLocationSelect({ name: "World View", coordinates: [20, 0], zoom: 2, emoji: "🌍" })}
+                      className="h-8 px-3 flex-1 sm:flex-none"
+                    >
+                      <Globe className="w-4 h-4 mr-2" />
+                      <span className="hidden md:inline">World View</span>
+                      <span className="md:hidden">🌍</span>
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleLocationSelect({ name: "World View", coordinates: [20, 0], zoom: 2, emoji: "🌍" })}
-                    className="h-8 px-3 flex-1 sm:flex-none"
-                  >
-                    <Globe className="w-4 h-4 mr-2" />
-                    <span className="hidden md:inline">World View</span>
-                    <span className="md:hidden">🌍</span>
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
+              </CardHeader>
+            )}
             <CardContent className="p-0">
               <div className="h-[60vh] md:h-96 w-full rounded-lg overflow-hidden touch-pan-x touch-pan-y">
                 <MapContainer

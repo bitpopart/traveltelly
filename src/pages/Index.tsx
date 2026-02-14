@@ -712,7 +712,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
 
           {/* Reviews Map */}
           <div className="mb-8 md:mb-12">
-            <AllAdminReviewsMap zoomToLocation={selectedLocationTag} />
+            <AllAdminReviewsMap zoomToLocation={selectedLocationTag} showTitle={false} />
           </div>
 
           {/* Location Tag Cloud */}
