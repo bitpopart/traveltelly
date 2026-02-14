@@ -1143,6 +1143,20 @@ export function AllAdminReviewsMap({ zoomToLocation, onLocationChange, showTitle
                 </div>
               </CardHeader>
             )}
+            {!showTitle && (
+              <div className="p-3 md:p-4 border-b flex justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleLocationSelect({ name: "World View", coordinates: [20, 0], zoom: 2, emoji: "🌍" })}
+                  className="h-8 px-3"
+                >
+                  <Globe className="w-4 h-4 mr-2" />
+                  <span className="hidden md:inline">World View</span>
+                  <span className="md:hidden">🌍</span>
+                </Button>
+              </div>
+            )}
             <CardContent className="p-0">
               <div className="h-[60vh] md:h-96 w-full rounded-lg overflow-hidden touch-pan-x touch-pan-y">
                 <MapContainer
