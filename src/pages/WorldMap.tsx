@@ -43,7 +43,7 @@ export default function WorldMap() {
   return (
     <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#f4f4f5' }}>
       <Navigation />
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 pt-24">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
