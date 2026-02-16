@@ -676,6 +676,21 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
             </div>
           )}
 
+          {/* World Map & Images Button - Always show when no location selected */}
+          {!selectedLocationTag && (
+            <div className="flex justify-center mb-6 md:mb-8">
+              <Link to="/world-map">
+                <Button 
+                  size="lg" 
+                  className="rounded-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold shadow-lg"
+                >
+                  <MapPin className="w-5 h-5 mr-2" />
+                  World Map & Images
+                </Button>
+              </Link>
+            </div>
+          )}
+
           {/* Action Buttons */}
           {user && !selectedLocationTag && (
             <Card className="shadow-lg mb-6 md:mb-8 overflow-visible">
