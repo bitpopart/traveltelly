@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { ScrollToTop } from "./components/ScrollToTop";
+import { BottomNav } from "./components/BottomNav";
 
 import Index from "./pages/Index";
 import IndexSimple from "./pages/IndexSimple";
@@ -59,6 +60,7 @@ export function AppRouter() {
   return (
     <BrowserRouter>
       <ScrollToTop />
+      <BottomNav />
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/debug" element={<IndexDebug />} />
