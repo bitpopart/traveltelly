@@ -616,9 +616,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
             </p>
             <p className='text-gray-600 dark:text-gray-400'>
               <a
-                href='https://www.traveltelly.com/what-is-nostr'
-                target='_blank'
-                rel='noopener noreferrer'
+                href='/what-is-nostr'
                 className='font-medium hover:underline'
                 style={{ color: '#b700d7' }}
               >
