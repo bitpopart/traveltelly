@@ -54,6 +54,7 @@ import GuestPortal from "./pages/GuestPortal";
 import { TellyBot } from "./pages/TellyBot";
 import MyTravels from "./pages/MyTravels";
 import Zaplytics from "./pages/Zaplytics";
+import WorldMap from "./pages/WorldMap";
 import NotFound from "./pages/NotFound";
 
 export function AppRouter() {
@@ -112,7 +113,7 @@ export function AppRouter() {
         <Route path="/simple-map-demo" element={<SimpleMapDemoPage />} />
         <Route path="/what-is-nostr" element={<WhatIsNostr />} />
         <Route path="/category-migration" element={<CategoryMigrationPage />} />
-        {/* <Route path="/world-map" element={<WorldMap />} /> */}
+        <Route path="/world-map" element={<WorldMap />} />
         {/* Explicit admin routes for better debugging */}
         <Route path="/admin/*" element={<AdminPanel />} />
         <Route path="/admin-test/*" element={<AdminTest />} />
