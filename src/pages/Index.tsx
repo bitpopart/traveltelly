@@ -501,10 +501,13 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
     <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
       <NavigationComponent />
       
-      {/* Reviews Map - Full width on mobile, in container on desktop */}
-      <div className="md:hidden pt-16">
+      {/* Reviews Map - Full width on mobile directly under fixed header */}
+      <div className="md:hidden absolute top-16 left-0 right-0 z-10">
         <AllAdminReviewsMap zoomToLocation={selectedLocationTag} showTitle={false} />
       </div>
+
+      {/* Spacer for mobile to push content below map */}
+      <div className="md:hidden h-96" />
 
       <div className="container mx-auto px-2 md:px-4 md:py-8 md:pt-24">
         <div className="max-w-6xl mx-auto">
