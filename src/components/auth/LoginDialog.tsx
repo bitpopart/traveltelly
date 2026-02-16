@@ -604,7 +604,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
             </TabsContent>
           </Tabs>
 
-          <div className='text-center text-sm'>
+          <div className='text-center text-sm space-y-2'>
             <p className='text-gray-600 dark:text-gray-400'>
               Don't have an account?{' '}
               <button
@@ -613,6 +613,17 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
               >
                 Sign up
               </button>
+            </p>
+            <p className='text-gray-600 dark:text-gray-400'>
+              <a
+                href='https://www.traveltelly.com/what-is-nostr'
+                target='_blank'
+                rel='noopener noreferrer'
+                className='font-medium hover:underline'
+                style={{ color: '#b700d7' }}
+              >
+                What is Nostr?
+              </a>
             </p>
           </div>
         </div>

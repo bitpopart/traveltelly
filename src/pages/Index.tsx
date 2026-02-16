@@ -510,35 +510,26 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
               {/* Show full header only when no location is selected */}
               {!selectedLocationTag && (
                 <>
-                  {/* Header - My Travels or Nostr Community button */}
-                  <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3 mb-6 md:mb-8">
-                {user ? (
-                  <Link to="/my-travels">
-                    <Button 
-                      className="rounded-full font-semibold text-white hover:opacity-90 transition-opacity text-sm md:text-base px-6 md:px-8 py-3 h-auto"
-                      style={{ backgroundColor: '#b700d7' }}
-                    >
-                      MY TRAVELS
-                    </Button>
-                  </Link>
-                ) : (
-                  <Link to="/what-is-nostr">
-                    <Button 
-                      className="rounded-full font-semibold text-white hover:opacity-90 transition-opacity text-sm md:text-base px-6 md:px-8 py-3 h-auto"
-                      style={{ backgroundColor: '#b700d7' }}
-                    >
-                      NOSTR POWERED TRAVEL COMMUNITY
-                    </Button>
-                  </Link>
-                )}
-                <ZapAuthorButton
-                  authorPubkey="7d33ba57d8a6e8869a1f1d5215254597594ac0dbfeb01b690def8c461b82db35"
-                  showAuthorName={false}
-                  variant="default"
-                  size="lg"
-                  className="rounded-full bg-orange-500 hover:bg-orange-600 text-white font-semibold px-6 md:px-8 py-3 h-auto"
-                />
-              </div>
+                  {/* Header - My Travels button and Zap button */}
+                  {user && (
+                    <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3 mb-6 md:mb-8">
+                      <Link to="/my-travels">
+                        <Button 
+                          className="rounded-full font-semibold text-white hover:opacity-90 transition-opacity text-sm md:text-base px-6 md:px-8 py-3 h-auto"
+                          style={{ backgroundColor: '#b700d7' }}
+                        >
+                          MY TRAVELS
+                        </Button>
+                      </Link>
+                      <ZapAuthorButton
+                        authorPubkey="7d33ba57d8a6e8869a1f1d5215254597594ac0dbfeb01b690def8c461b82db35"
+                        showAuthorName={false}
+                        variant="default"
+                        size="lg"
+                        className="rounded-full bg-orange-500 hover:bg-orange-600 text-white font-semibold px-6 md:px-8 py-3 h-auto"
+                      />
+                    </div>
+                  )}
 
               {/* Feature Cards - Desktop Only with Images */}
               <div className="hidden md:grid md:grid-cols-4 gap-3 md:gap-4 w-full mb-6">
