@@ -537,112 +537,116 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                 {/* Share Reviews Card */}
                 <Link to="/reviews" className="block">
                   <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full overflow-hidden">
-                    {latestReviews[0]?.image && (
-                      <div className="relative aspect-[4/3] overflow-hidden">
-                        <OptimizedImage
-                          src={latestReviews[0].image}
-                          alt="Latest Review"
-                          className="w-full h-full object-cover"
-                          blurUp={true}
-                          thumbnail={true}
-                        />
+                    <div className="relative aspect-[4/3] overflow-hidden group">
+                      <OptimizedImage
+                        src={latestReviews[0]?.image || '/placeholder-review.jpg'}
+                        alt="Latest Review"
+                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                        blurUp={true}
+                        thumbnail={true}
+                      />
+                      {/* Overlay gradient */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                      {/* Content overlay */}
+                      <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
+                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#27b0ff' }}>
+                          <Star className="w-6 h-6 md:w-8 md:h-8 text-white" />
+                        </div>
+                        <h3 className="font-semibold text-lg md:text-xl text-white mb-1 drop-shadow-lg">Reviews</h3>
+                        {reviewCount > 0 && (
+                          <Badge variant="secondary" className="text-xs bg-white/90">
+                            {reviewCount}
+                          </Badge>
+                        )}
                       </div>
-                    )}
-                    <CardContent className="p-4 md:p-6 flex flex-col items-center justify-center text-center">
-                      <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#27b0ff' }}>
-                        <Star className="w-6 h-6 md:w-8 md:h-8 text-white" />
-                      </div>
-                      <h3 className="font-semibold text-sm md:text-base mb-1">Reviews</h3>
-                      {reviewCount > 0 && (
-                        <Badge variant="secondary" className="text-xs">
-                          {reviewCount}
-                        </Badge>
-                      )}
-                    </CardContent>
+                    </div>
                   </Card>
                 </Link>
 
                 {/* Travel Stories Card */}
                 <Link to="/stories" className="block">
                   <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full overflow-hidden">
-                    {latestStories[0]?.image && (
-                      <div className="relative aspect-[4/3] overflow-hidden">
-                        <OptimizedImage
-                          src={latestStories[0].image}
-                          alt="Latest Story"
-                          className="w-full h-full object-cover"
-                          blurUp={true}
-                          thumbnail={true}
-                        />
+                    <div className="relative aspect-[4/3] overflow-hidden group">
+                      <OptimizedImage
+                        src={latestStories[0]?.image || '/placeholder-story.jpg'}
+                        alt="Latest Story"
+                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                        blurUp={true}
+                        thumbnail={true}
+                      />
+                      {/* Overlay gradient */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                      {/* Content overlay */}
+                      <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
+                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#b2d235' }}>
+                          <BookOpen className="w-6 h-6 md:w-8 md:h-8 text-white" />
+                        </div>
+                        <h3 className="font-semibold text-lg md:text-xl text-white mb-1 drop-shadow-lg">Stories</h3>
+                        {storyCount > 0 && (
+                          <Badge variant="secondary" className="text-xs bg-white/90">
+                            {storyCount}
+                          </Badge>
+                        )}
                       </div>
-                    )}
-                    <CardContent className="p-4 md:p-6 flex flex-col items-center justify-center text-center">
-                      <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#b2d235' }}>
-                        <BookOpen className="w-6 h-6 md:w-8 md:h-8 text-white" />
-                      </div>
-                      <h3 className="font-semibold text-sm md:text-base mb-1">Stories</h3>
-                      {storyCount > 0 && (
-                        <Badge variant="secondary" className="text-xs">
-                          {storyCount}
-                        </Badge>
-                      )}
-                    </CardContent>
+                    </div>
                   </Card>
                 </Link>
 
                 {/* Trips Card */}
                 <Link to="/trips" className="block">
                   <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full overflow-hidden">
-                    {latestTrips[0]?.image && (
-                      <div className="relative aspect-[4/3] overflow-hidden">
-                        <OptimizedImage
-                          src={latestTrips[0].image}
-                          alt="Latest Trip"
-                          className="w-full h-full object-cover"
-                          blurUp={true}
-                          thumbnail={true}
-                        />
+                    <div className="relative aspect-[4/3] overflow-hidden group">
+                      <OptimizedImage
+                        src={latestTrips[0]?.image || '/placeholder-trip.jpg'}
+                        alt="Latest Trip"
+                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                        blurUp={true}
+                        thumbnail={true}
+                      />
+                      {/* Overlay gradient */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                      {/* Content overlay */}
+                      <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
+                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#ffcc00' }}>
+                          <MapPin className="w-6 h-6 md:w-8 md:h-8 text-white" />
+                        </div>
+                        <h3 className="font-semibold text-lg md:text-xl text-white mb-1 drop-shadow-lg">Trips</h3>
+                        {tripCount > 0 && (
+                          <Badge variant="secondary" className="text-xs bg-white/90">
+                            {tripCount}
+                          </Badge>
+                        )}
                       </div>
-                    )}
-                    <CardContent className="p-4 md:p-6 flex flex-col items-center justify-center text-center">
-                      <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#ffcc00' }}>
-                        <MapPin className="w-6 h-6 md:w-8 md:h-8 text-white" />
-                      </div>
-                      <h3 className="font-semibold text-sm md:text-base mb-1">Trips</h3>
-                      {tripCount > 0 && (
-                        <Badge variant="secondary" className="text-xs">
-                          {tripCount}
-                        </Badge>
-                      )}
-                    </CardContent>
+                    </div>
                   </Card>
                 </Link>
 
                 {/* Stock Media Card */}
                 <Link to="/marketplace" className="block">
                   <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full overflow-hidden">
-                    {latestStockMediaItems[0]?.image && (
-                      <div className="relative aspect-[4/3] overflow-hidden">
-                        <OptimizedImage
-                          src={latestStockMediaItems[0].image}
-                          alt="Latest Stock Media"
-                          className="w-full h-full object-cover"
-                          blurUp={true}
-                          thumbnail={true}
-                        />
+                    <div className="relative aspect-[4/3] overflow-hidden group">
+                      <OptimizedImage
+                        src={latestStockMediaItems[0]?.image || '/placeholder-media.jpg'}
+                        alt="Latest Stock Media"
+                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                        blurUp={true}
+                        thumbnail={true}
+                      />
+                      {/* Overlay gradient */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                      {/* Content overlay */}
+                      <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
+                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#ec1a58' }}>
+                          <Camera className="w-6 h-6 md:w-8 md:h-8 text-white" />
+                        </div>
+                        <h3 className="font-semibold text-lg md:text-xl text-white mb-1 drop-shadow-lg">Stock Media</h3>
+                        {stockMediaCount > 0 && (
+                          <Badge variant="secondary" className="text-xs bg-white/90">
+                            {stockMediaCount}
+                          </Badge>
+                        )}
                       </div>
-                    )}
-                    <CardContent className="p-4 md:p-6 flex flex-col items-center justify-center text-center">
-                      <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#ec1a58' }}>
-                        <Camera className="w-6 h-6 md:w-8 md:h-8 text-white" />
-                      </div>
-                      <h3 className="font-semibold text-sm md:text-base mb-1">Stock Media</h3>
-                      {stockMediaCount > 0 && (
-                        <Badge variant="secondary" className="text-xs">
-                          {stockMediaCount}
-                        </Badge>
-                      )}
-                    </CardContent>
+                    </div>
                   </Card>
                 </Link>
               </div>
