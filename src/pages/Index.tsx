@@ -502,6 +502,12 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
       <NavigationComponent />
       {/* Add padding for fixed header - only on desktop */}
       <div className="hidden md:block h-16" />
+      
+      {/* Reviews Map - Full width on mobile, in container on desktop */}
+      <div className="md:hidden mt-16">
+        <AllAdminReviewsMap zoomToLocation={selectedLocationTag} showTitle={false} />
+      </div>
+
       <div className="container mx-auto px-2 md:px-4 md:py-8">
         <div className="max-w-6xl mx-auto">
           {/* User Controls Card - Only show when user is logged in and no location selected */}
@@ -784,8 +790,8 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
           {/* Admin Debug Info (Development Only) */}
           {!selectedLocationTag && <AdminDebugInfo />}
 
-          {/* Reviews Map */}
-          <div className="mb-8 md:mb-12 md:mt-0 mt-16">
+          {/* Reviews Map - Desktop only (mobile is outside container) */}
+          <div className="hidden md:block mb-8 md:mb-12">
             <AllAdminReviewsMap zoomToLocation={selectedLocationTag} showTitle={false} />
           </div>
 
