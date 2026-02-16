@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Star, BookOpen, MapPin, Store, User } from 'lucide-react';
+import { Star, BookOpen, MapPin, Camera, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useState } from 'react';
@@ -35,46 +35,36 @@ export function BottomNav() {
   const navItems = [
     { 
       path: '/reviews', 
-      label: 'Reviews', 
       icon: Star, 
-      color: '#27b0ff',
-      activeColor: '#1a9fe6'
+      color: '#27b0ff'
     },
     { 
       path: '/stories', 
-      label: 'Stories', 
       icon: BookOpen, 
-      color: '#b2d235',
-      activeColor: '#9dbf2e'
+      color: '#b2d235'
     },
     { 
       path: 'profile', // Special case - handled by onClick
-      label: user ? 'Profile' : 'Login', 
       icon: User, 
       color: '#ff8c00',
-      activeColor: '#e67e00',
       isProfile: true
     },
     { 
       path: '/trips', 
-      label: 'Trips', 
       icon: MapPin, 
-      color: '#ffcc00',
-      activeColor: '#e6b800'
+      color: '#ffcc00'
     },
     { 
       path: '/marketplace', 
-      label: 'Stock', 
-      icon: Store, 
-      color: '#ec1a58',
-      activeColor: '#d3164d'
+      icon: Camera, 
+      color: '#ec1a58'
     },
   ];
 
   return (
     <>
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 md:hidden">
-        <div className="grid grid-cols-5 h-16">
+        <div className="grid grid-cols-5 h-20 items-center px-2">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = item.isProfile ? isActive('/my-travels') : isActive(item.path);
@@ -84,26 +74,17 @@ export function BottomNav() {
                 <button
                   key={item.path}
                   onClick={handleProfileClick}
-                  className={cn(
-                    "flex flex-col items-center justify-center gap-1 transition-colors",
-                    active && "bg-gray-50 dark:bg-gray-800"
-                  )}
+                  className="flex items-center justify-center"
                 >
-                  <Icon 
-                    className="w-6 h-6" 
-                    style={{ 
-                      color: active ? item.activeColor : item.color,
-                      strokeWidth: active ? 2.5 : 2
-                    }}
-                  />
-                  <span 
-                    className="text-xs font-medium"
-                    style={{ 
-                      color: active ? item.activeColor : item.color
-                    }}
+                  <div 
+                    className={cn(
+                      "w-14 h-14 rounded-full flex items-center justify-center transition-all",
+                      active && "scale-110 shadow-lg"
+                    )}
+                    style={{ backgroundColor: item.color }}
                   >
-                    {item.label}
-                  </span>
+                    <Icon className="w-7 h-7 text-white" strokeWidth={2} />
+                  </div>
                 </button>
               );
             }
@@ -112,26 +93,17 @@ export function BottomNav() {
               <Link
                 key={item.path}
                 to={item.path}
-                className={cn(
-                  "flex flex-col items-center justify-center gap-1 transition-colors",
-                  active && "bg-gray-50 dark:bg-gray-800"
-                )}
+                className="flex items-center justify-center"
               >
-                <Icon 
-                  className="w-6 h-6" 
-                  style={{ 
-                    color: active ? item.activeColor : item.color,
-                    strokeWidth: active ? 2.5 : 2
-                  }}
-                />
-                <span 
-                  className="text-xs font-medium"
-                  style={{ 
-                    color: active ? item.activeColor : item.color
-                  }}
+                <div 
+                  className={cn(
+                    "w-14 h-14 rounded-full flex items-center justify-center transition-all",
+                    active && "scale-110 shadow-lg"
+                  )}
+                  style={{ backgroundColor: item.color }}
                 >
-                  {item.label}
-                </span>
+                  <Icon className="w-7 h-7 text-white" strokeWidth={2} />
+                </div>
               </Link>
             );
           })}
@@ -139,7 +111,7 @@ export function BottomNav() {
       </nav>
 
       {/* Add padding to the bottom of the page to prevent content from being hidden */}
-      <div className="h-16 md:hidden" />
+      <div className="h-20 md:hidden" />
 
       {/* Login Dialog */}
       {showLoginDialog && (
