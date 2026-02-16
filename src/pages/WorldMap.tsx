@@ -62,26 +62,36 @@ export default function WorldMap() {
               }
             </p>
             
-            {/* Toggle View Button */}
-            <div className="flex justify-center gap-2 mb-6">
-              <Button
-                variant={viewMode === 'map' ? 'default' : 'outline'}
-                size="lg"
-                onClick={() => setViewMode('map')}
-                className={viewMode === 'map' ? 'bg-blue-600 hover:bg-blue-700' : ''}
-              >
-                <Globe className="w-4 h-4 mr-2" />
-                World Map
-              </Button>
-              <Button
-                variant={viewMode === 'images' ? 'default' : 'outline'}
-                size="lg"
-                onClick={() => setViewMode('images')}
-                className={viewMode === 'images' ? 'bg-blue-600 hover:bg-blue-700' : ''}
-              >
-                <ImageIcon className="w-4 h-4 mr-2" />
-                Images
-              </Button>
+            {/* Toggle View Button - Single Round Slider */}
+            <div className="flex justify-center mb-6">
+              <div className="inline-flex items-center bg-gray-200 dark:bg-gray-700 rounded-full p-1 gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setViewMode('map')}
+                  className={`rounded-full w-12 h-12 transition-all ${
+                    viewMode === 'map' 
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md' 
+                      : 'hover:bg-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                  title="World Map"
+                >
+                  <Globe className="w-5 h-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setViewMode('images')}
+                  className={`rounded-full w-12 h-12 transition-all ${
+                    viewMode === 'images' 
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md' 
+                      : 'hover:bg-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                  title="Images Grid"
+                >
+                  <ImageIcon className="w-5 h-5" />
+                </Button>
+              </div>
             </div>
 
             {viewMode === 'map' && (
