@@ -500,6 +500,8 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
       <NavigationComponent />
+      {/* Add padding for fixed header */}
+      <div className="h-16" />
       <div className="container mx-auto px-2 md:px-4 py-3 md:py-8">
         <div className="max-w-6xl mx-auto">
           {/* Main Content Box */}
@@ -538,12 +540,23 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                 />
               </div>
 
-              {/* Feature Cards - Mobile Optimized */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 w-full mb-6">
+              {/* Feature Cards - Desktop Only with Images */}
+              <div className="hidden md:grid md:grid-cols-4 gap-3 md:gap-4 w-full mb-6">
                 {/* Share Reviews Card */}
                 <Link to="/reviews" className="block">
-                  <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-                    <CardContent className="p-4 md:p-6 flex flex-col items-center justify-center text-center h-full">
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full overflow-hidden">
+                    {latestReviews[0]?.image && (
+                      <div className="relative aspect-[4/3] overflow-hidden">
+                        <OptimizedImage
+                          src={latestReviews[0].image}
+                          alt="Latest Review"
+                          className="w-full h-full object-cover"
+                          blurUp={true}
+                          thumbnail={true}
+                        />
+                      </div>
+                    )}
+                    <CardContent className="p-4 md:p-6 flex flex-col items-center justify-center text-center">
                       <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#27b0ff' }}>
                         <Star className="w-6 h-6 md:w-8 md:h-8 text-white" />
                       </div>
@@ -559,8 +572,19 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
 
                 {/* Travel Stories Card */}
                 <Link to="/stories" className="block">
-                  <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-                    <CardContent className="p-4 md:p-6 flex flex-col items-center justify-center text-center h-full">
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full overflow-hidden">
+                    {latestStories[0]?.image && (
+                      <div className="relative aspect-[4/3] overflow-hidden">
+                        <OptimizedImage
+                          src={latestStories[0].image}
+                          alt="Latest Story"
+                          className="w-full h-full object-cover"
+                          blurUp={true}
+                          thumbnail={true}
+                        />
+                      </div>
+                    )}
+                    <CardContent className="p-4 md:p-6 flex flex-col items-center justify-center text-center">
                       <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#b2d235' }}>
                         <BookOpen className="w-6 h-6 md:w-8 md:h-8 text-white" />
                       </div>
@@ -576,8 +600,19 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
 
                 {/* Trips Card */}
                 <Link to="/trips" className="block">
-                  <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-                    <CardContent className="p-4 md:p-6 flex flex-col items-center justify-center text-center h-full">
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full overflow-hidden">
+                    {latestTrips[0]?.image && (
+                      <div className="relative aspect-[4/3] overflow-hidden">
+                        <OptimizedImage
+                          src={latestTrips[0].image}
+                          alt="Latest Trip"
+                          className="w-full h-full object-cover"
+                          blurUp={true}
+                          thumbnail={true}
+                        />
+                      </div>
+                    )}
+                    <CardContent className="p-4 md:p-6 flex flex-col items-center justify-center text-center">
                       <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#ffcc00' }}>
                         <MapPin className="w-6 h-6 md:w-8 md:h-8 text-white" />
                       </div>
@@ -593,8 +628,19 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
 
                 {/* Stock Media Card */}
                 <Link to="/marketplace" className="block">
-                  <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-                    <CardContent className="p-4 md:p-6 flex flex-col items-center justify-center text-center h-full">
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full overflow-hidden">
+                    {latestStockMediaItems[0]?.image && (
+                      <div className="relative aspect-[4/3] overflow-hidden">
+                        <OptimizedImage
+                          src={latestStockMediaItems[0].image}
+                          alt="Latest Stock Media"
+                          className="w-full h-full object-cover"
+                          blurUp={true}
+                          thumbnail={true}
+                        />
+                      </div>
+                    )}
+                    <CardContent className="p-4 md:p-6 flex flex-col items-center justify-center text-center">
                       <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#ec1a58' }}>
                         <Camera className="w-6 h-6 md:w-8 md:h-8 text-white" />
                       </div>
@@ -697,11 +743,11 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                   </Link>
                  </div>
               )}
-                </>
+                 </>
               )}
 
-              {/* Search Bar - Always visible */}
-              <div className={selectedLocationTag ? 'mb-6' : 'mb-6'}>
+              {/* Search Bar - Desktop Only (in this position) */}
+              <div className="hidden md:block mb-6">
                 <UnifiedSearchBar />
               </div>
             </CardContent>
@@ -732,6 +778,15 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
               }}
               selectedTag={selectedLocationTag}
             />
+          </div>
+
+          {/* Search Bar - Mobile Only (after Popular Destinations) */}
+          <div className="md:hidden mb-8">
+            <Card className="shadow-lg">
+              <CardContent className="p-4">
+                <UnifiedSearchBar />
+              </CardContent>
+            </Card>
           </div>
 
           {/* Location-Filtered Content */}
