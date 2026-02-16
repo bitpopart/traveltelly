@@ -538,18 +538,24 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                 <Link to="/reviews" className="block">
                   <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full overflow-hidden">
                     <div className="relative aspect-[4/3] overflow-hidden group">
-                      <OptimizedImage
-                        src={latestReviews[0]?.image || '/placeholder-review.jpg'}
-                        alt="Latest Review"
-                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                        blurUp={true}
-                        thumbnail={true}
-                      />
-                      {/* Overlay gradient */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                      {latestReviews[0]?.image ? (
+                        <>
+                          <OptimizedImage
+                            src={latestReviews[0].image}
+                            alt="Latest Review"
+                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                            blurUp={true}
+                            thumbnail={true}
+                          />
+                          {/* Overlay gradient */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                        </>
+                      ) : (
+                        <div className="w-full h-full" style={{ backgroundColor: '#27b0ff' }} />
+                      )}
                       {/* Content overlay */}
                       <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#27b0ff' }}>
+                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: latestReviews[0]?.image ? '#27b0ff' : 'rgba(255,255,255,0.2)' }}>
                           <Star className="w-6 h-6 md:w-8 md:h-8 text-white" />
                         </div>
                         <h3 className="font-semibold text-lg md:text-xl text-white mb-1 drop-shadow-lg">Reviews</h3>
@@ -567,18 +573,24 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                 <Link to="/stories" className="block">
                   <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full overflow-hidden">
                     <div className="relative aspect-[4/3] overflow-hidden group">
-                      <OptimizedImage
-                        src={latestStories[0]?.image || '/placeholder-story.jpg'}
-                        alt="Latest Story"
-                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                        blurUp={true}
-                        thumbnail={true}
-                      />
-                      {/* Overlay gradient */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                      {latestStories[0]?.image ? (
+                        <>
+                          <OptimizedImage
+                            src={latestStories[0].image}
+                            alt="Latest Story"
+                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                            blurUp={true}
+                            thumbnail={true}
+                          />
+                          {/* Overlay gradient */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                        </>
+                      ) : (
+                        <div className="w-full h-full" style={{ backgroundColor: '#b2d235' }} />
+                      )}
                       {/* Content overlay */}
                       <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#b2d235' }}>
+                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: latestStories[0]?.image ? '#b2d235' : 'rgba(255,255,255,0.2)' }}>
                           <BookOpen className="w-6 h-6 md:w-8 md:h-8 text-white" />
                         </div>
                         <h3 className="font-semibold text-lg md:text-xl text-white mb-1 drop-shadow-lg">Stories</h3>
@@ -596,18 +608,24 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                 <Link to="/trips" className="block">
                   <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full overflow-hidden">
                     <div className="relative aspect-[4/3] overflow-hidden group">
-                      <OptimizedImage
-                        src={latestTrips[0]?.image || '/placeholder-trip.jpg'}
-                        alt="Latest Trip"
-                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                        blurUp={true}
-                        thumbnail={true}
-                      />
-                      {/* Overlay gradient */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                      {latestTrips[0]?.image ? (
+                        <>
+                          <OptimizedImage
+                            src={latestTrips[0].image}
+                            alt="Latest Trip"
+                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                            blurUp={true}
+                            thumbnail={true}
+                          />
+                          {/* Overlay gradient */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                        </>
+                      ) : (
+                        <div className="w-full h-full" style={{ backgroundColor: '#ffcc00' }} />
+                      )}
                       {/* Content overlay */}
                       <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#ffcc00' }}>
+                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: latestTrips[0]?.image ? '#ffcc00' : 'rgba(255,255,255,0.2)' }}>
                           <MapPin className="w-6 h-6 md:w-8 md:h-8 text-white" />
                         </div>
                         <h3 className="font-semibold text-lg md:text-xl text-white mb-1 drop-shadow-lg">Trips</h3>
@@ -625,18 +643,24 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                 <Link to="/marketplace" className="block">
                   <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full overflow-hidden">
                     <div className="relative aspect-[4/3] overflow-hidden group">
-                      <OptimizedImage
-                        src={latestStockMediaItems[0]?.image || '/placeholder-media.jpg'}
-                        alt="Latest Stock Media"
-                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                        blurUp={true}
-                        thumbnail={true}
-                      />
-                      {/* Overlay gradient */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                      {latestStockMediaItems[0]?.image ? (
+                        <>
+                          <OptimizedImage
+                            src={latestStockMediaItems[0].image}
+                            alt="Latest Stock Media"
+                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                            blurUp={true}
+                            thumbnail={true}
+                          />
+                          {/* Overlay gradient */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                        </>
+                      ) : (
+                        <div className="w-full h-full" style={{ backgroundColor: '#ec1a58' }} />
+                      )}
                       {/* Content overlay */}
                       <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#ec1a58' }}>
+                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: latestStockMediaItems[0]?.image ? '#ec1a58' : 'rgba(255,255,255,0.2)' }}>
                           <Camera className="w-6 h-6 md:w-8 md:h-8 text-white" />
                         </div>
                         <h3 className="font-semibold text-lg md:text-xl text-white mb-1 drop-shadow-lg">Stock Media</h3>
