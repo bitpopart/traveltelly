@@ -1,14 +1,19 @@
 import { useState } from "react";
 import { Navigation } from "@/components/Navigation";
 import { WorldReviewsMap } from "@/components/WorldReviewsMap";
+import { AllAdminReviewsMap } from "@/components/AllAdminReviewsMap";
 import { RelaySelector } from "@/components/RelaySelector";
+import { OptimizedImage } from "@/components/OptimizedImage";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MapPin, Globe, Star, Camera, Image as ImageIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { MapPin, Globe, Star, Camera, Image as ImageIcon, BookOpen } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAllImages } from "@/hooks/useAllImages";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useLatestReviews, useLatestStories, useLatestTrips, useLatestStockMediaItems, useReviewCount, useStoryCount, useTripCount, useStockMediaCount } from "@/hooks/useLatestItems";
+import { ZapAuthorButton } from "@/components/ZapAuthorButton";
 import { nip19 } from "nostr-tools";
 
 export default function WorldMap() {
@@ -16,6 +21,16 @@ export default function WorldMap() {
   const { data: images, isLoading: imagesLoading } = useAllImages();
   const { user } = useCurrentUser();
   const navigate = useNavigate();
+  
+  // Get counts and latest items for homepage simulation
+  const reviewCount = useReviewCount();
+  const { data: storyCount = 0 } = useStoryCount();
+  const { data: stockMediaCount = 0 } = useStockMediaCount();
+  const { data: tripCount = 0 } = useTripCount();
+  const { data: latestReviews = [] } = useLatestReviews();
+  const { data: latestStories = [] } = useLatestStories();
+  const { data: latestTrips = [] } = useLatestTrips();
+  const { data: latestStockMediaItems = [] } = useLatestStockMediaItems();
 
   const getDestinationPath = (naddr: string, type: string) => {
     try {
@@ -41,80 +56,218 @@ export default function WorldMap() {
   };
 
   return (
-    <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#f4f4f5' }}>
+    <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
       <Navigation />
-      <div className="container mx-auto px-4 py-8 pt-24">
-        <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <Globe className="w-12 h-12 text-blue-600" />
-              <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
-                {viewMode === 'map' ? 'World Reviews Map' : 'Travel Images'}
-              </h1>
-            </div>
-            <p className="text-xl text-gray-600 dark:text-gray-300 mb-6">
-              {viewMode === 'map' 
-                ? 'Explore reviews from around the globe with infinite scroll'
-                : user 
-                  ? 'Your travel photos from reviews, trips, stories, and stock media'
-                  : 'Latest travel photos from the community'
-              }
-            </p>
-            
-            {/* Toggle View Button - Single Round Slider */}
-            <div className="flex justify-center mb-6">
-              <div className="inline-flex items-center bg-gray-200 dark:bg-gray-700 rounded-full p-1 gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setViewMode('map')}
-                  className={`rounded-full w-12 h-12 transition-all ${
-                    viewMode === 'map' 
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md' 
-                      : 'hover:bg-gray-300 dark:hover:bg-gray-600'
-                  }`}
-                  title="World Map"
-                >
-                  <Globe className="w-5 h-5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setViewMode('images')}
-                  className={`rounded-full w-12 h-12 transition-all ${
-                    viewMode === 'images' 
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md' 
-                      : 'hover:bg-gray-300 dark:hover:bg-gray-600'
-                  }`}
-                  title="Images Grid"
-                >
-                  <ImageIcon className="w-5 h-5" />
-                </Button>
-              </div>
-            </div>
+      
+      {/* Reviews Map - Full width on mobile directly under fixed header */}
+      {viewMode === 'map' && (
+        <div className="md:hidden absolute top-16 left-0 right-0 z-10">
+          <AllAdminReviewsMap showTitle={false} />
+        </div>
+      )}
 
-            {viewMode === 'map' && (
-              <div className="flex flex-wrap justify-center gap-4">
-                <Link to="/create-review">
-                  <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
-                    <Camera className="w-4 h-4 mr-2" />
-                    Add Your Review
-                  </Button>
-                </Link>
-                <Link to="/reviews">
-                  <Button variant="outline" size="lg">
-                    <Star className="w-4 h-4 mr-2" />
-                    Browse All Reviews
-                  </Button>
-                </Link>
-              </div>
-            )}
+      {/* Spacer for mobile to push content below map */}
+      {viewMode === 'map' && <div className="md:hidden h-96" />}
+
+      <div className="container mx-auto px-2 md:px-4 md:py-8 md:pt-24">
+        <div className="max-w-6xl mx-auto">
+          
+          {/* Toggle View Button - Single Round Slider - Centered at top */}
+          <div className="flex justify-center mb-6">
+            <div className="inline-flex items-center bg-gray-200 dark:bg-gray-700 rounded-full p-1 gap-1 shadow-lg">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setViewMode('map')}
+                className={`rounded-full w-12 h-12 transition-all ${
+                  viewMode === 'map' 
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md' 
+                    : 'hover:bg-gray-300 dark:hover:bg-gray-600'
+                }`}
+                title="World Map"
+              >
+                <Globe className="w-5 h-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setViewMode('images')}
+                className={`rounded-full w-12 h-12 transition-all ${
+                  viewMode === 'images' 
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md' 
+                    : 'hover:bg-gray-300 dark:hover:bg-gray-600'
+                }`}
+                title="Images Grid"
+              >
+                <ImageIcon className="w-5 h-5" />
+              </Button>
+            </div>
           </div>
 
-          {/* Features Info - Only show in map view */}
-          {viewMode === 'map' && (
-            <div className="grid md:grid-cols-3 gap-6 mb-8">
+          {/* User Controls Card - Zap button */}
+          {user && (
+            <Card className="shadow-lg mb-6 md:mb-8 overflow-visible">
+              <CardContent className="p-4 md:p-8 overflow-visible">
+                <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3 mb-0">
+                  <ZapAuthorButton
+                    authorPubkey="7d33ba57d8a6e8869a1f1d5215254597594ac0dbfeb01b690def8c461b82db35"
+                    showAuthorName={false}
+                    variant="default"
+                    size="lg"
+                    className="rounded-full bg-orange-500 hover:bg-orange-600 text-white font-semibold px-6 md:px-8 py-3 h-auto"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Feature Cards - Desktop Only */}
+          <div className="hidden md:block mb-6 md:mb-8">
+            <div className="grid md:grid-cols-4 gap-3 md:gap-4 w-full">
+              {/* Reviews Card */}
+              <Link to="/reviews" className="block">
+                <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full overflow-hidden">
+                  <div className="relative aspect-[4/3] overflow-hidden group">
+                    {latestReviews[0]?.image ? (
+                      <>
+                        <OptimizedImage
+                          src={latestReviews[0].image}
+                          alt="Latest Review"
+                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                          blurUp={true}
+                          thumbnail={true}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                      </>
+                    ) : (
+                      <div className="w-full h-full" style={{ backgroundColor: '#27b0ff' }} />
+                    )}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
+                      <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: latestReviews[0]?.image ? '#27b0ff' : 'rgba(255,255,255,0.2)' }}>
+                        <Star className="w-6 h-6 md:w-8 md:h-8 text-white" />
+                      </div>
+                      <h3 className="font-semibold text-lg md:text-xl text-white mb-1 drop-shadow-lg">Reviews</h3>
+                      {reviewCount > 0 && (
+                        <Badge variant="secondary" className="text-xs bg-white/90">
+                          {reviewCount}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+
+              {/* Stories Card */}
+              <Link to="/stories" className="block">
+                <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full overflow-hidden">
+                  <div className="relative aspect-[4/3] overflow-hidden group">
+                    {latestStories[0]?.image ? (
+                      <>
+                        <OptimizedImage
+                          src={latestStories[0].image}
+                          alt="Latest Story"
+                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                          blurUp={true}
+                          thumbnail={true}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                      </>
+                    ) : (
+                      <div className="w-full h-full" style={{ backgroundColor: '#b2d235' }} />
+                    )}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
+                      <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: latestStories[0]?.image ? '#b2d235' : 'rgba(255,255,255,0.2)' }}>
+                        <BookOpen className="w-6 h-6 md:w-8 md:h-8 text-white" />
+                      </div>
+                      <h3 className="font-semibold text-lg md:text-xl text-white mb-1 drop-shadow-lg">Stories</h3>
+                      {storyCount > 0 && (
+                        <Badge variant="secondary" className="text-xs bg-white/90">
+                          {storyCount}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+
+              {/* Trips Card */}
+              <Link to="/trips" className="block">
+                <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full overflow-hidden">
+                  <div className="relative aspect-[4/3] overflow-hidden group">
+                    {latestTrips[0]?.image ? (
+                      <>
+                        <OptimizedImage
+                          src={latestTrips[0].image}
+                          alt="Latest Trip"
+                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                          blurUp={true}
+                          thumbnail={true}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                      </>
+                    ) : (
+                      <div className="w-full h-full" style={{ backgroundColor: '#ffcc00' }} />
+                    )}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
+                      <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: latestTrips[0]?.image ? '#ffcc00' : 'rgba(255,255,255,0.2)' }}>
+                        <MapPin className="w-6 h-6 md:w-8 md:h-8 text-white" />
+                      </div>
+                      <h3 className="font-semibold text-lg md:text-xl text-white mb-1 drop-shadow-lg">Trips</h3>
+                      {tripCount > 0 && (
+                        <Badge variant="secondary" className="text-xs bg-white/90">
+                          {tripCount}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+
+              {/* Stock Media Card */}
+              <Link to="/marketplace" className="block">
+                <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full overflow-hidden">
+                  <div className="relative aspect-[4/3] overflow-hidden group">
+                    {latestStockMediaItems[0]?.image ? (
+                      <>
+                        <OptimizedImage
+                          src={latestStockMediaItems[0].image}
+                          alt="Latest Stock Media"
+                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                          blurUp={true}
+                          thumbnail={true}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                      </>
+                    ) : (
+                      <div className="w-full h-full" style={{ backgroundColor: '#ec1a58' }} />
+                    )}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
+                      <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: latestStockMediaItems[0]?.image ? '#ec1a58' : 'rgba(255,255,255,0.2)' }}>
+                        <Camera className="w-6 h-6 md:w-8 md:h-8 text-white" />
+                      </div>
+                      <h3 className="font-semibold text-lg md:text-xl text-white mb-1 drop-shadow-lg">Stock Media</h3>
+                      {stockMediaCount > 0 && (
+                        <Badge variant="secondary" className="text-xs bg-white/90">
+                          {stockMediaCount}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+            </div>
+          </div>
+
+          {/* Content Area - Map or Images */}
+          {viewMode === 'map' ? (
+            <>
+              {/* Desktop Map */}
+              <div className="hidden md:block mb-8">
+                <AllAdminReviewsMap showTitle={true} />
+              </div>
+
+              {/* Features Info */}
+              <div className="grid md:grid-cols-3 gap-6 mb-8">
               <Card className="border-blue-200 dark:border-blue-800">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
@@ -157,11 +310,7 @@ export default function WorldMap() {
                 </CardContent>
               </Card>
             </div>
-          )}
-
-          {/* Content Area - Map or Images */}
-          {viewMode === 'map' ? (
-            <WorldReviewsMap />
+            </>
           ) : (
             <Card>
               <CardHeader>
@@ -224,70 +373,6 @@ export default function WorldMap() {
               </CardContent>
             </Card>
           )}
-
-          {/* Relay Configuration */}
-          <Card className="mt-8 border-blue-200 dark:border-blue-800">
-            <CardHeader>
-              <CardTitle>Relay Configuration</CardTitle>
-              <CardDescription>
-                Switch relays to discover reviews from different Nostr communities around the world
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <RelaySelector className="w-full max-w-md" />
-            </CardContent>
-          </Card>
-
-          {/* Map Legend - Only show in map view */}
-          {viewMode === 'map' && (
-            <Card className="mt-8">
-              <CardHeader>
-                <CardTitle>Map Legend</CardTitle>
-                <CardDescription>
-                  Understanding the map markers and their meanings
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div>
-                    <h4 className="font-semibold mb-3">Rating Colors</h4>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-4 h-4 bg-green-500 rounded-full"></div>
-                        <span className="text-sm">4-5 stars (Excellent)</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="w-4 h-4 bg-yellow-500 rounded-full"></div>
-                        <span className="text-sm">3 stars (Good)</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="w-4 h-4 bg-red-500 rounded-full"></div>
-                        <span className="text-sm">1-2 stars (Poor)</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold mb-3">Special Indicators</h4>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-4 h-4 border-2 border-green-500 rounded-full bg-green-100"></div>
-                        <span className="text-sm">📷 GPS Corrected from Photo</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="w-4 h-4 border-2 border-blue-500 rounded-full bg-blue-100"></div>
-                        <span className="text-sm">↑ Precision Upgraded</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="w-4 h-4 border-2 border-red-400 border-dashed rounded-full"></div>
-                        <span className="text-sm">Low Precision Location</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
 
         </div>
       </div>
