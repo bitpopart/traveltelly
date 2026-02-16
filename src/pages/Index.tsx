@@ -500,15 +500,13 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
       <NavigationComponent />
-      {/* Add padding for fixed header - only on desktop */}
-      <div className="hidden md:block h-16" />
       
       {/* Reviews Map - Full width on mobile, in container on desktop */}
-      <div className="md:hidden mt-16">
+      <div className="md:hidden pt-16">
         <AllAdminReviewsMap zoomToLocation={selectedLocationTag} showTitle={false} />
       </div>
 
-      <div className="container mx-auto px-2 md:px-4 md:py-8">
+      <div className="container mx-auto px-2 md:px-4 md:py-8 md:pt-24">
         <div className="max-w-6xl mx-auto">
           {/* User Controls Card - Only show when user is logged in and no location selected */}
           {user && !selectedLocationTag && (
