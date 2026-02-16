@@ -515,16 +515,8 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
           {user && !selectedLocationTag && (
             <Card className="shadow-lg mb-6 md:mb-8 overflow-visible">
               <CardContent className="p-4 md:p-8 overflow-visible">
-                {/* Header - My Travels button and Zap button */}
+                {/* Header - Zap button */}
                 <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3 mb-0">
-                  <Link to="/my-travels">
-                    <Button 
-                      className="rounded-full font-semibold text-white hover:opacity-90 transition-opacity text-sm md:text-base px-6 md:px-8 py-3 h-auto"
-                      style={{ backgroundColor: '#b700d7' }}
-                    >
-                      MY TRAVELS
-                    </Button>
-                  </Link>
                   <ZapAuthorButton
                     authorPubkey="7d33ba57d8a6e8869a1f1d5215254597594ac0dbfeb01b690def8c461b82db35"
                     showAuthorName={false}

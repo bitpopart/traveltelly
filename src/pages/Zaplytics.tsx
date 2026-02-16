@@ -142,7 +142,7 @@ export default function Zaplytics() {
             <Link to="/my-travels">
               <Button variant="outline" className="mb-4">
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to My Travels
+                Back to Profile
               </Button>
             </Link>
             <div className="flex items-center gap-3 mb-2">
