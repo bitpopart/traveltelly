@@ -864,6 +864,29 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                         break;
                     }
 
+                    // Get icon and color based on type
+                    let icon = Star;
+                    let color = '#27b0ff';
+                    switch (item.type) {
+                      case 'review':
+                        icon = Star;
+                        color = '#27b0ff';
+                        break;
+                      case 'story':
+                        icon = BookOpen;
+                        color = '#b2d235';
+                        break;
+                      case 'trip':
+                        icon = MapPin;
+                        color = '#ffcc00';
+                        break;
+                      case 'stock':
+                        icon = Camera;
+                        color = '#ec1a58';
+                        break;
+                    }
+                    const Icon = icon;
+
                     return (
                       <Link key={`${item.type}-${item.naddr}`} to={destinationPath}>
                         <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
@@ -875,20 +898,14 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                               blurUp={true}
                               thumbnail={true}
                             />
-                            {/* Type badge overlay */}
+                            {/* Type icon overlay - colored round button */}
                             <div className="absolute top-2 right-2">
-                              <Badge 
-                                variant="secondary" 
-                                className="text-xs capitalize bg-white/90 dark:bg-gray-900/90"
+                              <div 
+                                className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
+                                style={{ backgroundColor: color }}
                               >
-                                {item.type}
-                              </Badge>
-                            </div>
-                            {/* Title overlay at bottom */}
-                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
-                              <p className="text-white text-sm font-semibold line-clamp-2">
-                                {item.title}
-                              </p>
+                                <Icon className="w-5 h-5 text-white" strokeWidth={2} />
+                              </div>
                             </div>
                           </div>
                         </Card>
