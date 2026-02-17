@@ -18,6 +18,8 @@ import { CreateTripForm } from "@/components/CreateTripForm";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useReviewPermissions } from "@/hooks/useReviewPermissions";
 import { useLatestReview, useLatestStory, useLatestStockMedia, useLatestTrip, useReviewCount, useStoryCount, useStockMediaCount, useTripCount, useLatestReviews, useLatestStories, useLatestTrips, useLatestStockMediaItems } from "@/hooks/useLatestItems";
+import { useAllImages } from "@/hooks/useAllImages";
+import { useViewMode } from "@/contexts/ViewModeContext";
 import { MapPin, Star, Camera, Zap, Shield, BookOpen, Search, Navigation, FileImage, ArrowRight, Calendar, MessageCircle } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ZapAuthorButton } from "@/components/ZapAuthorButton";
@@ -465,6 +467,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
   const { user } = useCurrentUser();
   const navigate = useNavigate();
   const { isAdmin, isCheckingPermission } = useReviewPermissions();
+  const { viewMode } = useViewMode();
   const { data: latestReview } = useLatestReview();
   const { data: latestStory } = useLatestStory();
   const { data: latestStockMedia } = useLatestStockMedia();
@@ -483,6 +486,9 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
   const { data: latestStories = [] } = useLatestStories();
   const { data: latestTrips = [] } = useLatestTrips();
   const { data: latestStockMediaItems = [] } = useLatestStockMediaItems();
+  
+  // Get all images for image grid view (filtered by contributor status)
+  const { data: allImages = [], isLoading: imagesLoading } = useAllImages();
 
   // Debug logging
   console.log('📊 Homepage thumbnails:', {
@@ -501,13 +507,17 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
     <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
       <NavigationComponent />
       
-      {/* Reviews Map - Full width on mobile directly under fixed header */}
-      <div className="md:hidden absolute top-16 left-0 right-0 z-10">
-        <AllAdminReviewsMap zoomToLocation={selectedLocationTag} showTitle={false} />
-      </div>
+      {/* Reviews Map - Full width on mobile directly under fixed header - Only show in map mode */}
+      {viewMode === 'map' && (
+        <>
+          <div className="md:hidden absolute top-16 left-0 right-0 z-10">
+            <AllAdminReviewsMap zoomToLocation={selectedLocationTag} showTitle={false} />
+          </div>
 
-      {/* Spacer for mobile to push content below map */}
-      <div className="md:hidden h-96" />
+          {/* Spacer for mobile to push content below map */}
+          <div className="md:hidden h-96" />
+        </>
+      )}
 
       <div className="container mx-auto px-2 md:px-4 md:py-8 md:pt-24">
         <div className="max-w-6xl mx-auto">
@@ -529,8 +539,8 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
             </Card>
           )}
 
-          {/* Feature Cards - Desktop Only with Images - Always show when no location selected */}
-          {!selectedLocationTag && (
+          {/* Feature Cards - Desktop Only with Images - Show in map mode when no location selected */}
+          {viewMode === 'map' && !selectedLocationTag && (
             <div className="hidden md:block mb-6 md:mb-8">
               <div className="grid md:grid-cols-4 gap-3 md:gap-4 w-full">
                 {/* Share Reviews Card */}
@@ -783,48 +793,145 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
           {/* Admin Debug Info (Development Only) */}
           {!selectedLocationTag && <AdminDebugInfo />}
 
-          {/* Reviews Map - Desktop only (mobile is outside container) */}
-          <div className="hidden md:block mb-8 md:mb-12">
-            <AllAdminReviewsMap zoomToLocation={selectedLocationTag} showTitle={false} />
-          </div>
-
-          {/* Location Tag Cloud */}
-          <div className="mb-8 md:mb-12">
-            <LocationTagCloud 
-              onTagClick={(tag) => {
-                const newTag = tag === selectedLocationTag ? '' : tag;
-                setSelectedLocationTag(newTag);
-                
-                // Update URL when tag clicked (lowercase)
-                if (newTag) {
-                  const urlFriendlyTag = newTag.toLowerCase().replace(/\s+/g, '-');
-                  navigate(`/${urlFriendlyTag}`, { replace: true });
-                } else {
-                  navigate('/', { replace: true });
-                }
-              }}
-              selectedTag={selectedLocationTag}
-            />
-          </div>
-
-          {/* Search Bar - Mobile Only (after Popular Destinations) */}
-          <div className="md:hidden mb-8">
-            <Card className="shadow-lg">
-              <CardContent className="p-4">
-                <UnifiedSearchBar />
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Location-Filtered Content */}
-          {selectedLocationTag ? (
-            <div className="mb-8 md:mb-12">
-              <LocationContentGrid locationTag={selectedLocationTag} />
-            </div>
-          ) : (
+          {/* View Mode: Map */}
+          {viewMode === 'map' && (
             <>
-              {/* Reviews Section */}
-          {latestReviews.length > 0 && (
+              {/* Reviews Map - Desktop only (mobile is outside container) */}
+              <div className="hidden md:block mb-8 md:mb-12">
+                <AllAdminReviewsMap zoomToLocation={selectedLocationTag} showTitle={false} />
+              </div>
+
+              {/* Location Tag Cloud */}
+              <div className="mb-8 md:mb-12">
+                <LocationTagCloud 
+                  onTagClick={(tag) => {
+                    const newTag = tag === selectedLocationTag ? '' : tag;
+                    setSelectedLocationTag(newTag);
+                    
+                    // Update URL when tag clicked (lowercase)
+                    if (newTag) {
+                      const urlFriendlyTag = newTag.toLowerCase().replace(/\s+/g, '-');
+                      navigate(`/${urlFriendlyTag}`, { replace: true });
+                    } else {
+                      navigate('/', { replace: true });
+                    }
+                  }}
+                  selectedTag={selectedLocationTag}
+                />
+              </div>
+            </>
+          )}
+
+          {/* View Mode: Images Grid */}
+          {viewMode === 'images' && !selectedLocationTag && (
+            <div className="mb-8 md:mb-12">
+              <div className="flex justify-between items-center mb-4 md:mb-6">
+                <h2 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  All Images
+                  {allImages.length > 0 && (
+                    <span className="text-sm md:text-xl font-normal text-muted-foreground">
+                      ({allImages.length})
+                    </span>
+                  )}
+                </h2>
+              </div>
+              
+              {imagesLoading ? (
+                <div className="grid gap-4 md:gap-6 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <Card key={i} className="overflow-hidden">
+                      <div className="aspect-square bg-gray-200 dark:bg-gray-700 animate-pulse" />
+                    </Card>
+                  ))}
+                </div>
+              ) : allImages.length > 0 ? (
+                <div className="grid gap-4 md:gap-6 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                  {allImages.map((item) => {
+                    // Get the destination path based on type
+                    let destinationPath = '/';
+                    switch (item.type) {
+                      case 'review':
+                        destinationPath = `/review/${item.naddr}`;
+                        break;
+                      case 'trip':
+                        destinationPath = `/trip/${item.naddr}`;
+                        break;
+                      case 'story':
+                        destinationPath = `/story/${item.naddr}`;
+                        break;
+                      case 'stock':
+                        destinationPath = `/media/preview/${item.naddr}`;
+                        break;
+                    }
+
+                    return (
+                      <Link key={`${item.type}-${item.naddr}`} to={destinationPath}>
+                        <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
+                          <div className="relative aspect-square overflow-hidden group">
+                            <OptimizedImage
+                              src={item.image}
+                              alt={item.title}
+                              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                              blurUp={true}
+                              thumbnail={true}
+                            />
+                            {/* Type badge overlay */}
+                            <div className="absolute top-2 right-2">
+                              <Badge 
+                                variant="secondary" 
+                                className="text-xs capitalize bg-white/90 dark:bg-gray-900/90"
+                              >
+                                {item.type}
+                              </Badge>
+                            </div>
+                            {/* Title overlay at bottom */}
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+                              <p className="text-white text-sm font-semibold line-clamp-2">
+                                {item.title}
+                              </p>
+                            </div>
+                          </div>
+                        </Card>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : (
+                <Card className="border-dashed">
+                  <CardContent className="py-12 px-8 text-center">
+                    <div className="max-w-sm mx-auto space-y-4">
+                      <Camera className="w-12 h-12 mx-auto text-muted-foreground" />
+                      <p className="text-muted-foreground">
+                        No images found. {user ? 'Start creating content to see it here!' : 'Try switching relays or check back later.'}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {/* Search Bar - Mobile Only (after Popular Destinations) - Only in Map Mode */}
+          {viewMode === 'map' && (
+            <div className="md:hidden mb-8">
+              <Card className="shadow-lg">
+                <CardContent className="p-4">
+                  <UnifiedSearchBar />
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Location-Filtered Content - Only in Map Mode */}
+          {viewMode === 'map' && (
+            selectedLocationTag ? (
+              <div className="mb-8 md:mb-12">
+                <LocationContentGrid locationTag={selectedLocationTag} />
+              </div>
+            ) : (
+              <>
+                {/* Reviews Section */}
+            {latestReviews.length > 0 && (
             <div className="mb-6 md:mb-12">
               <div className="flex justify-between items-center mb-4 md:mb-6">
                 <h2 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -990,7 +1097,8 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
               </div>
             </div>
           )}
-            </>
+              </>
+            )
           )}
 
           {/* Lightning Tips Info */}
