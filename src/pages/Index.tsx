@@ -828,7 +828,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
               {imagesLoading ? (
                 <div className="grid gap-1 md:gap-2 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                   {Array.from({ length: 8 }).map((_, i) => (
-                    <div key={i} className="aspect-square bg-gray-200 dark:bg-gray-700 animate-pulse" />
+                    <div key={i} className="aspect-square bg-gray-200 dark:bg-gray-700" />
                   ))}
                 </div>
               ) : allImages.length > 0 ? (

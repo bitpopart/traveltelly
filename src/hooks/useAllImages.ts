@@ -21,6 +21,37 @@ export interface ImageItem {
  * If user is logged in AND is a contributor, show only their content
  * Otherwise show all content from authorized contributors
  */
+/**
+ * Check if an image URL is a real uploaded image (not a placeholder or template)
+ */
+function isValidImageUrl(url: string): boolean {
+  if (!url || typeof url !== 'string') return false;
+  
+  // Filter out placeholder URLs
+  const invalidPatterns = [
+    '/placeholder',
+    'placeholder.com',
+    'via.placeholder',
+    'placehold',
+    'example.com',
+    'localhost',
+    'data:image',
+    'blob:',
+  ];
+  
+  const lowerUrl = url.toLowerCase();
+  if (invalidPatterns.some(pattern => lowerUrl.includes(pattern))) {
+    return false;
+  }
+  
+  // Must start with http/https
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    return false;
+  }
+  
+  return true;
+}
+
 export function useAllImages() {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
@@ -68,7 +99,7 @@ export function useAllImages() {
               kind: 34879,
             });
 
-            if (image) {
+            if (image && isValidImageUrl(image)) {
               images.push({
                 image,
                 title,
@@ -108,7 +139,7 @@ export function useAllImages() {
 
           // Add all images from the trip
           imageTags.forEach(([, image]) => {
-            if (image) {
+            if (image && isValidImageUrl(image)) {
               images.push({
                 image,
                 title,
@@ -146,7 +177,7 @@ export function useAllImages() {
             kind: 30023,
           });
 
-          if (image) {
+          if (image && isValidImageUrl(image)) {
             images.push({
               image,
               title,
@@ -195,7 +226,7 @@ export function useAllImages() {
               kind: 30402,
             });
 
-            if (image) {
+            if (image && isValidImageUrl(image)) {
               images.push({
                 image,
                 title,
