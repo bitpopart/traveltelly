@@ -14,8 +14,7 @@ import {
   Menu,
   X,
   MapPin,
-  User,
-  Zap
+  User
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -124,12 +123,6 @@ export function Navigation({ className }: NavigationProps) {
                     My Profile
                   </Button>
                 </Link>
-                <Link to="/zaplytics">
-                  <Button variant="outline" size="sm" className="rounded-full" style={{ borderColor: '#9945ff', color: '#9945ff' }}>
-                    <Zap className="w-4 h-4 mr-2" />
-                    Zaplytics
-                  </Button>
-                </Link>
                 {isAdmin && (
                   <Link to="/admin">
                     <Button variant="outline" size="sm" className="rounded-full" style={{ borderColor: '#393636', color: '#393636' }}>
@@ -182,12 +175,6 @@ export function Navigation({ className }: NavigationProps) {
                     <Button variant="outline" className="w-full justify-start rounded-full" style={{ borderColor: '#ff8c00', color: '#ff8c00' }}>
                       <User className="w-4 h-4 mr-2" />
                       My Profile
-                    </Button>
-                  </Link>
-                  <Link to="/zaplytics" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="outline" className="w-full justify-start rounded-full" style={{ borderColor: '#9945ff', color: '#9945ff' }}>
-                      <Zap className="w-4 h-4 mr-2" />
-                      Zaplytics
                     </Button>
                   </Link>
                   {isAdmin && (
