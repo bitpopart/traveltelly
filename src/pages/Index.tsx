@@ -825,17 +825,6 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
           {/* View Mode: Images Grid */}
           {viewMode === 'images' && !selectedLocationTag && (
             <div className="mb-8 md:mb-12">
-              <div className="flex justify-between items-center mb-4 md:mb-6">
-                <h2 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  All Images
-                  {allImages.length > 0 && (
-                    <span className="text-sm md:text-xl font-normal text-muted-foreground">
-                      ({allImages.length})
-                    </span>
-                  )}
-                </h2>
-              </div>
-              
               {imagesLoading ? (
                 <div className="grid gap-1 md:gap-2 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                   {Array.from({ length: 8 }).map((_, i) => (
