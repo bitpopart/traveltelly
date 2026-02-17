@@ -13,7 +13,9 @@ import {
   Shield,
   Menu,
   X,
-  MapPin
+  MapPin,
+  User,
+  Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -116,6 +118,18 @@ export function Navigation({ className }: NavigationProps) {
           <div className="hidden md:flex items-center gap-3">
             {user ? (
               <>
+                <Link to="/my-travels">
+                  <Button variant="outline" size="sm" className="rounded-full" style={{ borderColor: '#ff8c00', color: '#ff8c00' }}>
+                    <User className="w-4 h-4 mr-2" />
+                    My Profile
+                  </Button>
+                </Link>
+                <Link to="/zaplytics">
+                  <Button variant="outline" size="sm" className="rounded-full" style={{ borderColor: '#9945ff', color: '#9945ff' }}>
+                    <Zap className="w-4 h-4 mr-2" />
+                    Zaplytics
+                  </Button>
+                </Link>
                 {isAdmin && (
                   <Link to="/admin">
                     <Button variant="outline" size="sm" className="rounded-full" style={{ borderColor: '#393636', color: '#393636' }}>
@@ -164,6 +178,18 @@ export function Navigation({ className }: NavigationProps) {
             <div className="pt-4 border-t border-gray-200 dark:border-gray-800 space-y-2">
               {user ? (
                 <>
+                  <Link to="/my-travels" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="outline" className="w-full justify-start rounded-full" style={{ borderColor: '#ff8c00', color: '#ff8c00' }}>
+                      <User className="w-4 h-4 mr-2" />
+                      My Profile
+                    </Button>
+                  </Link>
+                  <Link to="/zaplytics" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="outline" className="w-full justify-start rounded-full" style={{ borderColor: '#9945ff', color: '#9945ff' }}>
+                      <Zap className="w-4 h-4 mr-2" />
+                      Zaplytics
+                    </Button>
+                  </Link>
                   {isAdmin && (
                     <Link to="/admin" onClick={() => setIsMobileMenuOpen(false)}>
                       <Button variant="outline" className="w-full justify-start rounded-full" style={{ borderColor: '#393636', color: '#393636' }}>
