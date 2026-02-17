@@ -308,40 +308,6 @@ export default function MyTravels() {
       <Navigation />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
-          {/* Action Buttons */}
-          <div className="mb-6 flex justify-end gap-3 flex-wrap">
-            <Link to="/zaplytics">
-              <Button
-                size="lg"
-                variant="outline"
-                className="rounded-full font-semibold"
-                style={{ borderColor: '#f97316', color: '#f97316' }}
-              >
-                <Zap className="w-4 h-4 mr-2" />
-                Zaplytics
-              </Button>
-            </Link>
-            <Dialog open={isCheckInDialogOpen} onOpenChange={setIsCheckInDialogOpen}>
-              <Button
-                onClick={() => setIsCheckInDialogOpen(true)}
-                size="lg"
-                className="rounded-full text-black font-semibold"
-                style={{ backgroundColor: '#ffcc00' }}
-              >
-                <MapPin className="w-4 h-4 mr-2" />
-                Check In
-              </Button>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle className="text-2xl">Check In</DialogTitle>
-                </DialogHeader>
-                <div className="mt-4">
-                  <CheckInForm onSuccess={() => setIsCheckInDialogOpen(false)} />
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-
           {/* Profile Header */}
           <Card className="mb-8">
             <CardContent className="pt-6">
@@ -394,6 +360,40 @@ export default function MyTravels() {
                         </Button>
                       </>
                     )}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 flex-wrap mb-4">
+                    <Link to="/zaplytics">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-full font-semibold"
+                        style={{ borderColor: '#f97316', color: '#f97316' }}
+                      >
+                        <Zap className="w-4 h-4 mr-2" />
+                        Zaplytics
+                      </Button>
+                    </Link>
+                    <Dialog open={isCheckInDialogOpen} onOpenChange={setIsCheckInDialogOpen}>
+                      <Button
+                        onClick={() => setIsCheckInDialogOpen(true)}
+                        size="sm"
+                        className="rounded-full text-black font-semibold"
+                        style={{ backgroundColor: '#ffcc00' }}
+                      >
+                        <MapPin className="w-4 h-4 mr-2" />
+                        Check In
+                      </Button>
+                      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle className="text-2xl">Check In</DialogTitle>
+                        </DialogHeader>
+                        <div className="mt-4">
+                          <CheckInForm onSuccess={() => setIsCheckInDialogOpen(false)} />
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   </div>
 
                   {latestCheckIn && (
