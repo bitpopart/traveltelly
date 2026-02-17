@@ -913,16 +913,16 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
 
                       return (
                         <Link key={`${item.type}-${item.naddr}`} to={destinationPath}>
-                          <div className="relative aspect-square overflow-hidden group cursor-pointer">
+                          <div className="relative aspect-square overflow-hidden group cursor-pointer bg-gray-100 dark:bg-gray-800">
                             <OptimizedImage
                               src={item.image}
                               alt={item.title}
-                              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                              className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
                               blurUp={true}
                               thumbnail={true}
                             />
                             {/* Type icon overlay - colored round button */}
-                            <div className="absolute top-2 right-2">
+                            <div className="absolute top-2 right-2 z-10">
                               <div 
                                 className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
                                 style={{ backgroundColor: color }}
