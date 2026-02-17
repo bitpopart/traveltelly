@@ -9,7 +9,35 @@ function validateTripEvent(event: NostrEvent): boolean {
   const title = event.tags.find(([name]) => name === 'title')?.[1];
   const images = event.tags.filter(([name]) => name === 'image');
 
-  return !!(d && title && images.length > 0);
+  if (!d || !title || images.length === 0) {
+    return false;
+  }
+
+  // Filter out template/placeholder content
+  const lowerContent = event.content.toLowerCase();
+  const lowerTitle = title.toLowerCase();
+  
+  const placeholderKeywords = [
+    'lorem ipsum',
+    'placeholder',
+    'template',
+    'sample trip',
+    'example trip',
+    'test trip',
+    'demo trip',
+    'dolor sit amet',
+  ];
+
+  // Check if content or title contains placeholder keywords
+  const hasPlaceholder = placeholderKeywords.some(keyword => 
+    lowerContent.includes(keyword) || lowerTitle.includes(keyword)
+  );
+
+  if (hasPlaceholder) {
+    return false;
+  }
+
+  return true;
 }
 
 export function useTrips() {

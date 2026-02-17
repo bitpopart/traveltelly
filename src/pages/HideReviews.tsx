@@ -33,7 +33,35 @@ function validateReviewEvent(event: NostrEvent): boolean {
   const rating = event.tags.find(([name]) => name === 'rating')?.[1];
   const category = event.tags.find(([name]) => name === 'category')?.[1];
 
-  return !!(d && title && rating && category);
+  if (!d || !title || !rating || !category) {
+    return false;
+  }
+
+  // Filter out template/placeholder content
+  const lowerContent = event.content.toLowerCase();
+  const lowerTitle = title.toLowerCase();
+  
+  const placeholderKeywords = [
+    'lorem ipsum',
+    'placeholder',
+    'template',
+    'sample review',
+    'example review',
+    'test review',
+    'demo review',
+    'dolor sit amet',
+  ];
+
+  // Check if content or title contains placeholder keywords
+  const hasPlaceholder = placeholderKeywords.some(keyword => 
+    lowerContent.includes(keyword) || lowerTitle.includes(keyword)
+  );
+
+  if (hasPlaceholder) {
+    return false;
+  }
+
+  return true;
 }
 
 interface ReviewItemProps {

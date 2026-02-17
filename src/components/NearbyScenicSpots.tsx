@@ -22,8 +22,37 @@ function validateStockMediaEvent(event: NostrEvent): event is StockMediaEvent {
   const d = event.tags.find(([name]) => name === 'd')?.[1];
   const title = event.tags.find(([name]) => name === 'title')?.[1];
   const image = event.tags.find(([name]) => name === 'image')?.[1];
+  
   // Only include items with images
-  return !!(d && title && image);
+  if (!d || !title || !image) {
+    return false;
+  }
+
+  // Filter out template/placeholder content
+  const lowerContent = event.content.toLowerCase();
+  const lowerTitle = title.toLowerCase();
+  
+  const placeholderKeywords = [
+    'lorem ipsum',
+    'placeholder',
+    'template',
+    'sample media',
+    'example media',
+    'test media',
+    'demo media',
+    'dolor sit amet',
+  ];
+
+  // Check if content or title contains placeholder keywords
+  const hasPlaceholder = placeholderKeywords.some(keyword => 
+    lowerContent.includes(keyword) || lowerTitle.includes(keyword)
+  );
+
+  if (hasPlaceholder) {
+    return false;
+  }
+
+  return true;
 }
 
 function useNearbyStockMedia(geohashStr: string) {

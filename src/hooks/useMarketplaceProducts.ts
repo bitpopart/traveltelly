@@ -52,6 +52,30 @@ function validateMarketplaceProduct(event: NostrEvent): boolean {
   const numAmount = parseFloat(amount);
   if (isNaN(numAmount) || numAmount <= 0) return false;
 
+  // Filter out template/placeholder content
+  const lowerContent = event.content.toLowerCase();
+  const lowerTitle = title.toLowerCase();
+  
+  const placeholderKeywords = [
+    'lorem ipsum',
+    'placeholder',
+    'template',
+    'sample product',
+    'example product',
+    'test product',
+    'demo product',
+    'dolor sit amet',
+  ];
+
+  // Check if content or title contains placeholder keywords
+  const hasPlaceholder = placeholderKeywords.some(keyword => 
+    lowerContent.includes(keyword) || lowerTitle.includes(keyword)
+  );
+
+  if (hasPlaceholder) {
+    return false;
+  }
+
   return true;
 }
 

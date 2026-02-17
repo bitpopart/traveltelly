@@ -63,7 +63,36 @@ function validateTripEvent(event: NostrEvent): event is TripEvent {
   if (event.kind !== 30025) return false;
   const d = event.tags.find(([name]) => name === 'd')?.[1];
   const title = event.tags.find(([name]) => name === 'title')?.[1];
-  return !!(d && title);
+  
+  if (!d || !title) {
+    return false;
+  }
+
+  // Filter out template/placeholder content
+  const lowerContent = event.content.toLowerCase();
+  const lowerTitle = title.toLowerCase();
+  
+  const placeholderKeywords = [
+    'lorem ipsum',
+    'placeholder',
+    'template',
+    'sample trip',
+    'example trip',
+    'test trip',
+    'demo trip',
+    'dolor sit amet',
+  ];
+
+  // Check if content or title contains placeholder keywords
+  const hasPlaceholder = placeholderKeywords.some(keyword => 
+    lowerContent.includes(keyword) || lowerTitle.includes(keyword)
+  );
+
+  if (hasPlaceholder) {
+    return false;
+  }
+
+  return true;
 }
 
 interface TripCardProps {
