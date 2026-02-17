@@ -837,60 +837,83 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
               </div>
               
               {imagesLoading ? (
-                <div className="grid gap-4 md:gap-6 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                <div className="grid gap-2 md:gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                   {Array.from({ length: 8 }).map((_, i) => (
-                    <Card key={i} className="overflow-hidden">
-                      <div className="aspect-square bg-gray-200 dark:bg-gray-700 animate-pulse" />
-                    </Card>
+                    <div key={i} className="aspect-square bg-gray-200 dark:bg-gray-700 animate-pulse" />
                   ))}
                 </div>
               ) : allImages.length > 0 ? (
-                <div className="grid gap-4 md:gap-6 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                  {allImages.map((item) => {
-                    // Get the destination path based on type
-                    let destinationPath = '/';
-                    switch (item.type) {
-                      case 'review':
-                        destinationPath = `/review/${item.naddr}`;
-                        break;
-                      case 'trip':
-                        destinationPath = `/trip/${item.naddr}`;
-                        break;
-                      case 'story':
-                        destinationPath = `/story/${item.naddr}`;
-                        break;
-                      case 'stock':
-                        destinationPath = `/media/preview/${item.naddr}`;
-                        break;
+                <div className="grid gap-2 md:gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                  {(() => {
+                    // Shuffle images to mix different content types
+                    // Group by type first
+                    const byType = {
+                      review: allImages.filter(i => i.type === 'review'),
+                      story: allImages.filter(i => i.type === 'story'),
+                      trip: allImages.filter(i => i.type === 'trip'),
+                      stock: allImages.filter(i => i.type === 'stock'),
+                    };
+
+                    // Create a mixed array by round-robin from each type
+                    const mixed: typeof allImages = [];
+                    const maxLength = Math.max(
+                      byType.review.length,
+                      byType.story.length,
+                      byType.trip.length,
+                      byType.stock.length
+                    );
+
+                    for (let i = 0; i < maxLength; i++) {
+                      if (byType.review[i]) mixed.push(byType.review[i]);
+                      if (byType.story[i]) mixed.push(byType.story[i]);
+                      if (byType.trip[i]) mixed.push(byType.trip[i]);
+                      if (byType.stock[i]) mixed.push(byType.stock[i]);
                     }
 
-                    // Get icon and color based on type
-                    let icon = Star;
-                    let color = '#27b0ff';
-                    switch (item.type) {
-                      case 'review':
-                        icon = Star;
-                        color = '#27b0ff';
-                        break;
-                      case 'story':
-                        icon = BookOpen;
-                        color = '#b2d235';
-                        break;
-                      case 'trip':
-                        icon = MapPin;
-                        color = '#ffcc00';
-                        break;
-                      case 'stock':
-                        icon = Camera;
-                        color = '#ec1a58';
-                        break;
-                    }
-                    const Icon = icon;
+                    return mixed.map((item) => {
+                      // Get the destination path based on type
+                      let destinationPath = '/';
+                      switch (item.type) {
+                        case 'review':
+                          destinationPath = `/review/${item.naddr}`;
+                          break;
+                        case 'trip':
+                          destinationPath = `/trip/${item.naddr}`;
+                          break;
+                        case 'story':
+                          destinationPath = `/story/${item.naddr}`;
+                          break;
+                        case 'stock':
+                          destinationPath = `/media/preview/${item.naddr}`;
+                          break;
+                      }
 
-                    return (
-                      <Link key={`${item.type}-${item.naddr}`} to={destinationPath}>
-                        <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
-                          <div className="relative aspect-square overflow-hidden group">
+                      // Get icon and color based on type
+                      let icon = Star;
+                      let color = '#27b0ff';
+                      switch (item.type) {
+                        case 'review':
+                          icon = Star;
+                          color = '#27b0ff';
+                          break;
+                        case 'story':
+                          icon = BookOpen;
+                          color = '#b2d235';
+                          break;
+                        case 'trip':
+                          icon = MapPin;
+                          color = '#ffcc00';
+                          break;
+                        case 'stock':
+                          icon = Camera;
+                          color = '#ec1a58';
+                          break;
+                      }
+                      const Icon = icon;
+
+                      return (
+                        <Link key={`${item.type}-${item.naddr}`} to={destinationPath}>
+                          <div className="relative aspect-square overflow-hidden group cursor-pointer">
                             <OptimizedImage
                               src={item.image}
                               alt={item.title}
@@ -908,10 +931,10 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                               </div>
                             </div>
                           </div>
-                        </Card>
-                      </Link>
-                    );
-                  })}
+                        </Link>
+                      );
+                    });
+                  })()}
                 </div>
               ) : (
                 <Card className="border-dashed">
