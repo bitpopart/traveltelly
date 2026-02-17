@@ -8,8 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useLoggedInAccounts, type Account } from '@/hooks/useLoggedInAccounts';
 import { useToast } from '@/hooks/useToast';
+import { genUserName } from '@/lib/genUserName';
 import { 
   Bot, 
   Send, 
@@ -26,7 +29,10 @@ import {
   Brain,
   Rocket,
   ExternalLink,
-  Clock
+  Clock,
+  Users,
+  UserPlus,
+  LogOut
 } from 'lucide-react';
 
 /**
@@ -102,6 +108,7 @@ const SAMPLE_PROMPTS = [
 
 export function ClawChat() {
   const { user } = useCurrentUser();
+  const { authors, currentUser, otherUsers, setLogin, removeLogin } = useLoggedInAccounts();
   const { toast } = useToast();
   
   const [messages, setMessages] = useState<Message[]>([
@@ -113,13 +120,22 @@ export function ClawChat() {
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [selectedModel, setSelectedModel] = useState<string>('claude-opus-4.6');
+  const [selectedNpub, setSelectedNpub] = useState<string>(currentUser?.pubkey || '');
   const [credits, setCredits] = useState<number>(100); // Demo credits
   const [isLoading, setIsLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showAccountManager, setShowAccountManager] = useState(false);
   const [showSetupGuide, setShowSetupGuide] = useState(true);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const model = AI_MODELS.find(m => m.id === selectedModel) || AI_MODELS[0];
+
+  // Update selected npub when current user changes
+  useEffect(() => {
+    if (currentUser?.pubkey && !selectedNpub) {
+      setSelectedNpub(currentUser.pubkey);
+    }
+  }, [currentUser?.pubkey, selectedNpub]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -309,6 +325,32 @@ What would you like to explore?`;
     });
   };
 
+  /**
+   * Switch active npub
+   */
+  const handleSwitchNpub = (account: Account) => {
+    setSelectedNpub(account.pubkey);
+    
+    // Move this account to the front (make it current)
+    setLogin({ id: account.id, pubkey: account.pubkey });
+    
+    toast({
+      title: 'Account Switched',
+      description: `Now using ${account.metadata?.name || genUserName(account.pubkey)}`,
+    });
+    
+    setShowAccountManager(false);
+  };
+
+  /**
+   * Get account by pubkey
+   */
+  const getAccountByPubkey = (pubkey: string): Account | undefined => {
+    return authors.find(a => a.pubkey === pubkey);
+  };
+
+  const activeAccount = getAccountByPubkey(selectedNpub) || currentUser;
+
   if (!user) {
     return (
       <Card>
@@ -338,13 +380,13 @@ What would you like to explore?`;
       {/* Header with Model Selection & Credits */}
       <Card className="border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50">
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
               <div className="h-12 w-12 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
                 <Bot className="h-6 w-6 text-white" />
               </div>
               <div>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 flex-wrap">
                   AI Chat Assistant
                   <Badge variant="outline" className="bg-purple-100">
                     {model.name}
@@ -357,6 +399,26 @@ What would you like to explore?`;
             </div>
             
             <div className="flex items-center gap-3">
+              {/* Active Account Display */}
+              {activeAccount && (
+                <Button
+                  variant="outline"
+                  onClick={() => setShowAccountManager(!showAccountManager)}
+                  className="gap-2"
+                >
+                  <Avatar className="h-6 w-6">
+                    <AvatarImage src={activeAccount.metadata?.picture} />
+                    <AvatarFallback>
+                      {(activeAccount.metadata?.name || genUserName(activeAccount.pubkey)).slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm">
+                    {activeAccount.metadata?.name || genUserName(activeAccount.pubkey)}
+                  </span>
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              )}
+
               {/* Credits Display */}
               <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border shadow-sm">
                 <Coins className="h-4 w-4 text-amber-500" />
@@ -542,6 +604,103 @@ What would you like to explore?`;
                 </div>
               </AlertDescription>
             </Alert>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Account Manager Panel */}
+      {showAccountManager && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Nostr Account Manager
+            </CardTitle>
+            <CardDescription>
+              Switch between accounts or add new ones
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Current Account */}
+            {activeAccount && (
+              <div>
+                <Label className="text-xs text-muted-foreground">Active Account</Label>
+                <div className="mt-2 p-3 bg-purple-50 border-2 border-purple-200 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={activeAccount.metadata?.picture} />
+                      <AvatarFallback>
+                        {(activeAccount.metadata?.name || genUserName(activeAccount.pubkey)).slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium">
+                        {activeAccount.metadata?.name || genUserName(activeAccount.pubkey)}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {activeAccount.pubkey.slice(0, 16)}...
+                      </div>
+                    </div>
+                    <Badge variant="secondary" className="bg-purple-100">
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      Active
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Other Accounts */}
+            {otherUsers.length > 0 && (
+              <div>
+                <Label className="text-xs text-muted-foreground">Other Accounts</Label>
+                <div className="mt-2 space-y-2">
+                  {otherUsers.map((account) => (
+                    <div
+                      key={account.id}
+                      className="p-3 border rounded-lg hover:border-purple-300 transition-colors cursor-pointer"
+                      onClick={() => handleSwitchNpub(account)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={account.metadata?.picture} />
+                          <AvatarFallback>
+                            {(account.metadata?.name || genUserName(account.pubkey)).slice(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium">
+                            {account.metadata?.name || genUserName(account.pubkey)}
+                          </div>
+                          <div className="text-xs text-muted-foreground truncate">
+                            {account.pubkey.slice(0, 16)}...
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="sm">
+                          Switch
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Add Account Help */}
+            <Alert>
+              <UserPlus className="h-4 w-4" />
+              <AlertTitle>Add More Accounts</AlertTitle>
+              <AlertDescription className="text-sm">
+                To add more accounts, use your Nostr extension (nos2x, Alby, etc.) to login with a different npub.
+                The AI chat will remember all your logged-in accounts.
+              </AlertDescription>
+            </Alert>
+
+            <div className="flex justify-end pt-2">
+              <Button onClick={() => setShowAccountManager(false)}>
+                Done
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
