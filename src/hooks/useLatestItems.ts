@@ -11,6 +11,43 @@ const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a
 const ADMIN_HEX = nip19.decode(ADMIN_NPUB).data as string;
 
 /**
+ * Check if an image URL is a real uploaded image (not a placeholder or template)
+ * NEVER show placeholder images from templates
+ */
+function isValidImageUrl(url: string | undefined): boolean {
+  if (!url || typeof url !== 'string') return false;
+  
+  // Filter out placeholder URLs - NEVER show these
+  const invalidPatterns = [
+    '/placeholder',
+    'placeholder.com',
+    'via.placeholder',
+    'placehold',
+    'example.com',
+    'localhost',
+    'data:image',
+    'blob:',
+    'picsum.photos',  // Lorem Picsum placeholder service
+    'unsplash.it',    // Unsplash placeholder service
+    'dummyimage.com', // Dummy image generator
+    'fakeimg.pl',     // Fake image service
+    'loremflickr.com', // Lorem Flickr service
+  ];
+  
+  const lowerUrl = url.toLowerCase();
+  if (invalidPatterns.some(pattern => lowerUrl.includes(pattern))) {
+    return false;
+  }
+  
+  // Must start with http/https
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    return false;
+  }
+  
+  return true;
+}
+
+/**
  * Fetch the latest review with an image (for homepage thumbnail)
  */
 export function useLatestReview() {
@@ -38,7 +75,7 @@ export function useLatestReview() {
           const category = event.tags.find(([name]) => name === 'category')?.[1];
           const image = event.tags.find(([name]) => name === 'image')?.[1];
           
-          return !!(d && title && rating && category && image);
+          return !!(d && title && rating && category && isValidImageUrl(image));
         })
         .sort((a, b) => b.created_at - a.created_at)[0];
 
@@ -95,7 +132,7 @@ export function useLatestReviews() {
           const category = event.tags.find(([name]) => name === 'category')?.[1];
           const image = event.tags.find(([name]) => name === 'image')?.[1];
           
-          return !!(d && title && rating && category && image);
+          return !!(d && title && rating && category && isValidImageUrl(image));
         })
         .sort((a, b) => b.created_at - a.created_at)
         .slice(0, 3); // Get the last 3
@@ -151,7 +188,7 @@ export function useLatestStory() {
           const title = event.tags.find(([name]) => name === 'title')?.[1];
           const image = event.tags.find(([name]) => name === 'image')?.[1];
           
-          return !!(d && title && image);
+          return !!(d && title && isValidImageUrl(image));
         })
         .sort((a, b) => b.created_at - a.created_at)[0];
 
@@ -204,7 +241,7 @@ export function useLatestStories() {
           const title = event.tags.find(([name]) => name === 'title')?.[1];
           const image = event.tags.find(([name]) => name === 'image')?.[1];
           
-          return !!(d && title && image);
+          return !!(d && title && isValidImageUrl(image));
         })
         .sort((a, b) => b.created_at - a.created_at)
         .slice(0, 3); // Get the last 3
@@ -275,7 +312,7 @@ export function useLatestStockMedia() {
           // Match the same filter logic as count query
           const isActive = status !== 'deleted' && deleted !== 'true' && adminDeleted !== 'true';
           
-          return !!(d && title && hasValidPrice && image && isActive);
+          return !!(d && title && hasValidPrice && isValidImageUrl(image) && isActive);
         })
         .sort((a, b) => b.created_at - a.created_at)[0];
 
@@ -350,7 +387,7 @@ export function useLatestStockMediaItems() {
           // Match the same filter logic as count query
           const isActive = status !== 'deleted' && deleted !== 'true' && adminDeleted !== 'true';
           
-          return !!(d && title && hasValidPrice && image && isActive);
+          return !!(d && title && hasValidPrice && isValidImageUrl(image) && isActive);
         })
         .sort((a, b) => b.created_at - a.created_at)
         .slice(0, 3); // Get the last 3
@@ -496,8 +533,9 @@ export function useLatestTrip() {
           const d = event.tags.find(([name]) => name === 'd')?.[1];
           const title = event.tags.find(([name]) => name === 'title')?.[1];
           const images = event.tags.filter(([name]) => name === 'image');
+          const validImages = images.filter(([, url]) => isValidImageUrl(url));
           
-          return !!(d && title && images.length > 0);
+          return !!(d && title && validImages.length > 0);
         })
         .sort((a, b) => b.created_at - a.created_at)[0];
 
@@ -548,8 +586,9 @@ export function useLatestTrips() {
           const d = event.tags.find(([name]) => name === 'd')?.[1];
           const title = event.tags.find(([name]) => name === 'title')?.[1];
           const images = event.tags.filter(([name]) => name === 'image');
+          const validImages = images.filter(([, url]) => isValidImageUrl(url));
           
-          return !!(d && title && images.length > 0);
+          return !!(d && title && validImages.length > 0);
         })
         .sort((a, b) => b.created_at - a.created_at)
         .slice(0, 3); // Get the last 3

@@ -27,7 +27,7 @@ export interface ImageItem {
 function isValidImageUrl(url: string): boolean {
   if (!url || typeof url !== 'string') return false;
   
-  // Filter out placeholder URLs
+  // Filter out placeholder URLs - NEVER show these
   const invalidPatterns = [
     '/placeholder',
     'placeholder.com',
@@ -37,6 +37,11 @@ function isValidImageUrl(url: string): boolean {
     'localhost',
     'data:image',
     'blob:',
+    'picsum.photos',  // Lorem Picsum placeholder service
+    'unsplash.it',    // Unsplash placeholder service
+    'dummyimage.com', // Dummy image generator
+    'fakeimg.pl',     // Fake image service
+    'loremflickr.com', // Lorem Flickr service
   ];
   
   const lowerUrl = url.toLowerCase();
