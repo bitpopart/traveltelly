@@ -12,6 +12,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { NostrLoginProvider } from '@nostrify/react/login';
 import { AppProvider } from '@/components/AppProvider';
 import { AppConfig } from '@/contexts/AppContext';
+import { ViewModeProvider } from '@/contexts/ViewModeContext';
 import { preloadExchangeRates } from '@/lib/exchangeRates';
 import { HelpBot } from '@/components/HelpBot';
 import AppRouter from './AppRouter';
@@ -60,14 +61,16 @@ export function App() {
         <QueryClientProvider client={queryClient}>
           <NostrLoginProvider storageKey='nostr:login'>
             <NostrProvider>
-              <TooltipProvider>
-                <Toaster />
-                <Sonner />
-                <HelpBot />
-                <Suspense>
-                  <AppRouter />
-                </Suspense>
-              </TooltipProvider>
+              <ViewModeProvider>
+                <TooltipProvider>
+                  <Toaster />
+                  <Sonner />
+                  <HelpBot />
+                  <Suspense>
+                    <AppRouter />
+                  </Suspense>
+                </TooltipProvider>
+              </ViewModeProvider>
             </NostrProvider>
           </NostrLoginProvider>
         </QueryClientProvider>

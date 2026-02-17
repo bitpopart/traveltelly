@@ -14,10 +14,13 @@ import {
   Menu,
   X,
   MapPin,
-  User
+  User,
+  Globe,
+  Image as ImageIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
+import { useViewMode } from '@/contexts/ViewModeContext';
 
 interface NavigationProps {
   className?: string;
@@ -28,6 +31,7 @@ export function Navigation({ className }: NavigationProps) {
   const { user } = useCurrentUser();
   const { isAdmin } = useReviewPermissions();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { viewMode, setViewMode } = useViewMode();
 
   const isActive = (path: string) => {
     if (path === '/' && location.pathname === '/') return true;
@@ -125,6 +129,36 @@ export function Navigation({ className }: NavigationProps) {
 
           {/* Desktop Right Side */}
           <div className="hidden md:flex items-center gap-3">
+            {/* View Mode Toggle */}
+            <div className="inline-flex items-center bg-gray-200 dark:bg-gray-700 rounded-full p-1 gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setViewMode('map')}
+                className={`rounded-full w-9 h-9 transition-all ${
+                  viewMode === 'map' 
+                    ? 'bg-gray-800 hover:bg-gray-900 text-white' 
+                    : 'hover:bg-gray-300 dark:hover:bg-gray-600'
+                }`}
+                title="World Map"
+              >
+                <Globe className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setViewMode('images')}
+                className={`rounded-full w-9 h-9 transition-all ${
+                  viewMode === 'images' 
+                    ? 'bg-gray-800 hover:bg-gray-900 text-white' 
+                    : 'hover:bg-gray-300 dark:hover:bg-gray-600'
+                }`}
+                title="Images Grid"
+              >
+                <ImageIcon className="w-4 h-4" />
+              </Button>
+            </div>
+
             {user ? (
               <>
                 {isAdmin && (
@@ -173,6 +207,44 @@ export function Navigation({ className }: NavigationProps) {
             ))}
 
             <div className="pt-4 border-t border-gray-200 dark:border-gray-800 space-y-2">
+              {/* View Mode Toggle - Mobile */}
+              <div className="px-3 py-2 flex justify-center">
+                <div className="inline-flex items-center bg-gray-200 dark:bg-gray-700 rounded-full p-1 gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      setViewMode('map');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`rounded-full w-10 h-10 transition-all ${
+                      viewMode === 'map' 
+                        ? 'bg-gray-800 hover:bg-gray-900 text-white' 
+                        : 'hover:bg-gray-300 dark:hover:bg-gray-600'
+                    }`}
+                    title="World Map"
+                  >
+                    <Globe className="w-5 h-5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      setViewMode('images');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`rounded-full w-10 h-10 transition-all ${
+                      viewMode === 'images' 
+                        ? 'bg-gray-800 hover:bg-gray-900 text-white' 
+                        : 'hover:bg-gray-300 dark:hover:bg-gray-600'
+                    }`}
+                    title="Images Grid"
+                  >
+                    <ImageIcon className="w-5 h-5" />
+                  </Button>
+                </div>
+              </div>
+
               {user ? (
                 <>
                   <Link to="/my-travels" onClick={() => setIsMobileMenuOpen(false)}>

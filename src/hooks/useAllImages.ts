@@ -5,6 +5,7 @@ import { useAuthorizedReviewers } from './useAuthorizedReviewers';
 import { useAuthorizedMediaUploaders } from './useStockMediaPermissions';
 import { nip19 } from 'nostr-tools';
 import { useCurrentUser } from './useCurrentUser';
+import { useIsContributor } from './useIsContributor';
 
 export interface ImageItem {
   image: string;
@@ -17,24 +18,26 @@ export interface ImageItem {
 
 /**
  * Fetch all images from reviews, trips, stories, and stock media
- * If user is logged in, show only their content
- * Otherwise show all content
+ * If user is logged in AND is a contributor, show only their content
+ * Otherwise show all content from authorized contributors
  */
 export function useAllImages() {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
+  const isContributor = useIsContributor();
   const { data: authorizedReviewers } = useAuthorizedReviewers();
   const { data: authorizedUploaders } = useAuthorizedMediaUploaders();
 
   return useQuery({
-    queryKey: ['all-images', user?.pubkey],
+    queryKey: ['all-images', user?.pubkey, isContributor],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
       
       const images: ImageItem[] = [];
 
       // Determine which authors to query
-      const userFilter = user?.pubkey ? [user.pubkey] : undefined;
+      // Contributors see only their own content, visitors/non-contributors see all
+      const userFilter = (user?.pubkey && isContributor) ? [user.pubkey] : undefined;
 
       // Fetch reviews
       const authorizedAuthors = Array.from(authorizedReviewers || []);
