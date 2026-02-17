@@ -23,11 +23,37 @@ export interface ImageItem {
  */
 /**
  * Check if an image URL is a real uploaded image (not a placeholder or template)
+ * ONLY ALLOW REAL IMAGE HOSTING SERVICES - NO TEMPLATE/PLACEHOLDER IMAGES EVER!
  */
 function isValidImageUrl(url: string): boolean {
   if (!url || typeof url !== 'string') return false;
   
-  // Filter out placeholder URLs - NEVER show these
+  // Must start with http/https
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    return false;
+  }
+  
+  const lowerUrl = url.toLowerCase();
+  
+  // WHITELIST: Only allow known real image hosting services
+  const allowedDomains = [
+    'nostr.build',
+    'void.cat',
+    'satellite.earth',
+    'nostrcheck.me',
+    'blossom.primal.net',
+    'image.nostr.build',
+    'i.nostr.build',
+    'media.nostr.band',
+  ];
+  
+  const isAllowedDomain = allowedDomains.some(domain => lowerUrl.includes(domain));
+  if (!isAllowedDomain) {
+    console.log('🚫 BLOCKED non-whitelisted domain:', url.substring(0, 60));
+    return false;
+  }
+  
+  // BLACKLIST: Block known placeholder services
   const invalidPatterns = [
     '/placeholder',
     'placeholder.com',
@@ -37,20 +63,15 @@ function isValidImageUrl(url: string): boolean {
     'localhost',
     'data:image',
     'blob:',
-    'picsum.photos',  // Lorem Picsum placeholder service
-    'unsplash.it',    // Unsplash placeholder service
-    'dummyimage.com', // Dummy image generator
-    'fakeimg.pl',     // Fake image service
-    'loremflickr.com', // Lorem Flickr service
+    'picsum.photos',
+    'unsplash.it',
+    'dummyimage.com',
+    'fakeimg.pl',
+    'loremflickr.com',
   ];
   
-  const lowerUrl = url.toLowerCase();
   if (invalidPatterns.some(pattern => lowerUrl.includes(pattern))) {
-    return false;
-  }
-  
-  // Must start with http/https
-  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    console.log('🚫 BLOCKED placeholder pattern:', url.substring(0, 60));
     return false;
   }
   
@@ -113,6 +134,8 @@ export function useAllImages() {
                 event,
                 created_at: event.created_at,
               });
+            } else if (image && !isValidImageUrl(image)) {
+              console.log('🚫 BLOCKED placeholder image in review:', image, 'from event:', event.id.substring(0, 8));
             }
           });
       }
@@ -153,6 +176,8 @@ export function useAllImages() {
                 event,
                 created_at: event.created_at,
               });
+            } else if (image && !isValidImageUrl(image)) {
+              console.log('🚫 BLOCKED placeholder image in trip:', image, 'from event:', event.id.substring(0, 8));
             }
           });
         });
@@ -191,6 +216,8 @@ export function useAllImages() {
               event,
               created_at: event.created_at,
             });
+          } else if (image && !isValidImageUrl(image)) {
+            console.log('🚫 BLOCKED placeholder image in story:', image, 'from event:', event.id.substring(0, 8));
           }
         });
 
@@ -240,12 +267,22 @@ export function useAllImages() {
                 event,
                 created_at: event.created_at,
               });
+            } else if (image && !isValidImageUrl(image)) {
+              console.log('🚫 BLOCKED placeholder image in stock media:', image, 'from event:', event.id.substring(0, 8));
             }
           });
       }
 
       // Sort by created_at (newest first)
-      return images.sort((a, b) => b.created_at - a.created_at);
+      const sortedImages = images.sort((a, b) => b.created_at - a.created_at);
+      
+      // Log ALL images being displayed for debugging
+      console.log('🖼️ ALL IMAGES BEING DISPLAYED:', sortedImages.length);
+      sortedImages.slice(0, 10).forEach((img, i) => {
+        console.log(`  ${i + 1}. [${img.type}] ${img.image.substring(0, 80)}...`);
+      });
+      
+      return sortedImages;
     },
     enabled: !!authorizedReviewers && !!authorizedUploaders,
     staleTime: 2 * 60 * 1000, // 2 minutes

@@ -12,12 +12,36 @@ const ADMIN_HEX = nip19.decode(ADMIN_NPUB).data as string;
 
 /**
  * Check if an image URL is a real uploaded image (not a placeholder or template)
- * NEVER show placeholder images from templates
+ * ONLY ALLOW REAL IMAGE HOSTING SERVICES - NO TEMPLATE/PLACEHOLDER IMAGES EVER!
  */
 function isValidImageUrl(url: string | undefined): boolean {
   if (!url || typeof url !== 'string') return false;
   
-  // Filter out placeholder URLs - NEVER show these
+  // Must start with http/https
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    return false;
+  }
+  
+  const lowerUrl = url.toLowerCase();
+  
+  // WHITELIST: Only allow known real image hosting services
+  const allowedDomains = [
+    'nostr.build',
+    'void.cat',
+    'satellite.earth',
+    'nostrcheck.me',
+    'blossom.primal.net',
+    'image.nostr.build',
+    'i.nostr.build',
+    'media.nostr.band',
+  ];
+  
+  const isAllowedDomain = allowedDomains.some(domain => lowerUrl.includes(domain));
+  if (!isAllowedDomain) {
+    return false;
+  }
+  
+  // BLACKLIST: Block known placeholder services  
   const invalidPatterns = [
     '/placeholder',
     'placeholder.com',
@@ -27,20 +51,14 @@ function isValidImageUrl(url: string | undefined): boolean {
     'localhost',
     'data:image',
     'blob:',
-    'picsum.photos',  // Lorem Picsum placeholder service
-    'unsplash.it',    // Unsplash placeholder service
-    'dummyimage.com', // Dummy image generator
-    'fakeimg.pl',     // Fake image service
-    'loremflickr.com', // Lorem Flickr service
+    'picsum.photos',
+    'unsplash.it',
+    'dummyimage.com',
+    'fakeimg.pl',
+    'loremflickr.com',
   ];
   
-  const lowerUrl = url.toLowerCase();
   if (invalidPatterns.some(pattern => lowerUrl.includes(pattern))) {
-    return false;
-  }
-  
-  // Must start with http/https
-  if (!url.startsWith('http://') && !url.startsWith('https://')) {
     return false;
   }
   
