@@ -111,18 +111,22 @@ export function Navigation({ className }: NavigationProps) {
                 hoverColor={item.hoverColor}
               />
             ))}
+            {user && (
+              <Link to="/my-travels">
+                <div 
+                  className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 hover:shadow-lg cursor-pointer ml-1"
+                  style={{ backgroundColor: '#ff8c00' }}
+                >
+                  <User className="w-5 h-5 text-white" strokeWidth={2} />
+                </div>
+              </Link>
+            )}
           </div>
 
           {/* Desktop Right Side */}
           <div className="hidden md:flex items-center gap-3">
             {user ? (
               <>
-                <Link to="/my-travels">
-                  <Button variant="outline" size="sm" className="rounded-full" style={{ borderColor: '#ff8c00', color: '#ff8c00' }}>
-                    <User className="w-4 h-4 mr-2" />
-                    My Profile
-                  </Button>
-                </Link>
                 {isAdmin && (
                   <Link to="/admin">
                     <Button variant="outline" size="sm" className="rounded-full" style={{ borderColor: '#393636', color: '#393636' }}>
