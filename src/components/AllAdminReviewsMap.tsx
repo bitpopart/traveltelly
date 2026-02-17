@@ -16,7 +16,7 @@ import { useQuery } from '@tanstack/react-query';
 import { genUserName } from '@/lib/genUserName';
 import { MapNavigationControls, type MapLocation } from '@/components/MapNavigationControls';
 import { getTileLayerConfig } from '@/lib/mapConfig';
-import { Star, MapPin, RefreshCw, Loader2, AlertCircle, Layers, Maximize2, Minimize2, Camera, BookOpen, Globe } from 'lucide-react';
+import { Star, RefreshCw, Layers, Maximize2, Minimize2, Camera, BookOpen, Globe } from 'lucide-react';
 import { nip19 } from 'nostr-tools';
 import * as geohash from 'ngeohash';
 import { upgradeMultipleReviews, applyPrecisionUpgrades, getUpgradeStats } from '@/lib/precisionMigration';
@@ -1215,76 +1215,6 @@ export function AllAdminReviewsMap({ zoomToLocation, onLocationChange, showTitle
                 ))}
               </MarkerClusterGroup>
             </MapContainer>
-          </div>
-          <div className="p-3 md:p-4 bg-gray-50 dark:bg-gray-800">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-3">
-              <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-gray-600 flex-shrink-0" />
-                <span className="text-xs md:text-sm text-gray-600 dark:text-gray-300">
-                  <strong>{reviewLocations.length}</strong> admin review{reviewLocations.length !== 1 ? 's' : ''} with locations
-                  <span className="text-xs text-gray-500 ml-1">
-                    ({totalReviews} total)
-                  </span>
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                {isFetchingNextPage && (
-                  <span className="text-blue-600 font-medium flex items-center gap-1">
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                    Loading...
-                  </span>
-                )}
-                {reviewLocations.filter(r => r.upgraded).length > 0 && (
-                  <span className="text-blue-600 font-medium">
-                    {reviewLocations.filter(r => r.upgraded).length} upgraded
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {reviewsWithoutLocation.length > 0 && (
-              <div className="mb-3 p-2 md:p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                <div className="flex items-center gap-2 mb-1">
-                  <AlertCircle className="w-4 h-4 text-yellow-600 flex-shrink-0" />
-                  <span className="text-xs md:text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                    {reviewsWithoutLocation.length} review{reviewsWithoutLocation.length !== 1 ? 's' : ''} without location
-                  </span>
-                </div>
-                <div className="text-xs text-yellow-700 dark:text-yellow-300">
-                  No GPS coordinates available
-                </div>
-              </div>
-            )}
-
-            <div className="flex items-center gap-2 md:gap-4 text-[10px] md:text-xs text-gray-500 flex-wrap">
-                <div className="flex items-center gap-1">
-                  <div className="w-2.5 h-2.5 md:w-3 md:h-3 bg-green-500 rounded-full flex-shrink-0"></div>
-                  <span>4-5★</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-2.5 h-2.5 md:w-3 md:h-3 bg-yellow-500 rounded-full flex-shrink-0"></div>
-                  <span>3★</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-2.5 h-2.5 md:w-3 md:h-3 bg-red-500 rounded-full flex-shrink-0"></div>
-                  <span>1-2★</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-2.5 h-2.5 md:w-3 md:h-3 border-2 border-blue-500 rounded-full bg-blue-100 flex-shrink-0"></div>
-                  <span className="hidden sm:inline">Upgraded</span>
-                  <span className="sm:hidden">Upg</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-2.5 h-2.5 md:w-3 md:h-3 border-2 border-red-400 border-dashed rounded-full flex-shrink-0"></div>
-                  <span className="hidden sm:inline">Low precision</span>
-                  <span className="sm:hidden">Low</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-3.5 h-3.5 md:w-4 md:h-4 bg-orange-500 rounded-full flex items-center justify-center text-white text-[8px] md:text-xs font-bold flex-shrink-0">5</div>
-                  <span className="hidden sm:inline">Clustered</span>
-                  <span className="sm:hidden">Clus</span>
-                </div>
-              </div>
           </div>
         </CardContent>
       </Card>
