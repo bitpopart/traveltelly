@@ -329,9 +329,13 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isPublishing}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleResetCountries}
+              onClick={(e) => {
+                e.preventDefault();
+                handleResetCountries();
+              }}
+              disabled={isPublishing}
               className="bg-red-600 hover:bg-red-700"
             >
               {isPublishing ? (
