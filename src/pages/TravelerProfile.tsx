@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { WorldMapSVG } from '@/components/WorldMapSVG';
+import { WorldMapImage } from '@/components/WorldMapImage';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useUserReviews } from '@/hooks/useAllReviews';
 import { useUserStories, useUserTrips, useUserMedia } from '@/hooks/useUserContent';
@@ -258,12 +258,10 @@ export default function TravelerProfile() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border mb-4">
-                  <WorldMapSVG
-                    visitedCountries={visitedCountries}
-                    className="w-full h-auto"
-                  />
-                </div>
+                <WorldMapImage
+                  visitedCountries={visitedCountries}
+                  className="w-full mb-4"
+                />
                 
                 {/* Country List */}
                 <div>
