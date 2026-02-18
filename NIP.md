@@ -15,6 +15,48 @@ This platform leverages existing Nostr standards with minimal custom event kinds
 - **NIP-15 (Nostr Marketplace)**: Reference implementation for marketplace message types
 - **Custom Permission System**: For managing review and media upload permissions (kinds `31492`, `30384`)
 
+## Visited Countries Tracker (Kind 30078)
+
+Users can track and display the countries they've visited using addressable events:
+
+```json
+{
+  "kind": 30078,
+  "content": "",
+  "tags": [
+    ["d", "visited-countries"],
+    ["country", "US"],
+    ["country", "FR"],
+    ["country", "JP"],
+    ["country", "AU"],
+    ["alt", "Visited countries list"]
+  ]
+}
+```
+
+### Visited Countries Features
+
+- **Country Selection**: Select from a comprehensive list of world countries
+- **Map Visualization**: Visited countries can be highlighted on the world map
+- **Travel Statistics**: Shows total count of visited countries
+- **Public Profile**: Displays visited countries on user's travel profile
+- **Persistent Storage**: Saved to Nostr as a replaceable event
+- **Integration with Check-ins**: Works alongside check-in system for complete travel tracking
+
+### Integration with My Map
+
+The "My Map" feature combines:
+- **Check-ins**: All user check-ins displayed as pins on the map
+- **Current Location**: Latest check-in highlighted with green pulsing marker
+- **Visited Countries**: Countries marked as visited can be highlighted (optional)
+- **Travel Overview**: Visual representation of user's travel history
+
+### Country Tag Format
+
+Each country is stored as:
+- **country** tag: ISO 3166-1 alpha-2 country code (e.g., "US", "FR", "JP")
+- Uses standard 2-letter country codes for consistency
+
 ## Check-In System (Custom Kind 30026)
 
 Check-ins allow travelers to share their current location (approximate area within 2km) with photos and brief updates. Each check-in is stored as an addressable event:

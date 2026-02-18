@@ -14,10 +14,12 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useUserReviews } from '@/hooks/useAllReviews';
 import { useUserStories, useUserTrips, useUserMedia } from '@/hooks/useUserContent';
 import { useUserCheckIns } from '@/hooks/useCheckIns';
+import { useVisitedCountries } from '@/hooks/useVisitedCountries';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
 import { genUserName } from '@/lib/genUserName';
 import { CheckInForm } from '@/components/CheckInForm';
+import { MyWorldMap } from '@/components/MyWorldMap';
 import { OptimizedImage } from '@/components/OptimizedImage';
 import { 
   MapPin, 
@@ -31,7 +33,8 @@ import {
   Loader2,
   Navigation as NavigationIcon,
   Calendar,
-  Zap
+  Zap,
+  Map
 } from 'lucide-react';
 import { Link, Navigate } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
@@ -243,12 +246,14 @@ export default function MyTravels() {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
   const [isCheckInDialogOpen, setIsCheckInDialogOpen] = useState(false);
+  const [isMyMapDialogOpen, setIsMyMapDialogOpen] = useState(false);
 
   const { data: reviews, isLoading: loadingReviews } = useUserReviews(user?.pubkey);
   const { data: stories, isLoading: loadingStories } = useUserStories(user?.pubkey);
   const { data: trips, isLoading: loadingTrips } = useUserTrips(user?.pubkey);
   const { data: media, isLoading: loadingMedia } = useUserMedia(user?.pubkey);
   const { data: checkIns, isLoading: loadingCheckIns } = useUserCheckIns(user?.pubkey);
+  const { data: visitedCountriesEvent } = useVisitedCountries(user?.pubkey);
 
   if (!user) {
     return <Navigate to="/" replace />;
@@ -391,6 +396,30 @@ export default function MyTravels() {
                         </DialogHeader>
                         <div className="mt-4">
                           <CheckInForm onSuccess={() => setIsCheckInDialogOpen(false)} />
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                    <Dialog open={isMyMapDialogOpen} onOpenChange={setIsMyMapDialogOpen}>
+                      <Button
+                        onClick={() => setIsMyMapDialogOpen(true)}
+                        size="sm"
+                        variant="outline"
+                        className="rounded-full font-semibold"
+                        style={{ borderColor: '#3b82f6', color: '#3b82f6' }}
+                      >
+                        <Map className="w-4 h-4 mr-2" />
+                        My Map
+                      </Button>
+                      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle className="text-2xl">My World Map</DialogTitle>
+                        </DialogHeader>
+                        <div className="mt-4">
+                          <MyWorldMap
+                            userPubkey={user.pubkey}
+                            checkIns={checkIns}
+                            visitedCountriesEvent={visitedCountriesEvent}
+                          />
                         </div>
                       </DialogContent>
                     </Dialog>
