@@ -5,124 +5,321 @@ interface WorldMapSVGProps {
   className?: string;
 }
 
-// Simple world map SVG with country paths
-// This is a simplified version - using basic country shapes for performance
+// Simplified world map using basic continent shapes
+// This creates a recognizable world map silhouette
 export function WorldMapSVG({ visitedCountries, className = '' }: WorldMapSVGProps) {
   const visitedSet = useMemo(() => new Set(visitedCountries), [visitedCountries]);
 
   const defaultColor = '#e5e7eb'; // Gray for unvisited
   const visitedColor = '#ffcc00'; // Yellow for visited
+  const oceanColor = '#dbeafe'; // Light blue for ocean
   const strokeColor = '#ffffff';
   const strokeWidth = '0.5';
 
   const isVisited = (code: string) => visitedSet.has(code);
 
+  // Using a more realistic world map projection
+  // Coordinates are approximate but create a recognizable world map shape
   return (
     <svg
-      viewBox="0 0 1000 500"
+      viewBox="0 0 2000 1000"
       className={className}
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Background */}
-      <rect width="1000" height="500" fill="#f8fafc" />
+      {/* Ocean background */}
+      <rect width="2000" height="1000" fill={oceanColor} />
       
-      {/* Countries - Simplified shapes based on approximate positions */}
-      {/* North America */}
-      <path d="M 100 80 L 180 75 L 200 100 L 190 150 L 150 145 L 120 120 Z" fill={isVisited('US') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="US" />
-      <path d="M 100 60 L 180 50 L 200 75 L 180 75 L 100 80 Z" fill={isVisited('CA') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="CA" />
-      <path d="M 190 150 L 200 170 L 180 180 L 170 165 Z" fill={isVisited('MX') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="MX" />
-      <path d="M 180 180 L 190 195 L 185 205 L 175 200 Z" fill={isVisited('GT') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="GT" />
-      <path d="M 185 205 L 195 215 L 190 220 L 180 215 Z" fill={isVisited('PA') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="PA" />
-      <path d="M 205 165 L 220 170 L 215 185 L 200 180 Z" fill={isVisited('CU') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="CU" />
-      <path d="M 215 185 L 225 190 L 220 195 L 210 190 Z" fill={isVisited('DO') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="DO" />
+      {/* NORTH AMERICA */}
+      {/* Canada */}
+      <path d="M 150,150 L 180,140 L 220,130 L 280,140 L 340,150 L 380,160 L 400,180 L 420,200 L 400,220 L 380,240 L 360,250 L 340,260 L 320,270 L 280,270 L 240,260 L 200,240 L 180,220 L 160,200 L 150,180 Z M 300,160 L 320,155 L 330,165 L 325,175 L 310,180 Z M 250,170 L 270,165 L 280,175 L 270,185 Z" 
+        fill={isVisited('CA') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
       
-      {/* South America */}
-      <path d="M 230 230 L 250 235 L 260 270 L 240 275 L 230 250 Z" fill={isVisited('CO') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="CO" />
-      <path d="M 240 275 L 260 280 L 270 320 L 250 325 L 240 300 Z" fill={isVisited('PE') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="PE" />
-      <path d="M 250 325 L 270 330 L 280 370 L 260 375 L 250 350 Z" fill={isVisited('CL') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="CL" />
-      <path d="M 260 280 L 290 285 L 310 340 L 280 345 L 270 320 Z" fill={isVisited('BR') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="BR" />
-      <path d="M 250 325 L 270 330 L 275 355 L 260 360 Z" fill={isVisited('AR') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="AR" />
-      <path d="M 230 250 L 245 255 L 240 275 L 225 270 Z" fill={isVisited('EC') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="EC" />
-      <path d="M 250 235 L 265 240 L 260 260 L 245 255 Z" fill={isVisited('VE') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="VE" />
+      {/* USA */}
+      <path d="M 160,240 L 200,250 L 250,270 L 300,280 L 350,290 L 400,300 L 420,320 L 410,340 L 390,350 L 360,360 L 320,370 L 280,380 L 240,380 L 200,370 L 160,350 L 140,320 L 145,280 L 155,260 Z M 100,320 L 130,310 L 140,320 L 130,340 L 110,340 Z" 
+        fill={isVisited('US') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
       
-      {/* Europe */}
-      <path d="M 450 100 L 470 95 L 475 110 L 460 115 Z" fill={isVisited('GB') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="GB" />
-      <path d="M 470 110 L 490 105 L 495 125 L 475 130 Z" fill={isVisited('FR') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="FR" />
-      <path d="M 490 105 L 510 100 L 515 120 L 495 125 Z" fill={isVisited('DE') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="DE" />
-      <path d="M 495 125 L 515 120 L 520 145 L 500 150 Z" fill={isVisited('IT') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="IT" />
-      <path d="M 475 130 L 495 125 L 490 145 L 470 140 Z" fill={isVisited('ES') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="ES" />
-      <path d="M 460 130 L 475 125 L 470 140 L 455 135 Z" fill={isVisited('PT') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="PT" />
-      <path d="M 510 100 L 530 95 L 535 115 L 515 120 Z" fill={isVisited('PL') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="PL" />
-      <path d="M 500 150 L 520 145 L 525 160 L 505 165 Z" fill={isVisited('GR') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="GR" />
-      <path d="M 515 120 L 535 115 L 540 135 L 520 140 Z" fill={isVisited('CZ') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="CZ" />
-      <path d="M 490 105 L 510 100 L 505 115 L 485 110 Z" fill={isVisited('BE') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="BE" />
-      <path d="M 485 110 L 505 105 L 500 120 L 480 115 Z" fill={isVisited('NL') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="NL" />
-      <path d="M 500 120 L 515 115 L 510 130 L 495 125 Z" fill={isVisited('CH') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="CH" />
-      <path d="M 510 115 L 525 110 L 520 125 L 505 120 Z" fill={isVisited('AT') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="AT" />
-      <path d="M 450 80 L 470 75 L 475 90 L 460 95 Z" fill={isVisited('IS') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="IS" />
-      <path d="M 465 85 L 485 80 L 490 100 L 470 95 Z" fill={isVisited('NO') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="NO" />
-      <path d="M 490 85 L 510 80 L 515 100 L 495 105 Z" fill={isVisited('SE') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="SE" />
-      <path d="M 510 90 L 530 85 L 535 105 L 515 110 Z" fill={isVisited('FI') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="FI" />
-      <path d="M 520 140 L 545 135 L 550 155 L 530 160 Z" fill={isVisited('RO') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="RO" />
-      <path d="M 520 145 L 540 140 L 545 155 L 525 160 Z" fill={isVisited('BG') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="BG" />
-      <path d="M 530 95 L 580 90 L 590 140 L 540 145 Z" fill={isVisited('RU') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="RU" />
-      <path d="M 535 115 L 555 110 L 560 130 L 540 135 Z" fill={isVisited('UA') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="UA" />
+      {/* Mexico */}
+      <path d="M 200,370 L 240,380 L 280,390 L 310,400 L 330,420 L 320,440 L 300,450 L 270,455 L 240,450 L 210,440 L 190,420 L 185,395 Z" 
+        fill={isVisited('MX') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
       
-      {/* Africa */}
-      <path d="M 460 155 L 480 150 L 485 170 L 465 175 Z" fill={isVisited('MA') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="MA" />
-      <path d="M 465 175 L 485 170 L 490 200 L 470 205 Z" fill={isVisited('DZ') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="DZ" />
-      <path d="M 470 205 L 490 200 L 495 230 L 475 235 Z" fill={isVisited('ML') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="ML" />
-      <path d="M 475 235 L 495 230 L 500 255 L 480 260 Z" fill={isVisited('NG') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="NG" />
-      <path d="M 490 200 L 510 195 L 515 220 L 495 225 Z" fill={isVisited('LY') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="LY" />
-      <path d="M 510 195 L 530 190 L 535 215 L 515 220 Z" fill={isVisited('EG') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="EG" />
-      <path d="M 495 225 L 515 220 L 520 250 L 500 255 Z" fill={isVisited('SD') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="SD" />
-      <path d="M 500 255 L 520 250 L 525 280 L 505 285 Z" fill={isVisited('ET') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="ET" />
-      <path d="M 505 285 L 525 280 L 530 305 L 510 310 Z" fill={isVisited('KE') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="KE" />
-      <path d="M 510 310 L 530 305 L 535 330 L 515 335 Z" fill={isVisited('TZ') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="TZ" />
-      <path d="M 480 260 L 500 255 L 505 285 L 485 290 Z" fill={isVisited('CD') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="CD" />
-      <path d="M 485 290 L 505 285 L 510 315 L 490 320 Z" fill={isVisited('AO') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="AO" />
-      <path d="M 490 320 L 510 315 L 515 345 L 495 350 Z" fill={isVisited('ZM') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="ZM" />
-      <path d="M 495 350 L 515 345 L 520 375 L 500 380 Z" fill={isVisited('ZA') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="ZA" />
-      <path d="M 500 350 L 515 345 L 520 365 L 505 370 Z" fill={isVisited('ZW') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="ZW" />
-      <path d="M 515 335 L 535 330 L 540 350 L 520 355 Z" fill={isVisited('MZ') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="MZ" />
-      <path d="M 520 355 L 535 350 L 540 370 L 525 375 Z" fill={isVisited('MG') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="MG" />
-      <path d="M 475 235 L 490 230 L 495 250 L 480 255 Z" fill={isVisited('GH') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="GH" />
-      <path d="M 465 230 L 480 225 L 485 245 L 470 250 Z" fill={isVisited('SN') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="SN" />
+      {/* Central America (simplified) */}
+      <path d="M 270,455 L 300,460 L 320,465 L 330,475 L 320,485 L 300,490 L 280,485 L 265,475 Z" 
+        fill={isVisited('GT') || isVisited('CR') || isVisited('PA') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
       
-      {/* Asia */}
-      <path d="M 550 155 L 575 150 L 580 175 L 555 180 Z" fill={isVisited('TR') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="TR" />
-      <path d="M 555 180 L 580 175 L 585 195 L 560 200 Z" fill={isVisited('SY') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="SY" />
-      <path d="M 560 200 L 585 195 L 590 215 L 565 220 Z" fill={isVisited('IQ') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="IQ" />
-      <path d="M 565 220 L 590 215 L 595 240 L 570 245 Z" fill={isVisited('SA') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="SA" />
-      <path d="M 570 245 L 595 240 L 600 260 L 575 265 Z" fill={isVisited('AE') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="AE" />
-      <path d="M 590 140 L 640 135 L 650 180 L 600 185 Z" fill={isVisited('KZ') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="KZ" />
-      <path d="M 600 185 L 625 180 L 630 210 L 605 215 Z" fill={isVisited('UZ') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="UZ" />
-      <path d="M 605 215 L 630 210 L 640 245 L 615 250 Z" fill={isVisited('AF') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="AF" />
-      <path d="M 615 250 L 645 245 L 655 280 L 625 285 Z" fill={isVisited('PK') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="PK" />
-      <path d="M 625 285 L 660 280 L 675 330 L 640 335 Z" fill={isVisited('IN') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="IN" />
-      <path d="M 640 335 L 660 330 L 665 350 L 645 355 Z" fill={isVisited('LK') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="LK" />
-      <path d="M 650 180 L 700 175 L 710 220 L 660 225 Z" fill={isVisited('CN') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="CN" />
-      <path d="M 660 225 L 685 220 L 690 250 L 665 255 Z" fill={isVisited('MM') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="MM" />
-      <path d="M 665 255 L 690 250 L 695 275 L 670 280 Z" fill={isVisited('TH') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="TH" />
-      <path d="M 670 280 L 695 275 L 700 295 L 675 300 Z" fill={isVisited('MY') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="MY" />
-      <path d="M 675 300 L 700 295 L 705 320 L 680 325 Z" fill={isVisited('SG') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="SG" />
-      <path d="M 680 325 L 710 320 L 720 360 L 690 365 Z" fill={isVisited('ID') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="ID" />
-      <path d="M 690 250 L 715 245 L 720 270 L 695 275 Z" fill={isVisited('LA') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="LA" />
-      <path d="M 695 275 L 720 270 L 725 295 L 700 300 Z" fill={isVisited('VN') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="VN" />
-      <path d="M 695 270 L 715 265 L 720 285 L 700 290 Z" fill={isVisited('KH') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="KH" />
-      <path d="M 700 295 L 725 290 L 735 320 L 710 325 Z" fill={isVisited('PH') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="PH" />
-      <path d="M 710 175 L 760 170 L 770 210 L 720 215 Z" fill={isVisited('MN') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="MN" />
-      <path d="M 750 215 L 780 210 L 790 240 L 760 245 Z" fill={isVisited('KR') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="KR" />
-      <path d="M 780 200 L 820 195 L 830 250 L 790 255 Z" fill={isVisited('JP') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="JP" />
-      <path d="M 760 245 L 785 240 L 790 260 L 765 265 Z" fill={isVisited('TW') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="TW" />
-      <path d="M 575 180 L 595 175 L 600 195 L 580 200 Z" fill={isVisited('IL') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="IL" />
-      <path d="M 580 200 L 600 195 L 605 210 L 585 215 Z" fill={isVisited('JO') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="JO" />
+      {/* Caribbean */}
+      <path d="M 350,400 L 370,395 L 380,405 L 375,415 L 360,418 Z" 
+        fill={isVisited('CU') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
       
-      {/* Oceania */}
-      <path d="M 780 300 L 850 295 L 870 360 L 800 365 Z" fill={isVisited('AU') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="AU" />
-      <path d="M 870 360 L 900 355 L 910 390 L 880 395 Z" fill={isVisited('NZ') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="NZ" />
-      <path d="M 850 280 L 870 275 L 875 295 L 855 300 Z" fill={isVisited('PG') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="PG" />
-      <path d="M 875 295 L 895 290 L 900 310 L 880 315 Z" fill={isVisited('FJ') ? visitedColor : defaultColor} stroke={strokeColor} strokeWidth={strokeWidth} data-country="FJ" />
+      {/* SOUTH AMERICA */}
+      {/* Brazil */}
+      <path d="M 380,490 L 420,500 L 460,520 L 490,550 L 510,590 L 520,630 L 520,670 L 510,710 L 490,740 L 470,750 L 440,755 L 410,750 L 390,730 L 380,700 L 375,660 L 370,620 L 365,580 L 360,540 L 365,510 Z" 
+        fill={isVisited('BR') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* Argentina & Chile */}
+      <path d="M 360,700 L 380,730 L 390,770 L 395,810 L 390,850 L 380,880 L 365,900 L 350,910 L 340,900 L 335,870 L 330,830 L 330,790 L 335,750 L 345,720 Z" 
+        fill={isVisited('AR') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      <path d="M 320,700 L 335,750 L 330,800 L 325,850 L 320,890 L 315,910 L 305,900 L 300,860 L 300,820 L 305,780 L 310,740 L 315,720 Z" 
+        fill={isVisited('CL') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* Peru */}
+      <path d="M 310,540 L 340,550 L 360,580 L 365,620 L 355,660 L 340,680 L 320,690 L 300,680 L 285,650 L 280,610 L 285,570 Z" 
+        fill={isVisited('PE') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* Colombia & Venezuela */}
+      <path d="M 320,460 L 350,470 L 380,490 L 400,510 L 390,530 L 370,540 L 350,545 L 330,540 L 315,520 L 310,490 Z" 
+        fill={isVisited('CO') || isVisited('VE') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* EUROPE */}
+      {/* Iceland */}
+      <path d="M 800,180 L 830,175 L 850,185 L 845,200 L 820,205 L 805,195 Z" 
+        fill={isVisited('IS') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* UK & Ireland */}
+      <path d="M 820,250 L 845,245 L 860,255 L 865,270 L 855,285 L 835,290 L 820,285 L 815,270 Z M 805,265 L 815,260 L 820,270 L 815,280 L 805,278 Z" 
+        fill={isVisited('GB') || isVisited('IE') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* Scandinavia */}
+      <path d="M 900,180 L 930,170 L 960,175 L 980,190 L 985,210 L 975,235 L 960,250 L 940,255 L 920,250 L 905,235 L 895,210 Z" 
+        fill={isVisited('NO') || isVisited('SE') || isVisited('FI') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* Western Europe */}
+      <path d="M 850,290 L 880,285 L 910,290 L 925,305 L 920,325 L 905,340 L 880,345 L 860,340 L 845,325 L 845,310 Z" 
+        fill={isVisited('FR') || isVisited('BE') || isVisited('NL') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* Germany & Poland */}
+      <path d="M 920,260 L 950,255 L 980,260 L 1000,275 L 995,295 L 980,310 L 960,315 L 940,310 L 925,295 L 920,280 Z" 
+        fill={isVisited('DE') || isVisited('PL') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* Spain & Portugal */}
+      <path d="M 810,340 L 850,335 L 880,345 L 885,365 L 870,385 L 840,395 L 810,390 L 790,375 L 790,355 Z" 
+        fill={isVisited('ES') || isVisited('PT') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* Italy */}
+      <path d="M 920,330 L 940,325 L 955,335 L 960,355 L 955,380 L 945,405 L 930,420 L 920,415 L 915,395 L 915,370 L 915,350 Z" 
+        fill={isVisited('IT') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* Greece */}
+      <path d="M 990,370 L 1010,365 L 1025,375 L 1025,390 L 1015,405 L 1000,410 L 985,405 L 980,390 Z" 
+        fill={isVisited('GR') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* Eastern Europe */}
+      <path d="M 980,280 L 1020,275 L 1060,285 L 1080,305 L 1075,330 L 1055,345 L 1025,350 L 1000,345 L 985,325 L 980,305 Z" 
+        fill={isVisited('UA') || isVisited('RO') || isVisited('BG') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* RUSSIA */}
+      <path d="M 1000,200 L 1100,190 L 1200,185 L 1300,190 L 1400,200 L 1500,210 L 1600,220 L 1650,235 L 1680,255 L 1680,280 L 1650,305 L 1600,320 L 1550,325 L 1500,320 L 1450,310 L 1400,295 L 1350,285 L 1300,280 L 1250,280 L 1200,285 L 1150,290 L 1100,290 L 1060,285 L 1030,275 L 1010,260 L 1000,240 Z" 
+        fill={isVisited('RU') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* AFRICA */}
+      {/* North Africa */}
+      <path d="M 790,400 L 850,395 L 900,400 L 950,410 L 990,420 L 1020,435 L 1030,455 L 1020,475 L 1000,490 L 970,500 L 930,505 L 890,505 L 850,500 L 810,490 L 780,475 L 770,455 L 775,430 Z" 
+        fill={isVisited('MA') || isVisited('DZ') || isVisited('TN') || isVisited('LY') || isVisited('EG') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* West Africa */}
+      <path d="M 780,510 L 820,515 L 860,525 L 890,540 L 900,560 L 890,580 L 870,590 L 840,595 L 810,590 L 785,575 L 775,555 L 775,535 Z" 
+        fill={isVisited('NG') || isVisited('GH') || isVisited('SN') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* Central Africa */}
+      <path d="M 900,560 L 940,570 L 980,585 L 1010,605 L 1020,630 L 1010,660 L 990,680 L 960,690 L 925,690 L 895,680 L 875,660 L 870,635 L 880,605 L 890,585 Z" 
+        fill={isVisited('CD') || isVisited('AO') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* East Africa */}
+      <path d="M 1020,490 L 1050,495 L 1080,510 L 1095,535 L 1100,565 L 1095,595 L 1085,620 L 1070,640 L 1050,655 L 1030,660 L 1010,655 L 1000,635 L 1000,610 L 1005,580 L 1010,550 L 1015,520 Z" 
+        fill={isVisited('ET') || isVisited('KE') || isVisited('TZ') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* Southern Africa */}
+      <path d="M 960,690 L 990,700 L 1015,720 L 1030,750 L 1035,780 L 1030,810 L 1015,835 L 995,850 L 970,855 L 945,850 L 925,835 L 915,810 L 915,780 L 920,750 L 930,720 L 945,700 Z" 
+        fill={isVisited('ZA') || isVisited('ZW') || isVisited('ZM') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* Madagascar */}
+      <path d="M 1100,700 L 1120,695 L 1135,710 L 1140,735 L 1135,765 L 1125,790 L 1110,805 L 1095,800 L 1085,780 L 1085,755 L 1090,725 Z" 
+        fill={isVisited('MG') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* MIDDLE EAST */}
+      {/* Turkey */}
+      <path d="M 1020,360 L 1060,355 L 1100,360 L 1130,375 L 1125,395 L 1105,405 L 1075,410 L 1045,405 L 1025,390 Z" 
+        fill={isVisited('TR') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* Middle East countries */}
+      <path d="M 1080,410 L 1110,415 L 1140,425 L 1160,445 L 1155,470 L 1140,490 L 1115,500 L 1085,500 L 1060,490 L 1050,470 L 1055,445 L 1070,425 Z" 
+        fill={isVisited('SA') || isVisited('AE') || isVisited('IQ') || isVisited('SY') || isVisited('IL') || isVisited('JO') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* ASIA */}
+      {/* Central Asia */}
+      <path d="M 1200,310 L 1260,305 L 1320,315 L 1360,335 L 1370,360 L 1360,385 L 1335,400 L 1300,405 L 1260,400 L 1225,385 L 1205,360 L 1200,335 Z" 
+        fill={isVisited('KZ') || isVisited('UZ') || isVisited('AF') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* India */}
+      <path d="M 1340,420 L 1380,425 L 1420,445 L 1450,475 L 1470,515 L 1475,555 L 1465,595 L 1445,625 L 1415,645 L 1380,655 L 1350,650 L 1325,630 L 1310,600 L 1305,565 L 1310,530 L 1320,495 L 1330,460 Z" 
+        fill={isVisited('IN') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* Pakistan */}
+      <path d="M 1260,400 L 1295,405 L 1325,420 L 1340,445 L 1335,475 L 1320,500 L 1295,510 L 1270,510 L 1250,495 L 1240,470 L 1245,440 L 1255,415 Z" 
+        fill={isVisited('PK') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* China */}
+      <path d="M 1400,280 L 1500,270 L 1600,275 L 1680,290 L 1720,310 L 1740,340 L 1745,375 L 1735,410 L 1710,440 L 1675,460 L 1630,470 L 1580,470 L 1530,460 L 1485,445 L 1450,425 L 1425,400 L 1410,370 L 1405,340 L 1405,310 Z" 
+        fill={isVisited('CN') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* Southeast Asia */}
+      <path d="M 1560,480 L 1595,485 L 1625,500 L 1645,525 L 1650,555 L 1640,585 L 1620,605 L 1590,615 L 1560,615 L 1535,605 L 1520,585 L 1515,560 L 1520,535 L 1535,510 Z" 
+        fill={isVisited('TH') || isVisited('VN') || isVisited('MY') || isVisited('LA') || isVisited('KH') || isVisited('MM') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* Indonesia */}
+      <path d="M 1550,620 L 1590,625 L 1640,635 L 1690,645 L 1720,660 L 1720,680 L 1700,695 L 1660,700 L 1610,695 L 1560,685 L 1530,670 L 1525,650 L 1535,635 Z" 
+        fill={isVisited('ID') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* Philippines */}
+      <path d="M 1700,520 L 1725,515 L 1745,530 L 1750,555 L 1745,580 L 1730,600 L 1710,610 L 1690,605 L 1680,585 L 1680,560 L 1685,540 Z" 
+        fill={isVisited('PH') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* Japan */}
+      <path d="M 1780,310 L 1810,305 L 1835,320 L 1845,345 L 1845,375 L 1835,405 L 1815,430 L 1790,440 L 1765,435 L 1750,415 L 1750,385 L 1755,355 L 1765,330 Z" 
+        fill={isVisited('JP') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* South Korea */}
+      <path d="M 1750,350 L 1770,345 L 1785,355 L 1790,375 L 1780,395 L 1765,400 L 1750,395 L 1745,380 L 1745,365 Z" 
+        fill={isVisited('KR') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* OCEANIA */}
+      {/* Australia */}
+      <path d="M 1600,700 L 1670,695 L 1740,700 L 1790,715 L 1820,740 L 1840,775 L 1845,815 L 1835,855 L 1810,885 L 1775,905 L 1730,915 L 1680,915 L 1635,905 L 1600,885 L 1575,855 L 1565,815 L 1565,775 L 1575,740 Z" 
+        fill={isVisited('AU') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* New Zealand */}
+      <path d="M 1880,820 L 1905,815 L 1925,830 L 1930,855 L 1925,885 L 1910,905 L 1890,910 L 1870,905 L 1860,885 L 1860,860 L 1865,840 Z M 1895,910 L 1910,905 L 1920,920 L 1915,940 L 1900,945 L 1885,940 L 1880,925 Z" 
+        fill={isVisited('NZ') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* Papua New Guinea */}
+      <path d="M 1750,620 L 1785,615 L 1815,625 L 1835,645 L 1835,665 L 1820,680 L 1795,685 L 1765,680 L 1745,665 L 1740,645 Z" 
+        fill={isVisited('PG') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
+      
+      {/* Pacific Islands */}
+      <path d="M 1880,650 L 1900,645 L 1915,655 L 1915,670 L 1905,680 L 1890,680 L 1880,670 Z" 
+        fill={isVisited('FJ') ? visitedColor : defaultColor} 
+        stroke={strokeColor} 
+        strokeWidth={strokeWidth} 
+      />
     </svg>
   );
 }
