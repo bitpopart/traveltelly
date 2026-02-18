@@ -124,13 +124,7 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
     <div className="space-y-4">
       {/* World Map Visualization */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Your Travel Map</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Countries in yellow are places you've visited
-          </p>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           <WorldMapImage
             visitedCountries={visitedCountries}
             className="w-full"
@@ -138,24 +132,16 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
         </CardContent>
       </Card>
 
-      {/* Statistics Header */}
+      {/* Compact Country Selection */}
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Globe className="w-5 h-5 text-blue-600" />
-                Visited Countries
-              </CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                Track where you've been around the world
-              </p>
-            </div>
+        <CardContent className="p-4">
+          <div className="space-y-3">
+            {/* Save button at top if changes */}
             {hasChanges && (
               <Button
                 onClick={handleSaveCountries}
                 disabled={isPublishing}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="w-full bg-blue-600 hover:bg-blue-700"
               >
                 {isPublishing ? (
                   <>
@@ -165,83 +151,14 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
                 ) : (
                   <>
                     <Check className="w-4 h-4 mr-2" />
-                    Save Changes
+                    Save {visitedCountries.length} Countries
                   </>
                 )}
               </Button>
             )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg text-center">
-              <div className="text-3xl font-bold text-blue-600">
-                {visitedCountries.length}
-              </div>
-              <div className="text-sm text-muted-foreground">Countries Visited</div>
-            </div>
-            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg text-center">
-              <div className="text-3xl font-bold text-green-600">
-                {visitedPercentage}%
-              </div>
-              <div className="text-sm text-muted-foreground">Of World</div>
-            </div>
-            <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg text-center">
-              <div className="text-3xl font-bold text-purple-600">
-                {Object.values(continentStats).filter((s) => s.visited > 0).length}
-              </div>
-              <div className="text-sm text-muted-foreground">Continents</div>
-            </div>
-            <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg text-center">
-              <div className="text-3xl font-bold text-orange-600">
-                {totalCountries - visitedCountries.length}
-              </div>
-              <div className="text-sm text-muted-foreground">To Explore</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Continent Progress */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Continents Progress</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {CONTINENTS.map((continent) => {
-              const stats = continentStats[continent];
-              const percentage = stats.total > 0 
-                ? Math.round((stats.visited / stats.total) * 100) 
-                : 0;
-              
-              return (
-                <div key={continent} className="space-y-1">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium">{continent}</span>
-                    <span className="text-muted-foreground">
-                      {stats.visited}/{stats.total} ({percentage}%)
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-500"
-                      style={{ width: `${percentage}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Country Selection */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Select Countries</CardTitle>
-          <div className="flex gap-2 mt-4 flex-wrap">
-            <div className="relative flex-1 min-w-[200px]">
+            {/* Search */}
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search countries..."
@@ -260,101 +177,70 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
                 </Button>
               )}
             </div>
-          </div>
-          <div className="flex gap-2 mt-2 flex-wrap">
-            <Button
-              variant={selectedContinent === 'All' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSelectedContinent('All')}
-              className={selectedContinent === 'All' ? 'bg-blue-600 hover:bg-blue-700' : ''}
-            >
-              All
-            </Button>
-            {CONTINENTS.map((continent) => (
+
+            {/* Continent filters - compact */}
+            <div className="flex gap-1 flex-wrap text-xs">
               <Button
-                key={continent}
-                variant={selectedContinent === continent ? 'default' : 'outline'}
+                variant={selectedContinent === 'All' ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setSelectedContinent(continent)}
-                className={selectedContinent === continent ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                onClick={() => setSelectedContinent('All')}
+                className={`h-7 text-xs ${selectedContinent === 'All' ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
               >
-                {continent}
-                {continentStats[continent].visited > 0 && (
-                  <Badge variant="secondary" className="ml-2">
-                    {continentStats[continent].visited}
-                  </Badge>
-                )}
+                All
               </Button>
-            ))}
-          </div>
-        </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-[400px]">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pr-4">
-              {filteredCountries.map((country) => {
-                const isVisited = visitedCountries.includes(country.code);
-                return (
-                  <Button
-                    key={country.code}
-                    variant={isVisited ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => toggleCountry(country.code)}
-                    className={`justify-start text-left h-auto py-3 ${
-                      isVisited
-                        ? 'bg-yellow-400 hover:bg-yellow-500 text-black border-yellow-500'
-                        : 'hover:bg-gray-100 dark:hover:bg-gray-800'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 w-full">
-                      {isVisited && <Check className="w-4 h-4 flex-shrink-0" />}
-                      <span className="flex-1">{country.name}</span>
-                      <span className="text-xs opacity-60 flex-shrink-0">
-                        {country.code}
-                      </span>
-                    </div>
-                  </Button>
-                );
-              })}
+              {CONTINENTS.map((continent) => (
+                <Button
+                  key={continent}
+                  variant={selectedContinent === continent ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSelectedContinent(continent)}
+                  className={`h-7 text-xs ${selectedContinent === continent ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
+                >
+                  {continent.split(' ')[0]}
+                  {continentStats[continent].visited > 0 && (
+                    <span className="ml-1">({continentStats[continent].visited})</span>
+                  )}
+                </Button>
+              ))}
             </div>
-            {filteredCountries.length === 0 && (
-              <div className="text-center py-12">
-                <Globe className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
-                <p className="text-muted-foreground">
-                  No countries found matching "{searchQuery}"
-                </p>
+
+            {/* Country list - compact */}
+            <ScrollArea className="h-[250px]">
+              <div className="grid grid-cols-2 gap-2 pr-4">
+                {filteredCountries.map((country) => {
+                  const isVisited = visitedCountries.includes(country.code);
+                  return (
+                    <Button
+                      key={country.code}
+                      variant={isVisited ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => toggleCountry(country.code)}
+                      className={`justify-start text-left h-auto py-2 text-xs ${
+                        isVisited
+                          ? 'bg-yellow-400 hover:bg-yellow-500 text-black border-yellow-500'
+                          : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1 w-full">
+                        {isVisited && <Check className="w-3 h-3 flex-shrink-0" />}
+                        <span className="flex-1 truncate">{country.name}</span>
+                      </div>
+                    </Button>
+                  );
+                })}
               </div>
-            )}
-          </ScrollArea>
+              {filteredCountries.length === 0 && (
+                <div className="text-center py-8">
+                  <Globe className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    No countries found
+                  </p>
+                </div>
+              )}
+            </ScrollArea>
+          </div>
         </CardContent>
       </Card>
-
-      {/* Visited Countries Summary */}
-      {visitedCountries.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Your Travel Map</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {visitedCountries
-                .map((code) => COUNTRIES.find((c) => c.code === code))
-                .filter((c): c is Country => c !== undefined)
-                .sort((a, b) => a.name.localeCompare(b.name))
-                .map((country) => (
-                  <Badge
-                    key={country.code}
-                    variant="secondary"
-                    className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-900 dark:text-yellow-100 hover:bg-yellow-200 dark:hover:bg-yellow-900/50 cursor-pointer"
-                    onClick={() => toggleCountry(country.code)}
-                  >
-                    {country.name}
-                    <X className="w-3 h-3 ml-1" />
-                  </Badge>
-                ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
