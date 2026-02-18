@@ -1,29 +1,19 @@
 import { useMemo, useEffect, useState } from 'react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
 
 interface WorldMapImageProps {
   visitedCountries: string[];
   className?: string;
 }
 
-// Countries not available in the SimpleMaps free SVG
-const UNAVAILABLE_COUNTRIES = ['US', 'CA', 'AU', 'NZ', 'FR', 'IT', 'GB', 'JP', 'CN', 'RU'];
-// Note: The free SimpleMaps SVG is missing major countries like US, Canada, Australia, etc.
-
-// Simple world map using SimpleMaps SVG with country highlighting
+// World map using marked-up SVG from https://github.com/benhodgson/markedup-svg-worldmap
+// All countries are marked with 'cc' attributes containing ISO 3166-1 alpha-2 country codes
 export function WorldMapImage({ visitedCountries, className = '' }: WorldMapImageProps) {
   const [svgContent, setSvgContent] = useState<string>('');
-  const visitedSet = useMemo(() => new Set(visitedCountries), [visitedCountries]);
-  
-  // Count how many visited countries are unavailable in the map
-  const unavailableCount = useMemo(() => {
-    return visitedCountries.filter(code => UNAVAILABLE_COUNTRIES.includes(code)).length;
-  }, [visitedCountries]);
+  const visitedSet = useMemo(() => new Set(visitedCountries.map(c => c.toLowerCase())), [visitedCountries]);
 
   useEffect(() => {
-    // Load the SVG file
-    fetch('/world-map.svg')
+    // Load the marked-up SVG file
+    fetch('/world-map-marked.svg')
       .then(response => response.text())
       .then(svg => setSvgContent(svg))
       .catch(error => console.error('Error loading world map:', error));
@@ -34,32 +24,38 @@ export function WorldMapImage({ visitedCountries, className = '' }: WorldMapImag
 
     // After SVG is loaded, reset all countries then highlight visited ones
     const timer = setTimeout(() => {
-      // First, reset all country paths to default gray
-      const allPaths = document.querySelectorAll('.world-map-svg-container path[id]');
-      allPaths.forEach((path) => {
-        const element = path as HTMLElement;
-        element.style.fill = '#e5e7eb'; // Gray
-        element.style.fillOpacity = '1';
-        element.style.stroke = '#9ca3af';
-        element.style.strokeWidth = '0.3';
+      // First, reset all country elements to default style
+      const allCountries = document.querySelectorAll('.world-map-svg-container [cc]');
+      allCountries.forEach((element) => {
+        const htmlElement = element as HTMLElement;
+        htmlElement.style.fill = '#e5e7eb'; // Light gray
+        htmlElement.style.fillOpacity = '1';
+        htmlElement.style.stroke = '#9ca3af'; // Gray stroke
+        htmlElement.style.strokeWidth = '0.5';
       });
 
       // Then highlight visited countries
       let highlightedCount = 0;
       visitedCountries.forEach(code => {
-        const element = document.getElementById(code);
-        if (element) {
-          element.style.fill = '#ffcc00'; // Yellow
-          element.style.fillOpacity = '0.9';
-          element.style.stroke = '#f59e0b'; // Darker yellow border
-          element.style.strokeWidth = '0.8';
+        const lowerCode = code.toLowerCase();
+        // Select elements with cc attribute matching the country code (case insensitive)
+        const elements = document.querySelectorAll(`.world-map-svg-container [cc="${lowerCode}"]`);
+        
+        elements.forEach((element) => {
+          const htmlElement = element as HTMLElement;
+          htmlElement.style.fill = '#ffcc00'; // Yellow
+          htmlElement.style.fillOpacity = '0.9';
+          htmlElement.style.stroke = '#f59e0b'; // Orange border
+          htmlElement.style.strokeWidth = '1';
           highlightedCount++;
-        } else {
+        });
+        
+        if (elements.length === 0) {
           console.log(`Country code "${code}" not found in SVG`);
         }
       });
       
-      console.log(`Highlighted ${highlightedCount} out of ${visitedCountries.length} countries`);
+      console.log(`Highlighted countries for ${visitedCountries.length} codes (${highlightedCount} SVG elements)`);
     }, 100);
 
     return () => clearTimeout(timer);
@@ -67,19 +63,7 @@ export function WorldMapImage({ visitedCountries, className = '' }: WorldMapImag
 
   return (
     <div className={className}>
-      {/* Show warning if some countries are not available in the map */}
-      {unavailableCount > 0 && (
-        <Alert className="mb-4">
-          <Info className="h-4 w-4" />
-          <AlertDescription>
-            {unavailableCount} of your visited {unavailableCount === 1 ? 'country is' : 'countries are'} not shown on this map 
-            (including {UNAVAILABLE_COUNTRIES.filter(code => visitedCountries.includes(code)).join(', ')}). 
-            Your selections are still saved.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* World map container - strictly constrained */}
+      {/* World map container */}
       <div className="w-full bg-white dark:bg-gray-900 rounded-lg relative" style={{ height: '500px', overflow: 'hidden' }}>
         {svgContent ? (
           <div 
@@ -87,12 +71,14 @@ export function WorldMapImage({ visitedCountries, className = '' }: WorldMapImag
             dangerouslySetInnerHTML={{ __html: svgContent }}
             style={{
               width: '100%',
-              height: '500px',
-              overflow: 'hidden',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           />
         ) : (
-          <div className="w-full flex items-center justify-center" style={{ height: '500px' }}>
+          <div className="w-full h-full flex items-center justify-center">
             <div className="text-muted-foreground">Loading map...</div>
           </div>
         )}
@@ -110,21 +96,27 @@ export function WorldMapImage({ visitedCountries, className = '' }: WorldMapImag
         )}
       </div>
 
-      {/* Add global styles for SVG - force width constraint */}
+      {/* Add global styles for SVG */}
       <style>{`
         .world-map-svg-container svg {
           width: 100% !important;
           height: 100% !important;
           max-width: 100% !important;
+          max-height: 100% !important;
         }
-        .world-map-svg-container path {
+        .world-map-svg-container [cc] {
           fill: #e5e7eb;
           stroke: #9ca3af;
-          stroke-width: 0.3;
-          transition: fill 0.3s ease;
+          stroke-width: 0.5px;
+          transition: fill 0.3s ease, stroke 0.3s ease;
+          cursor: pointer;
         }
-        .world-map-svg-container path:hover {
+        .world-map-svg-container [cc]:hover {
           fill: #d1d5db;
+          stroke: #6b7280;
+        }
+        #bg {
+          fill: #f9fafb;
         }
       `}</style>
     </div>
