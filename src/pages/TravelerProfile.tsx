@@ -26,8 +26,10 @@ import {
   Globe,
   Calendar,
   ExternalLink,
-  Mail
+  Mail,
+  Zap
 } from 'lucide-react';
+import { ZapButton } from '@/components/ZapButton';
 import { nip19 } from 'nostr-tools';
 import { formatDistanceToNow } from 'date-fns';
 import type { NostrEvent } from '@nostrify/nostrify';
@@ -153,6 +155,7 @@ export default function TravelerProfile() {
   const about = metadata?.about;
   const website = metadata?.website;
   const nip05 = metadata?.nip05;
+  const lightningAddress = metadata?.lud16 || metadata?.lud06;
   const latestCheckIn = checkIns?.[0];
 
   // Parse visited countries
@@ -192,6 +195,14 @@ export default function TravelerProfile() {
                     )}
 
                     <div className="flex gap-3 flex-wrap mb-4">
+                      {lightningAddress && (
+                        <ZapButton
+                          authorPubkey={pubkey}
+                          variant="prominent"
+                          size="default"
+                          className="font-semibold"
+                        />
+                      )}
                       {nip05 && (
                         <Badge variant="outline" className="flex items-center gap-1">
                           <Mail className="w-3 h-3" />
