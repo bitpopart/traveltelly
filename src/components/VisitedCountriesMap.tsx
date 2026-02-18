@@ -1,25 +1,14 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { WorldMapImage } from '@/components/WorldMapImage';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useToast } from '@/hooks/useToast';
 import { useQueryClient } from '@tanstack/react-query';
-import { COUNTRIES, COUNTRIES_BY_CONTINENT, CONTINENTS, type Country } from '@/lib/countries';
+import { COUNTRIES, COUNTRIES_BY_CONTINENT, CONTINENTS } from '@/lib/countries';
 import { Globe, Loader2, Check, Search, X, Trash2 } from 'lucide-react';
 import type { NostrEvent } from '@nostrify/nostrify';
 
@@ -28,7 +17,7 @@ interface VisitedCountriesMapProps {
 }
 
 export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesMapProps) {
-  const { mutate: publishEvent, isPending: isPublishing } = useNostrPublish();
+  const { mutate: publishEvent, isPending } = useNostrPublish();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useCurrentUser();
@@ -46,9 +35,8 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
   const [hasChanges, setHasChanges] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedContinent, setSelectedContinent] = useState<string>('All');
-  const [showResetDialog, setShowResetDialog] = useState(false);
-  const [isResetting, setIsResetting] = useState(false);
 
+  // Sync with saved countries when they change
   useEffect(() => {
     setVisitedCountries(savedVisitedCountries);
     setHasChanges(false);
@@ -78,7 +66,6 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
       },
       {
         onSuccess: () => {
-          // Invalidate the visited countries query to refresh the map
           if (user?.pubkey) {
             queryClient.invalidateQueries({ queryKey: ['visited-countries', user.pubkey] });
           }
@@ -101,8 +88,13 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
   };
 
   const handleResetCountries = () => {
-    setIsResetting(true);
+    // Simple browser confirmation
+    const confirmed = window.confirm(
+      `Are you sure you want to reset your travel map?\n\nThis will clear all ${savedVisitedCountries.length} visited ${savedVisitedCountries.length === 1 ? 'country' : 'countries'}.\n\nThis action cannot be undone.`
+    );
     
+    if (!confirmed) return;
+
     // Clear all countries by publishing an empty event
     publishEvent(
       {
@@ -110,20 +102,13 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
         content: '',
         tags: [
           ['d', 'visited-countries'],
-          // No country tags = empty list
         ],
       },
       {
         onSuccess: () => {
-          // Invalidate the visited countries query to refresh the map
           if (user?.pubkey) {
             queryClient.invalidateQueries({ queryKey: ['visited-countries', user.pubkey] });
           }
-          
-          setVisitedCountries([]);
-          setHasChanges(false);
-          setIsResetting(false);
-          setShowResetDialog(false);
           
           toast({
             title: 'Map reset!',
@@ -131,9 +116,6 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
           });
         },
         onError: (error) => {
-          setIsResetting(false);
-          setShowResetDialog(false);
-          
           toast({
             title: 'Failed to reset',
             description: error instanceof Error ? error.message : 'Unknown error',
@@ -182,9 +164,6 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
     return stats;
   }, [visitedCountries]);
 
-  const totalCountries = COUNTRIES.length;
-  const visitedPercentage = Math.round((visitedCountries.length / totalCountries) * 100);
-
   return (
     <div className="space-y-4">
       {/* World Map Visualization */}
@@ -198,7 +177,7 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
         </CardContent>
       </Card>
 
-      {/* Compact Country Selection */}
+      {/* Country Selection */}
       <Card>
         <CardContent className="p-4">
           <div className="space-y-3">
@@ -208,10 +187,10 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
               {hasChanges && (
                 <Button
                   onClick={handleSaveCountries}
-                  disabled={isPublishing}
+                  disabled={isPending}
                   className="flex-1 bg-blue-600 hover:bg-blue-700"
                 >
-                  {isPublishing ? (
+                  {isPending ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       Saving...
@@ -228,8 +207,8 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
               {/* Reset button - only show if there are saved countries */}
               {savedVisitedCountries.length > 0 && (
                 <Button
-                  onClick={() => setShowResetDialog(true)}
-                  disabled={isPublishing}
+                  onClick={handleResetCountries}
+                  disabled={isPending}
                   variant="outline"
                   className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
                 >
@@ -260,7 +239,7 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
               )}
             </div>
 
-            {/* Continent filters - compact */}
+            {/* Continent filters */}
             <div className="flex gap-1 flex-wrap text-xs">
               <Button
                 variant={selectedContinent === 'All' ? 'default' : 'outline'}
@@ -286,7 +265,7 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
               ))}
             </div>
 
-            {/* Country list - compact */}
+            {/* Country list */}
             <ScrollArea className="h-[250px]">
               <div className="grid grid-cols-2 gap-2 pr-4">
                 {filteredCountries.map((country) => {
@@ -297,6 +276,7 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
                       variant={isVisited ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => toggleCountry(country.code)}
+                      disabled={isPending}
                       className={`justify-start text-left h-auto py-2 text-xs ${
                         isVisited
                           ? 'bg-yellow-400 hover:bg-yellow-500 text-black border-yellow-500'
@@ -323,53 +303,6 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
           </div>
         </CardContent>
       </Card>
-
-      {/* Reset Confirmation Dialog */}
-      <AlertDialog 
-        open={showResetDialog} 
-        onOpenChange={(open) => {
-          // Don't allow closing while resetting
-          if (!isResetting) {
-            setShowResetDialog(open);
-          }
-        }}
-      >
-        <AlertDialogContent onEscapeKeyDown={(e) => isResetting && e.preventDefault()}>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Reset your travel map?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will clear all {savedVisitedCountries.length} visited {savedVisitedCountries.length === 1 ? 'country' : 'countries'} from your map. 
-              This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowResetDialog(false)}
-              disabled={isResetting}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleResetCountries}
-              disabled={isResetting}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {isResetting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Resetting...
-                </>
-              ) : (
-                <>
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Reset Map
-                </>
-              )}
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
