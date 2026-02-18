@@ -25,9 +25,7 @@ import {
   Image as ImageIcon,
   Globe,
   Calendar,
-  ExternalLink,
-  Mail,
-  Zap
+  ExternalLink
 } from 'lucide-react';
 import { ZapButton } from '@/components/ZapButton';
 import { nip19 } from 'nostr-tools';
@@ -154,7 +152,6 @@ export default function TravelerProfile() {
   const profileImage = metadata?.picture;
   const about = metadata?.about;
   const website = metadata?.website;
-  const nip05 = metadata?.nip05;
   const lightningAddress = metadata?.lud16 || metadata?.lud06;
   const latestCheckIn = checkIns?.[0];
 
@@ -202,12 +199,6 @@ export default function TravelerProfile() {
                           size="default"
                           className="font-semibold"
                         />
-                      )}
-                      {nip05 && (
-                        <Badge variant="outline" className="flex items-center gap-1">
-                          <Mail className="w-3 h-3" />
-                          {nip05}
-                        </Badge>
                       )}
                       {website && (
                         <Badge variant="outline" className="flex items-center gap-1">
