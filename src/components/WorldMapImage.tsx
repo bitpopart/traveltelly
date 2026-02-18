@@ -1,14 +1,25 @@
 import { useMemo, useEffect, useState } from 'react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Info } from 'lucide-react';
 
 interface WorldMapImageProps {
   visitedCountries: string[];
   className?: string;
 }
 
+// Countries not available in the SimpleMaps free SVG
+const UNAVAILABLE_COUNTRIES = ['US', 'CA', 'AU', 'NZ', 'FR', 'IT', 'GB', 'JP', 'CN', 'RU'];
+// Note: The free SimpleMaps SVG is missing major countries like US, Canada, Australia, etc.
+
 // Simple world map using SimpleMaps SVG with country highlighting
 export function WorldMapImage({ visitedCountries, className = '' }: WorldMapImageProps) {
   const [svgContent, setSvgContent] = useState<string>('');
   const visitedSet = useMemo(() => new Set(visitedCountries), [visitedCountries]);
+  
+  // Count how many visited countries are unavailable in the map
+  const unavailableCount = useMemo(() => {
+    return visitedCountries.filter(code => UNAVAILABLE_COUNTRIES.includes(code)).length;
+  }, [visitedCountries]);
 
   useEffect(() => {
     // Load the SVG file
@@ -56,6 +67,18 @@ export function WorldMapImage({ visitedCountries, className = '' }: WorldMapImag
 
   return (
     <div className={className}>
+      {/* Show warning if some countries are not available in the map */}
+      {unavailableCount > 0 && (
+        <Alert className="mb-4">
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            {unavailableCount} of your visited {unavailableCount === 1 ? 'country is' : 'countries are'} not shown on this map 
+            (including {UNAVAILABLE_COUNTRIES.filter(code => visitedCountries.includes(code)).join(', ')}). 
+            Your selections are still saved.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* World map container - strictly constrained */}
       <div className="w-full bg-white dark:bg-gray-900 rounded-lg relative" style={{ height: '500px', overflow: 'hidden' }}>
         {svgContent ? (
