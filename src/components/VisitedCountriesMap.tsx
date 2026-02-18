@@ -47,6 +47,7 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedContinent, setSelectedContinent] = useState<string>('All');
   const [showResetDialog, setShowResetDialog] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   useEffect(() => {
     setVisitedCountries(savedVisitedCountries);
@@ -100,6 +101,8 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
   };
 
   const handleResetCountries = () => {
+    setIsResetting(true);
+    
     // Clear all countries by publishing an empty event
     publishEvent(
       {
@@ -119,6 +122,7 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
           
           setVisitedCountries([]);
           setHasChanges(false);
+          setIsResetting(false);
           setShowResetDialog(false);
           
           toast({
@@ -127,12 +131,14 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
           });
         },
         onError: (error) => {
+          setIsResetting(false);
+          setShowResetDialog(false);
+          
           toast({
             title: 'Failed to reset',
             description: error instanceof Error ? error.message : 'Unknown error',
             variant: 'destructive',
           });
-          setShowResetDialog(false);
         },
       }
     );
@@ -319,8 +325,16 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
       </Card>
 
       {/* Reset Confirmation Dialog */}
-      <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
-        <AlertDialogContent>
+      <AlertDialog 
+        open={showResetDialog} 
+        onOpenChange={(open) => {
+          // Don't allow closing while resetting
+          if (!isResetting) {
+            setShowResetDialog(open);
+          }
+        }}
+      >
+        <AlertDialogContent onEscapeKeyDown={(e) => isResetting && e.preventDefault()}>
           <AlertDialogHeader>
             <AlertDialogTitle>Reset your travel map?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -332,16 +346,16 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
             <Button
               variant="outline"
               onClick={() => setShowResetDialog(false)}
-              disabled={isPublishing}
+              disabled={isResetting}
             >
               Cancel
             </Button>
             <Button
               onClick={handleResetCountries}
-              disabled={isPublishing}
+              disabled={isResetting}
               className="bg-red-600 hover:bg-red-700"
             >
-              {isPublishing ? (
+              {isResetting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Resetting...
