@@ -5,64 +5,92 @@ interface WorldMapImageProps {
   className?: string;
 }
 
-// Using a simple flat world map PNG with country highlighting
+// Simple world map with yellow country overlays
 export function WorldMapImage({ visitedCountries, className = '' }: WorldMapImageProps) {
   const visitedSet = useMemo(() => new Set(visitedCountries), [visitedCountries]);
+
+  // Country code to SVG path mapping for highlighting
+  // Using simplified country shapes that overlay on the map
+  const countryPaths: Record<string, string> = {
+    // Major countries - simplified paths positioned to match world map
+    US: "M 15,35 L 25,32 L 28,45 L 20,48 Z",
+    CA: "M 10,20 L 30,18 L 32,32 L 12,34 Z",
+    MX: "M 16,48 L 24,47 L 25,54 L 17,55 Z",
+    BR: "M 32,55 L 40,57 L 42,75 L 33,76 Z",
+    AR: "M 28,72 L 35,73 L 34,88 L 27,87 Z",
+    
+    GB: "M 48,32 L 50,31 L 51,34 L 49,35 Z",
+    FR: "M 49,35 L 52,34 L 53,39 L 50,40 Z",
+    DE: "M 51,33 L 54,32 L 55,36 L 52,37 Z",
+    ES: "M 47,39 L 51,38 L 51,43 L 47,43 Z",
+    IT: "M 52,38 L 54,37 L 54,43 L 52,44 Z",
+    
+    RU: "M 55,22 L 90,20 L 92,38 L 57,40 Z",
+    CN: "M 75,38 L 88,37 L 90,50 L 76,51 Z",
+    IN: "M 70,48 L 77,47 L 78,58 L 71,59 Z",
+    AU: "M 82,68 L 93,67 L 94,82 L 83,83 Z",
+    
+    ZA: "M 54,72 L 59,71 L 60,78 L 55,79 Z",
+    EG: "M 55,45 L 58,44 L 59,50 L 56,51 Z",
+    JP: "M 88,38 L 91,37 L 92,45 L 89,46 Z",
+    
+    // Add more countries as needed
+  };
 
   return (
     <div className={`relative ${className}`}>
       {/* World map container */}
       <div className="w-full aspect-[2/1] bg-white dark:bg-gray-900 rounded-lg border-2 border-gray-300 dark:border-gray-600 relative overflow-hidden">
-        {/* Simple world map PNG - using a clean flat design */}
+        {/* Base world map - using a simple, flat PNG */}
         <img 
-          src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fe/Blank_map_of_the_world_%28Robinson_projection%29.svg/2560px-Blank_map_of_the_world_%28Robinson_projection%29.svg.png"
+          src="https://cdn.pixabay.com/photo/2012/04/10/23/04/map-26488_1280.png"
           alt="World Map"
-          className="absolute inset-0 w-full h-full object-contain p-4"
-          style={{ filter: 'grayscale(20%)' }}
+          className="absolute inset-0 w-full h-full object-contain"
+          onError={(e) => {
+            // Fallback to a solid color if image fails to load
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            const parent = target.parentElement;
+            if (parent) {
+              parent.style.background = 'linear-gradient(to bottom, #e0f2fe, #f0f9ff)';
+            }
+          }}
         />
 
-        {/* Overlay with country count */}
-        <div className="absolute top-4 right-4 bg-white/90 dark:bg-gray-800/90 px-4 py-2 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="text-2xl font-bold text-yellow-600">
-            {visitedCountries.length}
-          </div>
-          <div className="text-xs text-muted-foreground">
-            {visitedCountries.length === 1 ? 'country' : 'countries'} visited
-          </div>
-        </div>
+        {/* Overlay SVG for country highlighting */}
+        <svg 
+          viewBox="0 0 100 100" 
+          className="absolute inset-0 w-full h-full"
+          preserveAspectRatio="none"
+        >
+          {visitedCountries.map((code) => {
+            const path = countryPaths[code];
+            if (!path) return null;
+            
+            return (
+              <path
+                key={code}
+                d={path}
+                fill="#ffcc00"
+                fillOpacity="0.7"
+                stroke="#f59e0b"
+                strokeWidth="0.3"
+              />
+            );
+          })}
+        </svg>
 
-        {/* Instructions overlay */}
+        {/* Simple counter badge */}
         {visitedCountries.length > 0 && (
-          <div className="absolute bottom-4 left-4 bg-yellow-400/90 px-3 py-2 rounded shadow-lg">
+          <div className="absolute top-4 right-4 bg-yellow-400 px-4 py-2 rounded-lg shadow-lg">
+            <div className="text-2xl font-bold text-black">
+              {visitedCountries.length}
+            </div>
             <div className="text-xs font-semibold text-black">
-              ✓ {visitedCountries.length} countries highlighted
+              visited
             </div>
           </div>
         )}
-      </div>
-
-      {/* Country list below map */}
-      {visitedCountries.length > 0 && (
-        <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-          <div className="text-sm font-semibold text-yellow-900 dark:text-yellow-100 mb-2">
-            Countries you've visited:
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {visitedCountries.map((code) => (
-              <span
-                key={code}
-                className="inline-block px-2 py-1 bg-yellow-400 text-black text-xs font-medium rounded"
-              >
-                {code}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Simple legend */}
-      <div className="mt-3 text-center text-sm text-muted-foreground">
-        Select countries in the "Select Countries" section above to track your travels
       </div>
     </div>
   );
