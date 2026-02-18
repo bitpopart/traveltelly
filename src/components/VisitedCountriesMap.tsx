@@ -9,7 +9,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useToast } from '@/hooks/useToast';
 import { useQueryClient } from '@tanstack/react-query';
 import { COUNTRIES, COUNTRIES_BY_CONTINENT, CONTINENTS } from '@/lib/countries';
-import { Globe, Loader2, Check, Search, X, Trash2 } from 'lucide-react';
+import { Globe, Loader2, Check, Search, X, Trash2, XCircle } from 'lucide-react';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 interface VisitedCountriesMapProps {
@@ -85,6 +85,16 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
         },
       }
     );
+  };
+
+  const handleClearAll = () => {
+    // Clear all selections locally (no save)
+    setVisitedCountries([]);
+    setHasChanges(savedVisitedCountries.length > 0); // Mark as changed if there were saved countries
+    toast({
+      title: 'Selections cleared',
+      description: 'All country selections cleared. Click Save to update your map.',
+    });
   };
 
   const handleResetCountries = () => {
@@ -239,8 +249,8 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
               )}
             </div>
 
-            {/* Continent filters */}
-            <div className="flex gap-1 flex-wrap text-xs">
+            {/* Continent filters and Clear All */}
+            <div className="flex gap-1 flex-wrap text-xs items-center">
               <Button
                 variant={selectedContinent === 'All' ? 'default' : 'outline'}
                 size="sm"
@@ -263,6 +273,20 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
                   )}
                 </Button>
               ))}
+              
+              {/* Clear All button - only show if there are selected countries */}
+              {visitedCountries.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClearAll}
+                  disabled={isPending}
+                  className="h-7 text-xs ml-auto border-orange-300 text-orange-600 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-950"
+                >
+                  <XCircle className="w-3 h-3 mr-1" />
+                  Clear All
+                </Button>
+              )}
             </div>
 
             {/* Country list */}
