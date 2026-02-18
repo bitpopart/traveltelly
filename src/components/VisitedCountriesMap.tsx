@@ -4,13 +4,23 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { WorldMapImage } from '@/components/WorldMapImage';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useToast } from '@/hooks/useToast';
 import { useQueryClient } from '@tanstack/react-query';
 import { COUNTRIES, COUNTRIES_BY_CONTINENT, CONTINENTS, type Country } from '@/lib/countries';
-import { Globe, Loader2, Check, Search, X } from 'lucide-react';
+import { Globe, Loader2, Check, Search, X, Trash2 } from 'lucide-react';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 interface VisitedCountriesMapProps {
@@ -36,6 +46,7 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
   const [hasChanges, setHasChanges] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedContinent, setSelectedContinent] = useState<string>('All');
+  const [showResetDialog, setShowResetDialog] = useState(false);
 
   useEffect(() => {
     setVisitedCountries(savedVisitedCountries);
@@ -83,6 +94,45 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
             description: error instanceof Error ? error.message : 'Unknown error',
             variant: 'destructive',
           });
+        },
+      }
+    );
+  };
+
+  const handleResetCountries = () => {
+    // Clear all countries by publishing an empty event
+    publishEvent(
+      {
+        kind: 30078,
+        content: '',
+        tags: [
+          ['d', 'visited-countries'],
+          // No country tags = empty list
+        ],
+      },
+      {
+        onSuccess: () => {
+          // Invalidate the visited countries query to refresh the map
+          if (user?.pubkey) {
+            queryClient.invalidateQueries({ queryKey: ['visited-countries', user.pubkey] });
+          }
+          
+          setVisitedCountries([]);
+          setHasChanges(false);
+          setShowResetDialog(false);
+          
+          toast({
+            title: 'Map reset!',
+            description: 'All visited countries have been cleared',
+          });
+        },
+        onError: (error) => {
+          toast({
+            title: 'Failed to reset',
+            description: error instanceof Error ? error.message : 'Unknown error',
+            variant: 'destructive',
+          });
+          setShowResetDialog(false);
         },
       }
     );
@@ -146,26 +196,42 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
       <Card>
         <CardContent className="p-4">
           <div className="space-y-3">
-            {/* Save button at top if changes */}
-            {hasChanges && (
-              <Button
-                onClick={handleSaveCountries}
-                disabled={isPublishing}
-                className="w-full bg-blue-600 hover:bg-blue-700"
-              >
-                {isPublishing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Check className="w-4 h-4 mr-2" />
-                    Save {visitedCountries.length} Countries
-                  </>
-                )}
-              </Button>
-            )}
+            {/* Action buttons */}
+            <div className="flex gap-2">
+              {/* Save button if changes */}
+              {hasChanges && (
+                <Button
+                  onClick={handleSaveCountries}
+                  disabled={isPublishing}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                >
+                  {isPublishing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4 mr-2" />
+                      Save {visitedCountries.length} Countries
+                    </>
+                  )}
+                </Button>
+              )}
+              
+              {/* Reset button - only show if there are saved countries */}
+              {savedVisitedCountries.length > 0 && (
+                <Button
+                  onClick={() => setShowResetDialog(true)}
+                  disabled={isPublishing}
+                  variant="outline"
+                  className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Reset Map
+                </Button>
+              )}
+            </div>
 
             {/* Search */}
             <div className="relative">
@@ -251,6 +317,38 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
           </div>
         </CardContent>
       </Card>
+
+      {/* Reset Confirmation Dialog */}
+      <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset your travel map?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will clear all {savedVisitedCountries.length} visited {savedVisitedCountries.length === 1 ? 'country' : 'countries'} from your map. 
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleResetCountries}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isPublishing ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Resetting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Reset Map
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
