@@ -39,23 +39,23 @@ export function WorldMapImage({ visitedCountries, className = '' }: WorldMapImag
 
   return (
     <div className={`relative ${className}`}>
-      {/* World map container */}
-      <div className="w-full bg-white dark:bg-gray-900 rounded-lg border-2 border-gray-300 dark:border-gray-600 relative overflow-hidden" style={{ height: '500px' }}>
+      {/* World map container - constrained to exact size */}
+      <div className="w-full bg-white dark:bg-gray-900 rounded-lg relative overflow-hidden" style={{ height: '500px', maxWidth: '100%' }}>
         {svgContent ? (
           <div 
-            className="w-full h-full p-2"
-            dangerouslySetInnerHTML={{ __html: svgContent }}
-            style={{
-              height: '500px',
-              // Style the SVG countries
-              '& path': {
-                fill: '#e5e7eb',
-                stroke: '#9ca3af',
-                strokeWidth: '0.3',
-                transition: 'fill 0.3s ease',
-              }
-            } as React.CSSProperties}
-          />
+            className="w-full h-full flex items-center justify-center p-4"
+            style={{ height: '500px' }}
+          >
+            <div 
+              dangerouslySetInnerHTML={{ __html: svgContent }}
+              style={{
+                maxWidth: '100%',
+                maxHeight: '100%',
+                width: 'auto',
+                height: 'auto',
+              }}
+            />
+          </div>
         ) : (
           <div className="w-full flex items-center justify-center" style={{ height: '500px' }}>
             <div className="text-muted-foreground">Loading map...</div>
@@ -64,8 +64,8 @@ export function WorldMapImage({ visitedCountries, className = '' }: WorldMapImag
 
         {/* Counter badge */}
         {visitedCountries.length > 0 && (
-          <div className="absolute top-4 right-4 bg-yellow-400 px-4 py-2 rounded-lg shadow-lg">
-            <div className="text-2xl font-bold text-black">
+          <div className="absolute top-4 right-4 bg-yellow-400 px-3 py-1.5 rounded-lg shadow-lg">
+            <div className="text-xl font-bold text-black">
               {visitedCountries.length}
             </div>
             <div className="text-xs font-semibold text-black">
