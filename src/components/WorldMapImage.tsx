@@ -21,17 +21,34 @@ export function WorldMapImage({ visitedCountries, className = '' }: WorldMapImag
   useEffect(() => {
     if (!svgContent) return;
 
-    // After SVG is loaded, highlight visited countries
+    // After SVG is loaded, reset all countries then highlight visited ones
     const timer = setTimeout(() => {
+      // First, reset all country paths to default gray
+      const allPaths = document.querySelectorAll('.world-map-svg-container path[id]');
+      allPaths.forEach((path) => {
+        const element = path as HTMLElement;
+        element.style.fill = '#e5e7eb'; // Gray
+        element.style.fillOpacity = '1';
+        element.style.stroke = '#9ca3af';
+        element.style.strokeWidth = '0.3';
+      });
+
+      // Then highlight visited countries
+      let highlightedCount = 0;
       visitedCountries.forEach(code => {
         const element = document.getElementById(code);
         if (element) {
           element.style.fill = '#ffcc00'; // Yellow
-          element.style.fillOpacity = '0.8';
+          element.style.fillOpacity = '0.9';
           element.style.stroke = '#f59e0b'; // Darker yellow border
-          element.style.strokeWidth = '0.5';
+          element.style.strokeWidth = '0.8';
+          highlightedCount++;
+        } else {
+          console.log(`Country code "${code}" not found in SVG`);
         }
       });
+      
+      console.log(`Highlighted ${highlightedCount} out of ${visitedCountries.length} countries`);
     }, 100);
 
     return () => clearTimeout(timer);

@@ -18,6 +18,7 @@ import { useVisitedCountries } from '@/hooks/useVisitedCountries';
 import { usePrivacySettingsData } from '@/hooks/usePrivacySettings';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
+import { useQueryClient } from '@tanstack/react-query';
 import { genUserName } from '@/lib/genUserName';
 import { CheckInForm } from '@/components/CheckInForm';
 import { MyWorldMap } from '@/components/MyWorldMap';
@@ -246,6 +247,7 @@ function MediaItem({ media }: { media: NostrEvent }) {
 export default function MyTravels() {
   const { user, metadata } = useCurrentUser();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { mutate: publishProfile, isPending: isPublishing } = useNostrPublish();
   
   const [isEditingName, setIsEditingName] = useState(false);
@@ -326,6 +328,9 @@ export default function MyTravels() {
       },
       {
         onSuccess: () => {
+          // Invalidate privacy settings query to refresh the UI
+          queryClient.invalidateQueries({ queryKey: ['privacy-settings', user.pubkey] });
+          
           toast({
             title: 'Privacy updated',
             description: showLocation 

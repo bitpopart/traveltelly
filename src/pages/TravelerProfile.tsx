@@ -262,28 +262,8 @@ export default function TravelerProfile() {
               <CardContent>
                 <WorldMapImage
                   visitedCountries={visitedCountries}
-                  className="w-full mb-4"
+                  className="w-full"
                 />
-                
-                {/* Country List */}
-                <div>
-                  <h3 className="font-semibold mb-3">Countries Visited</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {visitedCountries
-                      .map((code) => COUNTRIES.find((c) => c.code === code))
-                      .filter((c) => c !== undefined)
-                      .sort((a, b) => a!.name.localeCompare(b!.name))
-                      .map((country) => (
-                        <Badge
-                          key={country!.code}
-                          variant="secondary"
-                          className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-900 dark:text-yellow-100"
-                        >
-                          {country!.name}
-                        </Badge>
-                      ))}
-                  </div>
-                </div>
               </CardContent>
             </Card>
           )}
