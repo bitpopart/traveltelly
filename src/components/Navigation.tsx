@@ -129,35 +129,37 @@ export function Navigation({ className }: NavigationProps) {
 
           {/* Desktop Right Side */}
           <div className="hidden md:flex items-center gap-3">
-            {/* View Mode Toggle */}
-            <div className="inline-flex items-center bg-gray-200 dark:bg-gray-700 rounded-full p-1 gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setViewMode('map')}
-                className={`rounded-full w-9 h-9 transition-all ${
-                  viewMode === 'map' 
-                    ? 'bg-gray-800 hover:bg-gray-900 text-white' 
-                    : 'hover:bg-gray-300 dark:hover:bg-gray-600'
-                }`}
-                title="World Map"
-              >
-                <Globe className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setViewMode('images')}
-                className={`rounded-full w-9 h-9 transition-all ${
-                  viewMode === 'images' 
-                    ? 'bg-gray-800 hover:bg-gray-900 text-white' 
-                    : 'hover:bg-gray-300 dark:hover:bg-gray-600'
-                }`}
-                title="Images Grid"
-              >
-                <ImageIcon className="w-4 h-4" />
-              </Button>
-            </div>
+            {/* View Mode Toggle - Only show on home page */}
+            {location.pathname === '/' && (
+              <div className="inline-flex items-center bg-gray-200 dark:bg-gray-700 rounded-full p-1 gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setViewMode('map')}
+                  className={`rounded-full w-9 h-9 transition-all ${
+                    viewMode === 'map' 
+                      ? 'bg-gray-800 hover:bg-gray-900 text-white' 
+                      : 'hover:bg-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                  title="World Map"
+                >
+                  <Globe className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setViewMode('images')}
+                  className={`rounded-full w-9 h-9 transition-all ${
+                    viewMode === 'images' 
+                      ? 'bg-gray-800 hover:bg-gray-900 text-white' 
+                      : 'hover:bg-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                  title="Images Grid"
+                >
+                  <ImageIcon className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
 
             {user ? (
               <>
@@ -178,35 +180,37 @@ export function Navigation({ className }: NavigationProps) {
 
           {/* Mobile Right Side - Toggle + Menu Button */}
           <div className="md:hidden flex items-center gap-2">
-            {/* View Mode Toggle - Mobile (always visible) */}
-            <div className="inline-flex items-center bg-gray-200 dark:bg-gray-700 rounded-full p-1 gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setViewMode('map')}
-                className={`rounded-full w-8 h-8 transition-all ${
-                  viewMode === 'map' 
-                    ? 'bg-gray-800 hover:bg-gray-900 text-white' 
-                    : 'hover:bg-gray-300 dark:hover:bg-gray-600'
-                }`}
-                title="World Map"
-              >
-                <Globe className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setViewMode('images')}
-                className={`rounded-full w-8 h-8 transition-all ${
-                  viewMode === 'images' 
-                    ? 'bg-gray-800 hover:bg-gray-900 text-white' 
-                    : 'hover:bg-gray-300 dark:hover:bg-gray-600'
-                }`}
-                title="Images Grid"
-              >
-                <ImageIcon className="w-4 h-4" />
-              </Button>
-            </div>
+            {/* View Mode Toggle - Mobile (only show on home page) */}
+            {location.pathname === '/' && (
+              <div className="inline-flex items-center bg-gray-200 dark:bg-gray-700 rounded-full p-1 gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setViewMode('map')}
+                  className={`rounded-full w-8 h-8 transition-all ${
+                    viewMode === 'map' 
+                      ? 'bg-gray-800 hover:bg-gray-900 text-white' 
+                      : 'hover:bg-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                  title="World Map"
+                >
+                  <Globe className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setViewMode('images')}
+                  className={`rounded-full w-8 h-8 transition-all ${
+                    viewMode === 'images' 
+                      ? 'bg-gray-800 hover:bg-gray-900 text-white' 
+                      : 'hover:bg-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                  title="Images Grid"
+                >
+                  <ImageIcon className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
 
             {/* Mobile Menu Button */}
             <Button
