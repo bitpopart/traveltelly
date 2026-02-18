@@ -38,24 +38,19 @@ export function WorldMapImage({ visitedCountries, className = '' }: WorldMapImag
   }, [svgContent, visitedCountries]);
 
   return (
-    <div className={`relative ${className}`}>
-      {/* World map container - constrained to exact size */}
-      <div className="w-full bg-white dark:bg-gray-900 rounded-lg relative overflow-hidden" style={{ height: '500px', maxWidth: '100%' }}>
+    <div className={className}>
+      {/* World map container - strictly constrained */}
+      <div className="w-full bg-white dark:bg-gray-900 rounded-lg relative" style={{ height: '500px', overflow: 'hidden' }}>
         {svgContent ? (
           <div 
-            className="w-full h-full flex items-center justify-center p-4"
-            style={{ height: '500px' }}
-          >
-            <div 
-              dangerouslySetInnerHTML={{ __html: svgContent }}
-              style={{
-                maxWidth: '100%',
-                maxHeight: '100%',
-                width: 'auto',
-                height: 'auto',
-              }}
-            />
-          </div>
+            className="world-map-svg-container"
+            dangerouslySetInnerHTML={{ __html: svgContent }}
+            style={{
+              width: '100%',
+              height: '500px',
+              overflow: 'hidden',
+            }}
+          />
         ) : (
           <div className="w-full flex items-center justify-center" style={{ height: '500px' }}>
             <div className="text-muted-foreground">Loading map...</div>
@@ -75,15 +70,20 @@ export function WorldMapImage({ visitedCountries, className = '' }: WorldMapImag
         )}
       </div>
 
-      {/* Add global styles for SVG */}
+      {/* Add global styles for SVG - force width constraint */}
       <style>{`
-        #world-map-container path {
+        .world-map-svg-container svg {
+          width: 100% !important;
+          height: 100% !important;
+          max-width: 100% !important;
+        }
+        .world-map-svg-container path {
           fill: #e5e7eb;
           stroke: #9ca3af;
           stroke-width: 0.3;
           transition: fill 0.3s ease;
         }
-        #world-map-container path:hover {
+        .world-map-svg-container path:hover {
           fill: #d1d5db;
         }
       `}</style>
