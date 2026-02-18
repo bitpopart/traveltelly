@@ -6,7 +6,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { WorldMapImage } from '@/components/WorldMapImage';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useToast } from '@/hooks/useToast';
+import { useQueryClient } from '@tanstack/react-query';
 import { COUNTRIES, COUNTRIES_BY_CONTINENT, CONTINENTS, type Country } from '@/lib/countries';
 import { Globe, Loader2, Check, Search, X } from 'lucide-react';
 import type { NostrEvent } from '@nostrify/nostrify';
@@ -18,6 +20,8 @@ interface VisitedCountriesMapProps {
 export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesMapProps) {
   const { mutate: publishEvent, isPending: isPublishing } = useNostrPublish();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { user } = useCurrentUser();
 
   // Parse visited countries from event
   const savedVisitedCountries = useMemo(() => {
@@ -62,6 +66,11 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
       },
       {
         onSuccess: () => {
+          // Invalidate the visited countries query to refresh the map
+          if (user?.pubkey) {
+            queryClient.invalidateQueries({ queryKey: ['visited-countries', user.pubkey] });
+          }
+          
           toast({
             title: 'Countries saved!',
             description: `${visitedCountries.length} ${visitedCountries.length === 1 ? 'country' : 'countries'} saved successfully`,
@@ -126,6 +135,7 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
       <Card>
         <CardContent className="p-0">
           <WorldMapImage
+            key={visitedCountries.join(',')}
             visitedCountries={visitedCountries}
             className="w-full"
           />
