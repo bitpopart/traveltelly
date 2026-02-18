@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
+import { WorldMapSVG } from '@/components/WorldMapSVG';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
 import { COUNTRIES, COUNTRIES_BY_CONTINENT, CONTINENTS, type Country } from '@/lib/countries';
@@ -121,6 +122,24 @@ export function VisitedCountriesMap({ visitedCountriesEvent }: VisitedCountriesM
 
   return (
     <div className="space-y-4">
+      {/* World Map Visualization */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Your Travel Map</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Countries in yellow are places you've visited
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border">
+            <WorldMapSVG
+              visitedCountries={visitedCountries}
+              className="w-full h-auto"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Statistics Header */}
       <Card>
         <CardHeader>

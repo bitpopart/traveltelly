@@ -34,7 +34,8 @@ import {
   Navigation as NavigationIcon,
   Calendar,
   Zap,
-  Map
+  Map,
+  User
 } from 'lucide-react';
 import { Link, Navigate } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
@@ -369,6 +370,17 @@ export default function MyTravels() {
 
                   {/* Action Buttons */}
                   <div className="flex gap-3 flex-wrap mb-4">
+                    <Link to={`/traveler/${user.pubkey}`}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-full font-semibold"
+                        style={{ borderColor: '#10b981', color: '#10b981' }}
+                      >
+                        <User className="w-4 h-4 mr-2" />
+                        My Profile
+                      </Button>
+                    </Link>
                     <Link to="/zaplytics">
                       <Button
                         size="sm"
