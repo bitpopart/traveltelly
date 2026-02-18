@@ -40,13 +40,13 @@ export function WorldMapImage({ visitedCountries, className = '' }: WorldMapImag
   return (
     <div className={`relative ${className}`}>
       {/* World map container */}
-      <div className="w-full bg-white dark:bg-gray-900 rounded-lg border-2 border-gray-300 dark:border-gray-600 relative overflow-hidden" style={{ maxHeight: '250px' }}>
+      <div className="w-full bg-white dark:bg-gray-900 rounded-lg border-2 border-gray-300 dark:border-gray-600 relative overflow-hidden" style={{ height: '500px' }}>
         {svgContent ? (
           <div 
             className="w-full h-full p-2"
             dangerouslySetInnerHTML={{ __html: svgContent }}
             style={{
-              maxHeight: '250px',
+              height: '500px',
               // Style the SVG countries
               '& path': {
                 fill: '#e5e7eb',
@@ -57,7 +57,7 @@ export function WorldMapImage({ visitedCountries, className = '' }: WorldMapImag
             } as React.CSSProperties}
           />
         ) : (
-          <div className="w-full flex items-center justify-center" style={{ height: '250px' }}>
+          <div className="w-full flex items-center justify-center" style={{ height: '500px' }}>
             <div className="text-muted-foreground">Loading map...</div>
           </div>
         )}
