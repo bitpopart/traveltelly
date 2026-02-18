@@ -15,12 +15,14 @@ import { useUserReviews } from '@/hooks/useAllReviews';
 import { useUserStories, useUserTrips, useUserMedia } from '@/hooks/useUserContent';
 import { useUserCheckIns } from '@/hooks/useCheckIns';
 import { useVisitedCountries } from '@/hooks/useVisitedCountries';
+import { usePrivacySettingsData } from '@/hooks/usePrivacySettings';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
 import { genUserName } from '@/lib/genUserName';
 import { CheckInForm } from '@/components/CheckInForm';
 import { MyWorldMap } from '@/components/MyWorldMap';
 import { OptimizedImage } from '@/components/OptimizedImage';
+import { Switch } from '@/components/ui/switch';
 import { 
   MapPin, 
   Star, 
@@ -35,7 +37,9 @@ import {
   Calendar,
   Zap,
   Map,
-  User
+  User,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { Link, Navigate } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
@@ -255,6 +259,7 @@ export default function MyTravels() {
   const { data: media, isLoading: loadingMedia } = useUserMedia(user?.pubkey);
   const { data: checkIns, isLoading: loadingCheckIns } = useUserCheckIns(user?.pubkey);
   const { data: visitedCountriesEvent } = useVisitedCountries(user?.pubkey);
+  const privacySettings = usePrivacySettingsData(user?.pubkey);
 
   if (!user) {
     return <Navigate to="/" replace />;
@@ -301,6 +306,36 @@ export default function MyTravels() {
         onError: (error) => {
           toast({
             title: 'Failed to update profile',
+            description: error instanceof Error ? error.message : 'Unknown error',
+            variant: 'destructive',
+          });
+        },
+      }
+    );
+  };
+
+  const handleToggleLocationVisibility = (showLocation: boolean) => {
+    publishProfile(
+      {
+        kind: 30078,
+        content: '',
+        tags: [
+          ['d', 'privacy-settings'],
+          ['show_location_on_profile', showLocation ? 'true' : 'false'],
+        ],
+      },
+      {
+        onSuccess: () => {
+          toast({
+            title: 'Privacy updated',
+            description: showLocation 
+              ? 'Latest check-in now visible on your public profile' 
+              : 'Latest check-in hidden from your public profile',
+          });
+        },
+        onError: (error) => {
+          toast({
+            title: 'Failed to update privacy',
             description: error instanceof Error ? error.message : 'Unknown error',
             variant: 'destructive',
           });
@@ -437,19 +472,37 @@ export default function MyTravels() {
                     </Dialog>
                   </div>
 
-                  {latestCheckIn && (
+                   {latestCheckIn && (
                     <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                      <div className="flex items-start gap-2">
-                        <MapPin className="w-5 h-5 text-blue-600 mt-0.5" />
-                        <div>
-                          <p className="font-semibold text-blue-900 dark:text-blue-100">
-                            Latest Check-In
-                          </p>
-                          <p className="text-sm text-blue-700 dark:text-blue-300">
-                            {latestCheckIn.tags.find(([name]) => name === 'location')?.[1]}
-                          </p>
-                          <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                            {formatDistanceToNow(new Date(latestCheckIn.created_at * 1000), { addSuffix: true })}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-2 flex-1">
+                          <MapPin className="w-5 h-5 text-blue-600 mt-0.5" />
+                          <div>
+                            <p className="font-semibold text-blue-900 dark:text-blue-100">
+                              Latest Check-In
+                            </p>
+                            <p className="text-sm text-blue-700 dark:text-blue-300">
+                              {latestCheckIn.tags.find(([name]) => name === 'location')?.[1]}
+                            </p>
+                            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                              {formatDistanceToNow(new Date(latestCheckIn.created_at * 1000), { addSuffix: true })}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          <div className="flex items-center gap-2">
+                            {privacySettings.showLocationOnProfile ? (
+                              <Eye className="w-4 h-4 text-blue-600" />
+                            ) : (
+                              <EyeOff className="w-4 h-4 text-gray-400" />
+                            )}
+                            <Switch
+                              checked={privacySettings.showLocationOnProfile}
+                              onCheckedChange={(checked) => handleToggleLocationVisibility(checked)}
+                            />
+                          </div>
+                          <p className="text-xs text-blue-600 dark:text-blue-400">
+                            {privacySettings.showLocationOnProfile ? 'Public' : 'Private'}
                           </p>
                         </div>
                       </div>

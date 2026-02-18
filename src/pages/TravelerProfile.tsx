@@ -14,6 +14,7 @@ import { useUserReviews } from '@/hooks/useAllReviews';
 import { useUserStories, useUserTrips, useUserMedia } from '@/hooks/useUserContent';
 import { useUserCheckIns } from '@/hooks/useCheckIns';
 import { useVisitedCountries } from '@/hooks/useVisitedCountries';
+import { usePrivacySettingsData } from '@/hooks/usePrivacySettings';
 import { genUserName } from '@/lib/genUserName';
 import { COUNTRIES } from '@/lib/countries';
 import { 
@@ -118,6 +119,7 @@ export default function TravelerProfile() {
   const { data: media, isLoading: loadingMedia } = useUserMedia(pubkey);
   const { data: checkIns, isLoading: loadingCheckIns } = useUserCheckIns(pubkey);
   const { data: visitedCountriesEvent } = useVisitedCountries(pubkey);
+  const privacySettings = usePrivacySettingsData(pubkey);
 
   if (!username) {
     return <Navigate to="/" replace />;
@@ -211,7 +213,7 @@ export default function TravelerProfile() {
                       )}
                     </div>
 
-                    {latestCheckIn && (
+                    {latestCheckIn && privacySettings.showLocationOnProfile && (
                       <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
                         <div className="flex items-start gap-2">
                           <MapPin className="w-5 h-5 text-blue-600 mt-0.5" />
