@@ -1,5 +1,6 @@
 import { ExternalLink } from 'lucide-react';
 import { NewsletterSubscribe } from './NewsletterSubscribe';
+import { Link } from 'react-router-dom';
 
 interface FooterProps {
   showStockMediaPartners?: boolean;
@@ -26,9 +27,15 @@ export function Footer({ showStockMediaPartners = false }: FooterProps) {
             <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">
               About TravelTelly
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
               Share and discover authentic travel experiences on Nostr. Browse reviews, stories, trip itineraries, and purchase stunning travel photography.
             </p>
+            <Link 
+              to="/traveltelly-tour" 
+              className="text-sm text-purple-600 dark:text-purple-400 hover:underline font-medium"
+            >
+              🌍 TravelTelly Tour
+            </Link>
           </div>
 
           {/* Stock Photography Portfolios - Only show on marketplace pages */}

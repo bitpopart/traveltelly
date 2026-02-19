@@ -56,6 +56,8 @@ import MyTravels from "./pages/MyTravels";
 import Zaplytics from "./pages/Zaplytics";
 import WorldMap from "./pages/WorldMap";
 import TravelerProfile from "./pages/TravelerProfile";
+import TravelTellyTour from "./pages/TravelTellyTour";
+import TourFeed from "./pages/TourFeed";
 import NotFound from "./pages/NotFound";
 
 export function AppRouter() {
@@ -115,6 +117,8 @@ export function AppRouter() {
         <Route path="/what-is-nostr" element={<WhatIsNostr />} />
         <Route path="/category-migration" element={<CategoryMigrationPage />} />
         <Route path="/world-map" element={<WorldMap />} />
+        <Route path="/traveltelly-tour" element={<TravelTellyTour />} />
+        <Route path="/tour-feed/:eventId" element={<TourFeed />} />
         {/* Traveler Profile Routes */}
         <Route path="/traveler/:username" element={<TravelerProfile />} />
         {/* Explicit admin routes for better debugging */}

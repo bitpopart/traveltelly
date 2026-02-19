@@ -101,6 +101,15 @@ export default function WorldMap() {
               >
                 <ImageIcon className="w-5 h-5" />
               </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/traveltelly-tour')}
+                className="rounded-full w-12 h-12 bg-purple-600 hover:bg-purple-700 text-white shadow-md transition-all"
+                title="TravelTelly Tour"
+              >
+                <Globe className="w-5 h-5" />
+              </Button>
             </div>
           </div>
 
