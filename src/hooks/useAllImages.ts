@@ -179,10 +179,10 @@ export function useAllImages() {
           });
       }
 
-      // Fetch trips
+      // Fetch trips (only from admin when not logged in as contributor)
       const tripEvents = await nostr.query([{
         kinds: [30025],
-        ...(userFilter && { authors: userFilter }),
+        authors: userFilter || [ADMIN_HEX], // User's trips if contributor, otherwise admin trips
         limit: userFilter ? 200 : 100,
       }], { signal });
 
@@ -221,10 +221,10 @@ export function useAllImages() {
           });
         });
 
-      // Fetch stories
+      // Fetch stories (only from admin, like other content)
       const storyEvents = await nostr.query([{
         kinds: [30023],
-        ...(userFilter && { authors: userFilter }),
+        authors: userFilter || [ADMIN_HEX], // User's stories if contributor, otherwise admin stories
         limit: userFilter ? 200 : 100,
       }], { signal });
 
@@ -313,18 +313,27 @@ export function useAllImages() {
       }
 
       // Fetch TravelTelly Tour posts (kind 1 with #traveltelly from admin)
+      // Always fetch tour posts, regardless of user login status
       console.log(`🔍 Querying TravelTelly Tour posts from admin: ${ADMIN_HEX}`);
-      const tourEvents = await nostr.query([{
-        kinds: [1],
-        authors: [ADMIN_HEX],
-        '#t': ['traveltelly'],
-        limit: 100,
-      }], { signal });
-
-      console.log(`🌍 TravelTelly Tour: Found ${tourEvents.length} posts with #traveltelly from admin`);
+      console.log(`🔍 Query filter:`, { kinds: [1], authors: [ADMIN_HEX], '#t': ['traveltelly'], limit: 100 });
+      
+      let tourEvents: NostrEvent[] = [];
+      try {
+        tourEvents = await nostr.query([{
+          kinds: [1],
+          authors: [ADMIN_HEX],
+          '#t': ['traveltelly'],
+          limit: 100,
+        }], { signal });
+        console.log(`🌍 TravelTelly Tour: Found ${tourEvents.length} posts with #traveltelly from admin`);
+      } catch (error) {
+        console.error('❌ Error fetching TravelTelly Tour posts:', error);
+      }
       
       if (tourEvents.length > 0) {
         console.log('📝 Sample tour event:', tourEvents[0]);
+      } else {
+        console.warn('⚠️ No #traveltelly posts found on this relay. Admin needs to publish kind 1 notes with #traveltelly hashtag.');
       }
 
       // Extract media from tour posts and add to images
