@@ -371,9 +371,9 @@ export function useAllImages() {
       return shuffledImages;
     },
     enabled: !!authorizedReviewers && !!authorizedUploaders,
-    staleTime: 30 * 1000, // 30 seconds - reduced for testing tour posts
+    staleTime: 0, // Always fetch fresh data to ensure tour posts appear
     gcTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnMount: true, // Always refetch when component mounts
+    refetchOnMount: 'always', // Always refetch when component mounts
     refetchOnWindowFocus: true, // Refetch when window gains focus
   });
 }
