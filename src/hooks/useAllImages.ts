@@ -125,9 +125,11 @@ export function useAllImages() {
   return useQuery({
     queryKey: ['all-images', user?.pubkey, isContributor],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(10000)]); // Increased timeout for tour posts
       
       const images: ImageItem[] = [];
+      
+      console.log('🔄 Starting useAllImages query...');
 
       // Determine which authors to query
       // Contributors see only their own content, visitors/non-contributors see all
@@ -311,6 +313,7 @@ export function useAllImages() {
       }
 
       // Fetch TravelTelly Tour posts (kind 1 with #traveltelly from admin)
+      console.log(`🔍 Querying TravelTelly Tour posts from admin: ${ADMIN_HEX}`);
       const tourEvents = await nostr.query([{
         kinds: [1],
         authors: [ADMIN_HEX],
@@ -318,11 +321,18 @@ export function useAllImages() {
         limit: 100,
       }], { signal });
 
-      console.log(`🌍 TravelTelly Tour: Found ${tourEvents.length} posts with #traveltelly`);
+      console.log(`🌍 TravelTelly Tour: Found ${tourEvents.length} posts with #traveltelly from admin`);
+      
+      if (tourEvents.length > 0) {
+        console.log('📝 Sample tour event:', tourEvents[0]);
+      }
 
       // Extract media from tour posts and add to images
+      let tourMediaCount = 0;
       tourEvents.forEach((event) => {
         const mediaUrls = extractMediaFromTourPost(event);
+        
+        console.log(`  Event ${event.id.substring(0, 8)}: Found ${mediaUrls.length} media items`);
         
         mediaUrls.forEach((mediaUrl) => {
           images.push({
@@ -334,10 +344,11 @@ export function useAllImages() {
             created_at: event.created_at,
             eventId: event.id, // Store event ID for navigation
           });
+          tourMediaCount++;
         });
       });
 
-      console.log(`📸 TravelTelly Tour: Added ${tourEvents.length} tour posts to grid`);
+      console.log(`📸 TravelTelly Tour: Added ${tourMediaCount} media items from ${tourEvents.length} posts to grid`);
 
       // Shuffle images randomly to mix tour posts with other content
       const shuffledImages = images.sort(() => Math.random() - 0.5);
@@ -351,7 +362,9 @@ export function useAllImages() {
       return shuffledImages;
     },
     enabled: !!authorizedReviewers && !!authorizedUploaders,
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 30 * 1000, // 30 seconds - reduced for testing tour posts
     gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnMount: true, // Always refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window gains focus
   });
 }
