@@ -32,20 +32,25 @@ export default function WorldMap() {
   const { data: latestTrips = [] } = useLatestTrips();
   const { data: latestStockMediaItems = [] } = useLatestStockMediaItems();
 
-  const getDestinationPath = (naddr: string, type: string) => {
+  const getDestinationPath = (item: { naddr: string; type: string; eventId?: string }) => {
+    // Handle tour type differently (no naddr, uses eventId)
+    if (item.type === 'tour' && item.eventId) {
+      return `/tour-feed/${item.eventId}`;
+    }
+
     try {
-      const decoded = nip19.decode(naddr);
+      const decoded = nip19.decode(item.naddr);
       if (decoded.type !== 'naddr') return '/';
 
-      switch (type) {
+      switch (item.type) {
         case 'review':
-          return `/review/${naddr}`;
+          return `/review/${item.naddr}`;
         case 'trip':
-          return `/trip/${naddr}`;
+          return `/trip/${item.naddr}`;
         case 'story':
-          return `/story/${naddr}`;
+          return `/story/${item.naddr}`;
         case 'stock':
-          return `/stock-media/${naddr}`;
+          return `/stock-media/${item.naddr}`;
         default:
           return '/';
       }
@@ -329,7 +334,7 @@ export default function WorldMap() {
                 <CardDescription>
                   {user 
                     ? 'All photos from your reviews, trips, stories, and stock media'
-                    : 'Latest uploaded photos from reviews, trips, stories, and stock media'
+                    : 'Latest photos from reviews, trips, stories, stock media, and TravelTelly Tour'
                   }
                 </CardDescription>
               </CardHeader>
@@ -342,30 +347,62 @@ export default function WorldMap() {
                   </div>
                 ) : images && images.length > 0 ? (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {images.map((item, index) => (
-                      <div
-                        key={`${item.naddr}-${index}`}
-                        className="group relative aspect-square overflow-hidden rounded-lg cursor-pointer border border-gray-200 dark:border-gray-700 hover:border-blue-500 transition-all"
-                        onClick={() => navigate(getDestinationPath(item.naddr, item.type))}
-                      >
-                        <img
-                          src={item.image}
-                          alt={item.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          loading="lazy"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="absolute bottom-0 left-0 right-0 p-3">
-                            <p className="text-white text-sm font-medium line-clamp-2 mb-1">
-                              {item.title}
-                            </p>
-                            <p className="text-white/80 text-xs capitalize">
-                              {item.type}
-                            </p>
+                    {images.map((item, index) => {
+                      const isTour = item.type === 'tour';
+                      const isVideo = item.image.toLowerCase().match(/\.(mp4|webm|mov)$/);
+                      
+                      return (
+                        <div
+                          key={`${item.naddr || item.eventId}-${index}`}
+                          className={`group relative aspect-square overflow-hidden rounded-lg cursor-pointer border border-gray-200 dark:border-gray-700 transition-all ${
+                            isTour ? 'hover:border-purple-500' : 'hover:border-blue-500'
+                          }`}
+                          onClick={() => navigate(getDestinationPath(item))}
+                        >
+                          {isVideo ? (
+                            <video
+                              src={item.image}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              muted
+                              loop
+                              playsInline
+                              onMouseEnter={(e) => e.currentTarget.play()}
+                              onMouseLeave={(e) => e.currentTarget.pause()}
+                            />
+                          ) : (
+                            <img
+                              src={item.image}
+                              alt={item.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              loading="lazy"
+                            />
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute bottom-0 left-0 right-0 p-3">
+                              {isTour && (
+                                <div className="flex items-center gap-2 mb-1">
+                                  <div className="w-5 h-5 rounded-full bg-purple-600 flex items-center justify-center flex-shrink-0">
+                                    <Globe className="w-3 h-3 text-white" />
+                                  </div>
+                                  <span className="text-white text-xs font-semibold">TravelTelly Tour</span>
+                                </div>
+                              )}
+                              <p className="text-white text-sm font-medium line-clamp-2 mb-1">
+                                {item.title}
+                              </p>
+                              <p className="text-white/80 text-xs capitalize">
+                                {item.type}
+                              </p>
+                            </div>
                           </div>
+                          {isVideo && (
+                            <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
+                              VIDEO
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-12">

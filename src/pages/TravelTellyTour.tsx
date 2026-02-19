@@ -34,8 +34,11 @@ export default function TravelTellyTour() {
                 TravelTelly Tour
               </h1>
             </div>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-2">
               Exclusive photos and videos from around the world, curated by TravelTelly
+            </p>
+            <p className="text-sm text-purple-600 dark:text-purple-400 font-mono">
+              https://www.traveltelly.com/traveltelly-tour
             </p>
           </div>
 

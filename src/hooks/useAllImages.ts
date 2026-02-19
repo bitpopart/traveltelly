@@ -7,13 +7,18 @@ import { nip19 } from 'nostr-tools';
 import { useCurrentUser } from './useCurrentUser';
 import { useIsContributor } from './useIsContributor';
 
+// Admin pubkey for TravelTelly Tour
+const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642';
+const ADMIN_HEX = nip19.decode(ADMIN_NPUB).data as string;
+
 export interface ImageItem {
   image: string;
   title: string;
   naddr: string;
-  type: 'review' | 'trip' | 'story' | 'stock';
+  type: 'review' | 'trip' | 'story' | 'stock' | 'tour';
   event: NostrEvent;
   created_at: number;
+  eventId?: string; // For tour items navigation
 }
 
 /**
@@ -76,6 +81,38 @@ function isValidImageUrl(url: string): boolean {
   }
   
   return true;
+}
+
+/**
+ * Extract media URLs from TravelTelly Tour posts (kind 1)
+ */
+function extractMediaFromTourPost(event: NostrEvent): string[] {
+  const mediaUrls: string[] = [];
+  
+  // Extract from imeta tags (NIP-92)
+  const imetaTags = event.tags.filter(([name]) => name === 'imeta');
+  imetaTags.forEach((tag) => {
+    const urlItem = tag.find((item) => item.startsWith('url '));
+    if (urlItem) {
+      const url = urlItem.replace('url ', '');
+      if (isValidImageUrl(url)) {
+        mediaUrls.push(url);
+      }
+    }
+  });
+  
+  // Also extract from content (URLs)
+  const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|mp4|webm|mov))/gi;
+  const matches = event.content.match(urlRegex);
+  if (matches) {
+    matches.forEach((url) => {
+      if (isValidImageUrl(url) && !mediaUrls.includes(url)) {
+        mediaUrls.push(url);
+      }
+    });
+  }
+  
+  return mediaUrls;
 }
 
 export function useAllImages() {
@@ -273,16 +310,45 @@ export function useAllImages() {
           });
       }
 
-      // Sort by created_at (newest first)
-      const sortedImages = images.sort((a, b) => b.created_at - a.created_at);
+      // Fetch TravelTelly Tour posts (kind 1 with #traveltelly from admin)
+      const tourEvents = await nostr.query([{
+        kinds: [1],
+        authors: [ADMIN_HEX],
+        '#t': ['traveltelly'],
+        limit: 100,
+      }], { signal });
+
+      console.log(`🌍 TravelTelly Tour: Found ${tourEvents.length} posts with #traveltelly`);
+
+      // Extract media from tour posts and add to images
+      tourEvents.forEach((event) => {
+        const mediaUrls = extractMediaFromTourPost(event);
+        
+        mediaUrls.forEach((mediaUrl) => {
+          images.push({
+            image: mediaUrl,
+            title: event.content.slice(0, 100) || 'TravelTelly Tour',
+            naddr: '', // Tour posts don't have naddr
+            type: 'tour',
+            event,
+            created_at: event.created_at,
+            eventId: event.id, // Store event ID for navigation
+          });
+        });
+      });
+
+      console.log(`📸 TravelTelly Tour: Added ${tourEvents.length} tour posts to grid`);
+
+      // Shuffle images randomly to mix tour posts with other content
+      const shuffledImages = images.sort(() => Math.random() - 0.5);
       
       // Log ALL images being displayed for debugging
-      console.log('🖼️ ALL IMAGES BEING DISPLAYED:', sortedImages.length);
-      sortedImages.slice(0, 10).forEach((img, i) => {
+      console.log('🖼️ ALL IMAGES BEING DISPLAYED:', shuffledImages.length);
+      shuffledImages.slice(0, 10).forEach((img, i) => {
         console.log(`  ${i + 1}. [${img.type}] ${img.image.substring(0, 80)}...`);
       });
       
-      return sortedImages;
+      return shuffledImages;
     },
     enabled: !!authorizedReviewers && !!authorizedUploaders,
     staleTime: 2 * 60 * 1000, // 2 minutes
