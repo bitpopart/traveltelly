@@ -6,6 +6,7 @@ import { useAuthorizedMediaUploaders } from './useStockMediaPermissions';
 import { nip19 } from 'nostr-tools';
 import { useCurrentUser } from './useCurrentUser';
 import { useIsContributor } from './useIsContributor';
+import { useTravelTellyTour } from './useTravelTellyTour';
 
 // Admin pubkey for TravelTelly Tour
 const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642';
@@ -83,53 +84,20 @@ function isValidImageUrl(url: string): boolean {
   return true;
 }
 
-/**
- * Extract media URLs from TravelTelly Tour posts (kind 1)
- */
-function extractMediaFromTourPost(event: NostrEvent): string[] {
-  const mediaUrls: string[] = [];
-  
-  // Extract from imeta tags (NIP-92)
-  const imetaTags = event.tags.filter(([name]) => name === 'imeta');
-  imetaTags.forEach((tag) => {
-    const urlItem = tag.find((item) => item.startsWith('url '));
-    if (urlItem) {
-      const url = urlItem.replace('url ', '');
-      if (isValidImageUrl(url)) {
-        mediaUrls.push(url);
-      }
-    }
-  });
-  
-  // Also extract from content (URLs)
-  const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|mp4|webm|mov))/gi;
-  const matches = event.content.match(urlRegex);
-  if (matches) {
-    matches.forEach((url) => {
-      if (isValidImageUrl(url) && !mediaUrls.includes(url)) {
-        mediaUrls.push(url);
-      }
-    });
-  }
-  
-  return mediaUrls;
-}
-
 export function useAllImages() {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const isContributor = useIsContributor();
   const { data: authorizedReviewers } = useAuthorizedReviewers();
   const { data: authorizedUploaders } = useAuthorizedMediaUploaders();
+  const { data: tourItems } = useTravelTellyTour(); // Fetch TravelTelly Tour posts
 
   return useQuery({
     queryKey: ['all-images', user?.pubkey, isContributor],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(10000)]); // Increased timeout for tour posts
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
       
       const images: ImageItem[] = [];
-      
-      console.log('🔄 Starting useAllImages query...');
 
       // Determine which authors to query
       // Contributors see only their own content, visitors/non-contributors see all
@@ -312,52 +280,45 @@ export function useAllImages() {
           });
       }
 
-      // Fetch TravelTelly Tour posts (kind 1 with #traveltelly from admin)
-      // Always fetch tour posts, regardless of user login status
-      console.log(`🔍 Querying TravelTelly Tour posts from admin: ${ADMIN_HEX}`);
-      console.log(`🔍 Query filter:`, { kinds: [1], authors: [ADMIN_HEX], '#t': ['traveltelly'], limit: 100 });
-      
-      let tourEvents: NostrEvent[] = [];
-      try {
-        tourEvents = await nostr.query([{
-          kinds: [1],
-          authors: [ADMIN_HEX],
-          '#t': ['traveltelly'],
-          limit: 100,
-        }], { signal });
-        console.log(`🌍 TravelTelly Tour: Found ${tourEvents.length} posts with #traveltelly from admin`);
-      } catch (error) {
-        console.error('❌ Error fetching TravelTelly Tour posts:', error);
-      }
-      
-      if (tourEvents.length > 0) {
-        console.log('📝 Sample tour event:', tourEvents[0]);
-      } else {
-        console.warn('⚠️ No #traveltelly posts found on this relay. Admin needs to publish kind 1 notes with #traveltelly hashtag.');
-      }
-
-      // Extract media from tour posts and add to images
+      // Add TravelTelly Tour posts from the hook
       let tourMediaCount = 0;
-      tourEvents.forEach((event) => {
-        const mediaUrls = extractMediaFromTourPost(event);
+      if (tourItems && tourItems.length > 0) {
+        console.log(`🌍 Adding ${tourItems.length} TravelTelly Tour posts to grid`);
         
-        console.log(`  Event ${event.id.substring(0, 8)}: Found ${mediaUrls.length} media items`);
-        
-        mediaUrls.forEach((mediaUrl) => {
-          images.push({
-            image: mediaUrl,
-            title: event.content.slice(0, 100) || 'TravelTelly Tour',
-            naddr: '', // Tour posts don't have naddr
-            type: 'tour',
-            event,
-            created_at: event.created_at,
-            eventId: event.id, // Store event ID for navigation
+        tourItems.forEach((item) => {
+          // Add all images from this tour post
+          item.images.forEach((imageUrl) => {
+            images.push({
+              image: imageUrl,
+              title: item.content.slice(0, 100) || 'TravelTelly Tour',
+              naddr: '', // Tour posts don't have naddr
+              type: 'tour',
+              event: item.event,
+              created_at: item.created_at,
+              eventId: item.id,
+            });
+            tourMediaCount++;
           });
-          tourMediaCount++;
+          
+          // Add all videos from this tour post
+          item.videos.forEach((videoUrl) => {
+            images.push({
+              image: videoUrl,
+              title: item.content.slice(0, 100) || 'TravelTelly Tour',
+              naddr: '', // Tour posts don't have naddr
+              type: 'tour',
+              event: item.event,
+              created_at: item.created_at,
+              eventId: item.id,
+            });
+            tourMediaCount++;
+          });
         });
-      });
-
-      console.log(`📸 TravelTelly Tour: Added ${tourMediaCount} media items from ${tourEvents.length} posts to grid`);
+        
+        console.log(`📸 TravelTelly Tour: Added ${tourMediaCount} media items from ${tourItems.length} posts`);
+      } else {
+        console.log('ℹ️ No TravelTelly Tour items available yet');
+      }
 
       // Shuffle images randomly to mix tour posts with other content
       const shuffledImages = images.sort(() => Math.random() - 0.5);
@@ -371,9 +332,7 @@ export function useAllImages() {
       return shuffledImages;
     },
     enabled: !!authorizedReviewers && !!authorizedUploaders,
-    staleTime: 0, // Always fetch fresh data to ensure tour posts appear
+    staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnMount: 'always', // Always refetch when component mounts
-    refetchOnWindowFocus: true, // Refetch when window gains focus
   });
 }
