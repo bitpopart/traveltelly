@@ -230,8 +230,9 @@ export function useAllMediaAssets(filters: MediaManagementFilters = {}) {
       }
     },
     enabled: !!authorizedUploaders && authorizedUploaders.size > 0, // Only run when we have authorized uploaders
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 10 * 1000, // 10 seconds - shorter for better real-time updates
     gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: 15 * 1000, // Auto-refetch every 15 seconds
   });
 }
 

@@ -167,15 +167,9 @@ export function AutoGeoTagger() {
 
     setIsProcessing(false);
     
-    // Invalidate queries to refresh the folder structure and media list
-    setTimeout(() => {
-      queryClient.invalidateQueries({ queryKey: ['admin-media-assets'] });
-      queryClient.invalidateQueries({ queryKey: ['marketplace-products'] });
-    }, 1000);
-
     toast({
       title: 'Bulk Assignment Complete! 🎉',
-      description: `Successfully assigned ${itemsToProcess.length} items to ${getContinentLabel(bulkContinent)} → ${getCountryLabel(bulkCountry)}. Folder structure updating...`,
+      description: `Successfully assigned ${itemsToProcess.length} items to ${getContinentLabel(bulkContinent)} → ${getCountryLabel(bulkCountry)}. Refreshing folder structure...`,
       duration: 5000,
     });
 
@@ -183,6 +177,34 @@ export function AutoGeoTagger() {
     setSelectedItems(new Set());
     setBulkContinent('');
     setBulkCountry('');
+
+    // Aggressive multi-wave refresh to ensure relay updates are picked up
+    // Wave 1: Immediate
+    queryClient.invalidateQueries({ queryKey: ['admin-media-assets'] });
+    queryClient.invalidateQueries({ queryKey: ['marketplace-products'] });
+    
+    // Wave 2: After 2 seconds
+    setTimeout(() => {
+      queryClient.invalidateQueries({ queryKey: ['admin-media-assets'] });
+      queryClient.invalidateQueries({ queryKey: ['marketplace-products'] });
+    }, 2000);
+    
+    // Wave 3: After 5 seconds (for slower relays)
+    setTimeout(() => {
+      queryClient.invalidateQueries({ queryKey: ['admin-media-assets'] });
+      queryClient.invalidateQueries({ queryKey: ['marketplace-products'] });
+    }, 5000);
+    
+    // Wave 4: Final refresh after 10 seconds
+    setTimeout(() => {
+      queryClient.invalidateQueries({ queryKey: ['admin-media-assets'] });
+      queryClient.invalidateQueries({ queryKey: ['marketplace-products'] });
+      
+      toast({
+        title: 'Folders Updated! 📂',
+        description: 'Geographical folder structure has been refreshed.',
+      });
+    }, 10000);
   };
 
   const highConfidence = suggestions.filter(s => s.confidence === 'high');
