@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useAllMediaAssets } from '@/hooks/useMediaManagement';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
+import { useQueryClient } from '@tanstack/react-query';
 import { CONTINENTS, getCountriesByContinent, getAllCountries, getContinentLabel, getCountryLabel } from '@/lib/geoData';
 import { FolderTree, Wand2, CheckCircle2, AlertCircle, Loader2, Globe2, FolderPlus } from 'lucide-react';
 import type { MarketplaceProduct } from '@/hooks/useMarketplaceProducts';
@@ -31,6 +32,7 @@ export function AutoGeoTagger() {
   const { data: allMedia = [], isLoading } = useAllMediaAssets();
   const { mutate: publishEvent } = useNostrPublish();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Filter media without geographical tags
   const mediaWithoutGeo = useMemo(() => {
@@ -164,9 +166,17 @@ export function AutoGeoTagger() {
     }
 
     setIsProcessing(false);
+    
+    // Invalidate queries to refresh the folder structure and media list
+    setTimeout(() => {
+      queryClient.invalidateQueries({ queryKey: ['admin-media-assets'] });
+      queryClient.invalidateQueries({ queryKey: ['marketplace-products'] });
+    }, 1000);
+
     toast({
       title: 'Bulk Assignment Complete! 🎉',
-      description: `Successfully assigned ${itemsToProcess.length} items to ${getContinentLabel(bulkContinent)} → ${getCountryLabel(bulkCountry)}.`,
+      description: `Successfully assigned ${itemsToProcess.length} items to ${getContinentLabel(bulkContinent)} → ${getCountryLabel(bulkCountry)}. Folder structure updating...`,
+      duration: 5000,
     });
 
     // Clear selections
