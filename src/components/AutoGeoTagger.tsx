@@ -390,16 +390,17 @@ export function AutoGeoTagger() {
                 return (
                   <div
                     key={suggestion.product.id}
-                    className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 ${
+                    className={`flex items-center gap-3 p-3 rounded-lg border transition-all hover:bg-gray-50 dark:hover:bg-gray-800 ${
                       isSelected ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-200'
                     }`}
-                    onClick={() => handleToggleItem(suggestion.product.id)}
                   >
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={() => handleToggleItem(suggestion.product.id)}
-                      className="flex-shrink-0"
-                    />
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => handleToggleItem(suggestion.product.id)}
+                        className="flex-shrink-0"
+                      />
+                    </div>
 
                     {/* Thumbnail */}
                     <div className="flex-shrink-0">
