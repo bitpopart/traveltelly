@@ -30,10 +30,13 @@ import {
   Play,
   Pause,
   AlertCircle,
-  Gift
+  Gift,
+  FolderTree,
+  Globe2
 } from 'lucide-react';
 import type { MarketplaceProduct } from '@/hooks/useMarketplaceProducts';
 import { nip19 } from 'nostr-tools';
+import { CONTINENTS, getCountriesByContinent, getContinentLabel, getCountryLabel } from '@/lib/geoData';
 
 interface MediaItemProps {
   product: MarketplaceProduct;
@@ -505,6 +508,8 @@ export function MediaManagement() {
   const [showUserDeleteDialog, setShowUserDeleteDialog] = useState(false);
   const [bulkDeleteInProgress, setBulkDeleteInProgress] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [selectedContinent, setSelectedContinent] = useState<string>('all');
+  const [selectedCountry, setSelectedCountry] = useState<string>('all');
   const { data: authorizedUploaders, isLoading: isLoadingAuth } = useAuthorizedMediaUploaders();
   const { data: mediaAssets = [], isLoading, error } = useAllMediaAssets(filters);
   const updateStatus = useUpdateMediaStatus();
@@ -620,6 +625,37 @@ export function MediaManagement() {
     }));
   };
 
+  // Calculate geographical statistics
+  const geoStats = useMemo(() => {
+    const byContinent: Record<string, number> = {};
+    const byCountry: Record<string, number> = {};
+    const withoutGeo = mediaAssets.filter(asset => !asset.continent).length;
+    
+    mediaAssets.forEach(asset => {
+      if (asset.continent) {
+        byContinent[asset.continent] = (byContinent[asset.continent] || 0) + 1;
+      }
+      if (asset.country) {
+        byCountry[asset.country] = (byCountry[asset.country] || 0) + 1;
+      }
+    });
+
+    return { byContinent, byCountry, withoutGeo };
+  }, [mediaAssets]);
+
+  // Handle geographical filter changes
+  const handleContinentChange = (continent: string) => {
+    setSelectedContinent(continent);
+    setSelectedCountry('all');
+    updateFilter('continent', continent);
+    updateFilter('country', 'all');
+  };
+
+  const handleCountryChange = (country: string) => {
+    setSelectedCountry(country);
+    updateFilter('country', country);
+  };
+
   if (error) {
     return (
       <Card className="border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
@@ -684,6 +720,96 @@ export function MediaManagement() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Geographical Folder Overview */}
+      <Card className="border-blue-200 dark:border-blue-800">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FolderTree className="w-5 h-5 text-blue-600" />
+            Geographical Folder Structure
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Globe2 className="w-4 h-4" />
+              <span>🌍 World ({mediaAssets.length} total assets)</span>
+            </div>
+            
+            <div className="ml-6 space-y-1">
+              {CONTINENTS.map((continent) => {
+                const continentCount = geoStats.byContinent[continent.value] || 0;
+                if (continentCount === 0) return null;
+                
+                const isSelected = selectedContinent === continent.value;
+                
+                return (
+                  <div key={continent.value}>
+                    <button
+                      onClick={() => handleContinentChange(isSelected ? 'all' : continent.value)}
+                      className={`flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors ${
+                        isSelected ? 'bg-blue-100 dark:bg-blue-900/30' : ''
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        📁 {continent.label}
+                      </span>
+                      <Badge variant={isSelected ? 'default' : 'secondary'} className="text-xs">
+                        {continentCount}
+                      </Badge>
+                    </button>
+                    
+                    {/* Show countries when continent is selected */}
+                    {isSelected && (
+                      <div className="ml-6 mt-1 space-y-1">
+                        {getCountriesByContinent(continent.value).map((country) => {
+                          const countryCount = geoStats.byCountry[country.value] || 0;
+                          if (countryCount === 0) return null;
+                          
+                          const isCountrySelected = selectedCountry === country.value;
+                          
+                          return (
+                            <button
+                              key={country.value}
+                              onClick={() => handleCountryChange(isCountrySelected ? 'all' : country.value)}
+                              className={`flex items-center justify-between w-full px-3 py-1.5 rounded text-xs hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors ${
+                                isCountrySelected ? 'bg-blue-100 dark:bg-blue-900/30' : ''
+                              }`}
+                            >
+                              <span className="flex items-center gap-2">
+                                📄 {country.label}
+                              </span>
+                              <Badge variant={isCountrySelected ? 'default' : 'outline'} className="text-xs">
+                                {countryCount}
+                              </Badge>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {geoStats.withoutGeo > 0 && (
+              <div className="mt-4 pt-4 border-t">
+                <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+                  <span className="flex items-center gap-2 text-sm text-yellow-900 dark:text-yellow-100">
+                    ⚠️ Uncategorized (no location)
+                  </span>
+                  <Badge variant="outline" className="text-xs">
+                    {geoStats.withoutGeo}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2 px-3">
+                  💡 These items need geographical tags. Edit them to add continent/country.
+                </p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Filters */}
       <Card>
@@ -766,6 +892,88 @@ export function MediaManagement() {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Geographical Folder Organization */}
+          <div className="mt-6 pt-6 border-t">
+            <div className="flex items-center gap-2 mb-4">
+              <FolderTree className="w-5 h-5 text-blue-600" />
+              <h3 className="font-semibold">Geographical Folders</h3>
+              <Badge variant="secondary" className="ml-2">
+                {geoStats.withoutGeo} without location
+              </Badge>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="continent">Filter by Continent</Label>
+                <Select value={selectedContinent} onValueChange={handleContinentChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Continents" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">
+                      <span className="font-medium">🌍 All Continents</span>
+                    </SelectItem>
+                    {CONTINENTS.map((continent) => (
+                      <SelectItem key={continent.value} value={continent.value}>
+                        <div className="flex items-center justify-between w-full">
+                          <span>{continent.label}</span>
+                          <Badge variant="secondary" className="ml-2 text-xs">
+                            {geoStats.byContinent[continent.value] || 0}
+                          </Badge>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="country">Filter by Country</Label>
+                <Select 
+                  value={selectedCountry} 
+                  onValueChange={handleCountryChange}
+                  disabled={selectedContinent === 'all'}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={selectedContinent === 'all' ? "Select continent first" : "All Countries"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">
+                      <span className="font-medium">All Countries</span>
+                    </SelectItem>
+                    {selectedContinent !== 'all' && getCountriesByContinent(selectedContinent).map((country) => (
+                      <SelectItem key={country.value} value={country.value}>
+                        <div className="flex items-center justify-between w-full">
+                          <span>{country.label}</span>
+                          <Badge variant="secondary" className="ml-2 text-xs">
+                            {geoStats.byCountry[country.value] || 0}
+                          </Badge>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Current Folder Path */}
+            {(selectedContinent !== 'all' || selectedCountry !== 'all') && (
+              <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center gap-2 text-sm">
+                  <Globe2 className="w-4 h-4 text-blue-600" />
+                  <span className="font-medium text-blue-900 dark:text-blue-100">
+                    Current Folder: 📂 World
+                    {selectedContinent !== 'all' && ` → ${getContinentLabel(selectedContinent)}`}
+                    {selectedCountry !== 'all' && ` → ${getCountryLabel(selectedCountry)}`}
+                  </span>
+                  <Badge variant="secondary" className="ml-auto">
+                    {mediaAssets.length} items
+                  </Badge>
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
