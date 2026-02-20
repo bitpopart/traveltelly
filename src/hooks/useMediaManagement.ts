@@ -409,9 +409,13 @@ export function useEditMediaAsset() {
       product: MarketplaceProduct;
       updates: Partial<MarketplaceProduct & { isFree?: boolean }>;
     }) => {
-      // Create updated tags
+      // Create updated tags - preserve ALL tags and only update specified ones
       let updatedTags = product.event.tags
-        .filter(tag => tag[0] !== 'free') // Remove existing free tags
+        .filter(tag => {
+          // Remove tags we're explicitly updating
+          const tagsToUpdate = ['free', 'continent', 'country', 'geo_folder'];
+          return !tagsToUpdate.includes(tag[0]);
+        })
         .map(tag => {
           switch (tag[0]) {
             case 'title':
@@ -433,6 +437,17 @@ export function useEditMediaAsset() {
           updatedTags.push(['free', 'true']);
         }
         // If isFree is false, we already filtered it out above
+      }
+
+      // Add geographical tags if provided
+      if (updates.continent) {
+        updatedTags.push(['continent', updates.continent]);
+      }
+      if (updates.country) {
+        updatedTags.push(['country', updates.country]);
+      }
+      if (updates.continent && updates.country) {
+        updatedTags.push(['geo_folder', `${updates.continent}/${updates.country}`]);
       }
 
       // Add admin action tags

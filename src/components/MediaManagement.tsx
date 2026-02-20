@@ -37,7 +37,6 @@ import {
 import type { MarketplaceProduct } from '@/hooks/useMarketplaceProducts';
 import { nip19 } from 'nostr-tools';
 import { CONTINENTS, getCountriesByContinent, getContinentLabel, getCountryLabel } from '@/lib/geoData';
-import { AutoGeoTagger } from './AutoGeoTagger';
 
 interface MediaItemProps {
   product: MarketplaceProduct;
@@ -143,6 +142,8 @@ function MediaItem({ product, onStatusUpdate, onDelete, onEdit, onToggleFree }: 
     price: product.price,
     currency: product.currency,
     category: product.category,
+    continent: product.continent || '',
+    country: product.country || '',
   });
 
   const displayName = metadata?.name || genUserName(product.seller.pubkey);
@@ -216,6 +217,8 @@ function MediaItem({ product, onStatusUpdate, onDelete, onEdit, onToggleFree }: 
       price: product.price,
       currency: product.currency,
       category: product.category,
+      continent: product.continent || '',
+      country: product.country || '',
     });
   };
 
@@ -276,6 +279,23 @@ function MediaItem({ product, onStatusUpdate, onDelete, onEdit, onToggleFree }: 
                 <span>{formatDistanceToNow(new Date(product.createdAt * 1000), { addSuffix: true })}</span>
               </div>
             </div>
+
+            {/* Geographical Folder Display */}
+            {product.continent && product.country ? (
+              <div className="mb-3">
+                <Badge variant="outline" className="text-xs">
+                  <Globe2 className="w-3 h-3 mr-1" />
+                  📂 {getContinentLabel(product.continent)} → {getCountryLabel(product.country)}
+                </Badge>
+              </div>
+            ) : (
+              <div className="mb-3">
+                <Badge variant="outline" className="text-xs bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300">
+                  <FolderTree className="w-3 h-3 mr-1" />
+                  Not in folder - Click Edit to assign
+                </Badge>
+              </div>
+            )}
 
             {/* Actions */}
             <div className="flex items-center gap-2">
@@ -484,6 +504,74 @@ function MediaItem({ product, onStatusUpdate, onDelete, onEdit, onToggleFree }: 
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            {/* Geographical Folder Assignment */}
+            <div className="space-y-4 p-4 border rounded-lg bg-blue-50/50 dark:bg-blue-900/10">
+              <div className="flex items-center gap-2">
+                <FolderTree className="w-4 h-4 text-blue-600" />
+                <Label className="text-sm font-semibold">Assign to Geographical Folder</Label>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="editContinent">Continent</Label>
+                  <Select
+                    value={editForm.continent}
+                    onValueChange={(value) => setEditForm(prev => ({ ...prev, continent: value, country: '' }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select continent" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None</SelectItem>
+                      {CONTINENTS.map((continent) => (
+                        <SelectItem key={continent.value} value={continent.value}>
+                          {continent.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="editCountry">Country</Label>
+                  <Select
+                    value={editForm.country}
+                    onValueChange={(value) => setEditForm(prev => ({ ...prev, country: value }))}
+                    disabled={!editForm.continent}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={editForm.continent ? "Select country" : "Select continent first"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None</SelectItem>
+                      {editForm.continent && getCountriesByContinent(editForm.continent).map((country) => (
+                        <SelectItem key={country.value} value={country.value}>
+                          {country.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {editForm.continent && editForm.country && (
+                <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800">
+                  <div className="flex items-center gap-2 text-xs text-green-900 dark:text-green-100">
+                    <Globe2 className="w-3 h-3" />
+                    <span className="font-medium">
+                      📂 World → {CONTINENTS.find(c => c.value === editForm.continent)?.label} → {getCountriesByContinent(editForm.continent).find(c => c.value === editForm.country)?.label}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {!editForm.continent && !editForm.country && (
+                <p className="text-xs text-muted-foreground">
+                  💡 Assign this media to a geographical folder for better organization
+                </p>
+              )}
             </div>
           </div>
           <DialogFooter>
@@ -721,9 +809,6 @@ export function MediaManagement() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Auto Geo-Tagging Tool */}
-      <AutoGeoTagger />
 
       {/* Geographical Folder Overview */}
       <Card className="border-blue-200 dark:border-blue-800">
