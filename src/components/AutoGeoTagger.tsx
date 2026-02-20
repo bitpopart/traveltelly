@@ -6,11 +6,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useAllMediaAssets } from '@/hooks/useMediaManagement';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
-import { CONTINENTS, getCountriesByContinent, getAllCountries } from '@/lib/geoData';
-import { FolderTree, Wand2, CheckCircle2, AlertCircle, Loader2, Globe2 } from 'lucide-react';
+import { CONTINENTS, getCountriesByContinent, getAllCountries, getContinentLabel, getCountryLabel } from '@/lib/geoData';
+import { FolderTree, Wand2, CheckCircle2, AlertCircle, Loader2, Globe2, FolderPlus } from 'lucide-react';
 import type { MarketplaceProduct } from '@/hooks/useMarketplaceProducts';
 
 interface GeoSuggestion {
@@ -24,6 +25,8 @@ interface GeoSuggestion {
 export function AutoGeoTagger() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processedCount, setProcessedCount] = useState(0);
+  const [bulkContinent, setBulkContinent] = useState<string>('');
+  const [bulkCountry, setBulkCountry] = useState<string>('');
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const { data: allMedia = [], isLoading } = useAllMediaAssets();
   const { mutate: publishEvent } = useNostrPublish();
@@ -99,25 +102,32 @@ export function AutoGeoTagger() {
     setSelectedItems(new Set());
   };
 
-  const handleAutoTag = async () => {
-    const itemsToProcess = suggestions.filter(s => 
-      selectedItems.has(s.product.id) && s.suggestedContinent && s.suggestedCountry
-    );
-
-    if (itemsToProcess.length === 0) {
+  const handleBulkAssign = async () => {
+    if (!bulkContinent || !bulkCountry) {
       toast({
-        title: 'No Items Selected',
-        description: 'Please select items to auto-tag.',
+        title: 'Select Folder',
+        description: 'Please select both continent and country.',
         variant: 'destructive',
       });
       return;
     }
 
+    if (selectedItems.size === 0) {
+      toast({
+        title: 'No Items Selected',
+        description: 'Please select items to assign to this folder.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const itemsToProcess = mediaWithoutGeo.filter(m => selectedItems.has(m.id));
+
     setIsProcessing(true);
     setProcessedCount(0);
 
     for (let i = 0; i < itemsToProcess.length; i++) {
-      const { product, suggestedContinent, suggestedCountry } = itemsToProcess[i];
+      const product = itemsToProcess[i];
 
       try {
         // Preserve ALL existing tags
@@ -129,9 +139,9 @@ export function AutoGeoTagger() {
 
         // Add new geographical tags
         const newTags = [
-          ['continent', suggestedContinent!],
-          ['country', suggestedCountry!],
-          ['geo_folder', `${suggestedContinent}/${suggestedCountry}`],
+          ['continent', bulkContinent],
+          ['country', bulkCountry],
+          ['geo_folder', `${bulkContinent}/${bulkCountry}`],
         ];
 
         // Combine all tags
@@ -155,12 +165,14 @@ export function AutoGeoTagger() {
 
     setIsProcessing(false);
     toast({
-      title: 'Auto-Tagging Complete! 🎉',
-      description: `Successfully tagged ${itemsToProcess.length} media items with geographical data.`,
+      title: 'Bulk Assignment Complete! 🎉',
+      description: `Successfully assigned ${itemsToProcess.length} items to ${getContinentLabel(bulkContinent)} → ${getCountryLabel(bulkCountry)}.`,
     });
 
     // Clear selections
     setSelectedItems(new Set());
+    setBulkContinent('');
+    setBulkCountry('');
   };
 
   const highConfidence = suggestions.filter(s => s.confidence === 'high');
@@ -176,77 +188,102 @@ export function AutoGeoTagger() {
       <Card className="border-blue-200 dark:border-blue-800">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Wand2 className="w-5 h-5 text-blue-600" />
-            Auto-Tag Geographical Locations
+            <FolderPlus className="w-5 h-5 text-blue-600" />
+            Bulk Folder Assignment
           </CardTitle>
           <CardDescription>
-            Automatically assign continent and country tags to existing media based on location data
+            Select multiple items and assign them to a geographical folder
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Statistics */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
               <div className="text-2xl font-bold text-blue-600">{mediaWithoutGeo.length}</div>
-              <div className="text-xs text-muted-foreground">Without Geo Tags</div>
+              <div className="text-xs text-muted-foreground">Items Without Folders</div>
             </div>
             <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
               <div className="text-2xl font-bold text-green-600">{highConfidence.length}</div>
-              <div className="text-xs text-muted-foreground">High Confidence</div>
+              <div className="text-xs text-muted-foreground">Auto-Detected</div>
             </div>
-            <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-              <div className="text-2xl font-bold text-yellow-600">{mediumConfidence.length}</div>
-              <div className="text-xs text-muted-foreground">Medium Confidence</div>
-            </div>
-            <div className="p-3 bg-gray-50 dark:bg-gray-900/20 rounded-lg border border-gray-200 dark:border-gray-800">
-              <div className="text-2xl font-bold text-gray-600">{lowConfidence.length}</div>
-              <div className="text-xs text-muted-foreground">Manual Required</div>
+            <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+              <div className="text-2xl font-bold text-purple-600">{selectedItems.size}</div>
+              <div className="text-xs text-muted-foreground">Selected</div>
             </div>
           </div>
 
-          {/* Selection Actions */}
-          {suggestions.length > 0 && (
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSelectAll}
-                disabled={isProcessing}
-              >
-                Select All Auto-Detected ({highConfidence.length + mediumConfidence.length})
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDeselectAll}
-                disabled={isProcessing}
-              >
-                Deselect All
-              </Button>
-              <Badge variant="secondary">
-                {selectedItems.size} selected
-              </Badge>
-            </div>
-          )}
+          {/* Bulk Folder Selection */}
+          {mediaWithoutGeo.length > 0 && (
+            <div className="space-y-4 p-4 border rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
+              <div>
+                <h3 className="font-semibold text-sm mb-3">📁 Assign Selected Items to Folder</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Continent</Label>
+                    <Select value={bulkContinent} onValueChange={(value) => {
+                      setBulkContinent(value);
+                      setBulkCountry('');
+                    }}>
+                      <SelectTrigger className="text-sm">
+                        <SelectValue placeholder="Select continent" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CONTINENTS.map((continent) => (
+                          <SelectItem key={continent.value} value={continent.value}>
+                            {continent.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-          {/* Process Button */}
-          {selectedItems.size > 0 && (
-            <div className="space-y-3">
+                  <div>
+                    <Label className="text-xs">Country</Label>
+                    <Select 
+                      value={bulkCountry} 
+                      onValueChange={setBulkCountry}
+                      disabled={!bulkContinent}
+                    >
+                      <SelectTrigger className="text-sm">
+                        <SelectValue placeholder={bulkContinent ? "Select country" : "Select continent first"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {bulkContinent && getCountriesByContinent(bulkContinent).map((country) => (
+                          <SelectItem key={country.value} value={country.value}>
+                            {country.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {bulkContinent && bulkCountry && (
+                  <div className="mt-3 p-2 bg-green-50 dark:bg-green-900/20 rounded border border-green-200">
+                    <div className="flex items-center gap-2 text-xs text-green-900 dark:text-green-100">
+                      <Globe2 className="w-3 h-3" />
+                      <span className="font-medium">
+                        Will assign to: 📂 {getContinentLabel(bulkContinent)} → {getCountryLabel(bulkCountry)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <Button
-                onClick={handleAutoTag}
-                disabled={isProcessing}
+                onClick={handleBulkAssign}
+                disabled={isProcessing || !bulkContinent || !bulkCountry || selectedItems.size === 0}
                 className="w-full bg-blue-600 hover:bg-blue-700"
-                size="lg"
               >
                 {isProcessing ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Processing {processedCount}/{selectedItems.size}...
+                    Assigning {processedCount}/{selectedItems.size}...
                   </>
                 ) : (
                   <>
-                    <Wand2 className="w-4 h-4 mr-2" />
-                    Auto-Tag {selectedItems.size} Selected Items
+                    <FolderPlus className="w-4 h-4 mr-2" />
+                    Assign {selectedItems.size} Items to Folder
                   </>
                 )}
               </Button>
@@ -257,23 +294,50 @@ export function AutoGeoTagger() {
             </div>
           )}
 
+          {/* Selection Actions */}
+          {suggestions.length > 0 && (
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSelectAll}
+                disabled={isProcessing}
+              >
+                Select Suggested ({highConfidence.length + mediumConfidence.length})
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDeselectAll}
+                disabled={isProcessing}
+              >
+                Deselect All
+              </Button>
+            </div>
+          )}
+
           {/* Info Alert */}
           <Alert>
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="text-sm">
-              <strong>How it works:</strong> This tool analyzes your existing media's location field and title
-              to automatically detect the country and continent. Review suggestions below and select items to auto-tag.
-              All existing data (images, tags, metadata) will be preserved.
+            <AlertDescription className="text-sm space-y-2">
+              <p><strong>How it works:</strong></p>
+              <ol className="list-decimal list-inside space-y-1 text-xs">
+                <li>Select items below (checkboxes)</li>
+                <li>Choose a continent and country above</li>
+                <li>Click "Assign to Folder" to organize them</li>
+                <li>Items with detected locations are pre-suggested ✓</li>
+              </ol>
+              <p className="text-xs">All existing data (images, tags, metadata) will be preserved.</p>
             </AlertDescription>
           </Alert>
 
-          {/* Suggestions List */}
+          {/* Items List */}
           {isLoading ? (
             <div className="space-y-2">
               {[1, 2, 3].map(i => (
                 <Card key={i}>
-                  <CardContent className="p-4">
-                    <div className="animate-pulse flex items-center gap-4">
+                  <CardContent className="p-3">
+                    <div className="animate-pulse flex items-center gap-3">
                       <div className="h-12 w-12 bg-gray-200 rounded" />
                       <div className="flex-1 space-y-2">
                         <div className="h-4 bg-gray-200 rounded w-3/4" />
@@ -297,130 +361,94 @@ export function AutoGeoTagger() {
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-3 max-h-[600px] overflow-y-auto">
+            <div className="space-y-2 max-h-[500px] overflow-y-auto border rounded-lg p-3">
+              <div className="flex items-center justify-between mb-3 sticky top-0 bg-white dark:bg-gray-950 pb-2 border-b">
+                <span className="text-sm font-medium">Select items to organize:</span>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSelectAll}
+                    disabled={isProcessing}
+                  >
+                    Select Suggested ({highConfidence.length + mediumConfidence.length})
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDeselectAll}
+                    disabled={isProcessing}
+                  >
+                    Clear
+                  </Button>
+                </div>
+              </div>
+
               {suggestions.map((suggestion) => {
                 const isSelected = selectedItems.has(suggestion.product.id);
-                const hasGeoData = suggestion.suggestedContinent && suggestion.suggestedCountry;
 
                 return (
-                  <Card
+                  <div
                     key={suggestion.product.id}
-                    className={`cursor-pointer transition-colors ${
-                      isSelected ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : ''
-                    } ${
-                      suggestion.confidence === 'high' ? 'border-green-200' :
-                      suggestion.confidence === 'medium' ? 'border-yellow-200' :
-                      'border-gray-200'
+                    className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 ${
+                      isSelected ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-200'
                     }`}
-                    onClick={() => hasGeoData && handleToggleItem(suggestion.product.id)}
+                    onClick={() => handleToggleItem(suggestion.product.id)}
                   >
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-4">
-                        {/* Checkbox */}
-                        {hasGeoData && (
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => handleToggleItem(suggestion.product.id)}
-                            className="mt-1 rounded"
-                            onClick={(e) => e.stopPropagation()}
-                          />
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() => handleToggleItem(suggestion.product.id)}
+                      className="flex-shrink-0"
+                    />
+
+                    {/* Thumbnail */}
+                    <div className="flex-shrink-0">
+                      {suggestion.product.images[0] ? (
+                        <img
+                          src={suggestion.product.images[0]}
+                          alt={suggestion.product.title}
+                          className="w-12 h-12 object-cover rounded"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded flex items-center justify-center text-lg">
+                          📸
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-sm truncate">
+                        {suggestion.product.title}
+                      </h4>
+                      
+                      <div className="flex items-center gap-2 flex-wrap mt-1">
+                        {suggestion.product.location && (
+                          <span className="text-xs text-muted-foreground">📍 {suggestion.product.location}</span>
                         )}
-
-                        {/* Thumbnail */}
-                        <div className="flex-shrink-0">
-                          {suggestion.product.images[0] ? (
-                            <img
-                              src={suggestion.product.images[0]}
-                              alt={suggestion.product.title}
-                              className="w-16 h-16 object-cover rounded"
-                            />
-                          ) : (
-                            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded flex items-center justify-center">
-                              📸
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Content */}
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-sm truncate mb-1">
-                            {suggestion.product.title}
-                          </h4>
-                          
-                          <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
-                            {suggestion.product.location && (
-                              <span>📍 {suggestion.product.location}</span>
-                            )}
-                            {suggestion.product.price && (
-                              <span>• {suggestion.product.price} {suggestion.product.currency}</span>
-                            )}
-                          </div>
-
-                          {/* Suggestion */}
-                          {hasGeoData ? (
-                            <div className="flex items-center gap-2 mt-2">
-                              <Badge
-                                variant={
-                                  suggestion.confidence === 'high' ? 'default' :
-                                  suggestion.confidence === 'medium' ? 'secondary' :
-                                  'outline'
-                                }
-                                className={
-                                  suggestion.confidence === 'high' ? 'bg-green-600' :
-                                  suggestion.confidence === 'medium' ? 'bg-yellow-600' :
-                                  ''
-                                }
-                              >
-                                {suggestion.confidence === 'high' ? '✓' : 
-                                 suggestion.confidence === 'medium' ? '~' : '?'} {suggestion.confidence}
-                              </Badge>
-                              <div className="flex items-center gap-1 text-xs">
-                                <Globe2 className="w-3 h-3" />
-                                <span className="font-medium">
-                                  {CONTINENTS.find(c => c.value === suggestion.suggestedContinent)?.label}
-                                  {' → '}
-                                  {getCountriesByContinent(suggestion.suggestedContinent!).find(c => c.value === suggestion.suggestedCountry)?.label}
-                                </span>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2 mt-2">
-                              <Badge variant="outline" className="text-xs">
-                                ❌ Manual Assignment Needed
-                              </Badge>
-                            </div>
-                          )}
-
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {suggestion.reason}
-                          </p>
-                        </div>
+                        
+                        {suggestion.suggestedContinent && suggestion.suggestedCountry ? (
+                          <Badge
+                            variant="secondary"
+                            className={`text-xs ${
+                              suggestion.confidence === 'high' ? 'bg-green-100 text-green-700' :
+                              'bg-yellow-100 text-yellow-700'
+                            }`}
+                          >
+                            {suggestion.confidence === 'high' ? '✓' : '~'} Suggests: {getCountryLabel(suggestion.suggestedCountry)}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs">No location data</Badge>
+                        )}
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 );
               })}
             </div>
           )}
         </CardContent>
       </Card>
-
-      {/* Manual Assignment Section */}
-      {lowConfidence.length > 0 && (
-        <Alert className="border-orange-200 bg-orange-50 dark:bg-orange-900/20">
-          <AlertCircle className="h-4 w-4 text-orange-600" />
-          <AlertDescription>
-            <p className="font-semibold text-orange-900 dark:text-orange-100 mb-2">
-              {lowConfidence.length} items need manual assignment
-            </p>
-            <p className="text-sm text-orange-800 dark:text-orange-200">
-              These items don't have detectable location data. Edit them individually to add continent and country tags.
-              Use the "Edit" button on each media item in the list below.
-            </p>
-          </AlertDescription>
-        </Alert>
-      )}
     </div>
   );
 }
