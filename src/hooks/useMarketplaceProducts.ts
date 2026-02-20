@@ -15,6 +15,9 @@ export interface MarketplaceProduct {
   mediaType?: string; // New: photos, videos, audio, etc.
   contentCategory?: string; // New: Animals, Business, Travel, etc.
   location?: string;
+  continent?: string; // Geographical organization: continent
+  country?: string; // Geographical organization: country
+  geoFolder?: string; // Combined path: continent/country
   seller: {
     pubkey: string;
     name?: string;
@@ -30,6 +33,9 @@ interface UseMarketplaceProductsOptions {
   category?: string;
   seller?: string;
   freeOnly?: boolean;
+  continent?: string; // Filter by continent
+  country?: string; // Filter by country
+  geoFolder?: string; // Filter by combined continent/country path
 }
 
 function validateMarketplaceProduct(event: NostrEvent): boolean {
@@ -146,6 +152,11 @@ function parseMarketplaceProduct(event: NostrEvent): MarketplaceProduct | null {
       .map(([, category]) => category)
       .filter(Boolean);
 
+    // Get geographical organization tags
+    const continent = event.tags.find(([name]) => name === 'continent')?.[1];
+    const country = event.tags.find(([name]) => name === 'country')?.[1];
+    const geoFolder = event.tags.find(([name]) => name === 'geo_folder')?.[1];
+
     if (!d || !title || !price) return null;
 
     const [, amount, currency] = price;
@@ -162,6 +173,9 @@ function parseMarketplaceProduct(event: NostrEvent): MarketplaceProduct | null {
       mediaType: mediaTypes[0] || 'other',
       contentCategory: contentCategories[0] || '',
       location,
+      continent,
+      country,
+      geoFolder,
       seller: {
         pubkey: event.pubkey,
       },
@@ -234,6 +248,17 @@ export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = 
           if (options.freeOnly) {
             const isFree = product.event.tags.some(tag => tag[0] === 'free' && tag[1] === 'true');
             return isFree;
+          }
+          
+          // Geographical filtering
+          if (options.continent && product.continent !== options.continent) {
+            return false;
+          }
+          if (options.country && product.country !== options.country) {
+            return false;
+          }
+          if (options.geoFolder && product.geoFolder !== options.geoFolder) {
+            return false;
           }
           
           // Client-side search filtering

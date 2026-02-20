@@ -13,7 +13,8 @@ import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
 import { type GPSCoordinates, extractPhotoMetadata } from '@/lib/exifUtils';
 import * as geohash from 'ngeohash';
-import { Plus, Loader2, Package, DollarSign, MapPin } from 'lucide-react';
+import { CONTINENTS, getCountriesByContinent, getContinentForCountry } from '@/lib/geoData';
+import { Plus, Loader2, Package, DollarSign, MapPin, Globe2, FolderTree } from 'lucide-react';
 
 interface CreateProductDialogProps {
   children: React.ReactNode;
@@ -29,6 +30,8 @@ interface ProductFormData {
   location: string;
   keywords: string;
   images: string[];
+  continent: string;
+  country: string;
 }
 
 const MEDIA_TYPES = [
@@ -85,6 +88,8 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
     location: '',
     keywords: '',
     images: [],
+    continent: '',
+    country: '',
   });
 
   const { user } = useCurrentUser();
@@ -146,6 +151,8 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
     if (!formData.currency) return 'Currency is required';
     if (!formData.mediaType) return 'Media Type is required';
     if (!formData.category) return 'Category is required';
+    if (!formData.continent) return 'Continent is required (for organizing media)';
+    if (!formData.country) return 'Country is required (for organizing media)';
 
     const price = parseFloat(formData.price);
     if (isNaN(price) || price <= 0) return 'Price must be a valid positive number';
@@ -196,6 +203,10 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
         ['category', formData.category], // Content category tag (Animals, Business, etc.)
         ['status', 'active'],
         ['published_at', Math.floor(Date.now() / 1000).toString()],
+        // Geographical organization tags
+        ['continent', formData.continent],
+        ['country', formData.country],
+        ['geo_folder', `${formData.continent}/${formData.country}`], // Path-like structure for easy filtering
       ];
 
       // Add location if provided
@@ -252,6 +263,8 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
         location: '',
         keywords: '',
         images: [],
+        continent: '',
+        country: '',
       });
       setGpsCoordinates(null);
       setIsOpen(false);
@@ -465,6 +478,82 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
             </CardContent>
           </Card>
 
+          {/* Geographical Organization */}
+          <Card className="border-blue-200 dark:border-blue-800">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <FolderTree className="w-4 h-4" />
+                Geographical Organization *
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-sm text-blue-900 dark:text-blue-100 mb-2">
+                  📁 Organize your media in geographical folders for easy discovery
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Your media will be organized: World → Continent → Country → Your File
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="continent">Continent *</Label>
+                  <Select 
+                    value={formData.continent} 
+                    onValueChange={(value) => {
+                      handleInputChange('continent', value);
+                      // Reset country when continent changes
+                      handleInputChange('country', '');
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select continent" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CONTINENTS.map((continent) => (
+                        <SelectItem key={continent.value} value={continent.value}>
+                          {continent.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="country">Country *</Label>
+                  <Select 
+                    value={formData.country} 
+                    onValueChange={(value) => handleInputChange('country', value)}
+                    disabled={!formData.continent}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={formData.continent ? "Select country" : "Select continent first"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formData.continent && getCountriesByContinent(formData.continent).map((country) => (
+                        <SelectItem key={country.value} value={country.value}>
+                          {country.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {formData.continent && formData.country && (
+                <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                  <div className="flex items-center gap-2 text-sm text-green-900 dark:text-green-100">
+                    <Globe2 className="w-4 h-4" />
+                    <span className="font-medium">
+                      📂 World → {CONTINENTS.find(c => c.value === formData.continent)?.label} → {getCountriesByContinent(formData.continent).find(c => c.value === formData.country)?.label}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Pricing */}
           <Card>
             <CardHeader>
@@ -584,7 +673,7 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
             <Button
               onClick={handleSubmit}
               className="flex-1 bg-blue-600 hover:bg-blue-700"
-              disabled={isSubmitting || !formData.title || !formData.description || !formData.price || !formData.mediaType || !formData.category}
+              disabled={isSubmitting || !formData.title || !formData.description || !formData.price || !formData.mediaType || !formData.category || !formData.continent || !formData.country}
             >
               {isSubmitting ? (
                 <>

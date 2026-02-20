@@ -15,8 +15,9 @@ import { useUploadFile } from '@/hooks/useUploadFile';
 import { useToast } from '@/hooks/useToast';
 import { useNostr } from '@nostrify/react';
 import { extractPhotoMetadata, type PhotoMetadata } from '@/lib/exifUtils';
+import { CONTINENTS, getCountriesByContinent } from '@/lib/geoData';
 import { nip19 } from 'nostr-tools';
-import { Upload, FileText, CheckCircle2, XCircle, Loader2, Download, AlertCircle, Image as ImageIcon, X, FileUp, Edit2, Save, CheckSquare, Square, Repeat } from 'lucide-react';
+import { Upload, FileText, CheckCircle2, XCircle, Loader2, Download, AlertCircle, Image as ImageIcon, X, FileUp, Edit2, Save, CheckSquare, Square, Repeat, Globe2, FolderTree } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import * as geohash from 'ngeohash';
@@ -78,12 +79,14 @@ interface UploadItem {
   error?: string;
   isEditing?: boolean;
   metadata?: PhotoMetadata;
+  continent: string;
+  country: string;
 }
 
-const CSV_TEMPLATE = `title,description,price,currency,mediaType,category,location,latitude,longitude,keywords,filename
-"Sunset Over Mountains","Beautiful sunset landscape photography",25,USD,photos,Landscape,"Yosemite National Park",37.865101,-119.538330,"sunset,mountains,nature,landscape","sunset1.jpg"
-"Urban Street Scene","City street photography with vibrant colors",15,EUR,photos,Travel,"Paris, France",48.856614,2.352222,"urban,street,city,architecture","paris-street.jpg"
-"Business Meeting","Corporate team collaboration photo",30,USD,photos,Business,"New York, NY",40.712776,-74.005974,"business,meeting,corporate,team","meeting.jpg"`;
+const CSV_TEMPLATE = `title,description,price,currency,mediaType,category,location,latitude,longitude,keywords,continent,country,filename
+"Sunset Over Mountains","Beautiful sunset landscape photography",25,USD,photos,Landscape,"Yosemite National Park",37.865101,-119.538330,"sunset,mountains,nature,landscape",north-america,US,"sunset1.jpg"
+"Urban Street Scene","City street photography with vibrant colors",15,EUR,photos,Travel,"Paris, France",48.856614,2.352222,"urban,street,city,architecture",europe,FR,"paris-street.jpg"
+"Business Meeting","Corporate team collaboration photo",30,USD,photos,Business,"New York, NY",40.712776,-74.005974,"business,meeting,corporate,team",north-america,US,"meeting.jpg"`;
 
 export function AdminMassUpload() {
   const [uploadItems, setUploadItems] = useState<UploadItem[]>([]);
@@ -178,6 +181,8 @@ export function AdminMassUpload() {
         longitude: '',
         keywords: '',
         status: 'extracting',
+        continent: '',
+        country: '',
       };
 
       setUploadItems(prev => [...prev, item]);
@@ -345,6 +350,8 @@ export function AdminMassUpload() {
               latitude: matchingRow.latitude || item.latitude,
               longitude: matchingRow.longitude || item.longitude,
               keywords: matchingRow.keywords || item.keywords,
+              continent: matchingRow.continent || item.continent,
+              country: matchingRow.country || item.country,
             };
           }
           return item;
@@ -442,6 +449,8 @@ export function AdminMassUpload() {
     if (!item.currency?.trim()) return 'Currency is required';
     if (!item.mediaType?.trim()) return 'Media Type is required';
     if (!item.category?.trim()) return 'Category is required';
+    if (!item.continent?.trim()) return 'Continent is required (for organizing media)';
+    if (!item.country?.trim()) return 'Country is required (for organizing media)';
 
     const price = parseFloat(item.price);
     if (isNaN(price) || price <= 0) return 'Price must be a valid positive number';
@@ -473,6 +482,17 @@ export function AdminMassUpload() {
       ['published_at', Math.floor(Date.now() / 1000).toString()],
       ['image', imageUrl],
     ];
+
+    // Add geographical organization tags
+    if (item.continent?.trim()) {
+      tags.push(['continent', item.continent.trim()]);
+    }
+    if (item.country?.trim()) {
+      tags.push(['country', item.country.trim()]);
+    }
+    if (item.continent?.trim() && item.country?.trim()) {
+      tags.push(['geo_folder', `${item.continent.trim()}/${item.country.trim()}`]);
+    }
 
     // Add location if provided
     if (item.location?.trim()) {
@@ -573,6 +593,17 @@ export function AdminMassUpload() {
             const hash = geohash.encode(lat, lng, 8);
             tags.push(['g', hash]);
           }
+        }
+
+        // Add geographical organization tags
+        if (item.continent?.trim()) {
+          tags.push(['continent', item.continent.trim()]);
+        }
+        if (item.country?.trim()) {
+          tags.push(['country', item.country.trim()]);
+        }
+        if (item.continent?.trim() && item.country?.trim()) {
+          tags.push(['geo_folder', `${item.continent.trim()}/${item.country.trim()}`]);
         }
 
         uploadResults.push({ item, imageUrl, productId, tags });
@@ -1267,6 +1298,79 @@ export function AdminMassUpload() {
                               className="text-sm"
                             />
                           </div>
+                          
+                          {/* Geographical Organization Section */}
+                          <div className="col-span-2 mt-3 pt-3 border-t">
+                            <div className="flex items-center gap-2 mb-3">
+                              <FolderTree className="w-4 h-4 text-blue-600" />
+                              <Label className="text-xs font-semibold">Geographical Organization (Required)</Label>
+                            </div>
+                            <p className="text-xs text-muted-foreground mb-3">
+                              📁 Organize: World → Continent → Country → Your File
+                            </p>
+                          </div>
+                          
+                          <div>
+                            <Label className="text-xs">Continent *</Label>
+                            <Select 
+                              value={item.continent} 
+                              onValueChange={(value) => {
+                                updateItem(item.id, { continent: value, country: '' });
+                              }}
+                            >
+                              <SelectTrigger className="text-sm">
+                                <SelectValue placeholder="Select continent" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {CONTINENTS.map((continent) => (
+                                  <SelectItem key={continent.value} value={continent.value}>
+                                    {continent.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {!item.continent && (
+                              <p className="text-xs text-orange-600 mt-1">
+                                ⚠️ Required for organization
+                              </p>
+                            )}
+                          </div>
+                          
+                          <div>
+                            <Label className="text-xs">Country *</Label>
+                            <Select 
+                              value={item.country} 
+                              onValueChange={(value) => updateItem(item.id, { country: value })}
+                              disabled={!item.continent}
+                            >
+                              <SelectTrigger className="text-sm">
+                                <SelectValue placeholder={item.continent ? "Select country" : "Select continent first"} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {item.continent && getCountriesByContinent(item.continent).map((country) => (
+                                  <SelectItem key={country.value} value={country.value}>
+                                    {country.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {!item.country && (
+                              <p className="text-xs text-orange-600 mt-1">
+                                ⚠️ Required for organization
+                              </p>
+                            )}
+                          </div>
+                          
+                          {item.continent && item.country && (
+                            <div className="col-span-2 p-2 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800">
+                              <div className="flex items-center gap-2 text-xs text-green-900 dark:text-green-100">
+                                <Globe2 className="w-3 h-3" />
+                                <span className="font-medium">
+                                  📂 {CONTINENTS.find(c => c.value === item.continent)?.label} → {getCountriesByContinent(item.continent).find(c => c.value === item.country)?.label}
+                                </span>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -1309,6 +1413,21 @@ export function AdminMassUpload() {
                               <p className="text-green-600">
                                 {parseFloat(item.latitude).toFixed(6)}, {parseFloat(item.longitude).toFixed(6)}
                               </p>
+                            </div>
+                          )}
+                          {(item.continent || item.country) && (
+                            <div className="col-span-2">
+                              <span className="text-muted-foreground">Geo Folder:</span>
+                              {item.continent && item.country ? (
+                                <div className="flex items-center gap-1 text-green-600 font-medium">
+                                  <Globe2 className="w-3 h-3" />
+                                  <p>
+                                    📂 {CONTINENTS.find(c => c.value === item.continent)?.label} → {getCountriesByContinent(item.continent).find(c => c.value === item.country)?.label}
+                                  </p>
+                                </div>
+                              ) : (
+                                <p className="text-orange-600 font-medium">⚠️ Not set - Click Edit</p>
+                              )}
                             </div>
                           )}
                         </div>

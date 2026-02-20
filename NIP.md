@@ -187,9 +187,13 @@ Digital media assets are published as NIP-99 classified listings (kind `30402`) 
     ["summary", "High-resolution landscape photography"],
     ["price", "25", "USD"],
     ["t", "photos"],
+    ["category", "Landscape"],
     ["status", "active"],
     ["published_at", "unix_timestamp"],
     ["location", "Yosemite National Park"],
+    ["continent", "north-america"],
+    ["country", "US"],
+    ["geo_folder", "north-america/US"],
     ["image", "preview_image_url"]
   ]
 }
@@ -205,6 +209,55 @@ Digital media assets are published as NIP-99 classified listings (kind `30402`) 
 - **3D Models**: 3D assets, textures, materials
 - **Fonts**: Typography, custom fonts, font families
 - **Presets**: Photo presets, video LUTs, audio effects
+
+### Geographical Organization
+
+All stock media in the marketplace is organized using a hierarchical geographical folder structure: **World → Continent → Country**. This organization makes it easy to browse and filter media by location.
+
+#### Required Geographical Tags
+
+Every stock media item requires three geographical tags for organization:
+
+- **continent**: Continent value (e.g., `africa`, `asia`, `europe`, `north-america`, `south-america`, `oceania`, `antarctica`)
+- **country**: ISO 3166-1 alpha-2 country code (e.g., `US`, `FR`, `JP`, `AU`)
+- **geo_folder**: Combined path format `continent/country` (e.g., `north-america/US`, `europe/FR`, `asia/JP`)
+
+#### Continent Values
+
+- `africa` - 🌍 Africa
+- `asia` - 🌏 Asia
+- `europe` - 🇪🇺 Europe
+- `north-america` - 🌎 North America
+- `south-america` - 🌎 South America
+- `oceania` - 🌏 Oceania
+- `antarctica` - 🐧 Antarctica
+
+#### Country Codes
+
+Countries use standard ISO 3166-1 alpha-2 codes (e.g., `US`, `FR`, `JP`, `AU`, `BR`, `ZA`).
+
+#### Example: Stock Photo from Paris
+
+```json
+{
+  "kind": 30402,
+  "tags": [
+    ["d", "photo_eiffel_tower"],
+    ["title", "Eiffel Tower at Sunset"],
+    ["continent", "europe"],
+    ["country", "FR"],
+    ["geo_folder", "europe/FR"],
+    ["location", "Paris, France"]
+  ]
+}
+```
+
+#### Benefits
+
+- **Easy Discovery**: Browse media by continent and country
+- **Efficient Filtering**: Query media from specific regions using relay-level tag filtering
+- **Clean Organization**: Hierarchical folder structure keeps the marketplace organized
+- **Automated Placement**: New uploads are automatically placed in the correct geographical folder
 
 ### Supported Currencies
 
