@@ -37,6 +37,7 @@ import {
 import type { MarketplaceProduct } from '@/hooks/useMarketplaceProducts';
 import { nip19 } from 'nostr-tools';
 import { CONTINENTS, getCountriesByContinent, getContinentLabel, getCountryLabel } from '@/lib/geoData';
+import { AutoGeoTagger } from './AutoGeoTagger';
 
 interface MediaItemProps {
   product: MarketplaceProduct;
@@ -720,6 +721,9 @@ export function MediaManagement() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Auto Geo-Tagging Tool */}
+      <AutoGeoTagger />
 
       {/* Geographical Folder Overview */}
       <Card className="border-blue-200 dark:border-blue-800">
