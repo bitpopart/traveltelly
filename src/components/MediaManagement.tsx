@@ -518,14 +518,14 @@ function MediaItem({ product, onStatusUpdate, onDelete, onEdit, onToggleFree }: 
                 <div>
                   <Label htmlFor="editContinent">Continent</Label>
                   <Select
-                    value={editForm.continent}
-                    onValueChange={(value) => setEditForm(prev => ({ ...prev, continent: value, country: '' }))}
+                    value={editForm.continent || 'none'}
+                    onValueChange={(value) => setEditForm(prev => ({ ...prev, continent: value === 'none' ? '' : value, country: '' }))}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select continent" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       {CONTINENTS.map((continent) => (
                         <SelectItem key={continent.value} value={continent.value}>
                           {continent.label}
@@ -538,15 +538,15 @@ function MediaItem({ product, onStatusUpdate, onDelete, onEdit, onToggleFree }: 
                 <div>
                   <Label htmlFor="editCountry">Country</Label>
                   <Select
-                    value={editForm.country}
-                    onValueChange={(value) => setEditForm(prev => ({ ...prev, country: value }))}
+                    value={editForm.country || 'none'}
+                    onValueChange={(value) => setEditForm(prev => ({ ...prev, country: value === 'none' ? '' : value }))}
                     disabled={!editForm.continent}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder={editForm.continent ? "Select country" : "Select continent first"} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       {editForm.continent && getCountriesByContinent(editForm.continent).map((country) => (
                         <SelectItem key={country.value} value={country.value}>
                           {country.label}
