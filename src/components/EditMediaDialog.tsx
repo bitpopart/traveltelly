@@ -9,8 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useUploadFile } from '@/hooks/useUploadFile';
 import { useToast } from '@/hooks/useToast';
-import { Edit3, Save, X, Trash2, Upload, XCircle, Loader2 } from 'lucide-react';
+import { Edit3, Save, X, Trash2, Upload, XCircle, Loader2, Globe2, FolderTree } from 'lucide-react';
 import type { MarketplaceProduct } from '@/hooks/useMarketplaceProducts';
+import { CONTINENTS, getCountriesByContinent } from '@/lib/geoData';
 
 interface EditMediaDialogProps {
   isOpen: boolean;
@@ -32,6 +33,8 @@ export function EditMediaDialog({ isOpen, onClose, product, onUpdate }: EditMedi
     category: '',
     location: '',
     status: 'active' as 'active' | 'inactive' | 'sold' | 'deleted',
+    continent: '',
+    country: '',
   });
 
   const [images, setImages] = useState<string[]>([]);
@@ -49,6 +52,8 @@ export function EditMediaDialog({ isOpen, onClose, product, onUpdate }: EditMedi
         category: product.category,
         location: product.location || '',
         status: product.status,
+        continent: product.continent || '',
+        country: product.country || '',
       });
       setImages(product.images);
     }
@@ -97,23 +102,48 @@ export function EditMediaDialog({ isOpen, onClose, product, onUpdate }: EditMedi
       // Build image tags from current images array
       const imageTags = images.map(url => ['image', url]);
 
+      // Preserve ALL existing tags from the original event
+      // This ensures we don't lose any data like keywords, geohash, etc.
+      const preservedTags = product.event.tags.filter(([name]) => {
+        // Exclude tags that we're explicitly updating
+        const excludedTags = ['d', 'title', 'summary', 'price', 'location', 'status', 'image', 'continent', 'country', 'geo_folder'];
+        return !excludedTags.includes(name);
+      });
+
+      // Build new tags
+      const newTags: string[][] = [
+        ['d', product.id], // Same identifier to replace
+        ['title', formData.title.trim()],
+        ['summary', formData.description.trim()],
+        ['price', formData.price.trim(), formData.currency],
+        ['status', formData.status],
+        ...imageTags,
+      ];
+
+      // Add location if provided
+      if (formData.location?.trim()) {
+        newTags.push(['location', formData.location.trim()]);
+      }
+
+      // Add geographical tags if provided
+      if (formData.continent?.trim()) {
+        newTags.push(['continent', formData.continent.trim()]);
+      }
+      if (formData.country?.trim()) {
+        newTags.push(['country', formData.country.trim()]);
+      }
+      if (formData.continent?.trim() && formData.country?.trim()) {
+        newTags.push(['geo_folder', `${formData.continent.trim()}/${formData.country.trim()}`]);
+      }
+
+      // Combine preserved tags with new tags
+      const allTags = [...newTags, ...preservedTags];
+
       // Create updated event with same d-tag to replace the original
       createEvent({
         kind: 30402, // NIP-99 classified listing
         content: formData.description,
-        tags: [
-          ['d', product.id], // Same identifier to replace
-          ['title', formData.title.trim()],
-          ['summary', formData.description.trim()],
-          ['price', formData.price.trim(), formData.currency],
-          ['location', formData.location.trim()],
-          ['status', formData.status],
-          ['t', formData.category], // Category tag
-          ['t', 'media'], // General media tag
-          ['t', 'marketplace'], // Marketplace tag
-          // Add updated image tags
-          ...imageTags,
-        ],
+        tags: allTags,
       });
 
       toast({
@@ -293,6 +323,77 @@ export function EditMediaDialog({ isOpen, onClose, product, onUpdate }: EditMedi
                 onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
                 placeholder="Optional location..."
               />
+            </div>
+
+            {/* Geographical Organization */}
+            <div className="space-y-4 p-4 border rounded-lg bg-blue-50/50 dark:bg-blue-900/10">
+              <div className="flex items-center gap-2">
+                <FolderTree className="w-4 h-4 text-blue-600" />
+                <Label className="text-sm font-semibold">Geographical Organization</Label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                📁 Organize: World → Continent → Country → Your File
+              </p>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="continent">Continent</Label>
+                  <Select
+                    value={formData.continent}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, continent: value, country: '' }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select continent" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CONTINENTS.map((continent) => (
+                        <SelectItem key={continent.value} value={continent.value}>
+                          {continent.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="country">Country</Label>
+                  <Select
+                    value={formData.country}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, country: value }))}
+                    disabled={!formData.continent}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={formData.continent ? "Select country" : "Select continent first"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formData.continent && getCountriesByContinent(formData.continent).map((country) => (
+                        <SelectItem key={country.value} value={country.value}>
+                          {country.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {formData.continent && formData.country && (
+                <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800">
+                  <div className="flex items-center gap-2 text-xs text-green-900 dark:text-green-100">
+                    <Globe2 className="w-3 h-3" />
+                    <span className="font-medium">
+                      📂 World → {CONTINENTS.find(c => c.value === formData.continent)?.label} → {getCountriesByContinent(formData.continent).find(c => c.value === formData.country)?.label}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {!formData.continent && !formData.country && (
+                <div className="p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded border border-yellow-200 dark:border-yellow-800">
+                  <p className="text-xs text-yellow-900 dark:text-yellow-100">
+                    💡 Add geographical tags to organize this media in the folder structure
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Media Files Management */}
