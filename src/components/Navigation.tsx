@@ -98,9 +98,9 @@ export function Navigation({ className }: NavigationProps) {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
             <img 
-              src="/traveltelly-logo.png" 
+              src={user ? "/TT_Icon2026.svg" : "/traveltelly-logo.png"}
               alt="Traveltelly" 
-              className="h-5 md:h-6 w-auto dark:invert"
+              className={user ? "h-8 md:h-9 w-auto" : "h-5 md:h-6 w-auto dark:invert"}
             />
           </Link>
 
