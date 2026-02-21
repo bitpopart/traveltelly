@@ -26,6 +26,10 @@ interface CommunityData {
   forumText: string;
   forumHashtags: string[];
   usefulLinks: UsefulLink[];
+  ctaTitle?: string;
+  ctaDescription?: string;
+  ctaBadges?: string[];
+  location?: string;
 }
 
 const COMMUNITY_KIND = 30079;
@@ -122,6 +126,11 @@ export default function Community() {
   const travelLinks = communityData?.usefulLinks?.filter(l => l.category === 'travel') || defaultTravelLinks;
   const nostrLinks = communityData?.usefulLinks?.filter(l => l.category === 'nostr') || defaultNostrLinks;
   const phoneographyLinks = communityData?.usefulLinks?.filter(l => l.category === 'phoneography') || defaultPhoneographyLinks;
+  
+  const ctaTitle = communityData?.ctaTitle || 'Join the TravelTelly Community';
+  const ctaDescription = communityData?.ctaDescription || 'Share your travel experiences, connect with photographers, and be part of the decentralized travel revolution on Nostr.';
+  const ctaBadges = communityData?.ctaBadges || ['🌍 88+ Countries', '📸 Travel Photography', '⚡ Lightning Network', '🔓 Decentralized'];
+  const location = communityData?.location || 'Amsterdam, Netherlands';
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
@@ -137,9 +146,15 @@ export default function Community() {
             <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">
               Community
             </h1>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-3">
               The Travel, Nostr and Mobile Photo/Videography community.
             </p>
+            {location && (
+              <p className="text-lg text-gray-500 dark:text-gray-400 flex items-center justify-center gap-2">
+                <span className="text-2xl">📍</span>
+                <span>{location}</span>
+              </p>
+            )}
           </div>
 
           {/* FAQ Section */}
@@ -348,16 +363,17 @@ export default function Community() {
           <div className="mt-12 text-center p-8 bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-900/20 dark:to-purple-900/20 rounded-xl border border-pink-200 dark:border-pink-800">
             <Users className="w-12 h-12 mx-auto mb-4" style={{ color: '#ec1a58' }} />
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-              Join the TravelTelly Community
+              {ctaTitle}
             </h2>
             <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-6">
-              Share your travel experiences, connect with photographers, and be part of the decentralized travel revolution on Nostr.
+              {ctaDescription}
             </p>
             <div className="flex flex-wrap justify-center gap-3">
-              <Badge variant="secondary" className="text-sm px-4 py-2">🌍 88+ Countries</Badge>
-              <Badge variant="secondary" className="text-sm px-4 py-2">📸 Travel Photography</Badge>
-              <Badge variant="secondary" className="text-sm px-4 py-2">⚡ Lightning Network</Badge>
-              <Badge variant="secondary" className="text-sm px-4 py-2">🔓 Decentralized</Badge>
+              {ctaBadges.map((badge, index) => (
+                <Badge key={index} variant="secondary" className="text-sm px-4 py-2">
+                  {badge}
+                </Badge>
+              ))}
             </div>
           </div>
         </div>

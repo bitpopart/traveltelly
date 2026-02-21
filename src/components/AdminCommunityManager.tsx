@@ -30,6 +30,10 @@ interface CommunityData {
   forumText: string;
   forumHashtags: string[];
   usefulLinks: UsefulLink[];
+  ctaTitle?: string;
+  ctaDescription?: string;
+  ctaBadges?: string[];
+  location?: string; // e.g., "Amsterdam, Netherlands" or "88+ Countries"
 }
 
 // Kind 30079 - Community Page Content (replaceable)
@@ -51,6 +55,12 @@ export function AdminCommunityManager() {
 
   const [usefulLinks, setUsefulLinks] = useState<UsefulLink[]>([]);
   const [newLink, setNewLink] = useState({ title: '', url: '', description: '', category: 'travel' as const });
+
+  const [ctaTitle, setCtaTitle] = useState('');
+  const [ctaDescription, setCtaDescription] = useState('');
+  const [ctaBadges, setCtaBadges] = useState<string[]>([]);
+  const [newBadge, setNewBadge] = useState('');
+  const [location, setLocation] = useState('');
 
   const [isSaving, setIsSaving] = useState(false);
 
@@ -134,6 +144,11 @@ export function AdminCommunityManager() {
   ];
 
   const defaultUsefulLinks = [...defaultTravelLinks, ...defaultNostrLinks, ...defaultPhoneographyLinks];
+  
+  const defaultCtaTitle = 'Join the TravelTelly Community';
+  const defaultCtaDescription = 'Share your travel experiences, connect with photographers, and be part of the decentralized travel revolution on Nostr.';
+  const defaultCtaBadges = ['🌍 88+ Countries', '📸 Travel Photography', '⚡ Lightning Network', '🔓 Decentralized'];
+  const defaultLocation = 'Amsterdam, Netherlands';
 
   // Load data when fetched, otherwise use defaults
   useEffect(() => {
@@ -142,12 +157,20 @@ export function AdminCommunityManager() {
       setForumText(communityData.forumText || defaultForumText);
       setForumHashtags(communityData.forumHashtags || defaultForumHashtags);
       setUsefulLinks(communityData.usefulLinks || defaultUsefulLinks);
+      setCtaTitle(communityData.ctaTitle || defaultCtaTitle);
+      setCtaDescription(communityData.ctaDescription || defaultCtaDescription);
+      setCtaBadges(communityData.ctaBadges || defaultCtaBadges);
+      setLocation(communityData.location || defaultLocation);
     } else if (!isLoading) {
       // If no data exists on Nostr, load defaults
       setFaqs(defaultFaqs);
       setForumText(defaultForumText);
       setForumHashtags(defaultForumHashtags);
       setUsefulLinks(defaultUsefulLinks);
+      setCtaTitle(defaultCtaTitle);
+      setCtaDescription(defaultCtaDescription);
+      setCtaBadges(defaultCtaBadges);
+      setLocation(defaultLocation);
     }
   }, [communityData, isLoading]);
 
@@ -243,6 +266,27 @@ export function AdminCommunityManager() {
     setUsefulLinks(updated);
   };
 
+  const handleAddBadge = () => {
+    if (!newBadge.trim()) return;
+    
+    console.log('➕ Adding badge:', newBadge);
+    console.log('🏅 Current badges before:', ctaBadges.length);
+    
+    setCtaBadges([...ctaBadges, newBadge]);
+    console.log('🏅 Badges after (should be +1):', ctaBadges.length + 1);
+    
+    setNewBadge('');
+    
+    toast({
+      title: 'Badge Added ✅',
+      description: 'Item added to list. Click "Save All Changes" to publish to Nostr.',
+    });
+  };
+
+  const handleRemoveBadge = (index: number) => {
+    setCtaBadges(ctaBadges.filter((_, i) => i !== index));
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
 
@@ -252,6 +296,10 @@ export function AdminCommunityManager() {
         forumText,
         forumHashtags,
         usefulLinks,
+        ctaTitle,
+        ctaDescription,
+        ctaBadges,
+        location,
       };
 
       console.log('💾 Saving community data to Nostr:', data);
@@ -348,6 +396,8 @@ export function AdminCommunityManager() {
               <span className="text-purple-600 dark:text-purple-400">{forumHashtags.length} Hashtags</span>
               {' • '}
               <span className="text-pink-600 dark:text-pink-400">{usefulLinks.length} Links</span>
+              {' • '}
+              <span className="text-green-600 dark:text-green-400">{ctaBadges.length} Badges</span>
             </div>
             <Button
               onClick={handleSave}
@@ -620,6 +670,91 @@ export function AdminCommunityManager() {
               <Plus className="w-4 h-4 mr-2" />
               Add Link
             </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Location & Call-to-Action Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="w-5 h-5 text-green-600" />
+            Location & Call-to-Action
+          </CardTitle>
+          <CardDescription>
+            Edit the location and bottom CTA section of the community page
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Location */}
+          <div>
+            <Label>Location/Place</Label>
+            <Input
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="e.g., Amsterdam, Netherlands or 88+ Countries"
+              className="max-w-md"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Your location or coverage area (e.g., city, country, or global reach)
+            </p>
+          </div>
+
+          <Separator />
+
+          {/* CTA Title */}
+          <div>
+            <Label>Call-to-Action Title</Label>
+            <Input
+              value={ctaTitle}
+              onChange={(e) => setCtaTitle(e.target.value)}
+              placeholder="Join the TravelTelly Community"
+              className="max-w-lg"
+            />
+          </div>
+
+          {/* CTA Description */}
+          <div>
+            <Label>Call-to-Action Description</Label>
+            <Textarea
+              value={ctaDescription}
+              onChange={(e) => setCtaDescription(e.target.value)}
+              placeholder="Describe why users should join..."
+              rows={3}
+            />
+          </div>
+
+          {/* CTA Badges */}
+          <div className="space-y-3">
+            <Label>Call-to-Action Badges</Label>
+            <p className="text-xs text-muted-foreground">
+              Small highlighted features or stats shown as badges (e.g., "🌍 88+ Countries")
+            </p>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {ctaBadges.map((badge, index) => (
+                <Badge key={index} variant="secondary" className="text-sm px-3 py-1">
+                  {badge}
+                  <button
+                    onClick={() => handleRemoveBadge(index)}
+                    className="ml-2 hover:text-red-600"
+                  >
+                    ×
+                  </button>
+                </Badge>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                value={newBadge}
+                onChange={(e) => setNewBadge(e.target.value)}
+                placeholder="e.g., 🌍 88+ Countries or 📸 Travel Photography"
+                onKeyDown={(e) => e.key === 'Enter' && handleAddBadge()}
+              />
+              <Button onClick={handleAddBadge} variant="outline" size="sm">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Badge
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
