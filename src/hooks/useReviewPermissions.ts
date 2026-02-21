@@ -110,6 +110,8 @@ export function usePermissionRequests() {
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
 
+      console.log('🔍 Querying permission requests...');
+
       // Get all permission requests
       const events = await nostr.query([{
         kinds: [31491],
@@ -117,7 +119,10 @@ export function usePermissionRequests() {
         limit: 50,
       }], { signal });
 
+      console.log('📥 Raw permission request events:', events.length, events);
+
       const validRequests = events.filter(validatePermissionRequest);
+      console.log('✅ Valid permission requests:', validRequests.length, validRequests);
 
       // Get existing grants to filter out already granted requests
       const grants = await nostr.query([{
@@ -127,15 +132,21 @@ export function usePermissionRequests() {
         limit: 100,
       }], { signal });
 
+      console.log('📥 Permission grants:', grants.length, grants);
+
       const validGrants = grants.filter(validatePermissionGrant);
       const grantedPubkeys = new Set(
         validGrants.map(grant => grant.tags.find(([name]) => name === 'p')?.[1]).filter(Boolean)
       );
 
+      console.log('👥 Already granted pubkeys:', Array.from(grantedPubkeys));
+
       // Filter out already granted requests
       const pendingRequests = validRequests.filter(
         request => !grantedPubkeys.has(request.pubkey)
       );
+
+      console.log('⏳ Pending requests:', pendingRequests.length, pendingRequests);
 
       return pendingRequests.sort((a, b) => b.created_at - a.created_at);
     },
@@ -155,6 +166,12 @@ export function useSubmitPermissionRequest() {
         ['alt', 'Request for review posting permission'],
       ];
 
+      console.log('📤 Submitting permission request:', {
+        kind: 31491,
+        content: data.reason,
+        tags,
+      });
+
       createEvent({
         kind: 31491,
         content: data.reason,
@@ -162,6 +179,7 @@ export function useSubmitPermissionRequest() {
       });
     },
     onSuccess: () => {
+      console.log('✅ Permission request submitted successfully');
       queryClient.invalidateQueries({ queryKey: ['permission-requests'] });
     },
   });
