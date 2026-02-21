@@ -75,13 +75,13 @@ export function useLatestReview() {
   return useQuery({
     queryKey: ['latest-review-with-image'],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(1500)]); // Further reduced timeout for speed
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(1000)]); // Reduced to 1s for faster initial load
       
       const authorizedAuthors = Array.from(authorizedReviewers || []);
       const events = await nostr.query([{
         kinds: [34879],
         authors: authorizedAuthors,
-        limit: 10 // Further reduced limit - we only need 1 image
+        limit: 5 // Only need 5 events to find 1 with image
       }], { signal });
 
       // Find the first review with an image
@@ -132,13 +132,13 @@ export function useLatestReviews() {
   return useQuery({
     queryKey: ['latest-reviews-with-images'],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(1500)]); // Reduced for speed
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(1000)]); // Reduced to 1s
       
       const authorizedAuthors = Array.from(authorizedReviewers || []);
       const events = await nostr.query([{
         kinds: [34879],
         authors: authorizedAuthors,
-        limit: 15 // Reduced - we only need 3 reviews with images
+        limit: 10 // Further reduced - we only need 3 reviews with images
       }], { signal });
 
       // Find reviews with images
@@ -177,7 +177,7 @@ export function useLatestReviews() {
     enabled: !!authorizedReviewers && authorizedReviewers.size > 0,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
-    refetchInterval: 30000, // Auto-refresh every 30 seconds
+    refetchInterval: false, // Disabled auto-refresh for performance
   });
 }
 
@@ -190,13 +190,13 @@ export function useLatestStory() {
   return useQuery({
     queryKey: ['latest-story-with-image'],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(2000)]); // Reduced timeout
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(1000)]); // Reduced to 1s
       
       // Query for articles (kind 30023) from admin
       const events = await nostr.query([{
         kinds: [30023],
         authors: [ADMIN_HEX],
-        limit: 15 // Reduced limit for faster query
+        limit: 5 // Only need 5 to find 1 with image
       }], { signal });
 
       // Find the first story with an image
@@ -243,13 +243,13 @@ export function useLatestStories() {
   return useQuery({
     queryKey: ['latest-stories-with-images'],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(1000)]); // Reduced to 1s
       
       // Query for articles (kind 30023) from admin
       const events = await nostr.query([{
         kinds: [30023],
         authors: [ADMIN_HEX],
-        limit: 50
+        limit: 10 // Reduced for faster loading
       }], { signal });
 
       // Find stories with images
@@ -299,7 +299,7 @@ export function useLatestStockMedia() {
   return useQuery({
     queryKey: ['latest-stock-media-with-image', authorizedUploaders?.size],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(1500)]); // Reduced for speed
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(1000)]); // Reduced to 1s
       
       const authorizedAuthors = Array.from(authorizedUploaders || []);
       
@@ -310,7 +310,7 @@ export function useLatestStockMedia() {
       const events = await nostr.query([{
         kinds: [30402],
         authors: authorizedAuthors,
-        limit: 50 // Increased to ensure we find images
+        limit: 10 // Reduced for faster loading
       }], { signal });
 
       // Find the first product with an image - use same filter as count
@@ -372,7 +372,7 @@ export function useLatestStockMediaItems() {
   return useQuery({
     queryKey: ['latest-stock-media-items-with-images', authorizedUploaders?.size],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(1500)]); // Reduced for speed
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(1000)]); // Reduced to 1s
       
       const authorizedAuthors = Array.from(authorizedUploaders || []);
       
@@ -383,7 +383,7 @@ export function useLatestStockMediaItems() {
       const events = await nostr.query([{
         kinds: [30402],
         authors: authorizedAuthors,
-        limit: 50 // Increased to ensure we find images
+        limit: 10 // Reduced for faster loading
       }], { signal });
 
       console.log(`📸 Stock media items query: ${events.length} total events`);
@@ -432,11 +432,11 @@ export function useLatestStockMediaItems() {
       });
     },
     enabled: !!authorizedUploaders && authorizedUploaders.size > 0,
-    staleTime: 2 * 60 * 1000, // 2 minutes (reduced from 5)
-    gcTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 30000, // Auto-refresh every 30 seconds
-    refetchOnMount: true, // Always refetch on mount
-    refetchOnWindowFocus: true, // Refetch when window gains focus
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchInterval: false, // Disabled auto-refresh for performance
+    refetchOnMount: false, // Don't refetch on mount if cached
+    refetchOnWindowFocus: false, // Don't refetch on focus for performance
   });
 }
 
@@ -472,7 +472,7 @@ export function useStoryCount() {
       return events.length;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 30000, // Auto-refresh every 30 seconds
+    refetchInterval: false, // Disabled auto-refresh for performance
   });
 }
 
@@ -521,11 +521,11 @@ export function useStockMediaCount() {
       return activeProducts.length;
     },
     enabled: !!authorizedUploaders && authorizedUploaders.size > 0,
-    staleTime: 2 * 60 * 1000, // 2 minutes (reduced from 5)
-    gcTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 30000, // Auto-refresh every 30 seconds
-    refetchOnMount: true, // Always refetch on mount
-    refetchOnWindowFocus: true, // Refetch when window gains focus
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchInterval: false, // Disabled auto-refresh for performance
+    refetchOnMount: false, // Don't refetch on mount if cached
+    refetchOnWindowFocus: false, // Don't refetch on focus for performance
   });
 }
 
@@ -538,11 +538,11 @@ export function useLatestTrip() {
   return useQuery({
     queryKey: ['latest-trip-with-image'],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(2000)]); // Reduced timeout
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(1000)]); // Reduced to 1s
       
       const events = await nostr.query([{
         kinds: [30025],
-        limit: 15 // Reduced limit for faster query
+        limit: 5 // Only need 5 to find 1 with image
       }], { signal });
 
       // Find the first trip with an image
@@ -591,11 +591,11 @@ export function useLatestTrips() {
   return useQuery({
     queryKey: ['latest-trips-with-images'],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(1000)]); // Reduced to 1s
       
       const events = await nostr.query([{
         kinds: [30025],
-        limit: 50
+        limit: 10 // Reduced for faster loading
       }], { signal });
 
       // Find trips with images
@@ -633,7 +633,7 @@ export function useLatestTrips() {
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
-    refetchInterval: 30000, // Auto-refresh every 30 seconds
+    refetchInterval: false, // Disabled auto-refresh for performance
   });
 }
 
@@ -665,6 +665,6 @@ export function useTripCount() {
       return validTrips.length;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 30000, // Auto-refresh every 30 seconds
+    refetchInterval: false, // Disabled auto-refresh for performance
   });
 }

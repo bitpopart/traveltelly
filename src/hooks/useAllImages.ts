@@ -95,7 +95,7 @@ export function useAllImages() {
   return useQuery({
     queryKey: ['all-images', user?.pubkey, isContributor],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(2000)]); // Reduced from 5s to 2s
       
       const images: ImageItem[] = [];
 

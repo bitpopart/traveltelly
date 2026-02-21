@@ -89,8 +89,8 @@ export function OptimizedImage({
   const imgRef = useRef<HTMLImageElement>(null);
 
   // Generate optimized URLs - use aggressive optimization for thumbnails
-  const width = thumbnail ? 300 : 800; // Smaller thumbnails for faster loading (was 400)
-  const quality = thumbnail ? 65 : 80; // Lower quality for thumbnails (was 70)
+  const width = thumbnail ? 200 : 800; // Even smaller thumbnails for faster loading (was 300)
+  const quality = thumbnail ? 60 : 80; // Lower quality for thumbnails (was 65)
   const thumbnailUrl = getThumbnailUrl(src, width, quality);
   const blurUrl = blurUp ? getBlurPlaceholderUrl(src) : null;
 
@@ -108,7 +108,7 @@ export function OptimizedImage({
         });
       },
       {
-        rootMargin: '200px', // Start loading 200px before entering viewport
+        rootMargin: '50px', // Reduced from 200px - only load when very close to viewport
         threshold: 0.01,
       }
     );

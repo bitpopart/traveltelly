@@ -108,14 +108,14 @@ export function useTravelTellyTour() {
   return useQuery({
     queryKey: ['traveltelly-tour'],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(1000)]); // Reduced from 5s to 1s
       
       // Query kind 1 notes from admin with #traveltelly hashtag
       const events = await nostr.query([{
         kinds: [1],
         authors: [ADMIN_HEX],
         '#t': ['traveltelly'],
-        limit: 200,
+        limit: 20, // Reduced from 200 - only need a few for homepage
       }], { signal });
 
       console.log(`🌍 TravelTelly Tour: Found ${events.length} posts with #traveltelly from admin`);
@@ -141,8 +141,8 @@ export function useTravelTellyTour() {
       
       return tourItems;
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 60000, // Refetch every minute
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchInterval: false, // Disabled auto-refresh for performance
   });
 }
