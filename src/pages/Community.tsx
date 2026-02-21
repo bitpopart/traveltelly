@@ -130,7 +130,7 @@ export default function Community() {
   const ctaTitle = communityData?.ctaTitle || 'Join the TravelTelly Community';
   const ctaDescription = communityData?.ctaDescription || 'Share your travel experiences, connect with photographers, and be part of the decentralized travel revolution on Nostr.';
   const ctaBadges = communityData?.ctaBadges || ['🌍 88+ Countries', '📸 Travel Photography', '⚡ Lightning Network', '🔓 Decentralized'];
-  const location = communityData?.location || 'Amsterdam, Netherlands';
+  const location = communityData?.location || ''; // Empty by default - only shown if admin sets it
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>

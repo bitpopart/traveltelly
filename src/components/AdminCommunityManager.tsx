@@ -148,7 +148,7 @@ export function AdminCommunityManager() {
   const defaultCtaTitle = 'Join the TravelTelly Community';
   const defaultCtaDescription = 'Share your travel experiences, connect with photographers, and be part of the decentralized travel revolution on Nostr.';
   const defaultCtaBadges = ['🌍 88+ Countries', '📸 Travel Photography', '⚡ Lightning Network', '🔓 Decentralized'];
-  const defaultLocation = 'Amsterdam, Netherlands';
+  const defaultLocation = ''; // Empty by default - admin can set if desired
 
   // Load data when fetched, otherwise use defaults
   useEffect(() => {
@@ -688,7 +688,7 @@ export function AdminCommunityManager() {
         <CardContent className="space-y-6">
           {/* Location */}
           <div>
-            <Label>Location/Place</Label>
+            <Label>Location/Place (Optional)</Label>
             <Input
               value={location}
               onChange={(e) => setLocation(e.target.value)}
@@ -696,7 +696,7 @@ export function AdminCommunityManager() {
               className="max-w-md"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Your location or coverage area (e.g., city, country, or global reach)
+              Your location or coverage area (e.g., city, country, or global reach). Leave empty to hide.
             </p>
           </div>
 
