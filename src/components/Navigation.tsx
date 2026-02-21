@@ -46,7 +46,6 @@ export function Navigation({ className }: NavigationProps) {
     { path: '/stories', label: 'Stories', icon: BookOpen, color: '#b2d235', hoverColor: '#9dbf2e' },
     { path: '/trips', label: 'Trips', icon: MapPin, color: '#ffcc00', hoverColor: '#e6b800' },
     { path: '/marketplace', label: 'Marketplace', icon: Store, color: '#ec1a58', hoverColor: '#d3164d' },
-    { path: '/community', label: 'Community', icon: Users, color: '#9333ea', hoverColor: '#7e22ce' },
   ];
 
   // No filtering needed - Map button removed
@@ -117,6 +116,14 @@ export function Navigation({ className }: NavigationProps) {
                 hoverColor={item.hoverColor}
               />
             ))}
+            <Link to="/community">
+              <div 
+                className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 hover:shadow-lg cursor-pointer ml-1"
+                style={{ backgroundColor: '#9333ea' }}
+              >
+                <Users className="w-5 h-5 text-white" strokeWidth={2} />
+              </div>
+            </Link>
           </div>
 
           {/* Desktop Right Side */}
