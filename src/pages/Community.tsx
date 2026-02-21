@@ -136,12 +136,12 @@ export default function Community() {
     <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
       <Navigation />
       
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-12 pt-24">
         <div className="max-w-5xl mx-auto">
           {/* Header */}
           <div className="text-center mb-12">
-            <div className="p-4 rounded-full w-fit mx-auto mb-6" style={{ backgroundColor: '#ec1a5820' }}>
-              <Users className="w-16 h-16 mx-auto" style={{ color: '#ec1a58' }} />
+            <div className="p-4 rounded-full w-fit mx-auto mb-6" style={{ backgroundColor: '#9333ea20' }}>
+              <Users className="w-16 h-16 mx-auto" style={{ color: '#9333ea' }} />
             </div>
             <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">
               Community
@@ -161,7 +161,7 @@ export default function Community() {
           <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-2xl">
-                <HelpCircle className="w-6 h-6" style={{ color: '#ec1a58' }} />
+                <HelpCircle className="w-6 h-6" style={{ color: '#9333ea' }} />
                 Frequently Asked Questions
               </CardTitle>
               <CardDescription>
@@ -201,7 +201,7 @@ export default function Community() {
           <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-2xl">
-                <MessageCircle className="w-6 h-6" style={{ color: '#ec1a58' }} />
+                <MessageCircle className="w-6 h-6" style={{ color: '#9333ea' }} />
                 Forum & Discussions
               </CardTitle>
               <CardDescription>
@@ -209,7 +209,7 @@ export default function Community() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="p-6 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+              <div className="p-6 bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg border border-purple-300 dark:border-purple-700">
                 <h3 className="font-semibold text-lg mb-3 text-gray-900 dark:text-white">
                   Join the Conversation on Nostr
                 </h3>
@@ -264,7 +264,7 @@ export default function Community() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-2xl">
-                <ExternalLink className="w-6 h-6" style={{ color: '#ec1a58' }} />
+                <ExternalLink className="w-6 h-6" style={{ color: '#9333ea' }} />
                 Useful Links
               </CardTitle>
               <CardDescription>
@@ -360,8 +360,8 @@ export default function Community() {
           </Card>
 
           {/* Call to Action */}
-          <div className="mt-12 text-center p-8 bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-900/20 dark:to-purple-900/20 rounded-xl border border-pink-200 dark:border-pink-800">
-            <Users className="w-12 h-12 mx-auto mb-4" style={{ color: '#ec1a58' }} />
+          <div className="mt-12 text-center p-8 bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl border border-purple-300 dark:border-purple-700">
+            <Users className="w-12 h-12 mx-auto mb-4" style={{ color: '#9333ea' }} />
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
               {ctaTitle}
             </h2>
