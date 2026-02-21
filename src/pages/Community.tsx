@@ -119,9 +119,9 @@ export default function Community() {
   const faqs = communityData?.faqs || defaultFaqs;
   const forumText = communityData?.forumText || 'TravelTelly is built on the Nostr protocol, which means discussions happen across the decentralized Nostr network. Connect with travelers, photographers, and creators using these hashtags:';
   const forumHashtags = communityData?.forumHashtags || ['#traveltelly', '#travel', '#photography', '#mobilephotography', '#travelnostr'];
-  const travelLinks = communityData?.usefulLinks.filter(l => l.category === 'travel') || defaultTravelLinks;
-  const nostrLinks = communityData?.usefulLinks.filter(l => l.category === 'nostr') || defaultNostrLinks;
-  const phoneographyLinks = communityData?.usefulLinks.filter(l => l.category === 'phoneography') || defaultPhoneographyLinks;
+  const travelLinks = communityData?.usefulLinks?.filter(l => l.category === 'travel') || defaultTravelLinks;
+  const nostrLinks = communityData?.usefulLinks?.filter(l => l.category === 'nostr') || defaultNostrLinks;
+  const phoneographyLinks = communityData?.usefulLinks?.filter(l => l.category === 'phoneography') || defaultPhoneographyLinks;
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
