@@ -58,6 +58,7 @@ import WorldMap from "./pages/WorldMap";
 import TravelerProfile from "./pages/TravelerProfile";
 import TravelTellyTour from "./pages/TravelTellyTour";
 import TourFeed from "./pages/TourFeed";
+import Community from "./pages/Community";
 import NotFound from "./pages/NotFound";
 
 export function AppRouter() {
@@ -119,6 +120,7 @@ export function AppRouter() {
         <Route path="/world-map" element={<WorldMap />} />
         <Route path="/traveltelly-tour" element={<TravelTellyTour />} />
         <Route path="/tour-feed/:eventId" element={<TourFeed />} />
+        <Route path="/community" element={<Community />} />
         {/* Traveler Profile Routes */}
         <Route path="/traveler/:username" element={<TravelerProfile />} />
         {/* Explicit admin routes for better debugging */}

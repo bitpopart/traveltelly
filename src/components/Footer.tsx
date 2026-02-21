@@ -1,6 +1,7 @@
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Users } from 'lucide-react';
 import { NewsletterSubscribe } from './NewsletterSubscribe';
 import { Link } from 'react-router-dom';
+import { Button } from './ui/button';
 
 interface FooterProps {
   showStockMediaPartners?: boolean;
@@ -17,8 +18,21 @@ export function Footer({ showStockMediaPartners = false }: FooterProps) {
     <footer className="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 mt-12">
       <div className="container mx-auto px-4 py-8">
         {/* Newsletter Subscribe */}
-        <div className="max-w-2xl mx-auto mb-12">
+        <div className="max-w-2xl mx-auto mb-8">
           <NewsletterSubscribe variant="inline" source="footer" />
+        </div>
+
+        {/* Community Button */}
+        <div className="text-center mb-12">
+          <Link to="/community">
+            <Button 
+              size="lg"
+              className="rounded-full bg-gray-200 hover:bg-gray-300 text-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white shadow-md"
+            >
+              <Users className="w-5 h-5 mr-2" />
+              Community
+            </Button>
+          </Link>
         </div>
 
         <div className={`grid grid-cols-1 ${showStockMediaPartners ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-8`}>
