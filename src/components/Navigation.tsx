@@ -16,7 +16,8 @@ import {
   MapPin,
   User,
   Globe,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Users
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -115,6 +116,14 @@ export function Navigation({ className }: NavigationProps) {
                 hoverColor={item.hoverColor}
               />
             ))}
+            <Link to="/community">
+              <div 
+                className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 hover:shadow-lg cursor-pointer ml-1"
+                style={{ backgroundColor: '#9333ea' }}
+              >
+                <Users className="w-5 h-5 text-white" strokeWidth={2} />
+              </div>
+            </Link>
             {user && (
               <Link to="/my-travels">
                 <div 
@@ -241,6 +250,32 @@ export function Navigation({ className }: NavigationProps) {
                 mobile
               />
             ))}
+
+            <Link to="/community" onClick={() => setIsMobileMenuOpen(false)}>
+              <Button 
+                variant={isActive('/community') ? "default" : "ghost"}
+                className={cn(
+                  "w-full justify-start rounded-full flex items-center gap-2",
+                  isActive('/community') && "text-white"
+                )}
+                style={isActive('/community') ? { backgroundColor: '#9333ea' } : {}}
+                onMouseEnter={(e) => {
+                  if (!isActive('/community')) {
+                    e.currentTarget.style.backgroundColor = '#9333ea';
+                    e.currentTarget.style.color = 'white';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive('/community')) {
+                    e.currentTarget.style.backgroundColor = '';
+                    e.currentTarget.style.color = '';
+                  }
+                }}
+              >
+                <Users className="w-4 h-4" />
+                Community
+              </Button>
+            </Link>
 
             <div className="pt-4 border-t border-gray-200 dark:border-gray-800 space-y-2">
               {user ? (
