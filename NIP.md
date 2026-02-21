@@ -339,6 +339,39 @@ License orders are communicated via encrypted direct messages (kind `4`) followi
 6. **Creator Focused**: Built specifically for digital media creators
 7. **Review Integration**: Combines location reviews with media marketplace
 
+## Community Page Content (Kind 30079)
+
+The Community page content is stored as a replaceable event published by admin:
+
+```json
+{
+  "kind": 30079,
+  "content": "{\"faqs\":[{\"question\":\"What is TravelTelly?\",\"answer\":\"...\"}],\"forumText\":\"...\",\"forumHashtags\":[\"#traveltelly\"],\"usefulLinks\":[{\"title\":\"Lonely Planet\",\"url\":\"https://...\",\"description\":\"...\",\"category\":\"travel\"}]}",
+  "tags": [
+    ["d", "community-page"],
+    ["title", "TravelTelly Community Page Content"],
+    ["alt", "Community page configuration for TravelTelly"]
+  ]
+}
+```
+
+### Community Data Structure
+
+The content field contains a JSON object with:
+
+- **faqs**: Array of FAQ objects with `question` and `answer` fields
+- **forumText**: Description text for the forum section
+- **forumHashtags**: Array of hashtags for community discussions
+- **usefulLinks**: Array of link objects with `title`, `url`, `description`, and `category` (travel/nostr/phoneography)
+
+### Admin Management
+
+The admin can edit the community page content through the admin panel "Community" tab, which includes:
+- Add/remove FAQ items
+- Edit forum description and hashtags
+- Manage useful links in three categories
+- All changes are published to Nostr as a replaceable event
+
 ## Newsletter System (Kind 30080)
 
 Newsletter subscribers are stored as addressable events published by admin:

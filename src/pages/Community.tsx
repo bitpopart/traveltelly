@@ -4,15 +4,65 @@ import { Footer } from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useNostr } from '@nostrify/react';
+import { useQuery } from '@tanstack/react-query';
 import { Users, MessageCircle, HelpCircle, ExternalLink, Compass, Zap, Camera } from 'lucide-react';
 
+interface FAQ {
+  question: string;
+  answer: string;
+}
+
+interface UsefulLink {
+  title: string;
+  url: string;
+  description: string;
+  category: 'travel' | 'nostr' | 'phoneography';
+}
+
+interface CommunityData {
+  faqs: FAQ[];
+  forumText: string;
+  forumHashtags: string[];
+  usefulLinks: UsefulLink[];
+}
+
+const COMMUNITY_KIND = 30079;
+
 export default function Community() {
+  const { nostr } = useNostr();
+
   useSeoMeta({
     title: 'Community - TravelTelly',
     description: 'Join the Travel, Nostr and Mobile Photo/Videography community. Resources, discussions, and helpful links.',
   });
 
-  const faqs = [
+  // Fetch community data from Nostr
+  const { data: communityData, isLoading } = useQuery({
+    queryKey: ['community-data'],
+    queryFn: async (c) => {
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
+      const events = await nostr.query([{
+        kinds: [COMMUNITY_KIND],
+        limit: 1,
+      }], { signal });
+
+      if (events.length > 0) {
+        try {
+          const data = JSON.parse(events[0].content) as CommunityData;
+          return data;
+        } catch {
+          return null;
+        }
+      }
+      return null;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Default fallback data
+  const defaultFaqs = [
     {
       question: 'What is TravelTelly?',
       answer: 'TravelTelly is a decentralized travel platform built on Nostr that combines travel reviews, stories, trip reports, and a stock media marketplace with Bitcoin Lightning payments.',
@@ -35,7 +85,7 @@ export default function Community() {
     },
   ];
 
-  const travelLinks = [
+  const defaultTravelLinks = [
     { title: 'Lonely Planet', url: 'https://www.lonelyplanet.com/', description: 'Travel guides and tips' },
     { title: 'Atlas Obscura', url: 'https://www.atlasobscura.com/', description: 'Unusual destinations worldwide' },
     { title: 'Nomadic Matt', url: 'https://www.nomadicmatt.com/', description: 'Budget travel advice' },
@@ -44,7 +94,7 @@ export default function Community() {
     { title: 'WikiTravel', url: 'https://wikitravel.org/', description: 'Collaborative travel guide' },
   ];
 
-  const nostrLinks = [
+  const defaultNostrLinks = [
     { title: 'Nostr.com', url: 'https://nostr.com/', description: 'Learn about Nostr protocol' },
     { title: 'Nostr.band', url: 'https://nostr.band/', description: 'Nostr network explorer' },
     { title: 'Primal', url: 'https://primal.net/', description: 'Nostr web client' },
@@ -55,7 +105,7 @@ export default function Community() {
     { title: 'Nostr Resources', url: 'https://nostr-resources.com/', description: 'Comprehensive Nostr guide' },
   ];
 
-  const phoneographyLinks = [
+  const defaultPhoneographyLinks = [
     { title: 'Moment', url: 'https://www.shopmoment.com/', description: 'Mobile photography gear' },
     { title: 'VSCO', url: 'https://www.vsco.co/', description: 'Photo editing app' },
     { title: 'Snapseed', url: 'https://snapseed.online/', description: 'Professional photo editor' },
@@ -64,6 +114,14 @@ export default function Community() {
     { title: 'Mobile Photography Tips', url: 'https://www.adorama.com/alc/category/mobile-photography', description: 'Photography tutorials' },
     { title: 'Smartphone Photography', url: 'https://www.reddit.com/r/mobilephotography/', description: 'Reddit community' },
   ];
+
+  // Use Nostr data if available, otherwise use defaults
+  const faqs = communityData?.faqs || defaultFaqs;
+  const forumText = communityData?.forumText || 'TravelTelly is built on the Nostr protocol, which means discussions happen across the decentralized Nostr network. Connect with travelers, photographers, and creators using these hashtags:';
+  const forumHashtags = communityData?.forumHashtags || ['#traveltelly', '#travel', '#photography', '#mobilephotography', '#travelnostr'];
+  const travelLinks = communityData?.usefulLinks.filter(l => l.category === 'travel') || defaultTravelLinks;
+  const nostrLinks = communityData?.usefulLinks.filter(l => l.category === 'nostr') || defaultNostrLinks;
+  const phoneographyLinks = communityData?.usefulLinks.filter(l => l.category === 'phoneography') || defaultPhoneographyLinks;
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
@@ -96,17 +154,31 @@ export default function Community() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {faqs.map((faq, index) => (
-                <div key={index} className="space-y-2">
-                  <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
-                    {faq.question}
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-                    {faq.answer}
-                  </p>
-                  {index < faqs.length - 1 && <Separator className="mt-4" />}
-                </div>
-              ))}
+              {isLoading ? (
+                <>
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="space-y-2">
+                      <Skeleton className="h-6 w-3/4" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-5/6" />
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <>
+                  {faqs.map((faq, index) => (
+                    <div key={index} className="space-y-2">
+                      <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
+                        {faq.question}
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+                        {faq.answer}
+                      </p>
+                      {index < faqs.length - 1 && <Separator className="mt-4" />}
+                    </div>
+                  ))}
+                </>
+              )}
             </CardContent>
           </Card>
 
@@ -127,14 +199,12 @@ export default function Community() {
                   Join the Conversation on Nostr
                 </h3>
                 <p className="text-gray-600 dark:text-gray-300 mb-4">
-                  TravelTelly is built on the Nostr protocol, which means discussions happen across the decentralized Nostr network. Connect with travelers, photographers, and creators using these hashtags:
+                  {forumText}
                 </p>
                 <div className="flex flex-wrap gap-2 mb-4">
-                  <Badge variant="secondary" className="text-sm">#traveltelly</Badge>
-                  <Badge variant="secondary" className="text-sm">#travel</Badge>
-                  <Badge variant="secondary" className="text-sm">#photography</Badge>
-                  <Badge variant="secondary" className="text-sm">#mobilephotography</Badge>
-                  <Badge variant="secondary" className="text-sm">#travelnostr</Badge>
+                  {forumHashtags.map((tag, index) => (
+                    <Badge key={index} variant="secondary" className="text-sm">{tag}</Badge>
+                  ))}
                 </div>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                   Post on any Nostr client (Primal, Damus, Amethyst) with these hashtags to connect with the community.

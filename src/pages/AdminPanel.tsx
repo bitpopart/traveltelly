@@ -15,9 +15,10 @@ import { AdminTripManager } from '@/components/AdminTripManager';
 import { AdminStoryManager } from '@/components/AdminStoryManager';
 import { CustomerManagement } from '@/components/CustomerManagement';
 import { NewsletterManager } from '@/components/NewsletterManager';
+import { AdminCommunityManager } from '@/components/AdminCommunityManager';
 import { useInitializeTestCustomer } from '@/hooks/useInitializeTestCustomer';
 import { nip19 } from 'nostr-tools';
-import { Shield, ArrowLeft, Camera, MessageSquare, Settings, Tag, FileImage, Coffee, MapPin, Upload, BookOpen, Smartphone, Clock, BarChart3, Crown, Users, Mail, Sparkles } from 'lucide-react';
+import { Shield, ArrowLeft, Camera, MessageSquare, Settings, Tag, FileImage, Coffee, MapPin, Upload, BookOpen, Smartphone, Clock, BarChart3, Crown, Users, Mail, Sparkles, UsersRound } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function AdminPanel() {
@@ -190,7 +191,7 @@ export default function AdminPanel() {
 
           {/* Main Admin Tabs */}
           <Tabs defaultValue="manage-reviews" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2">
+            <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-2">
               <TabsTrigger value="manage-reviews" className="flex items-center gap-1.5 whitespace-nowrap px-3">
                 <MessageSquare className="w-4 h-4 flex-shrink-0" />
                 <span className="truncate">Reviews</span>
@@ -210,6 +211,10 @@ export default function AdminPanel() {
               <TabsTrigger value="newsletter" className="flex items-center gap-1.5 whitespace-nowrap px-3">
                 <Mail className="w-4 h-4 flex-shrink-0" />
                 <span className="truncate">Newsletter</span>
+              </TabsTrigger>
+              <TabsTrigger value="community" className="flex items-center gap-1.5 whitespace-nowrap px-3">
+                <UsersRound className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">Community</span>
               </TabsTrigger>
               <TabsTrigger value="review-permissions" className="flex items-center gap-1.5 whitespace-nowrap px-3">
                 <Shield className="w-4 h-4 flex-shrink-0" />
@@ -247,6 +252,10 @@ export default function AdminPanel() {
 
             <TabsContent value="newsletter" className="mt-6">
               <NewsletterManager />
+            </TabsContent>
+
+            <TabsContent value="community" className="mt-6">
+              <AdminCommunityManager />
             </TabsContent>
 
             <TabsContent value="review-permissions" className="mt-6">
