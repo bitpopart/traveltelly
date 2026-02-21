@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useNostr } from '@nostrify/react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
 import { Users, HelpCircle, MessageCircle, ExternalLink, Plus, Trash2, Save, Loader2, AlertCircle } from 'lucide-react';
@@ -39,6 +39,7 @@ export function AdminCommunityManager() {
   const { nostr } = useNostr();
   const { mutate: publishEvent } = useNostrPublish();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [newFaqQuestion, setNewFaqQuestion] = useState('');
@@ -163,6 +164,11 @@ export function AdminCommunityManager() {
     setFaqs([...faqs, { question: newFaqQuestion, answer: newFaqAnswer }]);
     setNewFaqQuestion('');
     setNewFaqAnswer('');
+    
+    toast({
+      title: 'FAQ Added',
+      description: 'Click "Save All Changes" to publish to Nostr.',
+    });
   };
 
   const handleRemoveFaq = (index: number) => {
@@ -180,6 +186,11 @@ export function AdminCommunityManager() {
     const tag = newHashtag.startsWith('#') ? newHashtag : `#${newHashtag}`;
     setForumHashtags([...forumHashtags, tag]);
     setNewHashtag('');
+    
+    toast({
+      title: 'Hashtag Added',
+      description: 'Click "Save All Changes" to publish to Nostr.',
+    });
   };
 
   const handleRemoveHashtag = (index: number) => {
@@ -198,6 +209,11 @@ export function AdminCommunityManager() {
 
     setUsefulLinks([...usefulLinks, newLink]);
     setNewLink({ title: '', url: '', description: '', category: 'travel' });
+    
+    toast({
+      title: 'Link Added',
+      description: 'Click "Save All Changes" to publish to Nostr.',
+    });
   };
 
   const handleRemoveLink = (index: number) => {
@@ -221,25 +237,47 @@ export function AdminCommunityManager() {
         usefulLinks,
       };
 
-      publishEvent({
-        kind: COMMUNITY_KIND,
-        content: JSON.stringify(data, null, 2),
-        tags: [
-          ['d', 'community-page'],
-          ['title', 'TravelTelly Community Page Content'],
-          ['alt', 'Community page configuration for TravelTelly'],
-        ],
+      console.log('💾 Saving community data to Nostr:', data);
+
+      // Use Promise to wait for the event to be published
+      await new Promise<void>((resolve, reject) => {
+        publishEvent(
+          {
+            kind: COMMUNITY_KIND,
+            content: JSON.stringify(data, null, 2),
+            tags: [
+              ['d', 'community-page'],
+              ['title', 'TravelTelly Community Page Content'],
+              ['alt', 'Community page configuration for TravelTelly'],
+            ],
+          },
+          {
+            onSuccess: () => {
+              console.log('✅ Community data published successfully');
+              resolve();
+            },
+            onError: (error) => {
+              console.error('❌ Failed to publish community data:', error);
+              reject(error);
+            },
+          }
+        );
       });
+
+      // Invalidate the query to refetch fresh data
+      await queryClient.invalidateQueries({ queryKey: ['community-data'] });
+      
+      console.log('🔄 Query cache invalidated, data should refresh');
 
       toast({
         title: 'Community Page Updated! 🎉',
-        description: 'Changes will be visible on the community page.',
+        description: 'Changes have been published to Nostr and will be visible on the community page.',
       });
     } catch (error) {
       console.error('Failed to save community data:', error);
       toast({
         title: 'Save Failed',
-        description: 'Could not save community page data.',
+        description: 'Could not save community page data. Please try again.',
         variant: 'destructive',
       });
     } finally {
