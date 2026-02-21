@@ -161,13 +161,19 @@ export function AdminCommunityManager() {
       return;
     }
 
-    setFaqs([...faqs, { question: newFaqQuestion, answer: newFaqAnswer }]);
+    const newFaq = { question: newFaqQuestion, answer: newFaqAnswer };
+    console.log('➕ Adding FAQ:', newFaq);
+    console.log('📋 Current FAQs before:', faqs.length);
+    
+    setFaqs([...faqs, newFaq]);
+    console.log('📋 FAQs after (should be +1):', faqs.length + 1);
+    
     setNewFaqQuestion('');
     setNewFaqAnswer('');
     
     toast({
-      title: 'FAQ Added',
-      description: 'Click "Save All Changes" to publish to Nostr.',
+      title: 'FAQ Added ✅',
+      description: 'Item added to list. Click "Save All Changes" to publish to Nostr.',
     });
   };
 
@@ -184,12 +190,18 @@ export function AdminCommunityManager() {
   const handleAddHashtag = () => {
     if (!newHashtag.trim()) return;
     const tag = newHashtag.startsWith('#') ? newHashtag : `#${newHashtag}`;
+    
+    console.log('➕ Adding hashtag:', tag);
+    console.log('🏷️ Current hashtags before:', forumHashtags.length);
+    
     setForumHashtags([...forumHashtags, tag]);
+    console.log('🏷️ Hashtags after (should be +1):', forumHashtags.length + 1);
+    
     setNewHashtag('');
     
     toast({
-      title: 'Hashtag Added',
-      description: 'Click "Save All Changes" to publish to Nostr.',
+      title: 'Hashtag Added ✅',
+      description: 'Item added to list. Click "Save All Changes" to publish to Nostr.',
     });
   };
 
@@ -207,12 +219,17 @@ export function AdminCommunityManager() {
       return;
     }
 
+    console.log('➕ Adding link:', newLink);
+    console.log('🔗 Current links before:', usefulLinks.length);
+    
     setUsefulLinks([...usefulLinks, newLink]);
+    console.log('🔗 Links after (should be +1):', usefulLinks.length + 1);
+    
     setNewLink({ title: '', url: '', description: '', category: 'travel' });
     
     toast({
-      title: 'Link Added',
-      description: 'Click "Save All Changes" to publish to Nostr.',
+      title: 'Link Added ✅',
+      description: 'Item added to list. Click "Save All Changes" to publish to Nostr.',
     });
   };
 
@@ -325,8 +342,12 @@ export function AdminCommunityManager() {
           </Alert>
 
           <div className="flex items-center justify-between mb-4">
-            <div className="text-sm text-muted-foreground">
-              {faqs.length} FAQs • {forumHashtags.length} Hashtags • {usefulLinks.length} Links
+            <div className="text-sm font-medium">
+              <span className="text-blue-600 dark:text-blue-400">{faqs.length} FAQs</span>
+              {' • '}
+              <span className="text-purple-600 dark:text-purple-400">{forumHashtags.length} Hashtags</span>
+              {' • '}
+              <span className="text-pink-600 dark:text-pink-400">{usefulLinks.length} Links</span>
             </div>
             <Button
               onClick={handleSave}
