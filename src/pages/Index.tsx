@@ -21,7 +21,7 @@ import { useLatestReview, useLatestStory, useLatestStockMedia, useLatestTrip, us
 import { useAllImages } from "@/hooks/useAllImages";
 import { useTravelTellyTour } from "@/hooks/useTravelTellyTour";
 import { useViewMode } from "@/contexts/ViewModeContext";
-import { MapPin, Star, Camera, Zap, Shield, BookOpen, Search, Navigation, FileImage, ArrowRight, Calendar, MessageCircle } from "lucide-react";
+import { MapPin, Star, Camera, Zap, Shield, BookOpen, Search, Navigation, FileImage, ArrowRight, Calendar, MessageCircle, Globe } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ZapAuthorButton } from "@/components/ZapAuthorButton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -919,7 +919,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                           color = '#ec1a58';
                           break;
                         case 'tour':
-                          icon = Navigation;
+                          icon = Globe;
                           color = '#9333ea'; // purple-600
                           break;
                       }
