@@ -19,6 +19,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useReviewPermissions } from "@/hooks/useReviewPermissions";
 import { useLatestReview, useLatestStory, useLatestStockMedia, useLatestTrip, useReviewCount, useStoryCount, useStockMediaCount, useTripCount, useLatestReviews, useLatestStories, useLatestTrips, useLatestStockMediaItems } from "@/hooks/useLatestItems";
 import { useAllImages } from "@/hooks/useAllImages";
+import { useTravelTellyTour } from "@/hooks/useTravelTellyTour";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { MapPin, Star, Camera, Zap, Shield, BookOpen, Search, Navigation, FileImage, ArrowRight, Calendar, MessageCircle } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -489,6 +490,9 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
   
   // Get all images for image grid view (filtered by contributor status)
   const { data: allImages = [], isLoading: imagesLoading } = useAllImages();
+  
+  // Get TravelTelly Tour photos
+  const { data: tourItems = [] } = useTravelTellyTour();
 
   // Debug logging
   console.log('📊 Homepage thumbnails:', {
@@ -496,6 +500,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
     latestStory: latestStory ? { title: latestStory.title, hasImage: !!latestStory.image } : null,
     latestStockMedia: latestStockMedia ? { title: latestStockMedia.title, hasImage: !!latestStockMedia.image } : null,
     latestTrip: latestTrip ? { title: latestTrip.title, hasImage: !!latestTrip.image } : null,
+    tourPhotos: tourItems.length,
   });
 
   useSeoMeta({
@@ -843,13 +848,25 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                       stock: allImages.filter(i => i.type === 'stock'),
                     };
 
+                    // Convert tour items to image format
+                    const tourPhotos = tourItems.flatMap((item) => {
+                      return item.images.map((imageUrl) => ({
+                        type: 'tour' as const,
+                        image: imageUrl,
+                        title: item.content.slice(0, 60) || 'TravelTelly Tour',
+                        naddr: '', // Tour items link differently
+                        eventId: item.id,
+                      }));
+                    });
+
                     // Create a mixed array by round-robin from each type
                     const mixed: typeof allImages = [];
                     const maxLength = Math.max(
                       byType.review.length,
                       byType.story.length,
                       byType.trip.length,
-                      byType.stock.length
+                      byType.stock.length,
+                      tourPhotos.length
                     );
 
                     for (let i = 0; i < maxLength; i++) {
@@ -857,6 +874,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                       if (byType.story[i]) mixed.push(byType.story[i]);
                       if (byType.trip[i]) mixed.push(byType.trip[i]);
                       if (byType.stock[i]) mixed.push(byType.stock[i]);
+                      if (tourPhotos[i]) mixed.push(tourPhotos[i]);
                     }
 
                     return mixed.map((item) => {
@@ -874,6 +892,9 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                           break;
                         case 'stock':
                           destinationPath = `/media/preview/${item.naddr}`;
+                          break;
+                        case 'tour':
+                          destinationPath = `/tour-feed/${'eventId' in item ? item.eventId : ''}`;
                           break;
                       }
 
@@ -897,11 +918,19 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                           icon = Camera;
                           color = '#ec1a58';
                           break;
+                        case 'tour':
+                          icon = Navigation;
+                          color = '#9333ea'; // purple-600
+                          break;
                       }
                       const Icon = icon;
 
+                      const itemKey = item.type === 'tour' && 'eventId' in item 
+                        ? `${item.type}-${item.eventId}-${item.image}` 
+                        : `${item.type}-${item.naddr}`;
+
                       return (
-                        <Link key={`${item.type}-${item.naddr}`} to={destinationPath}>
+                        <Link key={itemKey} to={destinationPath}>
                           <div className="relative aspect-square overflow-hidden group cursor-pointer bg-gray-200 dark:bg-gray-700">
                             <OptimizedImage
                               src={item.image}
