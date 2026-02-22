@@ -46,10 +46,27 @@ const COMMUNITY_KIND = 30079;
 
 // Component to display a single featured traveler avatar
 function FeaturedTravelerAvatar({ traveler }: { traveler: FeaturedTraveler }) {
-  const pubkeyHex = nip19.decode(traveler.npub).data as string;
+  console.log('🎨 Rendering FeaturedTravelerAvatar for:', traveler.npub.substring(0, 20));
+  
+  let pubkeyHex: string;
+  try {
+    const decoded = nip19.decode(traveler.npub);
+    if (decoded.type !== 'npub') {
+      console.error('❌ Invalid npub type:', decoded.type);
+      return null;
+    }
+    pubkeyHex = decoded.data as string;
+    console.log('✅ Decoded pubkey:', pubkeyHex.substring(0, 8));
+  } catch (error) {
+    console.error('❌ Failed to decode npub:', traveler.npub, error);
+    return null;
+  }
+
   const author = useAuthor(pubkeyHex);
   const metadata = author.data?.metadata;
   const displayName = metadata?.name || genUserName(pubkeyHex);
+
+  console.log('👤 Author data:', { displayName, picture: metadata?.picture });
 
   // For now, link to Nostr profile. In future, can link to profileUrl if available
   const profileLink = traveler.profileUrl || `https://primal.net/p/${traveler.npub}`;
@@ -93,22 +110,33 @@ export default function Community() {
     queryKey: ['community-data'],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
+      
+      console.log('🔍 Fetching community data (kind 30079)...');
+      
       const events = await nostr.query([{
         kinds: [COMMUNITY_KIND],
         limit: 1,
       }], { signal });
 
+      console.log('📥 Community events found:', events.length);
+
       if (events.length > 0) {
         try {
+          console.log('📄 Event content:', events[0].content.substring(0, 200));
           const data = JSON.parse(events[0].content) as CommunityData;
+          console.log('✅ Parsed community data:', data);
+          console.log('👥 Featured travelers in data:', data.featuredTravelers);
           return data;
-        } catch {
+        } catch (error) {
+          console.error('❌ Failed to parse community data:', error);
           return null;
         }
       }
+      console.log('⚠️ No community data found on relay');
       return null;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnMount: true, // Always refetch to get latest data
   });
 
   // Default fallback data
@@ -179,6 +207,10 @@ export default function Community() {
   const location = communityData?.location || ''; // Empty by default - only shown if admin sets it
   const featuredTravelers = communityData?.featuredTravelers || [];
 
+  // Debug logging
+  console.log('👥 Community Data:', communityData);
+  console.log('👥 Featured Travelers:', featuredTravelers);
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
       <Navigation />
@@ -205,25 +237,35 @@ export default function Community() {
           </div>
 
           {/* Featured Travelers */}
-          {featuredTravelers.length > 0 && (
-            <div className="mb-8">
-              <Card className="bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-purple-300 dark:border-purple-700">
-                <CardContent className="py-6">
-                  <h3 className="text-center text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                    Featured Travelers
-                  </h3>
-                  <div className="flex flex-wrap justify-center gap-6 md:gap-8">
-                    {featuredTravelers.map((traveler, index) => (
-                      <FeaturedTravelerAvatar key={index} traveler={traveler} />
-                    ))}
-                  </div>
-                  <p className="text-center text-xs text-gray-600 dark:text-gray-400 mt-4">
-                    Click to follow on Nostr
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+          {(() => {
+            console.log('🎨 Rendering featured travelers section. Count:', featuredTravelers.length);
+            
+            if (featuredTravelers.length === 0) {
+              console.log('⚠️ No featured travelers to display');
+              return null;
+            }
+
+            return (
+              <div className="mb-8">
+                <Card className="bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-purple-300 dark:border-purple-700">
+                  <CardContent className="py-6">
+                    <h3 className="text-center text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                      Featured Travelers
+                    </h3>
+                    <div className="flex flex-wrap justify-center gap-6 md:gap-8">
+                      {featuredTravelers.map((traveler, index) => {
+                        console.log(`👤 Rendering traveler ${index}:`, traveler);
+                        return <FeaturedTravelerAvatar key={`${traveler.npub}-${index}`} traveler={traveler} />;
+                      })}
+                    </div>
+                    <p className="text-center text-xs text-gray-600 dark:text-gray-400 mt-4">
+                      Click to follow on Nostr
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            );
+          })()}
 
           {/* FAQ Section */}
           <Card className="mb-8">

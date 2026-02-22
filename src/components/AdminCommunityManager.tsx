@@ -366,6 +366,7 @@ export function AdminCommunityManager() {
       };
 
       console.log('💾 Saving community data to Nostr:', data);
+      console.log('👥 Featured travelers being saved:', featuredTravelers.length, featuredTravelers);
 
       // Use Promise to wait for the event to be published
       await new Promise<void>((resolve, reject) => {
