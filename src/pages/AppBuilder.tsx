@@ -34,6 +34,7 @@ import {
 import { Link } from 'react-router-dom';
 import { useToast } from '@/hooks/useToast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PWAStatus } from '@/components/PWAStatus';
 
 export default function AppBuilder() {
   const { user } = useCurrentUser();
@@ -271,10 +272,14 @@ export default function AppBuilder() {
           </Alert>
 
           <Tabs defaultValue="config" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="config">
                 <Settings className="mr-2 h-4 w-4" />
                 Configuration
+              </TabsTrigger>
+              <TabsTrigger value="status">
+                <Globe className="mr-2 h-4 w-4" />
+                PWA Status
               </TabsTrigger>
               <TabsTrigger value="android">
                 <Play className="mr-2 h-4 w-4" />
@@ -513,6 +518,11 @@ export default function AppBuilder() {
                   </Button>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* PWA Status Tab */}
+            <TabsContent value="status" className="space-y-6">
+              <PWAStatus />
             </TabsContent>
 
             {/* Android Tab */}
