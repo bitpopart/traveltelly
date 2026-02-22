@@ -839,45 +839,11 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
               ) : allImages.length > 0 ? (
                 <div className="grid gap-1 md:gap-2 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                   {(() => {
-                    // Shuffle images to mix different content types
-                    // Group by type first
-                    const byType = {
-                      review: allImages.filter(i => i.type === 'review'),
-                      story: allImages.filter(i => i.type === 'story'),
-                      trip: allImages.filter(i => i.type === 'trip'),
-                      stock: allImages.filter(i => i.type === 'stock'),
-                    };
+                    // allImages already includes ALL types: reviews, stories, trips, stock, AND tour items
+                    // Just use them directly - they're already mixed by the hook
+                    const mixed = allImages;
 
-                    // Convert tour items to image format
-                    const tourPhotos = tourItems.flatMap((item) => {
-                      return item.images.map((imageUrl) => ({
-                        type: 'tour' as const,
-                        image: imageUrl,
-                        title: item.content.slice(0, 60) || 'TravelTelly Tour',
-                        naddr: '', // Tour items link differently
-                        eventId: item.id,
-                      }));
-                    });
-
-                    // Create a mixed array by round-robin from each type
-                    const mixed: typeof allImages = [];
-                    const maxLength = Math.max(
-                      byType.review.length,
-                      byType.story.length,
-                      byType.trip.length,
-                      byType.stock.length,
-                      tourPhotos.length
-                    );
-
-                    for (let i = 0; i < maxLength; i++) {
-                      if (byType.review[i]) mixed.push(byType.review[i]);
-                      if (byType.story[i]) mixed.push(byType.story[i]);
-                      if (byType.trip[i]) mixed.push(byType.trip[i]);
-                      if (byType.stock[i]) mixed.push(byType.stock[i]);
-                      if (tourPhotos[i]) mixed.push(tourPhotos[i]);
-                    }
-
-                    return mixed.map((item) => {
+                    return mixed.map((item, index) => {
                       // Get the destination path based on type
                       let destinationPath = '/';
                       switch (item.type) {
@@ -929,6 +895,9 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                         ? `${item.type}-${item.eventId}-${item.image}` 
                         : `${item.type}-${item.naddr}`;
 
+                      // First 12 images load with priority for instant display (above the fold)
+                      const isPriority = index < 12;
+
                       return (
                         <Link key={itemKey} to={destinationPath}>
                           <div className="relative aspect-square overflow-hidden group cursor-pointer bg-gray-200 dark:bg-gray-700">
@@ -938,7 +907,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                               className="w-full h-full object-cover transition-transform group-hover:scale-105"
                               blurUp={true}
                               thumbnail={true}
-                              priority={false}
+                              priority={isPriority}
                               aspectRatio="1/1"
                             />
                             {/* Type icon overlay - colored round button */}

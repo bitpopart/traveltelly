@@ -23,11 +23,6 @@ export interface ImageItem {
 }
 
 /**
- * Fetch all images from reviews, trips, stories, and stock media
- * If user is logged in AND is a contributor, show only their content
- * Otherwise show all content from authorized contributors
- */
-/**
  * Check if an image URL is a real uploaded image (not a placeholder or template)
  * ONLY ALLOW REAL IMAGE HOSTING SERVICES - NO TEMPLATE/PLACEHOLDER IMAGES EVER!
  */
@@ -55,7 +50,6 @@ function isValidImageUrl(url: string): boolean {
   
   const isAllowedDomain = allowedDomains.some(domain => lowerUrl.includes(domain));
   if (!isAllowedDomain) {
-    console.log('🚫 BLOCKED non-whitelisted domain:', url.substring(0, 60));
     return false;
   }
   
@@ -77,89 +71,107 @@ function isValidImageUrl(url: string): boolean {
   ];
   
   if (invalidPatterns.some(pattern => lowerUrl.includes(pattern))) {
-    console.log('🚫 BLOCKED placeholder pattern:', url.substring(0, 60));
     return false;
   }
   
   return true;
 }
 
+/**
+ * Fetch all images from reviews, trips, stories, stock media, AND TravelTelly Tour
+ * Sorted by newest first for fast, consistent display
+ */
 export function useAllImages() {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const isContributor = useIsContributor();
   const { data: authorizedReviewers } = useAuthorizedReviewers();
   const { data: authorizedUploaders } = useAuthorizedMediaUploaders();
-  const { data: tourItems } = useTravelTellyTour(); // Fetch TravelTelly Tour posts
+  const { data: tourItems = [] } = useTravelTellyTour(); // Fetch TravelTelly Tour posts
 
   return useQuery({
-    queryKey: ['all-images', user?.pubkey, isContributor],
+    queryKey: ['all-images', user?.pubkey, isContributor, tourItems?.length],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(2000)]); // Reduced from 5s to 2s
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]); // 3 seconds
       
       const images: ImageItem[] = [];
 
       // Determine which authors to query
-      // Contributors see only their own content, visitors/non-contributors see all
       const userFilter = (user?.pubkey && isContributor) ? [user.pubkey] : undefined;
-
-      // Fetch reviews
       const authorizedAuthors = Array.from(authorizedReviewers || []);
       const reviewAuthors = userFilter || authorizedAuthors;
+      const stockAuthors = Array.from(authorizedUploaders || []);
+      const mediaAuthors = userFilter || stockAuthors;
       
-      if (reviewAuthors.length > 0) {
-        const reviewEvents = await nostr.query([{
+      // Run ALL queries in parallel for maximum speed
+      const [reviewEvents, tripEvents, storyEvents, stockEvents] = await Promise.all([
+        // Reviews
+        reviewAuthors.length > 0 ? nostr.query([{
           kinds: [34879],
           authors: reviewAuthors,
-          limit: userFilter ? 200 : 100,
-        }], { signal });
+          limit: 150,
+        }], { signal }) : Promise.resolve([]),
+        
+        // Trips
+        nostr.query([{
+          kinds: [30025],
+          authors: userFilter || [ADMIN_HEX],
+          limit: 150,
+        }], { signal }),
+        
+        // Stories
+        nostr.query([{
+          kinds: [30023],
+          authors: userFilter || [ADMIN_HEX],
+          limit: 150,
+        }], { signal }),
+        
+        // Stock Media
+        mediaAuthors.length > 0 ? nostr.query([{
+          kinds: [30402],
+          authors: mediaAuthors,
+          limit: 150,
+        }], { signal }) : Promise.resolve([]),
+      ]);
 
-        reviewEvents
-          .filter((event: NostrEvent) => {
-            const d = event.tags.find(([name]) => name === 'd')?.[1];
-            const title = event.tags.find(([name]) => name === 'title')?.[1];
-            const image = event.tags.find(([name]) => name === 'image')?.[1];
-            return !!(d && title && image);
-          })
-          .forEach((event) => {
-            const image = event.tags.find(([name]) => name === 'image')?.[1];
-            const title = event.tags.find(([name]) => name === 'title')?.[1] || 'Unknown Place';
-            const identifier = event.tags.find(([name]) => name === 'd')?.[1] || '';
-            
-            const naddr = nip19.naddrEncode({
-              identifier,
-              pubkey: event.pubkey,
-              kind: 34879,
-            });
-
-            if (image && isValidImageUrl(image)) {
-              images.push({
-                image,
-                title,
-                naddr,
-                type: 'review',
-                event,
-                created_at: event.created_at,
-              });
-            } else if (image && !isValidImageUrl(image)) {
-              console.log('🚫 BLOCKED placeholder image in review:', image, 'from event:', event.id.substring(0, 8));
-            }
+      // Process reviews
+      reviewEvents
+        .filter((event: NostrEvent) => {
+          const d = event.tags.find(([name]) => name === 'd')?.[1];
+          const title = event.tags.find(([name]) => name === 'title')?.[1];
+          const image = event.tags.find(([name]) => name === 'image')?.[1];
+          return !!(d && title && image);
+        })
+        .forEach((event) => {
+          const image = event.tags.find(([name]) => name === 'image')?.[1];
+          const title = event.tags.find(([name]) => name === 'title')?.[1] || 'Unknown Place';
+          const identifier = event.tags.find(([name]) => name === 'd')?.[1] || '';
+          
+          const naddr = nip19.naddrEncode({
+            identifier,
+            pubkey: event.pubkey,
+            kind: 34879,
           });
-      }
 
-      // Fetch trips (only from admin when not logged in as contributor)
-      const tripEvents = await nostr.query([{
-        kinds: [30025],
-        authors: userFilter || [ADMIN_HEX], // User's trips if contributor, otherwise admin trips
-        limit: userFilter ? 200 : 100,
-      }], { signal });
+          if (image && isValidImageUrl(image)) {
+            images.push({
+              image,
+              title,
+              naddr,
+              type: 'review',
+              event,
+              created_at: event.created_at,
+            });
+          }
+        });
 
+      // Process trips
       tripEvents
         .filter((event: NostrEvent) => {
           const d = event.tags.find(([name]) => name === 'd')?.[1];
           const title = event.tags.find(([name]) => name === 'title')?.[1];
-          const images = event.tags.filter(([name]) => name === 'image');
-          return !!(d && title && images.length > 0);
+          const imageTags = event.tags.filter(([name]) => name === 'image');
+          return !!(d && title && imageTags.length > 0);
         })
         .forEach((event) => {
           const imageTags = event.tags.filter(([name]) => name === 'image');
@@ -183,19 +195,11 @@ export function useAllImages() {
                 event,
                 created_at: event.created_at,
               });
-            } else if (image && !isValidImageUrl(image)) {
-              console.log('🚫 BLOCKED placeholder image in trip:', image, 'from event:', event.id.substring(0, 8));
             }
           });
         });
 
-      // Fetch stories (only from admin, like other content)
-      const storyEvents = await nostr.query([{
-        kinds: [30023],
-        authors: userFilter || [ADMIN_HEX], // User's stories if contributor, otherwise admin stories
-        limit: userFilter ? 200 : 100,
-      }], { signal });
-
+      // Process stories
       storyEvents
         .filter((event: NostrEvent) => {
           const d = event.tags.find(([name]) => name === 'd')?.[1];
@@ -223,64 +227,49 @@ export function useAllImages() {
               event,
               created_at: event.created_at,
             });
-          } else if (image && !isValidImageUrl(image)) {
-            console.log('🚫 BLOCKED placeholder image in story:', image, 'from event:', event.id.substring(0, 8));
           }
         });
 
-      // Fetch stock media
-      const stockAuthors = Array.from(authorizedUploaders || []);
-      const mediaAuthors = userFilter || stockAuthors;
-      
-      if (mediaAuthors.length > 0) {
-        const stockEvents = await nostr.query([{
-          kinds: [30402],
-          authors: mediaAuthors,
-          limit: userFilter ? 200 : 100,
-        }], { signal });
-
-        stockEvents
-          .filter((event: NostrEvent) => {
-            const d = event.tags.find(([name]) => name === 'd')?.[1];
-            const title = event.tags.find(([name]) => name === 'title')?.[1];
-            const price = event.tags.find(([name]) => name === 'price');
-            const image = event.tags.find(([name]) => name === 'image')?.[1];
-            const status = event.tags.find(([name]) => name === 'status')?.[1];
-            const deleted = event.tags.find(([name]) => name === 'deleted')?.[1];
-            const adminDeleted = event.tags.find(([name]) => name === 'admin_deleted')?.[1];
-            
-            const hasValidPrice = price && price.length >= 3 && price[1] && price[2];
-            const isActive = status !== 'deleted' && deleted !== 'true' && adminDeleted !== 'true';
-            
-            return !!(d && title && hasValidPrice && image && isActive);
-          })
-          .forEach((event) => {
-            const image = event.tags.find(([name]) => name === 'image')?.[1];
-            const title = event.tags.find(([name]) => name === 'title')?.[1] || 'Untitled Product';
-            const identifier = event.tags.find(([name]) => name === 'd')?.[1] || '';
-            
-            const naddr = nip19.naddrEncode({
-              identifier,
-              pubkey: event.pubkey,
-              kind: 30402,
-            });
-
-            if (image && isValidImageUrl(image)) {
-              images.push({
-                image,
-                title,
-                naddr,
-                type: 'stock',
-                event,
-                created_at: event.created_at,
-              });
-            } else if (image && !isValidImageUrl(image)) {
-              console.log('🚫 BLOCKED placeholder image in stock media:', image, 'from event:', event.id.substring(0, 8));
-            }
+      // Process stock media
+      stockEvents
+        .filter((event: NostrEvent) => {
+          const d = event.tags.find(([name]) => name === 'd')?.[1];
+          const title = event.tags.find(([name]) => name === 'title')?.[1];
+          const price = event.tags.find(([name]) => name === 'price');
+          const image = event.tags.find(([name]) => name === 'image')?.[1];
+          const status = event.tags.find(([name]) => name === 'status')?.[1];
+          const deleted = event.tags.find(([name]) => name === 'deleted')?.[1];
+          const adminDeleted = event.tags.find(([name]) => name === 'admin_deleted')?.[1];
+          
+          const hasValidPrice = price && price.length >= 3 && price[1] && price[2];
+          const isActive = status !== 'deleted' && deleted !== 'true' && adminDeleted !== 'true';
+          
+          return !!(d && title && hasValidPrice && image && isActive);
+        })
+        .forEach((event) => {
+          const image = event.tags.find(([name]) => name === 'image')?.[1];
+          const title = event.tags.find(([name]) => name === 'title')?.[1] || 'Untitled Product';
+          const identifier = event.tags.find(([name]) => name === 'd')?.[1] || '';
+          
+          const naddr = nip19.naddrEncode({
+            identifier,
+            pubkey: event.pubkey,
+            kind: 30402,
           });
-      }
 
-      // Add TravelTelly Tour posts from the hook
+          if (image && isValidImageUrl(image)) {
+            images.push({
+              image,
+              title,
+              naddr,
+              type: 'stock',
+              event,
+              created_at: event.created_at,
+            });
+          }
+        });
+
+      // Add TravelTelly Tour posts
       let tourMediaCount = 0;
       if (tourItems && tourItems.length > 0) {
         console.log(`🌍 Adding ${tourItems.length} TravelTelly Tour posts to grid`);
@@ -288,19 +277,21 @@ export function useAllImages() {
         tourItems.forEach((item) => {
           // Add all images from this tour post
           item.images.forEach((imageUrl) => {
-            images.push({
-              image: imageUrl,
-              title: item.content.slice(0, 100) || 'TravelTelly Tour',
-              naddr: '', // Tour posts don't have naddr
-              type: 'tour',
-              event: item.event,
-              created_at: item.created_at,
-              eventId: item.id,
-            });
-            tourMediaCount++;
+            if (isValidImageUrl(imageUrl)) {
+              images.push({
+                image: imageUrl,
+                title: item.content.slice(0, 100) || 'TravelTelly Tour',
+                naddr: '', // Tour posts don't have naddr
+                type: 'tour',
+                event: item.event,
+                created_at: item.created_at,
+                eventId: item.id,
+              });
+              tourMediaCount++;
+            }
           });
           
-          // Add all videos from this tour post
+          // Add all videos from this tour post (videos will have image URLs for thumbnails)
           item.videos.forEach((videoUrl) => {
             images.push({
               image: videoUrl,
@@ -320,16 +311,18 @@ export function useAllImages() {
         console.log('ℹ️ No TravelTelly Tour items available yet');
       }
 
-      // Shuffle images randomly to mix tour posts with other content
-      const shuffledImages = images.sort(() => Math.random() - 0.5);
+      // Sort by created_at (newest first) for consistent, fast display
+      const sortedImages = images.sort((a, b) => b.created_at - a.created_at);
       
-      // Log ALL images being displayed for debugging
-      console.log('🖼️ ALL IMAGES BEING DISPLAYED:', shuffledImages.length);
-      shuffledImages.slice(0, 10).forEach((img, i) => {
-        console.log(`  ${i + 1}. [${img.type}] ${img.image.substring(0, 80)}...`);
-      });
+      // Log breakdown for debugging
+      console.log('🖼️ ALL IMAGES BREAKDOWN:', sortedImages.length, 'total');
+      console.log('  📍 Reviews:', images.filter(i => i.type === 'review').length);
+      console.log('  📝 Stories:', images.filter(i => i.type === 'story').length);
+      console.log('  ✈️ Trips:', images.filter(i => i.type === 'trip').length);
+      console.log('  📸 Stock Media:', images.filter(i => i.type === 'stock').length);
+      console.log('  🌍 Tour Items:', images.filter(i => i.type === 'tour').length);
       
-      return shuffledImages;
+      return sortedImages;
     },
     enabled: !!authorizedReviewers && !!authorizedUploaders,
     staleTime: 2 * 60 * 1000, // 2 minutes
