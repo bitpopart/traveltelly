@@ -1,450 +1,381 @@
-# TravelTelly Native App Builder
+# TravelTelly PWA App Builder
 
 ## Overview
 
-The **Native App Builder** (`/admin/app-builder`) is an admin tool for generating React Native + Expo mobile apps based on the **Olas architecture** by Pablo F7z.
+The **PWA App Builder** (`/admin/app-builder`) is an admin tool for configuring and packaging TravelTelly as a Progressive Web App (PWA) for submission to the **Google Play Store (Android)** and **Apple App Store (iOS)**.
 
-## What is Olas?
-
-**Olas** is a picture-first decentralized social media app built on Nostr with:
-
-- **React Native + Expo** - Cross-platform mobile framework
-- **NDK (Nostr Development Kit)** - Full Nostr protocol integration
-- **Expo Camera** - In-app camera with filters and effects
-- **Blossom Uploads** - Decentralized file storage (NIP-96)
-- **Lightning Zaps** - Bitcoin micropayments (NIP-57)
-- **Cashu Wallet** - Optional ecash integration
-- **Offline Storage** - Expo SQLite for caching
-- **Push Notifications** - Real-time Nostr event alerts
-
-### Olas Repositories
-
-- **Main (React Native)**: https://github.com/pablof7z/olas
-- **iOS Native**: https://github.com/pablof7z/olas-ios
+**No native code required!** Your web app runs in a native wrapper with full offline support and app store distribution.
 
 ---
 
-## Why Olas for TravelTelly?
+## What is a PWA?
 
-TravelTelly's features map perfectly to Olas's architecture:
+A **Progressive Web App** is a web application that can be installed on mobile devices and behave like a native app.
 
-| TravelTelly Feature | Olas Equivalent |
-|---------------------|-----------------|
-| GPS-tagged reviews | Picture posts with geohash tags |
-| Travel stories | Long-form articles (NIP-23) |
-| Stock media marketplace | Media uploads with Lightning payments |
-| Trip routes | Geo-tagged photo collections |
-| Photo uploads with GPS | Expo Camera + EXIF extraction |
-| Lightning payments | NIP-57 zaps + Cashu wallet |
-| Nostr relays | NDK relay pool |
-| Decentralized storage | Blossom servers (NIP-96) |
+### Benefits
 
----
-
-## Architecture Readiness
-
-TravelTelly already has:
-
-✅ **Nostr Integration** - Using Nostrify (web), can port to NDK (mobile)  
-✅ **Blossom Uploads** - NIP-96 file servers configured  
-✅ **Lightning Zaps** - NIP-57 payments implemented  
-✅ **NIP-44 Encryption** - DM encryption ready  
-✅ **Geohashing** - GPS coordinates for reviews/trips  
-
-Still needed:
-
-⚠️ **React Native Conversion** - Convert React components to RN  
-⚠️ **Expo SDK Setup** - Camera, Image Picker, Maps, Notifications  
-⚠️ **Offline Storage** - Expo SQLite for event caching  
-⚠️ **Push Notifications** - FCM/APNs integration  
-⚠️ **NIP-55 Signer** - Remote signing with Amber/nsecBunker  
+✅ **No Native Code** - Your existing web app works as-is  
+✅ **Single Codebase** - Same code for web, Android, and iOS  
+✅ **Auto-Updates** - Changes go live immediately without app store approval  
+✅ **Smaller File Size** - PWAs are typically much smaller than native apps  
+✅ **Easy Maintenance** - Update once, deploy everywhere  
+✅ **Offline Support** - Service Workers enable offline functionality  
+✅ **Fast Installation** - Users can install from browser or app store  
 
 ---
 
-## Generated Project Structure
+## Quick Start
 
-The App Builder generates an Expo project with this structure:
+### 1. Access the App Builder
 
-```
-traveltelly-mobile/
-├── app/                    # Expo Router pages
-│   ├── (tabs)/            # Bottom tab navigation
-│   │   ├── index.tsx      # Home feed
-│   │   ├── explore.tsx    # Discover content
-│   │   ├── camera.tsx     # Photo capture
-│   │   ├── wallet.tsx     # Lightning/Cashu
-│   │   └── profile.tsx    # User profile
-│   ├── review/[naddr].tsx # Review detail
-│   ├── story/[naddr].tsx  # Story detail
-│   └── trip/[naddr].tsx   # Trip detail
-├── components/            # Reusable UI components
-├── hooks/                 # NDK hooks (useNDK, useAuthor, etc.)
-├── lib/                   # Utilities (geohash, nip19, etc.)
-├── stores/                # Zustand state management
-├── theme/                 # TailwindCSS + NativeWind config
-├── app.json               # Expo configuration
-├── eas.json               # Expo Application Services config
-├── package.json           # Dependencies (NDK, Expo modules)
-└── README.md              # Setup instructions
-```
+1. Log in as admin (npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642)
+2. Go to **Admin Panel** → **App Builder**
+3. Or visit directly: `/admin/app-builder`
 
----
+### 2. Configure Your App
 
-## Key Dependencies (from Olas)
+The app builder has four tabs:
 
-### Nostr Protocol
-```json
-{
-  "@nostr-dev-kit/ndk": "^2.14.18",
-  "@nostr-dev-kit/ndk-hooks": "^1.1.44",
-  "@nostr-dev-kit/ndk-mobile": "^0.8.12",
-  "nostr-tools": "^2.12.0"
-}
-```
+#### Configuration Tab
+- **Basic Information:**
+  - App Name: `TravelTelly`
+  - Short Name: `TravelTelly` (max 12 chars for home screen)
+  - Description: Full app description
+  - Website URL: `https://traveltelly.diy`
 
-### Expo Modules
-```json
-{
-  "expo-camera": "~16.1.6",
-  "expo-image-picker": "~16.1.4",
-  "expo-image-manipulator": "~13.1.7",
-  "expo-location": "~17.1.6",
-  "expo-maps": "~0.10.0",
-  "expo-notifications": "~0.31.2",
-  "expo-sqlite": "~15.2.10",
-  "expo-secure-store": "~14.2.3",
-  "expo-nip55": "^0.1.7"
-}
-```
+- **Display & Appearance:**
+  - Theme Color: `#b700d7` (TravelTelly purple)
+  - Background Color: `#f4f4f5` (light gray)
+  - Display Mode: Standalone (recommended)
+  - Orientation: Any (recommended)
 
-### Image Processing
-```json
-{
-  "react-native-blurhash": "^2.1.1",
-  "react-native-compressor": "^1.11.0",
-  "@shopify/react-native-skia": "v2.0.0-next.4",
-  "react-native-color-matrix-image-filters": "^7.0.2"
-}
-```
+- **Package Information:**
+  - Android Package Name: `com.traveltelly.app`
+  - Version Code: `1` (integer, increment for updates)
+  - Version Name: `1.0.0` (semver)
+  - iOS Bundle ID: `com.traveltelly.app`
 
-### Bitcoin/Lightning
-```json
-{
-  "@cashu/cashu-ts": "^2.4.2",
-  "react-native-qrcode-svg": "^6.3.15"
-}
-```
+### 3. Generate Configuration
 
-### UI Framework
-```json
-{
-  "nativewind": "^4.1.23",
-  "tailwindcss": "^3.4.17",
-  "react-native-reanimated": "~3.17.5",
-  "@shopify/flash-list": "1.7.6"
-}
-```
+Click **"Generate PWA Configuration"** to prepare your app.
+
+### 4. Download Files
+
+#### For Android:
+- Download **Web App Manifest** (`manifest.webmanifest`)
+- Download **Digital Asset Links** (`assetlinks.json`)
+
+#### For iOS:
+- Download **Web App Manifest** (`manifest.webmanifest`)
+- Download **Apple App Site Association** (`apple-app-site-association`)
 
 ---
 
-## Building for Android
+## Submitting to Google Play Store (Android)
 
 ### Prerequisites
-1. **Google Play Console Account** ($25 one-time fee)
-2. **EAS CLI** installed: `npm install -g eas-cli`
-3. **Expo Account** (free)
 
-### Steps
+- Google Play Console account ($25 one-time fee)
+- Website live at `https://traveltelly.diy`
+- HTTPS with valid SSL certificate
 
-1. **Login to EAS**
-   ```bash
-   eas login
-   ```
+### Recommended: PWABuilder Method
 
-2. **Configure Project**
-   ```bash
-   eas build:configure
-   ```
+1. **Go to PWABuilder**
+   - Visit: https://www.pwabuilder.com
+   - Enter URL: `https://traveltelly.diy`
+   - Click "Start"
 
-3. **Build AAB (for Play Store)**
-   ```bash
-   eas build --platform android --profile production
-   ```
+2. **Review PWA Score**
+   - PWABuilder analyzes your site
+   - Fix any warnings (should be good already)
+   - Click "Package for Stores"
 
-4. **Build APK (for testing)**
-   ```bash
-   eas build --platform android --profile preview
-   ```
+3. **Generate Android Package**
+   - Click "Android" tab
+   - Choose **"Trusted Web Activity"** (TWA)
+   - Enter package details from App Builder
+   - Click "Generate"
+   - Download `.aab` file
 
-5. **Submit to Play Store**
-   ```bash
-   eas submit --platform android
-   ```
+4. **Upload Digital Asset Links**
+   - Upload `assetlinks.json` to: `https://traveltelly.diy/.well-known/assetlinks.json`
+   - Verify it's accessible
 
----
+5. **Create Play Console Listing**
+   - Go to https://play.google.com/console
+   - Pay $25 registration fee (one-time)
+   - Create new app
+   - Upload `.aab` file
+   - Add screenshots, description, etc.
+   - Submit for review (1-7 days)
 
-## Building for iOS
+### Alternative: Bubblewrap CLI
 
-### Prerequisites
-1. **Apple Developer Account** ($99/year)
-2. **macOS with Xcode** (for local builds, optional)
-3. **EAS CLI** installed
-
-### Steps
-
-1. **Configure iOS Bundle ID**
-   ```bash
-   eas build:configure
-   ```
-
-2. **Build for TestFlight**
-   ```bash
-   eas build --platform ios --profile production
-   ```
-
-3. **Build for Simulator (macOS only)**
-   ```bash
-   eas build --platform ios --profile development --local
-   ```
-
-4. **Submit to App Store**
-   ```bash
-   eas submit --platform ios
-   ```
-
----
-
-## Development Workflow
-
-### Local Development
-
-1. **Install Dependencies**
-   ```bash
-   npm install
-   ```
-
-2. **Start Expo Dev Server**
-   ```bash
-   npx expo start
-   ```
-
-3. **Run on iOS Simulator** (macOS only)
-   ```bash
-   npx expo run:ios
-   ```
-
-4. **Run on Android Emulator**
-   ```bash
-   npx expo run:android
-   ```
-
-5. **Scan QR Code** with Expo Go app for physical device testing
-
-### Converting React Components to React Native
-
-Key differences between web and mobile:
-
-| Web (React) | Mobile (React Native) |
-|-------------|----------------------|
-| `<div>` | `<View>` |
-| `<span>`, `<p>` | `<Text>` |
-| `<img>` | `<Image>` or `<expo-image>` |
-| `<button>` | `<Pressable>` or `<Button>` |
-| `<input>` | `<TextInput>` |
-| CSS classes | StyleSheet or NativeWind |
-| `onClick` | `onPress` |
-| React Router | Expo Router |
-| `fetch()` | Same (works natively) |
-
-### Example Conversion
-
-**Web (React):**
-```tsx
-<div className="p-4 bg-white rounded-lg shadow">
-  <h1 className="text-2xl font-bold">Hello</h1>
-  <button onClick={handleClick}>Click me</button>
-</div>
-```
-
-**Mobile (React Native + NativeWind):**
-```tsx
-<View className="p-4 bg-white rounded-lg shadow">
-  <Text className="text-2xl font-bold">Hello</Text>
-  <Pressable onPress={handleClick}>
-    <Text className="text-blue-600">Click me</Text>
-  </Pressable>
-</View>
-```
-
----
-
-## NDK Integration
-
-### Basic Setup
-
-```typescript
-import NDK from '@nostr-dev-kit/ndk';
-import { NDKProvider } from '@nostr-dev-kit/ndk-hooks';
-
-const ndk = new NDK({
-  explicitRelayUrls: [
-    'wss://relay.damus.io',
-    'wss://relay.nostr.band',
-    'wss://nos.lol'
-  ]
-});
-
-export default function App() {
-  return (
-    <NDKProvider ndk={ndk}>
-      {/* Your app */}
-    </NDKProvider>
-  );
-}
-```
-
-### Hooks
-
-```typescript
-import { useNDK } from '@nostr-dev-kit/ndk-hooks';
-
-function MyComponent() {
-  const { ndk } = useNDK();
-  
-  // Fetch events
-  const events = await ndk.fetchEvents({
-    kinds: [30023], // NIP-23 articles
-    limit: 20
-  });
-  
-  // Publish event
-  const event = new NDKEvent(ndk);
-  event.kind = 1;
-  event.content = "Hello Nostr!";
-  await event.publish();
-}
-```
-
----
-
-## Camera Integration
-
-```typescript
-import { Camera } from 'expo-camera';
-import { useState } from 'react';
-
-function CameraScreen() {
-  const [hasPermission, setHasPermission] = useState(null);
-  const [camera, setCamera] = useState(null);
-
-  useEffect(() => {
-    (async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
-    })();
-  }, []);
-
-  const takePicture = async () => {
-    if (camera) {
-      const photo = await camera.takePictureAsync();
-      // Upload to Blossom, extract GPS, etc.
-    }
-  };
-
-  return (
-    <Camera 
-      ref={ref => setCamera(ref)} 
-      style={{ flex: 1 }}
-    >
-      <Pressable onPress={takePicture}>
-        <Text>Take Photo</Text>
-      </Pressable>
-    </Camera>
-  );
-}
-```
-
----
-
-## Testing
-
-### E2E Testing with Maestro
-
-Olas includes Maestro tests. Example:
-
-```yaml
-# .maestro/flows/post_review.yaml
-appId: com.traveltelly.app
----
-- launchApp
-- tapOn: "Camera"
-- tapOn: "Capture"
-- inputText: "Amazing sunset at Grand Canyon!"
-- tapOn: "Add Location"
-- tapOn: "Post Review"
-- assertVisible: "Review posted successfully"
-```
-
-Run tests:
 ```bash
-maestro test .maestro/flows
+# Install
+npm install -g @bubblewrap/cli
+
+# Initialize
+bubblewrap init --manifest https://traveltelly.diy/manifest.webmanifest
+
+# Build
+bubblewrap build
+
+# Upload to Play Console
 ```
 
 ---
 
-## App Store Submission Checklist
+## Submitting to Apple App Store (iOS)
 
-### Android (Google Play)
+### Prerequisites
 
-- [ ] Create Google Play Console account ($25)
-- [ ] Configure app details (name, description, category)
-- [ ] Generate AAB with `eas build`
-- [ ] Create app listing with screenshots
-- [ ] Add privacy policy URL
-- [ ] Submit for review
+- Apple Developer account ($99/year)
+- macOS with Xcode installed
+- Website live at `https://traveltelly.diy`
 
-### iOS (Apple App Store)
+### Steps
 
-- [ ] Join Apple Developer Program ($99/year)
-- [ ] Create App ID in Apple Developer portal
-- [ ] Generate IPA with `eas build`
-- [ ] Upload to TestFlight for beta testing
-- [ ] Configure App Store Connect metadata
-- [ ] Add privacy policy and screenshots
-- [ ] Submit for review
+1. **Go to PWABuilder**
+   - Visit: https://www.pwabuilder.com
+   - Enter URL: `https://traveltelly.diy`
+   - Click "Package for Stores" → "iOS"
+
+2. **Generate iOS Package**
+   - Enter Bundle ID: `com.traveltelly.app`
+   - Download `.zip` file
+
+3. **Upload Apple App Site Association**
+   - Upload to: `https://traveltelly.diy/.well-known/apple-app-site-association`
+   - No `.json` extension!
+   - Verify with: `curl https://traveltelly.diy/.well-known/apple-app-site-association`
+
+4. **Set Up Apple Developer Portal**
+   - Create App ID: `com.traveltelly.app`
+   - Enable "Associated Domains" capability
+
+5. **Open in Xcode**
+   - Extract `.zip` file
+   - Open `.xcodeproj` in Xcode
+   - Configure signing with your Apple Developer team
+   - Add icons and launch screens
+
+6. **Create App in App Store Connect**
+   - Go to https://appstoreconnect.apple.com
+   - Create new app
+   - Add screenshots, description, etc.
+
+7. **Upload Build**
+   - In Xcode: Product → Archive
+   - Distribute to App Store Connect
+
+8. **Submit for Review**
+   - Select build in App Store Connect
+   - Submit (review takes 1-3 days)
+
+---
+
+## PWA Requirements Checklist
+
+### Essential (Already Implemented)
+
+- ✅ **HTTPS** - Site served over secure connection
+- ✅ **Web App Manifest** - `/manifest.webmanifest` with all fields
+- ✅ **Service Worker** - `/sw.js` for offline functionality
+- ✅ **Responsive Design** - Works on mobile devices
+- ✅ **App Icons** - 192x192 and 512x512 PNG icons
+- ✅ **Offline Support** - Service Worker caches essential files
+
+### Recommended
+
+- ✅ **Splash Screens** - Configured in manifest
+- ✅ **Shortcuts** - Quick actions from home screen
+- ✅ **Categories** - Travel, social, photo tags
+- ⚠️ **Screenshots** - Add to manifest for app stores
+
+---
+
+## File Structure
+
+```
+traveltelly/
+├── public/
+│   ├── .well-known/
+│   │   ├── assetlinks.json              # Android Digital Asset Links
+│   │   └── apple-app-site-association   # iOS Universal Links
+│   ├── manifest.webmanifest             # PWA manifest
+│   ├── sw.js                            # Service Worker
+│   ├── icon-192.png                     # App icon
+│   └── icon-512.png                     # App icon
+├── src/
+│   ├── pages/
+│   │   └── AppBuilder.tsx               # App Builder admin page
+│   └── main.tsx                         # Service Worker registration
+└── PWA_APP_STORES_GUIDE.md              # Detailed submission guide
+```
+
+---
+
+## Service Worker Features
+
+The Service Worker (`/sw.js`) provides:
+
+- **Offline Support** - Caches essential files for offline access
+- **Network-First Strategy** - Fresh content when online, cached when offline
+- **Background Sync** - Future: sync posts when back online
+- **Push Notifications** - Future: notify users of updates
+
+---
+
+## Testing Your PWA
+
+### Local Testing
+
+1. **Run development server:**
+   ```bash
+   npm run dev
+   ```
+
+2. **Open in mobile browser:**
+   - Use Chrome DevTools device emulation
+   - Or access from actual mobile device on local network
+
+3. **Test offline:**
+   - Open DevTools → Application → Service Workers
+   - Check "Offline" checkbox
+   - Verify app still works
+
+### Production Testing
+
+1. **Deploy to production:**
+   ```bash
+   npm run build
+   ```
+
+2. **Test on real devices:**
+   - Android: Chrome browser → Install app
+   - iOS: Safari → Share → Add to Home Screen
+
+3. **Lighthouse Audit:**
+   - Chrome DevTools → Lighthouse
+   - Run PWA audit
+   - Should score 90+ in all categories
+
+---
+
+## Common Issues & Solutions
+
+### Android TWA Not Verified
+
+**Problem:** Digital Asset Links not verified  
+**Solution:**
+- Ensure `assetlinks.json` is at `/.well-known/assetlinks.json`
+- Verify package name matches exactly
+- Wait 24 hours for Google to verify
+
+### iOS Universal Links Not Working
+
+**Problem:** Deep links don't open in app  
+**Solution:**
+- Check file is at `/.well-known/apple-app-site-association`
+- No `.json` extension!
+- Served over HTTPS
+- Team ID must match
+
+### Apple Rejection
+
+**Problem:** App rejected for being "just a website"  
+**Solution:**
+- Emphasize offline features
+- Add more native-like interactions
+- Explain PWA benefits in review notes
+
+---
+
+## Updating Your App
+
+### Android Updates
+
+1. Increment version code and version name
+2. Generate new AAB file
+3. Upload to Play Console
+4. Release to production (no review needed for updates)
+
+### iOS Updates
+
+1. Increment build number in Xcode
+2. Archive and upload new build
+3. Submit for review (required for each update)
+4. 1-3 day review process
+
+### Web Updates
+
+Changes to your website go live immediately for:
+- Web users
+- Android TWA users (auto-update)
+- iOS users (auto-update)
+
+App store metadata changes still require review.
+
+---
+
+## Cost Breakdown
+
+### One-Time Costs
+
+- **Google Play Developer Account:** $25
+- **Apple Developer Account:** $99/year
+
+### Ongoing Costs
+
+- **Hosting:** Your existing hosting costs
+- **Domain:** Your existing domain costs
+- **Apple Developer:** $99/year renewal
+
+Total first year: **$124**  
+Total subsequent years: **$99/year** (just Apple)
+
+Compare to native app development: $10,000 - $50,000+
 
 ---
 
 ## Resources
 
-### Olas
-- **Main Repo**: https://github.com/pablof7z/olas
-- **iOS Native**: https://github.com/pablof7z/olas-ios
+### Official Tools
 
-### Expo
-- **Documentation**: https://docs.expo.dev
-- **EAS Build**: https://docs.expo.dev/build/introduction/
-- **EAS Submit**: https://docs.expo.dev/submit/introduction/
+- **PWABuilder:** https://www.pwabuilder.com
+- **Bubblewrap:** https://github.com/GoogleChromeLabs/bubblewrap
+- **Google Play Console:** https://play.google.com/console
+- **App Store Connect:** https://appstoreconnect.apple.com
 
-### NDK
-- **NDK GitHub**: https://github.com/nostr-dev-kit/ndk
-- **NDK Docs**: https://ndk.fyi
+### Documentation
 
-### Nostr
-- **NIPs**: https://github.com/nostr-protocol/nips
-- **Nostr Tools**: https://github.com/nbd-wtf/nostr-tools
+- **PWA Guide:** https://web.dev/progressive-web-apps/
+- **TWA Docs:** https://developer.chrome.com/docs/android/trusted-web-activity/
+- **Service Workers:** https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API
+- **Web App Manifest:** https://developer.mozilla.org/en-US/docs/Web/Manifest
+
+### Testing
+
+- **Lighthouse:** Chrome DevTools → Lighthouse tab
+- **Asset Links Tester:** https://developers.google.com/digital-asset-links/tools/generator
+- **Apple Links Validator:** https://search.developer.apple.com/appsearch-validation-tool/
 
 ---
 
 ## Support
 
-For questions or issues with the Native App Builder:
+For detailed step-by-step instructions, see:
+- **PWA_APP_STORES_GUIDE.md** - Complete submission walkthrough
 
-1. Check the generated project's `README.md`
-2. Review Olas source code as reference
-3. Consult Expo documentation
-4. Ask in TravelTelly admin panel
+For questions or issues:
+1. Check the Submission Guide tab in App Builder
+2. Review PWABuilder documentation
+3. Contact admin via TravelTelly help bot
 
 ---
 
-**Built with ❤️ using the Olas architecture**
+**Good luck with your app store submissions!** 🚀📱✈️
+
+Your PWA is ready to reach millions of users on Android and iOS!

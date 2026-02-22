@@ -21,16 +21,19 @@ import {
   Play,
   Apple,
   Code,
-  Github,
   ExternalLink,
   Info,
-  Terminal,
   FileCode2,
   Wrench,
-  Zap
+  Zap,
+  Palette,
+  Globe,
+  Image as ImageIcon,
+  Settings
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useToast } from '@/hooks/useToast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function AppBuilder() {
   const { user } = useCurrentUser();
@@ -41,10 +44,172 @@ export default function AppBuilder() {
   const ADMIN_HEX = nip19.decode(ADMIN_NPUB).data as string;
   const isTraveltellyAdmin = user?.pubkey === ADMIN_HEX;
 
-  // Configuration
-  const [appName, setAppName] = useState('TravelTelly');
-  const [appId, setAppId] = useState('com.traveltelly.app');
-  const [appDescription, setAppDescription] = useState('Discover and share travel experiences with GPS-tagged reviews, stories, and stock photography on a decentralized platform.');
+  // PWA Configuration State
+  const [config, setConfig] = useState({
+    // Basic Info
+    appName: 'TravelTelly',
+    shortName: 'TravelTelly',
+    description: 'Share your travel experiences and discover amazing places on Nostr',
+    
+    // URLs
+    startUrl: '/',
+    scope: '/',
+    siteUrl: 'https://traveltelly.diy',
+    
+    // Display
+    display: 'standalone',
+    orientation: 'any',
+    
+    // Colors
+    themeColor: '#b700d7',
+    backgroundColor: '#f4f4f5',
+    
+    // Package Info (for Android)
+    packageName: 'com.traveltelly.app',
+    versionCode: '1',
+    versionName: '1.0.0',
+    
+    // App Store Info
+    bundleId: 'com.traveltelly.app',
+    appStoreId: '',
+    
+    // Icons (URLs to existing icons)
+    icon192: '/icon-192.png',
+    icon512: '/icon-512.png',
+    
+    // Optional features
+    enableNotifications: true,
+    enableGeolocation: true,
+    enableCamera: false,
+    enableOffline: true,
+  });
+
+  const [generating, setGenerating] = useState(false);
+
+  const updateConfig = (key: string, value: string | boolean) => {
+    setConfig(prev => ({ ...prev, [key]: value }));
+  };
+
+  const generateManifest = () => {
+    return JSON.stringify({
+      name: config.appName,
+      short_name: config.shortName,
+      description: config.description,
+      start_url: config.startUrl,
+      scope: config.scope,
+      display: config.display,
+      orientation: config.orientation,
+      theme_color: config.themeColor,
+      background_color: config.backgroundColor,
+      icons: [
+        {
+          src: config.icon192,
+          sizes: "192x192",
+          type: "image/png",
+          purpose: "any maskable"
+        },
+        {
+          src: config.icon512,
+          sizes: "512x512",
+          type: "image/png",
+          purpose: "any maskable"
+        }
+      ],
+      screenshots: [],
+      categories: ["travel", "social", "photo"],
+      shortcuts: [
+        {
+          name: "Create Review",
+          url: "/create-review",
+          description: "Create a new travel review"
+        },
+        {
+          name: "View Map",
+          url: "/world-map",
+          description: "Explore the world map"
+        }
+      ]
+    }, null, 2);
+  };
+
+  const generateAssetLinks = () => {
+    return JSON.stringify([
+      {
+        relation: ["delegate_permission/common.handle_all_urls"],
+        target: {
+          namespace: "android_app",
+          package_name: config.packageName,
+          sha256_cert_fingerprints: [
+            "YOUR_SHA256_FINGERPRINT_HERE"
+          ]
+        }
+      }
+    ], null, 2);
+  };
+
+  const generateAppleAppSiteAssociation = () => {
+    return JSON.stringify({
+      applinks: {
+        apps: [],
+        details: [
+          {
+            appID: `TEAMID.${config.bundleId}`,
+            paths: ["*"]
+          }
+        ]
+      }
+    }, null, 2);
+  };
+
+  const downloadFile = (filename: string, content: string) => {
+    const blob = new Blob([content], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadManifest = () => {
+    downloadFile('manifest.webmanifest', generateManifest());
+    toast({
+      title: "Manifest Downloaded",
+      description: "manifest.webmanifest has been downloaded",
+    });
+  };
+
+  const handleDownloadAssetLinks = () => {
+    downloadFile('assetlinks.json', generateAssetLinks());
+    toast({
+      title: "Asset Links Downloaded",
+      description: "assetlinks.json has been downloaded",
+    });
+  };
+
+  const handleDownloadAppleAssociation = () => {
+    downloadFile('apple-app-site-association', generateAppleAppSiteAssociation());
+    toast({
+      title: "Apple Association Downloaded",
+      description: "apple-app-site-association has been downloaded",
+    });
+  };
+
+  const handleGeneratePWA = async () => {
+    setGenerating(true);
+    
+    // Simulate generation process
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    toast({
+      title: "PWA Configuration Ready",
+      description: "Download the files and follow the submission guide below",
+    });
+    
+    setGenerating(false);
+  };
 
   if (!isTraveltellyAdmin) {
     return (
@@ -87,83 +252,268 @@ export default function AppBuilder() {
               </Button>
             </Link>
             <div className="flex items-center gap-3 mb-2">
-              <Smartphone className="w-8 h-8 text-orange-500" />
-              <h1 className="text-4xl font-bold">App Builder</h1>
+              <Smartphone className="w-8 h-8" style={{ color: '#b700d7' }} />
+              <h1 className="text-4xl font-bold">PWA App Builder</h1>
             </div>
             <p className="text-muted-foreground text-lg">
-              Build Android and iOS apps using Capacitor
+              Configure and build your Progressive Web App for Android & iOS App Stores
             </p>
           </div>
 
           {/* Info Alert */}
-          <Alert className="mb-6">
-            <Info className="h-4 w-4" />
-            <AlertTitle>React + Capacitor = Native Apps</AlertTitle>
+          <Alert className="mb-6" style={{ borderColor: '#b700d7' }}>
+            <Info className="h-4 w-4" style={{ color: '#b700d7' }} />
+            <AlertTitle>Progressive Web App (PWA)</AlertTitle>
             <AlertDescription>
-              Traveltelly is a React web application. Capacitor converts your web app into native Android and iOS applications.
-              This guide is based on the <a href="https://gitlab.com/chad.curtis/espy" target="_blank" rel="noopener noreferrer" className="underline font-semibold">Espy project</a> workflow.
+              This tool generates configuration files for submitting your PWA to the Google Play Store and Apple App Store.
+              No native code required - your web app runs in a native wrapper.
             </AlertDescription>
           </Alert>
 
-          {/* Configuration */}
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Wrench className="w-5 h-5" />
-                App Configuration
-              </CardTitle>
-              <CardDescription>
-                Configure your app details before building
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <Label htmlFor="appName">App Name</Label>
-                  <Input
-                    id="appName"
-                    value={appName}
-                    onChange={(e) => setAppName(e.target.value)}
-                    placeholder="TravelTelly"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="appId">App ID (Bundle Identifier)</Label>
-                  <Input
-                    id="appId"
-                    value={appId}
-                    onChange={(e) => setAppId(e.target.value)}
-                    placeholder="com.traveltelly.app"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Reverse domain notation (e.g., com.yourcompany.appname)
-                  </p>
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="description">App Description</Label>
-                <Textarea
-                  id="description"
-                  value={appDescription}
-                  onChange={(e) => setAppDescription(e.target.value)}
-                  rows={3}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Build Tabs */}
-          <Tabs defaultValue="android" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="android" className="flex items-center gap-2">
-                <Play className="w-4 h-4" />
+          <Tabs defaultValue="config" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="config">
+                <Settings className="mr-2 h-4 w-4" />
+                Configuration
+              </TabsTrigger>
+              <TabsTrigger value="android">
+                <Play className="mr-2 h-4 w-4" />
                 Android
               </TabsTrigger>
-              <TabsTrigger value="ios" className="flex items-center gap-2">
-                <Apple className="w-4 h-4" />
+              <TabsTrigger value="ios">
+                <Apple className="mr-2 h-4 w-4" />
                 iOS
               </TabsTrigger>
+              <TabsTrigger value="guide">
+                <FileCode2 className="mr-2 h-4 w-4" />
+                Submission Guide
+              </TabsTrigger>
             </TabsList>
+
+            {/* Configuration Tab */}
+            <TabsContent value="config" className="space-y-6">
+              {/* Basic Info */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Package className="w-5 h-5" />
+                    Basic Information
+                  </CardTitle>
+                  <CardDescription>
+                    Configure your app's identity and description
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="appName">App Name</Label>
+                      <Input
+                        id="appName"
+                        value={config.appName}
+                        onChange={(e) => updateConfig('appName', e.target.value)}
+                        placeholder="TravelTelly"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="shortName">Short Name</Label>
+                      <Input
+                        id="shortName"
+                        value={config.shortName}
+                        onChange={(e) => updateConfig('shortName', e.target.value)}
+                        placeholder="TravelTelly"
+                        maxLength={12}
+                      />
+                      <p className="text-xs text-muted-foreground">Max 12 characters for home screen</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={config.description}
+                      onChange={(e) => updateConfig('description', e.target.value)}
+                      placeholder="Describe your app..."
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="siteUrl">Website URL</Label>
+                    <Input
+                      id="siteUrl"
+                      value={config.siteUrl}
+                      onChange={(e) => updateConfig('siteUrl', e.target.value)}
+                      placeholder="https://traveltelly.diy"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Display Settings */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Palette className="w-5 h-5" />
+                    Display & Appearance
+                  </CardTitle>
+                  <CardDescription>
+                    Configure how your app looks and behaves
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="themeColor">Theme Color</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="themeColor"
+                          type="color"
+                          value={config.themeColor}
+                          onChange={(e) => updateConfig('themeColor', e.target.value)}
+                          className="w-20 h-10"
+                        />
+                        <Input
+                          value={config.themeColor}
+                          onChange={(e) => updateConfig('themeColor', e.target.value)}
+                          placeholder="#b700d7"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="backgroundColor">Background Color</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="backgroundColor"
+                          type="color"
+                          value={config.backgroundColor}
+                          onChange={(e) => updateConfig('backgroundColor', e.target.value)}
+                          className="w-20 h-10"
+                        />
+                        <Input
+                          value={config.backgroundColor}
+                          onChange={(e) => updateConfig('backgroundColor', e.target.value)}
+                          placeholder="#f4f4f5"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="display">Display Mode</Label>
+                      <Select value={config.display} onValueChange={(value) => updateConfig('display', value)}>
+                        <SelectTrigger id="display">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="standalone">Standalone (Recommended)</SelectItem>
+                          <SelectItem value="fullscreen">Fullscreen</SelectItem>
+                          <SelectItem value="minimal-ui">Minimal UI</SelectItem>
+                          <SelectItem value="browser">Browser</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="orientation">Orientation</Label>
+                      <Select value={config.orientation} onValueChange={(value) => updateConfig('orientation', value)}>
+                        <SelectTrigger id="orientation">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="any">Any (Recommended)</SelectItem>
+                          <SelectItem value="portrait">Portrait</SelectItem>
+                          <SelectItem value="landscape">Landscape</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Package Info */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Code className="w-5 h-5" />
+                    Package Information
+                  </CardTitle>
+                  <CardDescription>
+                    Platform-specific identifiers
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="packageName">Android Package Name</Label>
+                    <Input
+                      id="packageName"
+                      value={config.packageName}
+                      onChange={(e) => updateConfig('packageName', e.target.value)}
+                      placeholder="com.traveltelly.app"
+                    />
+                    <p className="text-xs text-muted-foreground">Must be unique on Google Play Store</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="versionCode">Version Code</Label>
+                      <Input
+                        id="versionCode"
+                        value={config.versionCode}
+                        onChange={(e) => updateConfig('versionCode', e.target.value)}
+                        placeholder="1"
+                        type="number"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="versionName">Version Name</Label>
+                      <Input
+                        id="versionName"
+                        value={config.versionName}
+                        onChange={(e) => updateConfig('versionName', e.target.value)}
+                        placeholder="1.0.0"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="bundleId">iOS Bundle ID</Label>
+                    <Input
+                      id="bundleId"
+                      value={config.bundleId}
+                      onChange={(e) => updateConfig('bundleId', e.target.value)}
+                      placeholder="com.traveltelly.app"
+                    />
+                    <p className="text-xs text-muted-foreground">Must match your Apple Developer account</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Generate Button */}
+              <Card>
+                <CardContent className="pt-6">
+                  <Button 
+                    onClick={handleGeneratePWA} 
+                    disabled={generating}
+                    className="w-full"
+                    size="lg"
+                    style={{ backgroundColor: '#b700d7' }}
+                  >
+                    {generating ? (
+                      <>
+                        <Wrench className="mr-2 h-5 w-5 animate-spin" />
+                        Generating Configuration...
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="mr-2 h-5 w-5" />
+                        Generate PWA Configuration
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
             {/* Android Tab */}
             <TabsContent value="android" className="space-y-6">
@@ -171,620 +521,74 @@ export default function AppBuilder() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Play className="w-5 h-5 text-green-600" />
-                    Android Build Guide
+                    Android App Package
                   </CardTitle>
                   <CardDescription>
-                    Build signed APK for Android devices and publish to Zapstore
+                    Generate files needed for Google Play Store submission
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Prerequisites */}
-                  <div>
-                    <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                      <Package className="w-5 h-5" />
-                      Prerequisites
-                    </h3>
-                    <div className="space-y-2 ml-7">
-                      <div className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="font-medium">Node.js & npm installed</p>
-                          <p className="text-sm text-muted-foreground">Required for building the web assets</p>
-                        </div>
+                <CardContent className="space-y-4">
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertTitle>What you'll need:</AlertTitle>
+                    <AlertDescription>
+                      <ul className="list-disc list-inside space-y-1 mt-2">
+                        <li>Google Play Console account ($25 one-time fee)</li>
+                        <li>Web Manifest file (generated below)</li>
+                        <li>Digital Asset Links file (for TWA)</li>
+                        <li>App icons (192x192 and 512x512)</li>
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <h3 className="font-semibold">Web App Manifest</h3>
+                        <p className="text-sm text-muted-foreground">manifest.webmanifest</p>
                       </div>
-                      <div className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="font-medium">Android Studio installed</p>
-                          <p className="text-sm text-muted-foreground">Download from <a href="https://developer.android.com/studio" target="_blank" rel="noopener noreferrer" className="underline">developer.android.com/studio</a></p>
-                        </div>
+                      <Button onClick={handleDownloadManifest} variant="outline">
+                        <Download className="mr-2 h-4 w-4" />
+                        Download
+                      </Button>
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <h3 className="font-semibold">Digital Asset Links</h3>
+                        <p className="text-sm text-muted-foreground">assetlinks.json</p>
                       </div>
-                      <div className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="font-medium">Java JDK 17+ installed</p>
-                          <p className="text-sm text-muted-foreground">Comes with Android Studio or install separately</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="font-medium">Capacitor CLI installed</p>
-                          <code className="text-sm bg-muted px-2 py-1 rounded block mt-1">npm install -D @capacitor/cli @capacitor/core @capacitor/android</code>
-                        </div>
-                      </div>
+                      <Button onClick={handleDownloadAssetLinks} variant="outline">
+                        <Download className="mr-2 h-4 w-4" />
+                        Download
+                      </Button>
                     </div>
                   </div>
 
-                  {/* Setup Steps */}
-                  <div>
-                    <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                      <Code className="w-5 h-5" />
-                      Initial Setup
-                    </h3>
-                    <div className="space-y-4 ml-7">
-                      <div>
-                        <p className="font-medium mb-2">1. Create Capacitor Config</p>
-                        <p className="text-sm text-muted-foreground mb-2">Create <code className="bg-muted px-1 rounded">capacitor.config.ts</code> in project root:</p>
-                        <pre className="bg-muted p-4 rounded-lg text-sm overflow-x-auto">
-{`import type { CapacitorConfig } from '@capacitor/cli';
+                  <Alert className="bg-blue-50 border-blue-200">
+                    <Info className="h-4 w-4 text-blue-600" />
+                    <AlertTitle className="text-blue-900">Using PWABuilder (Recommended)</AlertTitle>
+                    <AlertDescription className="text-blue-800">
+                      <ol className="list-decimal list-inside space-y-2 mt-2">
+                        <li>Go to <a href="https://www.pwabuilder.com" target="_blank" rel="noopener noreferrer" className="underline font-semibold">PWABuilder.com</a></li>
+                        <li>Enter your website URL: <code className="bg-blue-100 px-1 rounded">{config.siteUrl}</code></li>
+                        <li>Click "Package for Stores" → "Android"</li>
+                        <li>Choose "Trusted Web Activity" (TWA)</li>
+                        <li>Upload to Google Play Console</li>
+                      </ol>
+                    </AlertDescription>
+                  </Alert>
 
-const config: CapacitorConfig = {
-  appId: '${appId}',
-  appName: '${appName}',
-  webDir: 'dist',
-  server: {
-    hostname: 'traveltelly.com',
-    androidScheme: 'https'
-  },
-  android: {
-    allowMixedContent: false,
-    backgroundColor: '#ffffff'
-  }
-};
-
-export default config;`}
-                        </pre>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">2. Initialize Android Platform</p>
-                        <code className="text-sm bg-muted px-2 py-1 rounded block">npx cap add android</code>
-                        <p className="text-sm text-muted-foreground mt-1">This creates the <code className="bg-muted px-1 rounded">android/</code> directory</p>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">3. Generate App Icons</p>
-                        <p className="text-sm text-muted-foreground mb-2">Create <code className="bg-muted px-1 rounded">scripts/generate-icons.sh</code>:</p>
-                        <pre className="bg-muted p-4 rounded-lg text-sm overflow-x-auto">
-{`#!/bin/bash
-# Generate Android icons from your logo
-# Place your logo as public/icon.png (1024x1024)
-
-npx @capacitor/assets generate --android`}
-                        </pre>
-                        <code className="text-sm bg-muted px-2 py-1 rounded block mt-2">bash scripts/generate-icons.sh</code>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Keystore Setup */}
-                  <div>
-                    <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                      <FileCode2 className="w-5 h-5" />
-                      Create Signing Keystore
-                    </h3>
-                    <div className="space-y-4 ml-7">
-                      <div>
-                        <p className="font-medium mb-2">1. Generate Keystore</p>
-                        <pre className="bg-muted p-4 rounded-lg text-sm overflow-x-auto">
-{`keytool -genkey -v -keystore android/app/my-upload-key.keystore \\
-  -alias upload -keyalg RSA -keysize 2048 -validity 10000`}
-                        </pre>
-                        <Alert className="mt-2">
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertDescription className="text-sm">
-                            Save the password securely! You'll need it for every build.
-                          </AlertDescription>
-                        </Alert>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">2. Create Key Properties File</p>
-                        <p className="text-sm text-muted-foreground mb-2">Create <code className="bg-muted px-1 rounded">android/key.properties</code>:</p>
-                        <pre className="bg-muted p-4 rounded-lg text-sm overflow-x-auto">
-{`storePassword=YOUR_KEYSTORE_PASSWORD
-keyPassword=YOUR_KEY_PASSWORD
-keyAlias=upload
-storeFile=my-upload-key.keystore`}
-                        </pre>
-                        <Alert className="mt-2" variant="destructive">
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertDescription className="text-sm">
-                            Never commit <code className="bg-muted px-1 rounded">key.properties</code> to git! Add it to <code className="bg-muted px-1 rounded">.gitignore</code>
-                          </AlertDescription>
-                        </Alert>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">3. Update build.gradle</p>
-                        <p className="text-sm text-muted-foreground mb-2">Add to <code className="bg-muted px-1 rounded">android/app/build.gradle</code> (before android block):</p>
-                        <pre className="bg-muted p-4 rounded-lg text-sm overflow-x-auto">
-{`def keystorePropertiesFile = rootProject.file("key.properties")
-def keystoreProperties = new Properties()
-if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-}
-
-android {
-    // ... existing config ...
-    
-    signingConfigs {
-        release {
-            keyAlias keystoreProperties['keyAlias']
-            keyPassword keystoreProperties['keyPassword']
-            storeFile file(keystoreProperties['storeFile'])
-            storePassword keystoreProperties['storePassword']
-        }
-    }
-    
-    buildTypes {
-        release {
-            signingConfig signingConfigs.release
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-        }
-    }
-}`}
-                        </pre>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Build Script */}
-                  <div>
-                    <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                      <Terminal className="w-5 h-5" />
-                      Build APK Script
-                    </h3>
-                    <div className="space-y-4 ml-7">
-                      <div>
-                        <p className="font-medium mb-2">Create <code className="bg-muted px-1 rounded">scripts/build-apk.sh</code></p>
-                        <pre className="bg-muted p-4 rounded-lg text-sm overflow-x-auto max-h-96">
-{`#!/bin/bash
-set -e
-
-echo "🔨 Building TravelTelly APK"
-
-# CalVer versioning
-VERSION_CODE=$(date +%Y%m%d)
-VERSION_NAME=$(date +%Y.%m.%d)
-
-# Update version in build.gradle
-sed -i "s/versionCode [0-9]*/versionCode \${VERSION_CODE}/" android/app/build.gradle
-sed -i "s/versionName \\"[^\\"]*\\"/versionName \\"\${VERSION_NAME}\\"/" android/app/build.gradle
-
-# Build web assets
-echo "Building web assets..."
-npm run build
-
-# Generate icons
-echo "Generating Android icons..."
-bash scripts/generate-icons.sh
-
-# Sync to Capacitor
-echo "Syncing to Capacitor..."
-npx cap sync android
-
-# Build signed APK
-echo "Building signed release APK..."
-cd android && ./gradlew assembleRelease && cd ..
-
-# Copy APK to downloads
-mkdir -p downloads
-cp android/app/build/outputs/apk/release/app-release.apk downloads/traveltelly.apk
-
-echo "✅ APK built successfully!"
-echo "Location: downloads/traveltelly.apk"
-ls -lh downloads/traveltelly.apk`}
-                        </pre>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">Make it executable and run</p>
-                        <code className="text-sm bg-muted px-2 py-1 rounded block">chmod +x scripts/build-apk.sh</code>
-                        <code className="text-sm bg-muted px-2 py-1 rounded block mt-2">./scripts/build-apk.sh</code>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">Add to package.json scripts</p>
-                        <pre className="bg-muted p-4 rounded-lg text-sm overflow-x-auto">
-{`"scripts": {
-  "build:apk": "bash scripts/build-apk.sh",
-  "publish:zapstore": "bash scripts/publish-zapstore.sh"
-}`}
-                        </pre>
-                        <code className="text-sm bg-muted px-2 py-1 rounded block mt-2">npm run build:apk</code>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Zapstore Publishing */}
-                  <div>
-                    <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                      <Zap className="w-5 h-5 text-purple-600" />
-                      Publish to Zapstore
-                    </h3>
-                    <div className="space-y-4 ml-7">
-                      <Alert>
-                        <Info className="h-4 w-4" />
-                        <AlertTitle>What is Zapstore?</AlertTitle>
-                        <AlertDescription className="text-sm">
-                          Zapstore is a decentralized app store built on Nostr. Apps are published as Nostr events, requiring no approval process. Users install apps directly from your Nostr identity.
-                        </AlertDescription>
-                      </Alert>
-
-                      <div>
-                        <p className="font-medium mb-2">1. Install Go (if not already installed)</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>Visit <a href="https://go.dev/dl/" target="_blank" rel="noopener noreferrer" className="underline">go.dev/dl</a></li>
-                          <li>Download installer for your OS</li>
-                          <li>Verify installation: <code className="bg-muted px-1 rounded">go version</code></li>
-                        </ul>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">2. Install Zapstore Publisher (zsp)</p>
-                        <code className="text-sm bg-muted px-2 py-1 rounded block">go install github.com/zapstore/zsp@latest</code>
-                        <p className="text-sm text-muted-foreground mt-1">The <code className="bg-muted px-1 rounded">zsp</code> command should now be available in your terminal</p>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">3. Ensure APK is Built</p>
-                        <code className="text-sm bg-muted px-2 py-1 rounded block">npm run build:apk</code>
-                        <p className="text-sm text-muted-foreground mt-1">This creates <code className="bg-muted px-1 rounded">downloads/traveltelly.apk</code></p>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">4. Create zapstore.yaml Configuration</p>
-                        <p className="text-sm text-muted-foreground mb-2">Create <code className="bg-muted px-1 rounded">zapstore.yaml</code> in your project root:</p>
-                        <pre className="bg-muted p-4 rounded-lg text-sm overflow-x-auto max-h-96">
-{`# Source code repository
-repository: https://github.com/bitpopart/traveltelly
-
-# Use local APK from downloads directory
-release_source: ./downloads/traveltelly.apk
-
-# APP METADATA
-name: ${appName}
-
-summary: Travel reviews, stories & stock media
-
-description: |
-  ${appDescription}
-
-tags:
-  - nostr
-  - travel
-  - photography
-  - reviews
-  - marketplace
-
-license: MIT
-
-website: https://traveltelly.com
-
-# NOSTR-SPECIFIC
-supported_nips:
-  - "01"  # Basic protocol
-  - "07"  # Browser signing
-  - "17"  # Gift Wrapped DMs
-  - "19"  # NIP-19 identifiers
-  - "46"  # Remote signing
-  - "55"  # Android signing (Amber)
-  - "57"  # Lightning Zaps
-  - "65"  # Relay list metadata
-  - "94"  # File metadata
-  - "96"  # Blossom file storage
-  - "99"  # Classified listings`}
-                        </pre>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">5. Install Nostr Browser Extension</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>Install a NIP-07 signer extension (Alby, nos2x, Flamingo, etc.)</li>
-                          <li>Make sure you're logged in with your publishing account</li>
-                          <li><strong>Important:</strong> Use the same npub you want listed as the app publisher</li>
-                        </ul>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">6. Create Publish Script (Optional but Recommended)</p>
-                        <p className="text-sm text-muted-foreground mb-2">Create <code className="bg-muted px-1 rounded">scripts/publish-zapstore.sh</code>:</p>
-                        <pre className="bg-muted p-4 rounded-lg text-sm overflow-x-auto">
-{`#!/bin/bash
-set -e
-
-echo "📦 Publishing to Zapstore..."
-
-# Check if APK exists
-if [ ! -f "downloads/traveltelly.apk" ]; then
-    echo "❌ APK not found. Building APK first..."
-    npm run build:apk
-fi
-
-# Set signing method to browser (NIP-07)
-export SIGN_WITH=browser
-
-# Publish to Zapstore
-zsp publish zapstore.yaml
-
-echo "✅ Published to Zapstore!"
-echo "View at: https://zap.store"`}
-                        </pre>
-                        <code className="text-sm bg-muted px-2 py-1 rounded block mt-2">chmod +x scripts/publish-zapstore.sh</code>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">7. Add npm Script</p>
-                        <p className="text-sm text-muted-foreground mb-2">Add to <code className="bg-muted px-1 rounded">package.json</code>:</p>
-                        <pre className="bg-muted p-4 rounded-lg text-sm overflow-x-auto">
-{`"scripts": {
-  "build:apk": "bash scripts/build-apk.sh",
-  "publish:zapstore": "bash scripts/publish-zapstore.sh"
-}`}
-                        </pre>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">8. Publish to Zapstore</p>
-                        <code className="text-sm bg-muted px-2 py-1 rounded block">npm run publish:zapstore</code>
-                        <p className="text-sm text-muted-foreground mt-2">Or manually:</p>
-                        <code className="text-sm bg-muted px-2 py-1 rounded block mt-1">SIGN_WITH=browser zsp publish zapstore.yaml</code>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">9. Sign with Browser Extension</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>zsp will open your browser automatically</li>
-                          <li>Your Nostr extension will prompt for signature</li>
-                          <li>Approve the signature request</li>
-                          <li>The event will be published to Zapstore relays</li>
-                          <li>You'll see confirmation in terminal</li>
-                        </ul>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">10. Verify Publication</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>Visit <a href="https://zap.store" target="_blank" rel="noopener noreferrer" className="underline">zap.store</a></li>
-                          <li>Search for "{appName}"</li>
-                          <li>Or search by your npub to see all your published apps</li>
-                          <li>App should appear within minutes</li>
-                        </ul>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">11. Share Your App</p>
-                        <p className="text-sm text-muted-foreground mb-2">Users can install via:</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li><strong>Zapstore app:</strong> Search for "{appName}"</li>
-                          <li><strong>Direct link:</strong> Share your app's Zapstore URL</li>
-                          <li><strong>Nostr:</strong> Post about your app with #zapstore tag</li>
-                        </ul>
-                      </div>
-
-                      <Alert>
-                        <Info className="h-4 w-4" />
-                        <AlertTitle>Updating Your App</AlertTitle>
-                        <AlertDescription className="text-sm">
-                          To publish updates, rebuild your APK with a new version code, then run <code className="bg-muted px-1 rounded">npm run publish:zapstore</code> again. Zapstore will automatically detect the new version.
-                        </AlertDescription>
-                      </Alert>
-
-                      <Alert className="mt-4">
-                        <CheckCircle2 className="h-4 w-4 text-green-600" />
-                        <AlertTitle>Benefits of Zapstore</AlertTitle>
-                        <AlertDescription className="text-sm space-y-1">
-                          <p>✅ No approval process - publish instantly</p>
-                          <p>✅ No registration fees - completely free</p>
-                          <p>✅ Decentralized - no single point of failure</p>
-                          <p>✅ Censorship resistant - published on Nostr</p>
-                          <p>✅ Updates propagate automatically via Nostr relays</p>
-                        </AlertDescription>
-                      </Alert>
-                    </div>
-                  </div>
-
-                  {/* Testing */}
-                  <div>
-                    <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                      <Smartphone className="w-5 h-5" />
-                      Testing Your APK
-                    </h3>
-                    <div className="space-y-2 ml-7">
-                      <div className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="font-medium">Enable USB Debugging on your Android device</p>
-                          <p className="text-sm text-muted-foreground">Settings → Developer Options → USB Debugging</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="font-medium">Install via ADB</p>
-                          <code className="text-sm bg-muted px-2 py-1 rounded block mt-1">adb install downloads/traveltelly.apk</code>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="font-medium">Or transfer APK to device and install manually</p>
-                          <p className="text-sm text-muted-foreground">You may need to enable "Install from Unknown Sources"</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Google Play Store Submission */}
-                  <div>
-                    <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                      <Play className="w-5 h-5 text-green-600" />
-                      Submit to Google Play Store
-                    </h3>
-                    <div className="space-y-4 ml-7">
-                      <Alert>
-                        <Info className="h-4 w-4" />
-                        <AlertDescription>
-                          <strong>Note:</strong> Google Play requires an AAB (Android App Bundle) file, not an APK. You'll need to generate an AAB for Play Store submission.
-                        </AlertDescription>
-                      </Alert>
-
-                      <div>
-                        <p className="font-medium mb-2">1. Build AAB Instead of APK</p>
-                        <p className="text-sm text-muted-foreground mb-2">Update your build script to generate AAB:</p>
-                        <code className="text-sm bg-muted px-2 py-1 rounded block">cd android && ./gradlew bundleRelease && cd ..</code>
-                        <p className="text-sm text-muted-foreground mt-1">AAB location: <code className="bg-muted px-1 rounded">android/app/build/outputs/bundle/release/app-release.aab</code></p>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">2. Create Google Play Console Account</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>Visit <a href="https://play.google.com/console" target="_blank" rel="noopener noreferrer" className="underline">Google Play Console</a></li>
-                          <li>Pay one-time $25 registration fee</li>
-                          <li>Complete account setup and verification</li>
-                        </ul>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">3. Create Your App</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>Click "Create app" in Play Console</li>
-                          <li>Enter app name: <strong>{appName}</strong></li>
-                          <li>Select default language</li>
-                          <li>Choose "App" (not "Game")</li>
-                          <li>Select "Free" or "Paid"</li>
-                          <li>Agree to declarations and create</li>
-                        </ul>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">4. Set Up App Store Listing</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>Navigate to "Main store listing"</li>
-                          <li>Add short description (80 chars max)</li>
-                          <li>Add full description (4000 chars max)</li>
-                          <li>Upload app icon (512x512 PNG)</li>
-                          <li>Upload feature graphic (1024x500 PNG)</li>
-                          <li>Upload screenshots (at least 2, up to 8)</li>
-                          <li>Choose app category: "Travel & Local"</li>
-                          <li>Add contact email and privacy policy URL</li>
-                        </ul>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">5. Content Rating</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>Go to "Content rating" section</li>
-                          <li>Click "Start questionnaire"</li>
-                          <li>Select category: "Social"</li>
-                          <li>Answer content questions honestly</li>
-                          <li>Submit questionnaire to get rating</li>
-                        </ul>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">6. Upload App Bundle</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>Go to "Production" → "Releases"</li>
-                          <li>Click "Create new release"</li>
-                          <li>Upload your AAB file</li>
-                          <li>Add release name (e.g., "1.0.0")</li>
-                          <li>Add release notes describing your app</li>
-                          <li>Save and continue</li>
-                        </ul>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">7. Complete Required Sections</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li><strong>App content:</strong> Privacy policy, ads declaration, target audience</li>
-                          <li><strong>Data safety:</strong> Describe data collection and usage</li>
-                          <li><strong>App access:</strong> Add demo accounts if login required</li>
-                          <li><strong>Pricing & distribution:</strong> Select countries and set free/paid</li>
-                        </ul>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">8. Submit for Review</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>Review all sections - ensure all have green checkmarks</li>
-                          <li>Click "Send X items for review"</li>
-                          <li>Confirm submission</li>
-                          <li>Review typically takes 3-7 days</li>
-                          <li>You'll receive email updates on review status</li>
-                        </ul>
-                      </div>
-
-                      <Alert>
-                        <Info className="h-4 w-4" />
-                        <AlertTitle>After Approval</AlertTitle>
-                        <AlertDescription className="text-sm">
-                          Once approved, your app will be published to Google Play Store. Users can find it by searching "{appName}" or via direct link.
-                        </AlertDescription>
-                      </Alert>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Resources */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Github className="w-5 h-5" />
-                    Resources & Documentation
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <a 
-                    href="https://capacitorjs.com/docs/android" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm hover:underline"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    Capacitor Android Documentation
-                  </a>
-                  <a 
-                    href="https://gitlab.com/chad.curtis/espy" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm hover:underline"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    Espy - Reference Nostr App Project
-                  </a>
-                  <a 
-                    href="https://zap.store" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm hover:underline"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    Zapstore - Nostr App Store
-                  </a>
-                  <a 
-                    href="https://developer.android.com/studio/publish/app-signing" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm hover:underline"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    Android App Signing Documentation
-                  </a>
+                  <Alert className="bg-purple-50 border-purple-200">
+                    <Info className="h-4 w-4 text-purple-600" />
+                    <AlertTitle className="text-purple-900">Alternative: Bubblewrap</AlertTitle>
+                    <AlertDescription className="text-purple-800">
+                      <p className="mt-2">Command-line tool for building TWAs:</p>
+                      <pre className="bg-purple-100 p-2 rounded mt-2 text-xs overflow-x-auto">
+                        npx @bubblewrap/cli init --manifest={config.siteUrl}/manifest.webmanifest
+                      </pre>
+                    </AlertDescription>
+                  </Alert>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -795,441 +599,239 @@ echo "View at: https://zap.store"`}
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Apple className="w-5 h-5" />
-                    iOS Build Guide
+                    iOS App Package
                   </CardTitle>
                   <CardDescription>
-                    Build signed IPA for iOS devices and TestFlight
+                    Generate files needed for Apple App Store submission
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertTitle>What you'll need:</AlertTitle>
+                    <AlertDescription>
+                      <ul className="list-disc list-inside space-y-1 mt-2">
+                        <li>Apple Developer account ($99/year)</li>
+                        <li>Web Manifest file (generated below)</li>
+                        <li>Apple App Site Association file</li>
+                        <li>App icons and launch screens</li>
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <h3 className="font-semibold">Web App Manifest</h3>
+                        <p className="text-sm text-muted-foreground">manifest.webmanifest</p>
+                      </div>
+                      <Button onClick={handleDownloadManifest} variant="outline">
+                        <Download className="mr-2 h-4 w-4" />
+                        Download
+                      </Button>
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <h3 className="font-semibold">Apple App Site Association</h3>
+                        <p className="text-sm text-muted-foreground">apple-app-site-association</p>
+                      </div>
+                      <Button onClick={handleDownloadAppleAssociation} variant="outline">
+                        <Download className="mr-2 h-4 w-4" />
+                        Download
+                      </Button>
+                    </div>
+                  </div>
+
+                  <Alert className="bg-blue-50 border-blue-200">
+                    <Info className="h-4 w-4 text-blue-600" />
+                    <AlertTitle className="text-blue-900">Using PWABuilder (Recommended)</AlertTitle>
+                    <AlertDescription className="text-blue-800">
+                      <ol className="list-decimal list-inside space-y-2 mt-2">
+                        <li>Go to <a href="https://www.pwabuilder.com" target="_blank" rel="noopener noreferrer" className="underline font-semibold">PWABuilder.com</a></li>
+                        <li>Enter your website URL: <code className="bg-blue-100 px-1 rounded">{config.siteUrl}</code></li>
+                        <li>Click "Package for Stores" → "iOS"</li>
+                        <li>Download the generated Xcode project</li>
+                        <li>Open in Xcode and submit to App Store Connect</li>
+                      </ol>
+                    </AlertDescription>
+                  </Alert>
+
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Important Note</AlertTitle>
+                    <AlertDescription>
+                      Apple has strict guidelines for web-based apps. Ensure your PWA:
+                      <ul className="list-disc list-inside space-y-1 mt-2">
+                        <li>Works offline with Service Workers</li>
+                        <li>Has native-like UI and interactions</li>
+                        <li>Provides unique value beyond a website</li>
+                        <li>Uses platform-specific features where possible</li>
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Submission Guide Tab */}
+            <TabsContent value="guide" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileCode2 className="w-5 h-5" />
+                    Step-by-Step Submission Guide
+                  </CardTitle>
+                  <CardDescription>
+                    Complete guide to submitting your PWA to app stores
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {/* Prerequisites */}
                   <div>
-                    <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                      <Package className="w-5 h-5" />
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-green-600" />
                       Prerequisites
                     </h3>
-                    <div className="space-y-2 ml-7">
-                      <div className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="font-medium">macOS computer</p>
-                          <p className="text-sm text-muted-foreground">Required for Xcode and iOS builds</p>
-                        </div>
+                    <div className="space-y-2 pl-7">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">Required</Badge>
+                        <span>Your PWA must be live and accessible via HTTPS</span>
                       </div>
-                      <div className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="font-medium">Xcode installed</p>
-                          <p className="text-sm text-muted-foreground">Download from Mac App Store (free)</p>
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">Required</Badge>
+                        <span>Valid SSL certificate</span>
                       </div>
-                      <div className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="font-medium">Apple Developer Account</p>
-                          <p className="text-sm text-muted-foreground">$99/year - <a href="https://developer.apple.com/programs/" target="_blank" rel="noopener noreferrer" className="underline">developer.apple.com/programs</a></p>
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">Required</Badge>
+                        <span>Service Worker for offline functionality</span>
                       </div>
-                      <div className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="font-medium">CocoaPods installed</p>
-                          <code className="text-sm bg-muted px-2 py-1 rounded block mt-1">sudo gem install cocoapods</code>
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">Recommended</Badge>
+                        <span>Web App Manifest with all required fields</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Setup Steps */}
+                  {/* Google Play Store */}
                   <div>
-                    <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                      <Code className="w-5 h-5" />
-                      Initial Setup
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <Play className="w-5 h-5 text-green-600" />
+                      Google Play Store (Android)
                     </h3>
-                    <div className="space-y-4 ml-7">
+                    <div className="space-y-3 pl-7">
                       <div>
-                        <p className="font-medium mb-2">1. Initialize iOS Platform</p>
-                        <code className="text-sm bg-muted px-2 py-1 rounded block">npx cap add ios</code>
-                        <p className="text-sm text-muted-foreground mt-1">This creates the <code className="bg-muted px-1 rounded">ios/</code> directory</p>
+                        <h4 className="font-semibold text-sm mb-1">1. Create Developer Account</h4>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          <li>• Visit <a href="https://play.google.com/console" target="_blank" rel="noopener noreferrer" className="underline">Google Play Console</a></li>
+                          <li>• Pay $25 one-time registration fee</li>
+                          <li>• Complete verification process</li>
+                        </ul>
                       </div>
-
                       <div>
-                        <p className="font-medium mb-2">2. Update Capacitor Config</p>
-                        <p className="text-sm text-muted-foreground mb-2">Add iOS config to <code className="bg-muted px-1 rounded">capacitor.config.ts</code>:</p>
-                        <pre className="bg-muted p-4 rounded-lg text-sm overflow-x-auto">
-{`const config: CapacitorConfig = {
-  // ... existing config ...
-  ios: {
-    contentInset: 'automatic',
-    backgroundColor: '#ffffff'
-  }
-};`}
-                        </pre>
+                        <h4 className="font-semibold text-sm mb-1">2. Generate TWA Package</h4>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          <li>• Use PWABuilder or Bubblewrap (see Android tab)</li>
+                          <li>• Upload assetlinks.json to <code>/.well-known/assetlinks.json</code></li>
+                          <li>• Generate signed APK or AAB file</li>
+                        </ul>
                       </div>
-
                       <div>
-                        <p className="font-medium mb-2">3. Generate App Icons</p>
-                        <code className="text-sm bg-muted px-2 py-1 rounded block">npx @capacitor/assets generate --ios</code>
-                        <p className="text-sm text-muted-foreground mt-1">Place your logo as <code className="bg-muted px-1 rounded">public/icon.png</code> (1024x1024)</p>
+                        <h4 className="font-semibold text-sm mb-1">3. Create App Listing</h4>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          <li>• Upload app bundle (AAB file)</li>
+                          <li>• Add screenshots (phone, tablet, optional)</li>
+                          <li>• Write store description</li>
+                          <li>• Set content rating</li>
+                          <li>• Configure pricing and distribution</li>
+                        </ul>
                       </div>
-
                       <div>
-                        <p className="font-medium mb-2">4. Build and Sync</p>
-                        <code className="text-sm bg-muted px-2 py-1 rounded block">npm run build</code>
-                        <code className="text-sm bg-muted px-2 py-1 rounded block mt-2">npx cap sync ios</code>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">5. Open in Xcode</p>
-                        <code className="text-sm bg-muted px-2 py-1 rounded block">npx cap open ios</code>
+                        <h4 className="font-semibold text-sm mb-1">4. Submit for Review</h4>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          <li>• Review takes 1-7 days typically</li>
+                          <li>• Address any policy violations</li>
+                          <li>• App goes live after approval</li>
+                        </ul>
                       </div>
                     </div>
                   </div>
 
-                  {/* Xcode Configuration */}
+                  {/* Apple App Store */}
                   <div>
-                    <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                      <Wrench className="w-5 h-5" />
-                      Xcode Configuration
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <Apple className="w-5 h-5" />
+                      Apple App Store (iOS)
                     </h3>
-                    <div className="space-y-4 ml-7">
+                    <div className="space-y-3 pl-7">
                       <div>
-                        <p className="font-medium mb-2">1. Set Bundle Identifier</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>Select your project in the navigator</li>
-                          <li>Select the target (App)</li>
-                          <li>Go to "General" tab</li>
-                          <li>Set Bundle Identifier: <code className="bg-muted px-1 rounded">{appId}</code></li>
+                        <h4 className="font-semibold text-sm mb-1">1. Join Apple Developer Program</h4>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          <li>• Visit <a href="https://developer.apple.com" target="_blank" rel="noopener noreferrer" className="underline">developer.apple.com</a></li>
+                          <li>• Pay $99/year membership fee</li>
+                          <li>• Complete enrollment verification</li>
                         </ul>
                       </div>
-
                       <div>
-                        <p className="font-medium mb-2">2. Configure Signing</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>Go to "Signing & Capabilities" tab</li>
-                          <li>Select your Team (Apple Developer account)</li>
-                          <li>Enable "Automatically manage signing"</li>
+                        <h4 className="font-semibold text-sm mb-1">2. Generate iOS Package</h4>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          <li>• Use PWABuilder to generate Xcode project</li>
+                          <li>• Upload apple-app-site-association to <code>/.well-known/</code></li>
+                          <li>• Configure app icons and launch screens</li>
+                          <li>• Requires macOS with Xcode installed</li>
                         </ul>
                       </div>
-
                       <div>
-                        <p className="font-medium mb-2">3. Set App Name & Version</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>Display Name: <code className="bg-muted px-1 rounded">{appName}</code></li>
-                          <li>Version: 1.0.0</li>
-                          <li>Build: 1</li>
+                        <h4 className="font-semibold text-sm mb-1">3. App Store Connect</h4>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          <li>• Create new app in App Store Connect</li>
+                          <li>• Configure bundle ID: <code className="text-xs">{config.bundleId}</code></li>
+                          <li>• Add screenshots (iPhone, iPad optional)</li>
+                          <li>• Write app description and keywords</li>
+                          <li>• Set privacy policy URL</li>
                         </ul>
                       </div>
-
                       <div>
-                        <p className="font-medium mb-2">4. Set Deployment Target</p>
-                        <p className="text-sm text-muted-foreground">Minimum iOS version: 13.0 or higher</p>
+                        <h4 className="font-semibold text-sm mb-1">4. Submit for Review</h4>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          <li>• Upload IPA via Xcode or Transporter</li>
+                          <li>• Review takes 1-3 days typically</li>
+                          <li>• Apple has stricter guidelines than Google</li>
+                          <li>• Must provide value beyond mobile website</li>
+                        </ul>
                       </div>
                     </div>
                   </div>
 
-                  {/* Building */}
+                  {/* Resources */}
                   <div>
-                    <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                      <Terminal className="w-5 h-5" />
-                      Building for Release
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <ExternalLink className="w-5 h-5" />
+                      Helpful Resources
                     </h3>
-                    <div className="space-y-4 ml-7">
-                      <div>
-                        <p className="font-medium mb-2">1. Create Archive</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>In Xcode menu: Product → Archive</li>
-                          <li>Wait for build to complete</li>
-                          <li>Organizer window will open automatically</li>
-                        </ul>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">2. Distribute to TestFlight</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>Click "Distribute App" in Organizer</li>
-                          <li>Select "App Store Connect"</li>
-                          <li>Choose "Upload"</li>
-                          <li>Follow the prompts to upload</li>
-                        </ul>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">3. TestFlight Beta Testing</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>Go to <a href="https://appstoreconnect.apple.com" target="_blank" rel="noopener noreferrer" className="underline">App Store Connect</a></li>
-                          <li>Select your app</li>
-                          <li>Go to TestFlight tab</li>
-                          <li>Add internal or external testers</li>
-                          <li>Testers will receive TestFlight invite</li>
-                        </ul>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">4. Submit to App Store</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>After testing, go to App Store tab</li>
-                          <li>Create new version</li>
-                          <li>Fill in app information and screenshots</li>
-                          <li>Submit for review</li>
-                          <li>Review typically takes 1-3 days</li>
-                        </ul>
-                      </div>
+                    <div className="space-y-2 pl-7">
+                      <a href="https://www.pwabuilder.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-blue-600 hover:underline text-sm">
+                        <ExternalLink className="w-4 h-4" />
+                        PWABuilder - Automated PWA to App Store
+                      </a>
+                      <a href="https://github.com/GoogleChromeLabs/bubblewrap" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-blue-600 hover:underline text-sm">
+                        <ExternalLink className="w-4 h-4" />
+                        Bubblewrap - Google's TWA CLI Tool
+                      </a>
+                      <a href="https://web.dev/progressive-web-apps/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-blue-600 hover:underline text-sm">
+                        <ExternalLink className="w-4 h-4" />
+                        web.dev - PWA Documentation
+                      </a>
+                      <a href="https://developer.android.com/training/articles/app-links" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-blue-600 hover:underline text-sm">
+                        <ExternalLink className="w-4 h-4" />
+                        Android App Links Verification
+                      </a>
+                      <a href="https://developer.apple.com/documentation/xcode/supporting-associated-domains" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-blue-600 hover:underline text-sm">
+                        <ExternalLink className="w-4 h-4" />
+                        Apple Universal Links Setup
+                      </a>
                     </div>
                   </div>
-
-                  {/* Build Script */}
-                  <div>
-                    <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                      <FileCode2 className="w-5 h-5" />
-                      Automated Build Script (Optional)
-                    </h3>
-                    <div className="space-y-4 ml-7">
-                      <div>
-                        <p className="font-medium mb-2">Create <code className="bg-muted px-1 rounded">scripts/build-ios.sh</code></p>
-                        <pre className="bg-muted p-4 rounded-lg text-sm overflow-x-auto">
-{`#!/bin/bash
-set -e
-
-echo "🍎 Building TravelTelly iOS App"
-
-# Build web assets
-echo "Building web assets..."
-npm run build
-
-# Generate icons
-echo "Generating iOS icons..."
-npx @capacitor/assets generate --ios
-
-# Sync to Capacitor
-echo "Syncing to Capacitor..."
-npx cap sync ios
-
-# Open in Xcode
-echo "Opening Xcode..."
-npx cap open ios
-
-echo "✅ Ready to build in Xcode!"
-echo "Use Product → Archive to create release build"`}
-                        </pre>
-                        <code className="text-sm bg-muted px-2 py-1 rounded block mt-2">chmod +x scripts/build-ios.sh</code>
-                        <code className="text-sm bg-muted px-2 py-1 rounded block mt-2">./scripts/build-ios.sh</code>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* App Store Submission */}
-                  <div>
-                    <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                      <Upload className="w-5 h-5 text-blue-600" />
-                      Submit to Apple App Store
-                    </h3>
-                    <div className="space-y-4 ml-7">
-                      <Alert>
-                        <Info className="h-4 w-4" />
-                        <AlertDescription>
-                          <strong>Prerequisites:</strong> You must have created an archive in Xcode (Product → Archive) before you can submit to the App Store.
-                        </AlertDescription>
-                      </Alert>
-
-                      <div>
-                        <p className="font-medium mb-2">1. Join Apple Developer Program</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>Visit <a href="https://developer.apple.com/programs/" target="_blank" rel="noopener noreferrer" className="underline">Apple Developer Program</a></li>
-                          <li>Enroll for $99/year</li>
-                          <li>Complete verification (can take 24-48 hours)</li>
-                          <li>Sign in to <a href="https://appstoreconnect.apple.com" target="_blank" rel="noopener noreferrer" className="underline">App Store Connect</a></li>
-                        </ul>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">2. Create App Record in App Store Connect</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>Go to <a href="https://appstoreconnect.apple.com" target="_blank" rel="noopener noreferrer" className="underline">App Store Connect</a></li>
-                          <li>Click "My Apps" → "+" → "New App"</li>
-                          <li>Select "iOS"</li>
-                          <li>Enter app name: <strong>{appName}</strong></li>
-                          <li>Select primary language</li>
-                          <li>Enter Bundle ID: <code className="bg-muted px-1 rounded">{appId}</code></li>
-                          <li>Enter SKU (unique identifier, e.g., "traveltelly-001")</li>
-                          <li>Select "Full Access" for user access</li>
-                          <li>Click "Create"</li>
-                        </ul>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">3. Upload Build via Xcode</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>In Xcode Organizer, select your archive</li>
-                          <li>Click "Distribute App"</li>
-                          <li>Select "App Store Connect"</li>
-                          <li>Choose "Upload"</li>
-                          <li>Select distribution certificate and provisioning profile</li>
-                          <li>Review and click "Upload"</li>
-                          <li>Wait for processing (10-30 minutes)</li>
-                        </ul>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">4. Add App Information</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>In App Store Connect, go to your app</li>
-                          <li><strong>Subtitle:</strong> Short tagline (30 chars)</li>
-                          <li><strong>Description:</strong> Full app description (4000 chars max)</li>
-                          <li><strong>Keywords:</strong> Search keywords (100 chars, comma-separated)</li>
-                          <li><strong>Support URL:</strong> https://traveltelly.com</li>
-                          <li><strong>Marketing URL:</strong> (optional) https://traveltelly.com</li>
-                          <li><strong>Privacy Policy URL:</strong> Required URL to your privacy policy</li>
-                        </ul>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">5. Upload Screenshots</p>
-                        <p className="text-sm text-muted-foreground mb-2">Required sizes (you can use Xcode Simulator):</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li><strong>6.7" Display</strong> (iPhone 15 Pro Max): 1290 x 2796 pixels (3-10 images)</li>
-                          <li><strong>5.5" Display</strong> (iPhone 8 Plus): 1242 x 2208 pixels (3-10 images)</li>
-                          <li>Optionally add iPad screenshots if supporting tablets</li>
-                          <li>First 3 screenshots are shown in search results</li>
-                        </ul>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">6. App Icon</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>Upload 1024x1024 PNG (no transparency)</li>
-                          <li>This is your App Store icon (separate from app icon in bundle)</li>
-                        </ul>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">7. Age Rating</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>Click "Edit" next to Age Rating</li>
-                          <li>Answer questionnaire about content</li>
-                          <li>Review assigned rating and confirm</li>
-                        </ul>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">8. Pricing and Availability</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>Select "Free" or set price tier</li>
-                          <li>Choose availability date (can be "Make available immediately")</li>
-                          <li>Select countries/regions for distribution</li>
-                        </ul>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">9. App Privacy</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>Click "Set Up App Privacy"</li>
-                          <li>Declare data collection practices</li>
-                          <li>Specify data types collected (location, photos, etc.)</li>
-                          <li>Explain how data is used</li>
-                          <li>Indicate if data is linked to user identity</li>
-                        </ul>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">10. Select Build and Submit</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>Scroll to "Build" section</li>
-                          <li>Click "+" to select your uploaded build</li>
-                          <li>Choose the build from the list</li>
-                          <li>Add "What's New in This Version" notes</li>
-                          <li>Review all sections for completeness</li>
-                          <li>Click "Add for Review"</li>
-                          <li>Answer additional questions if prompted</li>
-                          <li>Click "Submit for Review"</li>
-                        </ul>
-                      </div>
-
-                      <div>
-                        <p className="font-medium mb-2">11. Review Process</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li><strong>Waiting for Review:</strong> Can take 1-3 days</li>
-                          <li><strong>In Review:</strong> Usually 24-48 hours</li>
-                          <li><strong>Rejected:</strong> Address issues and resubmit</li>
-                          <li><strong>Ready for Sale:</strong> App is live on App Store!</li>
-                          <li>You'll receive email notifications at each stage</li>
-                        </ul>
-                      </div>
-
-                      <Alert>
-                        <Info className="h-4 w-4" />
-                        <AlertTitle>Common Rejection Reasons</AlertTitle>
-                        <AlertDescription className="text-sm space-y-1">
-                          <p>• Crashes or bugs during testing</p>
-                          <p>• Missing privacy policy or incomplete App Privacy section</p>
-                          <p>• UI issues or poor user experience</p>
-                          <p>• Misleading app description or screenshots</p>
-                          <p>• Missing required permissions explanations</p>
-                        </AlertDescription>
-                      </Alert>
-                    </div>
-                  </div>
-
-                  {/* Important Notes */}
-                  <Alert>
-                    <Info className="h-4 w-4" />
-                    <AlertTitle>Important Notes</AlertTitle>
-                    <AlertDescription className="space-y-2 text-sm">
-                      <p>• iOS builds can only be created on macOS with Xcode</p>
-                      <p>• You need an Apple Developer account ($99/year)</p>
-                      <p>• App Store review process takes 1-3 days</p>
-                      <p>• TestFlight allows up to 10,000 beta testers</p>
-                      <p>• Keep your provisioning profiles up to date</p>
-                    </AlertDescription>
-                  </Alert>
-                </CardContent>
-              </Card>
-
-              {/* Resources */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Github className="w-5 h-5" />
-                    Resources & Documentation
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <a 
-                    href="https://capacitorjs.com/docs/ios" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm hover:underline"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    Capacitor iOS Documentation
-                  </a>
-                  <a 
-                    href="https://developer.apple.com/documentation/xcode/distributing-your-app-for-beta-testing-and-releases" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm hover:underline"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    Apple - Distributing Your App
-                  </a>
-                  <a 
-                    href="https://developer.apple.com/testflight/" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm hover:underline"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    TestFlight Documentation
-                  </a>
-                  <a 
-                    href="https://appstoreconnect.apple.com" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm hover:underline"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    App Store Connect
-                  </a>
                 </CardContent>
               </Card>
             </TabsContent>

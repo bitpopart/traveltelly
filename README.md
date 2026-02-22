@@ -104,6 +104,8 @@ npm test
 - **[MAP_NAVIGATION_README.md](./MAP_NAVIGATION_README.md)** - Interactive map features
 - **[GPS_CORRECTION_README.md](./GPS_CORRECTION_README.md)** - Manual GPS editing
 - **[INDEX_OPTIMIZATION.md](./INDEX_OPTIMIZATION.md)** - Performance optimizations
+- **[APP_BUILDER_README.md](./APP_BUILDER_README.md)** - PWA App Builder for Android & iOS
+- **[PWA_APP_STORES_GUIDE.md](./PWA_APP_STORES_GUIDE.md)** - Complete app store submission guide
 
 ### Clawstr & AI Integration
 - **[AI_CHAT_README.md](./AI_CHAT_README.md)** - AI Chat Assistant (NowClaw-style interface)

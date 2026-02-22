@@ -3,9 +3,12 @@
   "short_name": "TravelTelly",
   "description": "Share your travel experiences and discover amazing places on Nostr",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#f4f4f5",
   "theme_color": "#b700d7",
+  "categories": ["travel", "social", "photo"],
   "icons": [
     {
       "src": "/favicon.png",
@@ -24,6 +27,57 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Create Review",
+      "short_name": "Review",
+      "description": "Create a new travel review",
+      "url": "/create-review",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "View Map",
+      "short_name": "Map",
+      "description": "Explore the world map",
+      "url": "/world-map",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Browse Stories",
+      "short_name": "Stories",
+      "description": "Read travel stories",
+      "url": "/stories",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Marketplace",
+      "short_name": "Shop",
+      "description": "Browse stock media",
+      "url": "/marketplace",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ]
 }
