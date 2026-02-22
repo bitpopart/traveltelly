@@ -90,49 +90,54 @@ export function useAllImages() {
   const { data: tourItems = [] } = useTravelTellyTour(); // Fetch TravelTelly Tour posts
 
   return useQuery({
-    queryKey: ['all-images', user?.pubkey, isContributor, tourItems?.length],
+    queryKey: ['all-images', tourItems?.length],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]); // 3 seconds
       
       const images: ImageItem[] = [];
 
-      // Determine which authors to query
-      const userFilter = (user?.pubkey && isContributor) ? [user.pubkey] : undefined;
+      // ALWAYS show ALL content - no filtering by contributor status
+      // This ensures the grid shows a proper mix of all content types
       const authorizedAuthors = Array.from(authorizedReviewers || []);
-      const reviewAuthors = userFilter || authorizedAuthors;
       const stockAuthors = Array.from(authorizedUploaders || []);
-      const mediaAuthors = userFilter || stockAuthors;
       
       // Run ALL queries in parallel for maximum speed
       const [reviewEvents, tripEvents, storyEvents, stockEvents] = await Promise.all([
-        // Reviews
-        reviewAuthors.length > 0 ? nostr.query([{
+        // Reviews - from all authorized reviewers
+        authorizedAuthors.length > 0 ? nostr.query([{
           kinds: [34879],
-          authors: reviewAuthors,
+          authors: authorizedAuthors,
           limit: 150,
         }], { signal }) : Promise.resolve([]),
         
-        // Trips
+        // Trips - from admin only (main content source)
         nostr.query([{
           kinds: [30025],
-          authors: userFilter || [ADMIN_HEX],
+          authors: [ADMIN_HEX],
           limit: 150,
         }], { signal }),
         
-        // Stories
+        // Stories - from admin only (main content source)
         nostr.query([{
           kinds: [30023],
-          authors: userFilter || [ADMIN_HEX],
+          authors: [ADMIN_HEX],
           limit: 150,
         }], { signal }),
         
-        // Stock Media
-        mediaAuthors.length > 0 ? nostr.query([{
+        // Stock Media - from all authorized uploaders
+        stockAuthors.length > 0 ? nostr.query([{
           kinds: [30402],
-          authors: mediaAuthors,
+          authors: stockAuthors,
           limit: 150,
         }], { signal }) : Promise.resolve([]),
       ]);
+
+      console.log('🔍 Query Results:', {
+        reviews: reviewEvents.length,
+        trips: tripEvents.length,
+        stories: storyEvents.length,
+        stock: stockEvents.length,
+      });
 
       // Process reviews
       reviewEvents

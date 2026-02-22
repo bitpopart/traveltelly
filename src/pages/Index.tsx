@@ -495,7 +495,11 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
   const { data: tourItems = [] } = useTravelTellyTour();
 
   // Debug logging
-  console.log('📊 Homepage thumbnails:', {
+  console.log('📊 Homepage state:', {
+    viewMode,
+    selectedLocationTag,
+    allImagesCount: allImages.length,
+    imagesLoading,
     latestReview: latestReview ? { title: latestReview.title, hasImage: !!latestReview.image } : null,
     latestStory: latestStory ? { title: latestStory.title, hasImage: !!latestStory.image } : null,
     latestStockMedia: latestStockMedia ? { title: latestStockMedia.title, hasImage: !!latestStockMedia.image } : null,
