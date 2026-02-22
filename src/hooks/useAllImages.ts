@@ -276,13 +276,26 @@ export function useAllImages() {
 
       // Add TravelTelly Tour posts
       let tourMediaCount = 0;
+      console.log(`🌍 TravelTelly Tour in useAllImages:`, {
+        tourItemsExists: !!tourItems,
+        tourItemsLength: tourItems?.length || 0,
+        tourItems: tourItems?.slice(0, 2), // Show first 2 for debugging
+      });
+      
       if (tourItems && tourItems.length > 0) {
         console.log(`🌍 Adding ${tourItems.length} TravelTelly Tour posts to grid`);
         
         tourItems.forEach((item) => {
+          console.log(`  📍 Processing tour item ${item.id}:`, {
+            images: item.images.length,
+            videos: item.videos.length,
+          });
+          
           // Add all images from this tour post
           item.images.forEach((imageUrl) => {
-            if (isValidImageUrl(imageUrl)) {
+            const isValid = isValidImageUrl(imageUrl);
+            console.log(`    🖼️ Image ${imageUrl.slice(0, 50)}... valid: ${isValid}`);
+            if (isValid) {
               images.push({
                 image: imageUrl,
                 title: item.content.slice(0, 100) || 'TravelTelly Tour',
@@ -298,6 +311,7 @@ export function useAllImages() {
           
           // Add all videos from this tour post (videos will have image URLs for thumbnails)
           item.videos.forEach((videoUrl) => {
+            console.log(`    🎥 Video ${videoUrl.slice(0, 50)}...`);
             images.push({
               image: videoUrl,
               title: item.content.slice(0, 100) || 'TravelTelly Tour',
