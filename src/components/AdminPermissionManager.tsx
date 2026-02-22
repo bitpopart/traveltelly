@@ -9,7 +9,7 @@ import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
 import { getShortNpub } from '@/lib/nostrUtils';
 import { useToast } from '@/hooks/useToast';
-import { Shield, Check, X, Calendar, User } from 'lucide-react';
+import { Shield, Check, X, Calendar, User, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { NostrEvent } from '@nostrify/nostrify';
 
@@ -161,7 +161,7 @@ function RequestSkeleton() {
 }
 
 export function AdminPermissionManager() {
-  const { data: requests, isLoading, error } = usePermissionRequests();
+  const { data: requests, isLoading, error, refetch, isFetching } = usePermissionRequests();
 
   if (error) {
     return (
@@ -179,13 +179,40 @@ export function AdminPermissionManager() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="w-5 h-5" />
-            Review Permission Requests
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Manage requests from users who want to post reviews on Traveltelly.
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="w-5 h-5" />
+                Review Permission Requests
+                {requests && requests.length > 0 && (
+                  <Badge variant="default" className="ml-2">
+                    {requests.length}
+                  </Badge>
+                )}
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Manage requests from users who want to post reviews on Traveltelly.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isFetching}
+            >
+              {isFetching ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Refreshing...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Refresh
+                </>
+              )}
+            </Button>
+          </div>
         </CardHeader>
       </Card>
 

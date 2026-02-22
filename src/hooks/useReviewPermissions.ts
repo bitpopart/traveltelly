@@ -33,12 +33,35 @@ interface PermissionGrant extends NostrEvent {
 }
 
 function validatePermissionRequest(event: NostrEvent): event is PermissionRequest {
-  if (event.kind !== 31491) return false;
+  if (event.kind !== 31491) {
+    console.log(`❌ Validation failed: wrong kind ${event.kind}, expected 31491`);
+    return false;
+  }
 
   const d = event.tags.find(([name]) => name === 'd')?.[1];
   const requestType = event.tags.find(([name]) => name === 'request_type')?.[1];
 
-  return !!(d && requestType === 'review_permission');
+  if (!d) {
+    console.log(`❌ Validation failed: missing 'd' tag in event ${event.id.substring(0, 8)}`);
+  }
+  if (!requestType) {
+    console.log(`❌ Validation failed: missing 'request_type' tag in event ${event.id.substring(0, 8)}`);
+  }
+  if (requestType && requestType !== 'review_permission') {
+    console.log(`❌ Validation failed: wrong request_type '${requestType}', expected 'review_permission'`);
+  }
+
+  const isValid = !!(d && requestType === 'review_permission');
+  if (isValid) {
+    console.log(`✅ Valid permission request found:`, {
+      id: event.id.substring(0, 8),
+      d,
+      requestType,
+      pubkey: event.pubkey.substring(0, 8),
+    });
+  }
+  
+  return isValid;
 }
 
 function validatePermissionGrant(event: NostrEvent): event is PermissionGrant {
@@ -105,31 +128,48 @@ export function usePermissionRequests() {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
 
+  console.log('🎯 usePermissionRequests hook called:', {
+    hasUser: !!user,
+    userPubkey: user?.pubkey?.substring(0, 8),
+    isAdmin: user?.pubkey === ADMIN_HEX,
+    ADMIN_HEX: ADMIN_HEX.substring(0, 8),
+  });
+
   return useQuery({
     queryKey: ['permission-requests'],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
 
       console.log('🔍 Querying permission requests...');
+      console.log('🔌 Current relay URLs:', nostr);
 
-      // Get all permission requests
+      // Get all permission requests - WITHOUT tag filters to see all kind 31491 events
       const events = await nostr.query([{
         kinds: [31491],
-        '#request_type': ['review_permission'],
-        limit: 50,
+        limit: 100, // Increased limit
       }], { signal });
 
-      console.log('📥 Raw permission request events:', events.length, events);
+      console.log('📥 Raw permission request events (all kind 31491):', events.length, events);
+
+      // Log all events to see their structure
+      events.forEach((event, index) => {
+        console.log(`Event ${index}:`, {
+          id: event.id,
+          kind: event.kind,
+          pubkey: event.pubkey.substring(0, 8),
+          tags: event.tags,
+          content: event.content.substring(0, 100),
+        });
+      });
 
       const validRequests = events.filter(validatePermissionRequest);
-      console.log('✅ Valid permission requests:', validRequests.length, validRequests);
+      console.log('✅ Valid permission requests (with tag filter):', validRequests.length, validRequests);
 
       // Get existing grants to filter out already granted requests
       const grants = await nostr.query([{
         kinds: [30383],
         authors: [ADMIN_HEX],
-        '#grant_type': ['review_permission'],
-        limit: 100,
+        limit: 100, // Check all grants regardless of tag
       }], { signal });
 
       console.log('📥 Permission grants:', grants.length, grants);
@@ -151,6 +191,9 @@ export function usePermissionRequests() {
       return pendingRequests.sort((a, b) => b.created_at - a.created_at);
     },
     enabled: user?.pubkey === ADMIN_HEX, // Only enable for Traveltelly admin
+    staleTime: 30000, // 30 seconds
+    refetchOnMount: true, // Always refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window gains focus
   });
 }
 
