@@ -29,12 +29,19 @@ function getThumbnailUrl(url: string, width: number = 600, quality: number = 75)
     const isBlossomServer = blossomDomains.some(domain => urlObj.hostname.includes(domain));
     
     if (isBlossomServer) {
-      // Clear existing params and add optimized ones for faster loading
+      // For nostr.build, use their specific thumbnail format
+      if (urlObj.hostname.includes('nostr.build')) {
+        // Don't clear params for nostr.build, just add width
+        if (!urlObj.searchParams.has('w')) {
+          urlObj.searchParams.set('w', width.toString());
+        }
+        return urlObj.toString();
+      }
+      
+      // For other Blossom servers, use standard params
       urlObj.search = '';
       urlObj.searchParams.set('w', width.toString());
       urlObj.searchParams.set('q', quality.toString());
-      // Add format hint for better compression
-      urlObj.searchParams.set('f', 'webp');
       return urlObj.toString();
     }
     
@@ -56,11 +63,18 @@ function getBlurPlaceholderUrl(url: string): string {
     const isBlossomServer = blossomDomains.some(domain => urlObj.hostname.includes(domain));
     
     if (isBlossomServer) {
-      // Clear existing params and request very small size for blur placeholder
+      // For nostr.build, use their thumbnail format
+      if (urlObj.hostname.includes('nostr.build')) {
+        if (!urlObj.searchParams.has('w')) {
+          urlObj.searchParams.set('w', '20'); // Small size for blur
+        }
+        return urlObj.toString();
+      }
+      
+      // For other Blossom servers
       urlObj.search = '';
-      urlObj.searchParams.set('w', '10'); // Tiny size for instant load (was 20)
-      urlObj.searchParams.set('q', '10'); // Minimal quality for tiny file size (was 20)
-      urlObj.searchParams.set('f', 'webp'); // Force WebP for smallest size
+      urlObj.searchParams.set('w', '20');
+      urlObj.searchParams.set('q', '20');
       return urlObj.toString();
     }
     
@@ -89,8 +103,8 @@ export function OptimizedImage({
   const imgRef = useRef<HTMLImageElement>(null);
 
   // Generate optimized URLs - use aggressive optimization for thumbnails
-  const width = thumbnail ? 200 : 800; // Even smaller thumbnails for faster loading (was 300)
-  const quality = thumbnail ? 60 : 80; // Lower quality for thumbnails (was 65)
+  const width = thumbnail ? 400 : 800; // Increased back to 400 for mobile compatibility
+  const quality = thumbnail ? 75 : 80; // Increased quality for better compatibility
   const thumbnailUrl = getThumbnailUrl(src, width, quality);
   const blurUrl = blurUp ? getBlurPlaceholderUrl(src) : null;
 
@@ -108,7 +122,7 @@ export function OptimizedImage({
         });
       },
       {
-        rootMargin: '50px', // Reduced from 200px - only load when very close to viewport
+        rootMargin: '100px', // Increased to 100px for better mobile loading
         threshold: 0.01,
       }
     );
