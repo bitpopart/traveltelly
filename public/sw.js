@@ -1,7 +1,7 @@
 // TravelTelly Service Worker
 // Provides offline functionality and caching for PWA
 
-const CACHE_VERSION = '2.0.0';
+const CACHE_VERSION = '2.0.1';
 const CACHE_NAME = `traveltelly-v${CACHE_VERSION}`;
 const RUNTIME_CACHE = `traveltelly-runtime-v${CACHE_VERSION}`;
 const IMAGE_CACHE = `traveltelly-images-v${CACHE_VERSION}`;
@@ -175,9 +175,13 @@ async function cacheImages(request) {
   }
   
   try {
-    const networkResponse = await fetch(request);
+    const networkResponse = await fetch(request, {
+      mode: 'cors',
+      credentials: 'omit'
+    });
     
-    if (networkResponse && networkResponse.status === 200) {
+    if (networkResponse && networkResponse.ok) {
+      // Only cache successful responses
       const cache = await caches.open(IMAGE_CACHE);
       cache.put(request, networkResponse.clone());
       await limitCacheSize(IMAGE_CACHE, MAX_IMAGE_CACHE_SIZE);
@@ -185,7 +189,11 @@ async function cacheImages(request) {
     
     return networkResponse;
   } catch (error) {
-    console.log('[SW] Image fetch failed:', request.url);
+    console.log('[SW] Image fetch failed:', request.url, error);
+    // Return cached response if available, even if stale
+    if (cachedResponse) {
+      return cachedResponse;
+    }
     throw error;
   }
 }
@@ -216,14 +224,32 @@ async function networkOnly(request) {
 
 // Fetch event - smart caching strategy
 self.addEventListener('fetch', (event) => {
-  // Skip cross-origin requests (except images)
-  if (!event.request.url.startsWith(self.location.origin) && 
-      event.request.destination !== 'image') {
+  const url = new URL(event.request.url);
+  
+  // Skip chrome extensions
+  if (url.protocol === 'chrome-extension:') {
     return;
   }
   
-  // Skip chrome extensions
-  if (event.request.url.startsWith('chrome-extension://')) {
+  // Check if this is an image request (by URL or destination)
+  const isImageUrl = /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(url.pathname);
+  const isImageRequest = event.request.destination === 'image' || isImageUrl;
+  
+  // Skip cross-origin requests EXCEPT for images and known CDN domains
+  const trustedDomains = [
+    'nostr.build',
+    'image.nostr.build', 
+    'void.cat',
+    'satellite.earth',
+    'blossom.primal.net',
+    'primal.net',
+    'nostrcheck.me'
+  ];
+  const isTrustedDomain = trustedDomains.some(domain => url.hostname.includes(domain));
+  
+  if (!url.origin.startsWith(self.location.origin) && 
+      !isImageRequest && 
+      !isTrustedDomain) {
     return;
   }
   

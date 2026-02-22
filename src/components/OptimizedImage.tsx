@@ -25,16 +25,25 @@ function getThumbnailUrl(url: string, width: number = 600, quality: number = 75)
     const urlObj = new URL(url);
     
     // Common Blossom server domains that support resizing
-    const blossomDomains = ['nostr.build', 'satellite.earth', 'void.cat', 'nostrcheck.me', 'blossom.primal.net'];
+    const blossomDomains = [
+      'nostr.build', 
+      'image.nostr.build',
+      'satellite.earth', 
+      'void.cat', 
+      'nostrcheck.me', 
+      'blossom.primal.net',
+      'primal.net'
+    ];
     const isBlossomServer = blossomDomains.some(domain => urlObj.hostname.includes(domain));
     
     if (isBlossomServer) {
-      // For nostr.build, use their specific thumbnail format
+      // For nostr.build and image.nostr.build, use their specific thumbnail format
       if (urlObj.hostname.includes('nostr.build')) {
-        // Don't clear params for nostr.build, just add width
+        // For image.nostr.build or nostr.build, just add width parameter
         if (!urlObj.searchParams.has('w')) {
           urlObj.searchParams.set('w', width.toString());
         }
+        // Don't add quality param for nostr.build - they handle it automatically
         return urlObj.toString();
       }
       
@@ -98,7 +107,8 @@ export function OptimizedImage({
   const [isLoaded, setIsLoaded] = useState(false);
   const [isError, setIsError] = useState(false);
   const [blurLoaded, setBlurLoaded] = useState(false);
-  const [shouldLoad, setShouldLoad] = useState(priority); // Only load immediately if priority
+  // On mobile, load more aggressively - load immediately if thumbnail or priority
+  const [shouldLoad, setShouldLoad] = useState(priority || thumbnail); 
   const containerRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
 
@@ -158,7 +168,14 @@ export function OptimizedImage({
   };
 
   const handleError = () => {
+    console.error('Image failed to load:', thumbnailUrl);
     setIsError(true);
+    
+    // On mobile, try loading the original URL if thumbnail fails
+    if (thumbnail && thumbnailUrl !== src && imgRef.current) {
+      console.log('Retrying with original URL:', src);
+      imgRef.current.src = src;
+    }
   };
 
   // Wrapper style for aspect ratio placeholder
@@ -196,9 +213,9 @@ export function OptimizedImage({
           ref={imgRef}
           src={thumbnailUrl}
           alt={alt}
-          loading={priority ? 'eager' : 'lazy'}
+          loading={priority || thumbnail ? 'eager' : 'lazy'}
           decoding="async"
-          fetchPriority={priority ? 'high' : 'auto'}
+          fetchPriority={priority || thumbnail ? 'high' : 'auto'}
           onLoad={handleLoad}
           onError={handleError}
           className={cn(
