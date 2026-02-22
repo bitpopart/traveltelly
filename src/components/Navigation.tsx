@@ -134,19 +134,6 @@ export function Navigation({ className }: NavigationProps) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setViewMode('map')}
-                  className={`rounded-full w-9 h-9 transition-all ${
-                    viewMode === 'map' 
-                      ? 'bg-gray-800 hover:bg-gray-900 text-white' 
-                      : 'hover:bg-gray-300 dark:hover:bg-gray-600'
-                  }`}
-                  title="World Map"
-                >
-                  <Globe className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
                   onClick={() => setViewMode('images')}
                   className={`rounded-full w-9 h-9 transition-all ${
                     viewMode === 'images' 
@@ -156,6 +143,19 @@ export function Navigation({ className }: NavigationProps) {
                   title="Images Grid"
                 >
                   <ImageIcon className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setViewMode('map')}
+                  className={`rounded-full w-9 h-9 transition-all ${
+                    viewMode === 'map' 
+                      ? 'bg-gray-800 hover:bg-gray-900 text-white' 
+                      : 'hover:bg-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                  title="World Map"
+                >
+                  <Globe className="w-4 h-4" />
                 </Button>
               </div>
             )}
@@ -197,19 +197,6 @@ export function Navigation({ className }: NavigationProps) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setViewMode('map')}
-                  className={`rounded-full w-8 h-8 transition-all ${
-                    viewMode === 'map' 
-                      ? 'bg-gray-800 hover:bg-gray-900 text-white' 
-                      : 'hover:bg-gray-300 dark:hover:bg-gray-600'
-                  }`}
-                  title="World Map"
-                >
-                  <Globe className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
                   onClick={() => setViewMode('images')}
                   className={`rounded-full w-8 h-8 transition-all ${
                     viewMode === 'images' 
@@ -219,6 +206,19 @@ export function Navigation({ className }: NavigationProps) {
                   title="Images Grid"
                 >
                   <ImageIcon className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setViewMode('map')}
+                  className={`rounded-full w-8 h-8 transition-all ${
+                    viewMode === 'map' 
+                      ? 'bg-gray-800 hover:bg-gray-900 text-white' 
+                      : 'hover:bg-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                  title="World Map"
+                >
+                  <Globe className="w-4 h-4" />
                 </Button>
               </div>
             )}

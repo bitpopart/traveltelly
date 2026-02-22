@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Globe } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { RelaySelector } from "@/components/RelaySelector";
+import { OptimizedImage } from "@/components/OptimizedImage";
 
 export default function TravelTellyTour() {
   const { data: tourItems, isLoading } = useTravelTellyTour();
@@ -72,11 +73,13 @@ export default function TravelTellyTour() {
                           onMouseLeave={(e) => e.currentTarget.pause()}
                         />
                       ) : (
-                        <img
+                        <OptimizedImage
                           src={mediaUrl}
                           alt="Travel photo"
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          loading="lazy"
+                          blurUp={true}
+                          thumbnail={true}
+                          priority={idx === 0}
                         />
                       )}
                       
