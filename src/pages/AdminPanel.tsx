@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigation } from '@/components/Navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,16 @@ export default function AdminPanel() {
   
   // Initialize test customer account automatically
   useInitializeTestCustomer();
+
+  // Handle hash-based navigation for tabs
+  const [activeTab, setActiveTab] = useState('manage-reviews');
+  
+  useEffect(() => {
+    const hash = window.location.hash.slice(1); // Remove #
+    if (hash) {
+      setActiveTab(hash);
+    }
+  }, []);
 
   // Double-check that this is specifically the Traveltelly admin npub
   const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642';
@@ -161,6 +171,12 @@ export default function AdminPanel() {
                     View Marketplace
                   </Button>
                 </Link>
+                <Link to="/admin#review-permissions">
+                  <Button variant="default" className="bg-green-600 hover:bg-green-700">
+                    <Shield className="w-4 h-4 mr-2" />
+                    Review Permission
+                  </Button>
+                </Link>
                 <Link to="/settings">
                   <Button variant="outline">
                     <Settings className="w-4 h-4 mr-2" />
@@ -190,7 +206,7 @@ export default function AdminPanel() {
           </Card>
 
           {/* Main Admin Tabs */}
-          <Tabs defaultValue="manage-reviews" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-2">
               <TabsTrigger value="manage-reviews" className="flex items-center gap-1.5 whitespace-nowrap px-3">
                 <MessageSquare className="w-4 h-4 flex-shrink-0" />

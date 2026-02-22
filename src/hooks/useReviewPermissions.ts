@@ -85,23 +85,52 @@ export function useReviewPermissions() {
       if (!user) return false;
 
       // Admin always has permission
-      if (user.pubkey === ADMIN_HEX) return true;
+      if (user.pubkey === ADMIN_HEX) {
+        console.log('✅ User is admin - auto-granted permission');
+        return true;
+      }
 
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
 
-      // Check for permission grants
+      console.log('🔍 Checking permission for user:', user.pubkey.substring(0, 8));
+
+      // Check for permission grants - search without tag filters first
       const events = await nostr.query([{
         kinds: [30383],
         authors: [ADMIN_HEX],
-        '#p': [user.pubkey],
-        '#grant_type': ['review_permission'],
-        limit: 1,
+        limit: 50, // Get more grants to debug
       }], { signal });
 
-      const validGrants = events.filter(validatePermissionGrant);
-      return validGrants.length > 0;
+      console.log('📥 All permission grants from admin:', events.length);
+      
+      // Filter for this specific user
+      const userGrants = events.filter(event => {
+        const grantedPubkey = event.tags.find(([name]) => name === 'p')?.[1];
+        const grantType = event.tags.find(([name]) => name === 'grant_type')?.[1];
+        
+        console.log('Grant event:', {
+          id: event.id.substring(0, 8),
+          grantedPubkey: grantedPubkey?.substring(0, 8),
+          grantType,
+          matchesUser: grantedPubkey === user.pubkey,
+        });
+        
+        return grantedPubkey === user.pubkey && grantType === 'review_permission';
+      });
+
+      console.log('📋 Grants for this user:', userGrants.length, userGrants);
+
+      const validGrants = userGrants.filter(validatePermissionGrant);
+      const hasPermission = validGrants.length > 0;
+      
+      console.log(hasPermission ? '✅ User has permission' : '❌ User does NOT have permission');
+      
+      return hasPermission;
     },
     enabled: !!user,
+    staleTime: 30000, // Cache for 30 seconds
+    refetchOnMount: true, // Always check on mount
+    refetchOnWindowFocus: true, // Check when window gains focus
   });
 
   // Check if current user is admin
