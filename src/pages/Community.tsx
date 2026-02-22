@@ -7,7 +7,11 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
-import { Users, MessageCircle, HelpCircle, ExternalLink, Compass, Zap, Camera } from 'lucide-react';
+import { Users, MessageCircle, HelpCircle, ExternalLink, Compass, Zap, Camera, UserPlus } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useAuthor } from '@/hooks/useAuthor';
+import { genUserName } from '@/lib/genUserName';
+import { nip19 } from 'nostr-tools';
 
 interface FAQ {
   question: string;
@@ -21,6 +25,11 @@ interface UsefulLink {
   category: 'travel' | 'nostr' | 'phoneography';
 }
 
+interface FeaturedTraveler {
+  npub: string;
+  profileUrl?: string;
+}
+
 interface CommunityData {
   faqs: FAQ[];
   forumText: string;
@@ -30,9 +39,46 @@ interface CommunityData {
   ctaDescription?: string;
   ctaBadges?: string[];
   location?: string;
+  featuredTravelers?: FeaturedTraveler[];
 }
 
 const COMMUNITY_KIND = 30079;
+
+// Component to display a single featured traveler avatar
+function FeaturedTravelerAvatar({ traveler }: { traveler: FeaturedTraveler }) {
+  const pubkeyHex = nip19.decode(traveler.npub).data as string;
+  const author = useAuthor(pubkeyHex);
+  const metadata = author.data?.metadata;
+  const displayName = metadata?.name || genUserName(pubkeyHex);
+
+  // For now, link to Nostr profile. In future, can link to profileUrl if available
+  const profileLink = traveler.profileUrl || `https://primal.net/p/${traveler.npub}`;
+
+  return (
+    <a
+      href={profileLink}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group flex flex-col items-center gap-2 transition-transform hover:scale-105"
+      title={`Follow ${displayName} on Nostr`}
+    >
+      <div className="relative">
+        <Avatar className="h-16 w-16 md:h-20 md:w-20 border-4 border-white dark:border-gray-800 shadow-lg">
+          <AvatarImage src={metadata?.picture} alt={displayName} />
+          <AvatarFallback className="text-lg font-bold">
+            {displayName.slice(0, 2).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center border-2 border-white dark:border-gray-800">
+          <UserPlus className="w-3 h-3 text-white" />
+        </div>
+      </div>
+      <span className="text-xs font-medium text-gray-700 dark:text-gray-300 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+        {displayName}
+      </span>
+    </a>
+  );
+}
 
 export default function Community() {
   const { nostr } = useNostr();
@@ -131,6 +177,7 @@ export default function Community() {
   const ctaDescription = communityData?.ctaDescription || 'Share your travel experiences, connect with photographers, and be part of the decentralized travel revolution on Nostr.';
   const ctaBadges = communityData?.ctaBadges || ['🌍 88+ Countries', '📸 Travel Photography', '⚡ Lightning Network', '🔓 Decentralized'];
   const location = communityData?.location || ''; // Empty by default - only shown if admin sets it
+  const featuredTravelers = communityData?.featuredTravelers || [];
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
@@ -156,6 +203,27 @@ export default function Community() {
               </p>
             )}
           </div>
+
+          {/* Featured Travelers */}
+          {featuredTravelers.length > 0 && (
+            <div className="mb-8">
+              <Card className="bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-purple-300 dark:border-purple-700">
+                <CardContent className="py-6">
+                  <h3 className="text-center text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                    Featured Travelers
+                  </h3>
+                  <div className="flex flex-wrap justify-center gap-6 md:gap-8">
+                    {featuredTravelers.map((traveler, index) => (
+                      <FeaturedTravelerAvatar key={index} traveler={traveler} />
+                    ))}
+                  </div>
+                  <p className="text-center text-xs text-gray-600 dark:text-gray-400 mt-4">
+                    Click to follow on Nostr
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           {/* FAQ Section */}
           <Card className="mb-8">

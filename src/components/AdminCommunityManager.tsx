@@ -11,7 +11,7 @@ import { useNostr } from '@nostrify/react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
-import { Users, HelpCircle, MessageCircle, ExternalLink, Plus, Trash2, Save, Loader2, AlertCircle } from 'lucide-react';
+import { Users, HelpCircle, MessageCircle, ExternalLink, Plus, Trash2, Save, Loader2, AlertCircle, UserPlus } from 'lucide-react';
 
 interface FAQ {
   question: string;
@@ -25,6 +25,11 @@ interface UsefulLink {
   category: 'travel' | 'nostr' | 'phoneography';
 }
 
+interface FeaturedTraveler {
+  npub: string;
+  profileUrl?: string; // Optional: Link to their TravelTelly profile (future use)
+}
+
 interface CommunityData {
   faqs: FAQ[];
   forumText: string;
@@ -34,6 +39,7 @@ interface CommunityData {
   ctaDescription?: string;
   ctaBadges?: string[];
   location?: string; // e.g., "Amsterdam, Netherlands" or "88+ Countries"
+  featuredTravelers?: FeaturedTraveler[]; // Avatars shown at top of community page
 }
 
 // Kind 30079 - Community Page Content (replaceable)
@@ -61,6 +67,10 @@ export function AdminCommunityManager() {
   const [ctaBadges, setCtaBadges] = useState<string[]>([]);
   const [newBadge, setNewBadge] = useState('');
   const [location, setLocation] = useState('');
+
+  const [featuredTravelers, setFeaturedTravelers] = useState<FeaturedTraveler[]>([]);
+  const [newTravelerNpub, setNewTravelerNpub] = useState('');
+  const [newTravelerProfileUrl, setNewTravelerProfileUrl] = useState('');
 
   const [isSaving, setIsSaving] = useState(false);
 
@@ -161,6 +171,7 @@ export function AdminCommunityManager() {
       setCtaDescription(communityData.ctaDescription || defaultCtaDescription);
       setCtaBadges(communityData.ctaBadges || defaultCtaBadges);
       setLocation(communityData.location || defaultLocation);
+      setFeaturedTravelers(communityData.featuredTravelers || []);
     } else if (!isLoading) {
       // If no data exists on Nostr, load defaults
       setFaqs(defaultFaqs);
@@ -171,6 +182,7 @@ export function AdminCommunityManager() {
       setCtaDescription(defaultCtaDescription);
       setCtaBadges(defaultCtaBadges);
       setLocation(defaultLocation);
+      setFeaturedTravelers([]);
     }
   }, [communityData, isLoading]);
 
@@ -287,6 +299,56 @@ export function AdminCommunityManager() {
     setCtaBadges(ctaBadges.filter((_, i) => i !== index));
   };
 
+  const handleAddTraveler = () => {
+    if (!newTravelerNpub.trim()) {
+      toast({
+        title: 'Missing Npub',
+        description: 'Please enter a valid npub.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validate npub format
+    if (!newTravelerNpub.startsWith('npub1')) {
+      toast({
+        title: 'Invalid Format',
+        description: 'Npub must start with "npub1".',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const newTraveler: FeaturedTraveler = {
+      npub: newTravelerNpub.trim(),
+      profileUrl: newTravelerProfileUrl.trim() || undefined,
+    };
+
+    console.log('➕ Adding featured traveler:', newTraveler);
+    console.log('👥 Current travelers before:', featuredTravelers.length);
+    
+    setFeaturedTravelers([...featuredTravelers, newTraveler]);
+    console.log('👥 Travelers after (should be +1):', featuredTravelers.length + 1);
+    
+    setNewTravelerNpub('');
+    setNewTravelerProfileUrl('');
+    
+    toast({
+      title: 'Traveler Added ✅',
+      description: 'Featured traveler added. Click "Save All Changes" to publish.',
+    });
+  };
+
+  const handleRemoveTraveler = (index: number) => {
+    setFeaturedTravelers(featuredTravelers.filter((_, i) => i !== index));
+  };
+
+  const handleUpdateTraveler = (index: number, field: 'npub' | 'profileUrl', value: string) => {
+    const updated = [...featuredTravelers];
+    updated[index] = { ...updated[index], [field]: value };
+    setFeaturedTravelers(updated);
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
 
@@ -300,6 +362,7 @@ export function AdminCommunityManager() {
         ctaDescription,
         ctaBadges,
         location,
+        featuredTravelers,
       };
 
       console.log('💾 Saving community data to Nostr:', data);
@@ -398,6 +461,8 @@ export function AdminCommunityManager() {
               <span className="text-pink-600 dark:text-pink-400">{usefulLinks.length} Links</span>
               {' • '}
               <span className="text-green-600 dark:text-green-400">{ctaBadges.length} Badges</span>
+              {' • '}
+              <span className="text-orange-600 dark:text-orange-400">{featuredTravelers.length} Travelers</span>
             </div>
             <Button
               onClick={handleSave}
@@ -493,6 +558,99 @@ export function AdminCommunityManager() {
               <Button onClick={handleAddFaq} variant="outline" size="sm">
                 <Plus className="w-4 h-4 mr-2" />
                 Add FAQ
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Featured Travelers Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <UserPlus className="w-5 h-5 text-orange-600" />
+            Featured Travelers
+          </CardTitle>
+          <CardDescription>
+            Add travelers whose avatars will appear at the top of the community page. Visitors can click avatars to follow them on Nostr.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Existing Featured Travelers */}
+          <div className="space-y-4">
+            {featuredTravelers.length === 0 ? (
+              <p className="text-sm text-gray-500 italic text-center py-4">No featured travelers yet</p>
+            ) : (
+              featuredTravelers.map((traveler, index) => (
+                <div key={index} className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1 space-y-2">
+                      <div>
+                        <Label className="text-xs text-gray-500">Npub</Label>
+                        <Input
+                          value={traveler.npub}
+                          onChange={(e) => handleUpdateTraveler(index, 'npub', e.target.value)}
+                          className="font-mono text-sm"
+                          placeholder="npub1..."
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-gray-500">Profile URL (Optional - Future Use)</Label>
+                        <Input
+                          value={traveler.profileUrl || ''}
+                          onChange={(e) => handleUpdateTraveler(index, 'profileUrl', e.target.value)}
+                          placeholder="/profile/naddr1... or leave empty"
+                          className="text-sm"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          For future: link to their TravelTelly profile instead of Nostr
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveTraveler(index)}
+                      className="ml-2"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-600" />
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Add New Featured Traveler */}
+          <div className="space-y-4 p-4 border-2 border-dashed rounded-lg">
+            <h4 className="font-semibold text-sm">Add Featured Traveler</h4>
+            <div className="space-y-3">
+              <div>
+                <Label>Npub</Label>
+                <Input
+                  value={newTravelerNpub}
+                  onChange={(e) => setNewTravelerNpub(e.target.value)}
+                  placeholder="npub1..."
+                  className="font-mono"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Paste the full npub (starts with npub1)
+                </p>
+              </div>
+              <div>
+                <Label>Profile URL (Optional)</Label>
+                <Input
+                  value={newTravelerProfileUrl}
+                  onChange={(e) => setNewTravelerProfileUrl(e.target.value)}
+                  placeholder="/profile/naddr1... or leave empty for now"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  For future use: link to their TravelTelly profile page
+                </p>
+              </div>
+              <Button onClick={handleAddTraveler} variant="outline" size="sm">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Traveler
               </Button>
             </div>
           </div>
