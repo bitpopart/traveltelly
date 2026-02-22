@@ -122,7 +122,7 @@ export function OptimizedImage({
         });
       },
       {
-        rootMargin: '100px', // Increased to 100px for better mobile loading
+        rootMargin: '300px', // Increased to 300px for much earlier mobile loading
         threshold: 0.01,
       }
     );
@@ -176,6 +176,8 @@ export function OptimizedImage({
           src={blurUrl}
           alt=""
           aria-hidden="true"
+          loading="eager"
+          fetchPriority="high"
           onLoad={() => setBlurLoaded(true)}
           className={cn(
             'absolute inset-0 w-full h-full object-cover transition-opacity duration-300',

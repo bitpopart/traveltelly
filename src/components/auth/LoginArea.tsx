@@ -46,7 +46,11 @@ export function LoginArea({ className }: LoginAreaProps) {
         isOpen={loginDialogOpen} 
         onClose={() => setLoginDialogOpen(false)} 
         onLogin={handleLogin}
-        onSignup={() => setSignupDialogOpen(true)}
+        onSignup={() => {
+          setLoginDialogOpen(false);
+          // Small delay to ensure login dialog closes before signup opens
+          setTimeout(() => setSignupDialogOpen(true), 150);
+        }}
       />
 
       <SignupDialog

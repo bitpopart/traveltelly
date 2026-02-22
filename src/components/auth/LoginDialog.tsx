@@ -139,11 +139,16 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
     reader.readAsText(file);
   };
 
-  const handleSignupClick = () => {
+  const handleSignupClick = (e?: React.MouseEvent | React.TouchEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
     onClose();
-    if (onSignup) {
-      onSignup();
-    }
+    // Small delay to ensure dialog closes before opening signup
+    setTimeout(() => {
+      if (onSignup) {
+        onSignup();
+      }
+    }, 100);
   };
 
   const startNip46Listener = async (clientSk: Uint8Array, clientPubkey: string, secret: string) => {
@@ -609,7 +614,13 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
               Don't have an account?{' '}
               <button
                 onClick={handleSignupClick}
-                className='text-primary hover:underline font-medium'
+                onTouchEnd={handleSignupClick}
+                type="button"
+                className='text-primary hover:underline font-medium cursor-pointer touch-manipulation'
+                style={{ 
+                  WebkitTapHighlightColor: 'transparent',
+                  userSelect: 'none'
+                }}
               >
                 Sign up
               </button>
