@@ -216,10 +216,14 @@ const StoryCard = memo(function StoryCard({ story }: StoryCardProps) {
     .filter(tag => tag && !['travel', 'traveltelly'].includes(tag))
     .slice(0, 2);
 
+  // Determine if this is a video story (kinds 34235/34236)
+  const isVideoStory = story.event.kind === 34235 || story.event.kind === 34236;
+  const linkPath = isVideoStory ? `/video/${story.naddr}` : `/story/${story.naddr}`;
+
   return (
     <Card className="hover:shadow-lg transition-shadow overflow-hidden">
       {story.image && (
-        <Link to={`/story/${story.naddr}`} className="block">
+        <Link to={linkPath} className="block">
           <div className="relative aspect-[4/3] overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
             <OptimizedImage
               src={story.image}
@@ -273,9 +277,9 @@ const StoryCard = memo(function StoryCard({ story }: StoryCardProps) {
               </Badge>
             ))}
           </div>
-          <Link to={`/story/${story.naddr}`}>
+          <Link to={linkPath}>
             <Button size="sm" variant="outline" className="rounded-full text-xs">
-              Read Story
+              {isVideoStory ? 'Watch Video' : 'Read Story'}
             </Button>
           </Link>
         </div>

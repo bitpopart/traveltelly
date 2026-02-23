@@ -235,7 +235,7 @@ export function useLatestStory() {
 }
 
 /**
- * Fetch the last 3 stories with images
+ * Fetch the last 3 stories with images (includes both written stories and video stories)
  */
 export function useLatestStories() {
   const { nostr } = useNostr();
@@ -245,34 +245,91 @@ export function useLatestStories() {
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(1000)]); // Reduced to 1s
       
-      // Query for articles (kind 30023) from admin
-      const events = await nostr.query([{
-        kinds: [30023],
-        authors: [ADMIN_HEX],
-        limit: 10 // Reduced for faster loading
-      }], { signal });
+      // Query for both articles (kind 30023) and video stories (kinds 34235/34236)
+      const events = await nostr.query([
+        {
+          kinds: [30023],
+          '#t': ['traveltelly'],
+          limit: 10
+        },
+        {
+          kinds: [34235, 34236], // Video stories (landscape and portrait)
+          '#t': ['traveltelly'],
+          limit: 10
+        }
+      ], { signal });
 
-      // Find stories with images
+      // Find stories with images or video thumbnails
       const storiesWithImages = events
         .filter((event: NostrEvent) => {
           const d = event.tags.find(([name]) => name === 'd')?.[1];
           const title = event.tags.find(([name]) => name === 'title')?.[1];
-          const image = event.tags.find(([name]) => name === 'image')?.[1];
           
-          return !!(d && title && isValidImageUrl(image));
+          // For written stories (30023), check 'image' tag
+          if (event.kind === 30023) {
+            const image = event.tags.find(([name]) => name === 'image')?.[1];
+            return !!(d && title && isValidImageUrl(image));
+          }
+          
+          // For video stories (34235/34236), check 'imeta' tag for thumbnail
+          if (event.kind === 34235 || event.kind === 34236) {
+            const imetaTag = event.tags.find(([name]) => name === 'imeta');
+            if (!imetaTag) return false;
+            
+            // Extract thumbnail from imeta
+            let thumb = '';
+            for (let i = 1; i < imetaTag.length; i++) {
+              const part = imetaTag[i];
+              if (part.startsWith('image ')) {
+                thumb = part.substring(6);
+                break;
+              }
+            }
+            
+            // Fallback to legacy thumb tag
+            if (!thumb) {
+              thumb = event.tags.find(([name]) => name === 'thumb')?.[1] || '';
+            }
+            
+            return !!(d && title && isValidImageUrl(thumb));
+          }
+          
+          return false;
         })
         .sort((a, b) => b.created_at - a.created_at)
         .slice(0, 3); // Get the last 3
 
       return storiesWithImages.map((event) => {
-        const image = event.tags.find(([name]) => name === 'image')?.[1];
+        let image = '';
+        
+        // Extract image based on event kind
+        if (event.kind === 30023) {
+          image = event.tags.find(([name]) => name === 'image')?.[1] || '';
+        } else if (event.kind === 34235 || event.kind === 34236) {
+          // Extract thumbnail from imeta tag
+          const imetaTag = event.tags.find(([name]) => name === 'imeta');
+          if (imetaTag) {
+            for (let i = 1; i < imetaTag.length; i++) {
+              const part = imetaTag[i];
+              if (part.startsWith('image ')) {
+                image = part.substring(6);
+                break;
+              }
+            }
+          }
+          // Fallback to legacy thumb tag
+          if (!image) {
+            image = event.tags.find(([name]) => name === 'thumb')?.[1] || '';
+          }
+        }
+        
         const title = event.tags.find(([name]) => name === 'title')?.[1] || 'Untitled Story';
         const identifier = event.tags.find(([name]) => name === 'd')?.[1] || '';
         
         const naddr = nip19.naddrEncode({
           identifier,
           pubkey: event.pubkey,
-          kind: 30023,
+          kind: event.kind,
         });
 
         return {
