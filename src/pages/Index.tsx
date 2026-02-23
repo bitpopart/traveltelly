@@ -899,8 +899,11 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                         ? `${item.type}-${item.eventId}-${item.image}` 
                         : `${item.type}-${item.naddr}`;
 
-                      // First 12 images load with priority for instant display (above the fold)
-                      const isPriority = index < 12;
+                      // Mobile: 8 images (2 cols × 4 rows), Desktop: 12 images
+                      // Priority images load immediately for instant display
+                      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+                      const priorityCount = isMobile ? 8 : 12;
+                      const isPriority = index < priorityCount;
 
                       return (
                         <Link key={itemKey} to={destinationPath}>
@@ -909,7 +912,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                               src={item.image}
                               alt={item.title}
                               className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                              blurUp={true}
+                              blurUp={!isMobile} // Disable blur on mobile - thumbnails load instantly
                               thumbnail={true}
                               priority={isPriority}
                               aspectRatio="1/1"

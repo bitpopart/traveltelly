@@ -112,15 +112,24 @@ export function OptimizedImage({
   const containerRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
 
-  // Generate optimized URLs - use aggressive optimization for thumbnails
-  const width = thumbnail ? 400 : 800; // Increased back to 400 for mobile compatibility
-  const quality = thumbnail ? 75 : 80; // Increased quality for better compatibility
+  // Detect mobile for ultra-optimized thumbnails
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  
+  // Generate optimized URLs - MUCH smaller on mobile for fast loading like nostu.be
+  // Mobile: 200px (tiny thumbnails), Desktop: 400px
+  const width = thumbnail ? (isMobile ? 200 : 400) : 800;
+  // Mobile: 60% quality (smaller files), Desktop: 75%
+  const quality = thumbnail ? (isMobile ? 60 : 75) : 80;
   const thumbnailUrl = getThumbnailUrl(src, width, quality);
   const blurUrl = blurUp ? getBlurPlaceholderUrl(src) : null;
 
   // Intersection Observer for lazy loading non-priority images
   useEffect(() => {
     if (priority || shouldLoad) return; // Skip if already marked to load
+
+    // Mobile: 600px margin for ultra-early loading (like nostu.be)
+    // Desktop: 300px margin
+    const margin = isMobile ? '600px' : '300px';
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -132,7 +141,7 @@ export function OptimizedImage({
         });
       },
       {
-        rootMargin: '300px', // Increased to 300px for much earlier mobile loading
+        rootMargin: margin,
         threshold: 0.01,
       }
     );
@@ -145,7 +154,7 @@ export function OptimizedImage({
     return () => {
       observer.disconnect();
     };
-  }, [priority, shouldLoad]);
+  }, [priority, shouldLoad, isMobile]);
 
   // Preload priority images
   useEffect(() => {
