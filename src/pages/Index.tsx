@@ -219,19 +219,34 @@ const StoryCard = memo(function StoryCard({ story }: StoryCardProps) {
   // Determine if this is a video story (kinds 34235/34236)
   const isVideoStory = story.event.kind === 34235 || story.event.kind === 34236;
   const linkPath = isVideoStory ? `/video/${story.naddr}` : `/story/${story.naddr}`;
+  
+  // Check if image is actually a video file (no separate thumbnail was uploaded)
+  const isVideoFile = story.image && (story.image.endsWith('.webm') || story.image.endsWith('.mp4') || story.image.endsWith('.mov') || story.image.includes('.webm?') || story.image.includes('.mp4?') || story.image.includes('.mov?'));
 
   return (
     <Card className="hover:shadow-lg transition-shadow overflow-hidden">
       {story.image && (
         <Link to={linkPath} className="block">
-          <div className="relative aspect-[4/3] overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
-            <OptimizedImage
-              src={story.image}
-              alt={story.title}
-              className="w-full h-full object-cover"
-              blurUp={true}
-              thumbnail={true}
-            />
+          <div className="relative aspect-[4/3] overflow-hidden cursor-pointer hover:opacity-90 transition-opacity bg-black">
+            {isVideoStory && isVideoFile ? (
+              // Use video element for video thumbnails
+              <video
+                src={story.image}
+                className="w-full h-full object-cover"
+                muted
+                playsInline
+                preload="metadata"
+              />
+            ) : (
+              // Use OptimizedImage for actual image thumbnails
+              <OptimizedImage
+                src={story.image}
+                alt={story.title}
+                className="w-full h-full object-cover"
+                blurUp={true}
+                thumbnail={true}
+              />
+            )}
           </div>
         </Link>
       )}

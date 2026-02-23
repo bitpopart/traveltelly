@@ -667,7 +667,7 @@ export function CreateVideoStoryForm() {
             pubkey: user.pubkey,
             identifier,
           });
-          noteContent += `🎥 Watch the video:\nhttps://traveltelly.com/video/${naddr}`;
+          noteContent += `🎥 Watch on TravelTelly:\nhttps://www.traveltelly.com/video/${naddr}`;
         } catch (error) {
           console.error('Error creating naddr:', error);
         }

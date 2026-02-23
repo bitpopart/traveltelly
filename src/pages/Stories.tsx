@@ -132,6 +132,9 @@ function VideoStoryCard({ story }: VideoStoryCardProps) {
     return null;
   }
 
+  // Check if thumb is a video file (fallback when no separate thumbnail was uploaded)
+  const isVideoThumb = thumb && (thumb.endsWith('.webm') || thumb.endsWith('.mp4') || thumb.endsWith('.mov') || thumb.includes('.webm?') || thumb.includes('.mp4?') || thumb.includes('.mov?'));
+
   return (
     <>
       <Card 
@@ -140,14 +143,26 @@ function VideoStoryCard({ story }: VideoStoryCardProps) {
       >
         {thumb && (
           <div className={`relative ${aspectRatioClass} overflow-hidden bg-black`}>
-            <OptimizedImage
-              src={thumb}
-              alt={title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              blurUp={true}
-              priority={false}
-              thumbnail={true}
-            />
+            {isVideoThumb ? (
+              // Use video element as thumbnail if no separate image thumbnail
+              <video
+                src={videoUrl || thumb}
+                className="w-full h-full object-cover"
+                muted
+                playsInline
+                preload="metadata"
+              />
+            ) : (
+              // Use OptimizedImage for actual image thumbnails
+              <OptimizedImage
+                src={thumb}
+                alt={title}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                blurUp={true}
+                priority={false}
+                thumbnail={true}
+              />
+            )}
             <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/20 transition-colors">
               <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center">
                 <Play className="w-8 h-8 text-gray-900 ml-1" fill="currentColor" />
