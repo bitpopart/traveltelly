@@ -847,9 +847,14 @@ export function AdminMassUpload() {
 
       toast({
         title: 'Folders Created!',
-        description: `Created ${createdCount} album events organized by continent and country on Nostr. You can now reset the form to start a new batch.`,
-        duration: 10000,
+        description: `Created ${createdCount} album events organized by continent and country on Nostr. Page will refresh in 2 seconds...`,
+        duration: 3000,
       });
+
+      // Refresh the page after 2 seconds
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
 
     } catch (error) {
       console.error('Error creating folders:', error);
