@@ -40,7 +40,8 @@ import {
   Map,
   User,
   Eye,
-  EyeOff
+  EyeOff,
+  Video
 } from 'lucide-react';
 import { Link, Navigate } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
@@ -475,6 +476,23 @@ export default function MyTravels() {
                         </div>
                       </DialogContent>
                     </Dialog>
+                    <a 
+                      href={`https://nostu.be/${user.pubkey}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                    >
+                      <Button
+                        size="sm"
+                        className="rounded-full font-semibold text-white"
+                        style={{ 
+                          background: 'linear-gradient(135deg, #9333ea 0%, #f97316 100%)',
+                          border: 'none'
+                        }}
+                      >
+                        <Video className="w-4 h-4 mr-2" />
+                        Vlog
+                      </Button>
+                    </a>
                   </div>
 
                    {latestCheckIn && (
@@ -520,7 +538,7 @@ export default function MyTravels() {
 
           {/* Content Tabs */}
           <Tabs defaultValue="reviews" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="reviews" className="flex items-center gap-2">
                 <Star className="w-4 h-4" />
                 <span className="hidden sm:inline">My Reviews</span>
@@ -552,6 +570,11 @@ export default function MyTravels() {
                 {media && media.length > 0 && (
                   <Badge variant="secondary" className="ml-1">{media.length}</Badge>
                 )}
+              </TabsTrigger>
+              <TabsTrigger value="vlog" className="flex items-center gap-2">
+                <Video className="w-4 h-4" />
+                <span className="hidden sm:inline">My Vlog</span>
+                <span className="sm:hidden">Vlog</span>
               </TabsTrigger>
             </TabsList>
 
@@ -666,6 +689,21 @@ export default function MyTravels() {
                   ))}
                 </div>
               )}
+            </TabsContent>
+
+            <TabsContent value="vlog" className="mt-6">
+              <Card>
+                <CardContent className="p-0">
+                  <iframe
+                    src={`https://nostu.be/${user.pubkey}`}
+                    className="w-full rounded-lg"
+                    style={{ height: '80vh', minHeight: '600px', border: 'none' }}
+                    title="My Nostu.be Vlog"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </div>
