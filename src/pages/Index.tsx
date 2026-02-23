@@ -853,13 +853,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
           {/* View Mode: Images Grid */}
           {viewMode === 'images' && !selectedLocationTag && (
             <div className="mb-8 md:mb-12">
-              {imagesLoading ? (
-                <div className="grid gap-1 md:gap-2 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                  {Array.from({ length: 8 }).map((_, i) => (
-                    <div key={i} className="aspect-square bg-gray-200 dark:bg-gray-700" />
-                  ))}
-                </div>
-              ) : allImages.length > 0 ? (
+              {allImages.length > 0 ? (
                 <div className="grid gap-1 md:gap-2 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                   {(() => {
                     // allImages already includes ALL types: reviews, stories, trips, stock, AND tour items
@@ -951,6 +945,12 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                     });
                   })()}
                 </div>
+              ) : imagesLoading ? (
+                <div className="grid gap-1 md:gap-2 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                  {Array.from({ length: 12 }).map((_, i) => (
+                    <div key={i} className="aspect-square bg-gray-200 dark:bg-gray-700 animate-pulse" />
+                  ))}
+                </div>
               ) : (
                 <Card className="border-dashed">
                   <CardContent className="py-12 px-8 text-center">
@@ -959,6 +959,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                       <p className="text-muted-foreground">
                         No images found. {user ? 'Start creating content to see it here!' : 'Try switching relays or check back later.'}
                       </p>
+                      <RelaySelector className="w-full" />
                     </div>
                   </CardContent>
                 </Card>
