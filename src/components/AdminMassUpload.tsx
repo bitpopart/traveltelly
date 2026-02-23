@@ -100,6 +100,8 @@ export function AdminMassUpload() {
   const [bulkEditPrice, setBulkEditPrice] = useState('');
   const [bulkEditCurrency, setBulkEditCurrency] = useState('USD');
   const [bulkEditCategory, setBulkEditCategory] = useState('__KEEP_UNCHANGED__');
+  const [bulkEditContinent, setBulkEditContinent] = useState('__KEEP_UNCHANGED__');
+  const [bulkEditCountry, setBulkEditCountry] = useState('__KEEP_UNCHANGED__');
   const [isCreatingFolders, setIsCreatingFolders] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
@@ -421,6 +423,14 @@ export function AdminMassUpload() {
     if (bulkEditCategory && bulkEditCategory !== '__KEEP_UNCHANGED__') {
       updates.category = bulkEditCategory;
     }
+    if (bulkEditContinent && bulkEditContinent !== '__KEEP_UNCHANGED__') {
+      updates.continent = bulkEditContinent;
+      // Reset country when changing continent
+      updates.country = '';
+    }
+    if (bulkEditCountry && bulkEditCountry !== '__KEEP_UNCHANGED__') {
+      updates.country = bulkEditCountry;
+    }
 
     setUploadItems(prev => prev.map(item => {
       if (selectedItems.has(item.id)) {
@@ -432,6 +442,8 @@ export function AdminMassUpload() {
     setShowBulkEdit(false);
     setBulkEditPrice('');
     setBulkEditCategory('__KEEP_UNCHANGED__');
+    setBulkEditContinent('__KEEP_UNCHANGED__');
+    setBulkEditCountry('__KEEP_UNCHANGED__');
     
     toast({
       title: 'Bulk Edit Applied',
@@ -1112,7 +1124,7 @@ export function AdminMassUpload() {
                           <DialogHeader>
                             <DialogTitle>Bulk Edit {selectedItems.size} Items</DialogTitle>
                           </DialogHeader>
-                          <div className="space-y-4 py-4">
+                          <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto">
                             <div className="space-y-2">
                               <Label>Price (leave empty to keep unchanged)</Label>
                               <Input
@@ -1152,6 +1164,62 @@ export function AdminMassUpload() {
                                   ))}
                                 </SelectContent>
                               </Select>
+                            </div>
+                            
+                            {/* Geographical Organization */}
+                            <div className="pt-3 border-t">
+                              <div className="flex items-center gap-2 mb-3">
+                                <FolderTree className="w-4 h-4 text-blue-600" />
+                                <Label className="font-semibold">Folder Organization</Label>
+                              </div>
+                              <div className="space-y-3">
+                                <div className="space-y-2">
+                                  <Label>Continent *</Label>
+                                  <Select 
+                                    value={bulkEditContinent} 
+                                    onValueChange={(value) => {
+                                      setBulkEditContinent(value);
+                                      // Reset country when changing continent
+                                      if (value !== '__KEEP_UNCHANGED__') {
+                                        setBulkEditCountry('__KEEP_UNCHANGED__');
+                                      }
+                                    }}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="__KEEP_UNCHANGED__">Keep unchanged</SelectItem>
+                                      {CONTINENTS.map((continent) => (
+                                        <SelectItem key={continent.value} value={continent.value}>
+                                          {continent.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                
+                                <div className="space-y-2">
+                                  <Label>Country *</Label>
+                                  <Select 
+                                    value={bulkEditCountry} 
+                                    onValueChange={setBulkEditCountry}
+                                    disabled={bulkEditContinent === '__KEEP_UNCHANGED__'}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue placeholder={bulkEditContinent === '__KEEP_UNCHANGED__' ? "Select continent first" : "Select country"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="__KEEP_UNCHANGED__">Keep unchanged</SelectItem>
+                                      {bulkEditContinent !== '__KEEP_UNCHANGED__' && getCountriesByContinent(bulkEditContinent).map((country) => (
+                                        <SelectItem key={country.value} value={country.value}>
+                                          {country.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
                             </div>
                           </div>
                           <DialogFooter>
