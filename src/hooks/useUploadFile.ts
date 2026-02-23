@@ -19,7 +19,9 @@ export function useUploadFile() {
       });
 
       // Try multiple Blossom servers in order
+      // nostr.build is first so uploads appear in creator dashboard
       const servers = [
+        'https://nostr.build/',
         'https://blossom.primal.net/',
         'https://blossom.nostr.hu/',
         'https://cdn.satellite.earth/',
