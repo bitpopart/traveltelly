@@ -255,6 +255,7 @@ export default function MyTravels() {
   const [editedName, setEditedName] = useState('');
   const [isCheckInDialogOpen, setIsCheckInDialogOpen] = useState(false);
   const [isMyMapDialogOpen, setIsMyMapDialogOpen] = useState(false);
+  const [isVlogDialogOpen, setIsVlogDialogOpen] = useState(false);
 
   const { data: reviews, isLoading: loadingReviews } = useUserReviews(user?.pubkey);
   const { data: stories, isLoading: loadingStories } = useUserStories(user?.pubkey);
@@ -476,12 +477,9 @@ export default function MyTravels() {
                         </div>
                       </DialogContent>
                     </Dialog>
-                    <a 
-                      href={`https://nostu.be/${user.pubkey}`} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                    >
+                    <Dialog open={isVlogDialogOpen} onOpenChange={setIsVlogDialogOpen}>
                       <Button
+                        onClick={() => setIsVlogDialogOpen(true)}
                         size="sm"
                         className="rounded-full font-semibold text-white"
                         style={{ 
@@ -492,7 +490,26 @@ export default function MyTravels() {
                         <Video className="w-4 h-4 mr-2" />
                         Vlog
                       </Button>
-                    </a>
+                      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto p-0">
+                        <DialogHeader className="px-6 pt-6">
+                          <DialogTitle className="text-2xl">My Vlog on Nostu.be</DialogTitle>
+                        </DialogHeader>
+                        <div className="px-6 pb-6">
+                          <Card>
+                            <CardContent className="p-0">
+                              <iframe
+                                src={`https://nostu.be/${user.pubkey}`}
+                                className="w-full rounded-lg"
+                                style={{ height: '75vh', minHeight: '600px', border: 'none' }}
+                                title="My Nostu.be Vlog"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                              />
+                            </CardContent>
+                          </Card>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   </div>
 
                    {latestCheckIn && (
