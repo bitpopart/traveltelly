@@ -9,14 +9,28 @@ interface WorldMapImageProps {
 // All countries are marked with 'cc' attributes containing ISO 3166-1 alpha-2 country codes
 export function WorldMapImage({ visitedCountries, className = '' }: WorldMapImageProps) {
   const [svgContent, setSvgContent] = useState<string>('');
+  const [loadError, setLoadError] = useState<boolean>(false);
   const visitedSet = useMemo(() => new Set(visitedCountries.map(c => c.toLowerCase())), [visitedCountries]);
 
   useEffect(() => {
-    // Load the marked-up SVG file
-    fetch('/world-map-marked.svg')
-      .then(response => response.text())
-      .then(svg => setSvgContent(svg))
-      .catch(error => console.error('Error loading world map:', error));
+    // Load the marked-up SVG file - use absolute path from document origin
+    const mapUrl = `${window.location.origin}/world-map-marked.svg`;
+    fetch(mapUrl)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.text();
+      })
+      .then(svg => {
+        setSvgContent(svg);
+        setLoadError(false);
+      })
+      .catch(error => {
+        console.error('Error loading world map:', error);
+        console.error('Attempted URL:', mapUrl);
+        setLoadError(true);
+      });
   }, []);
 
   useEffect(() => {
@@ -77,6 +91,15 @@ export function WorldMapImage({ visitedCountries, className = '' }: WorldMapImag
               justifyContent: 'center',
             }}
           />
+        ) : loadError ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="text-center space-y-2">
+              <div className="text-muted-foreground">Unable to load world map</div>
+              <div className="text-xs text-muted-foreground">
+                Selected {visitedCountries.length} {visitedCountries.length === 1 ? 'country' : 'countries'}
+              </div>
+            </div>
+          </div>
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <div className="text-muted-foreground">Loading map...</div>
