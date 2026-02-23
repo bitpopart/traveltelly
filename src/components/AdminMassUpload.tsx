@@ -100,6 +100,7 @@ export function AdminMassUpload() {
   const [bulkEditPrice, setBulkEditPrice] = useState('');
   const [bulkEditCurrency, setBulkEditCurrency] = useState('USD');
   const [bulkEditCategory, setBulkEditCategory] = useState('__KEEP_UNCHANGED__');
+  const [isCreatingFolders, setIsCreatingFolders] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
   
@@ -742,6 +743,101 @@ export function AdminMassUpload() {
     }
   };
 
+  // Create folder/album events on Nostr to organize uploaded files
+  const handleCreateFolders = async () => {
+    if (!user) return;
+
+    const completedItems = uploadItems.filter(it => it.status === 'completed');
+    if (completedItems.length === 0) {
+      toast({
+        title: 'No Completed Uploads',
+        description: 'Upload files first before creating folders.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsCreatingFolders(true);
+
+    try {
+      // Group items by continent and country
+      const folderGroups: Map<string, { continent: string; country: string; items: UploadItem[] }> = new Map();
+      
+      completedItems.forEach(item => {
+        if (item.continent && item.country) {
+          const folderKey = `${item.continent}/${item.country}`;
+          if (!folderGroups.has(folderKey)) {
+            folderGroups.set(folderKey, {
+              continent: item.continent,
+              country: item.country,
+              items: [],
+            });
+          }
+          folderGroups.get(folderKey)!.items.push(item);
+        }
+      });
+
+      toast({
+        title: 'Creating Folders',
+        description: `Creating ${folderGroups.size} folder albums on Nostr...`,
+      });
+
+      // Create album event for each folder (using kind 30003 - File storage)
+      let createdCount = 0;
+      for (const [folderPath, group] of folderGroups) {
+        try {
+          const albumId = `traveltelly-album-${group.continent.toLowerCase()}-${group.country.toLowerCase()}`;
+          const albumTags: string[][] = [
+            ['d', albumId],
+            ['title', `${group.country} Travel Photos`],
+            ['continent', group.continent],
+            ['country', group.country],
+            ['folder', folderPath],
+            ['t', 'travel'],
+            ['t', 'traveltelly'],
+            ['t', group.continent.toLowerCase()],
+            ['t', group.country.toLowerCase()],
+          ];
+
+          // Add all file URLs to the album
+          group.items.forEach(item => {
+            if (item.imageUrl) {
+              albumTags.push(['file', item.imageUrl]);
+              albumTags.push(['image', item.imageUrl]); // Also add as image tag
+            }
+          });
+
+          const albumDescription = `TravelTelly photo album for ${group.country} in ${group.continent}. Contains ${group.items.length} ${group.items.length === 1 ? 'item' : 'items'}.`;
+
+          await publishEvent({
+            kind: 30003, // File storage event kind
+            content: albumDescription,
+            tags: albumTags,
+          });
+
+          createdCount++;
+        } catch (error) {
+          console.error(`Failed to create folder for ${folderPath}:`, error);
+        }
+      }
+
+      toast({
+        title: 'Folders Created!',
+        description: `Created ${createdCount} album events organized by continent and country on Nostr.`,
+      });
+
+    } catch (error) {
+      console.error('Error creating folders:', error);
+      toast({
+        title: 'Folder Creation Failed',
+        description: error instanceof Error ? error.message : 'An error occurred',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCreatingFolders(false);
+    }
+  };
+
   const completedCount = uploadItems.filter(it => it.status === 'completed').length;
   const errorCount = uploadItems.filter(it => it.status === 'error').length;
   const readyCount = uploadItems.filter(it => it.status === 'ready').length;
@@ -760,6 +856,15 @@ export function AdminMassUpload() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Folder Organization Info */}
+          <Alert className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 border-green-200 dark:border-green-800">
+            <FolderTree className="w-4 h-4 text-green-600 dark:text-green-400" />
+            <AlertDescription className="text-sm">
+              <strong>Folder Organization:</strong> After uploading, click "Create Folders on Nostr" to organize your files into continent/country albums. 
+              This creates Nostr events (kind 30003) that group your media by location, making it easy to browse and manage your archive.
+            </AlertDescription>
+          </Alert>
+
           {/* Image Files Upload */}
           <div className="space-y-3">
             <Label htmlFor="image-files">Upload Image/Video Files</Label>
@@ -1443,19 +1548,19 @@ export function AdminMassUpload() {
             </div>
 
             {/* Actions */}
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-wrap">
               <Button
                 variant="outline"
                 onClick={handleReset}
                 disabled={isProcessing}
-                className="flex-1"
+                className="flex-1 min-w-[120px]"
               >
                 Reset
               </Button>
               <Button
                 onClick={handleStartUpload}
                 disabled={isProcessing || readyCount === 0 || isExtracting}
-                className="flex-1 bg-blue-600 hover:bg-blue-700"
+                className="flex-1 min-w-[120px] bg-blue-600 hover:bg-blue-700"
               >
                 {isProcessing ? (
                   <>
@@ -1469,6 +1574,25 @@ export function AdminMassUpload() {
                   </>
                 )}
               </Button>
+              {completedCount > 0 && (
+                <Button
+                  onClick={handleCreateFolders}
+                  disabled={isCreatingFolders || isProcessing}
+                  className="flex-1 min-w-[180px] bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+                >
+                  {isCreatingFolders ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Creating Folders...
+                    </>
+                  ) : (
+                    <>
+                      <FolderTree className="w-4 h-4 mr-2" />
+                      Create Folders on Nostr
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
