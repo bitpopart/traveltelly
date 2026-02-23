@@ -272,6 +272,9 @@ export default function MyTravels() {
   const displayName = metadata?.name || genUserName(user.pubkey);
   const profileImage = metadata?.picture;
   const latestCheckIn = checkIns?.[0];
+  
+  // Convert hex pubkey to npub for nostu.be
+  const npub = nip19.npubEncode(user.pubkey);
 
   const handleEditName = () => {
     setEditedName(metadata?.name || '');
@@ -490,7 +493,7 @@ export default function MyTravels() {
                         <Video className="w-4 h-4 mr-2" />
                         Vlog
                       </Button>
-                      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto p-0">
+                       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto p-0">
                         <DialogHeader className="px-6 pt-6">
                           <DialogTitle className="text-2xl">My Vlog on Nostu.be</DialogTitle>
                         </DialogHeader>
@@ -498,7 +501,7 @@ export default function MyTravels() {
                           <Card>
                             <CardContent className="p-0">
                               <iframe
-                                src={`https://nostu.be/${user.pubkey}`}
+                                src={`https://nostu.be/${npub}`}
                                 className="w-full rounded-lg"
                                 style={{ height: '75vh', minHeight: '600px', border: 'none' }}
                                 title="My Nostu.be Vlog"
@@ -712,7 +715,7 @@ export default function MyTravels() {
               <Card>
                 <CardContent className="p-0">
                   <iframe
-                    src={`https://nostu.be/${user.pubkey}`}
+                    src={`https://nostu.be/${npub}`}
                     className="w-full rounded-lg"
                     style={{ height: '80vh', minHeight: '600px', border: 'none' }}
                     title="My Nostu.be Vlog"
