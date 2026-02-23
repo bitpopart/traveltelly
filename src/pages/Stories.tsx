@@ -55,6 +55,7 @@ function VideoStoryCard({ story }: VideoStoryCardProps) {
   let thumb = '';
   let duration = '';
   let videoUrl = '';
+  let dimensions = '';
   
   if (imetaTag) {
     for (let i = 1; i < imetaTag.length; i++) {
@@ -68,6 +69,8 @@ function VideoStoryCard({ story }: VideoStoryCardProps) {
         const minutes = Math.floor(durationSec / 60);
         const seconds = Math.floor(durationSec % 60);
         duration = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      } else if (part.startsWith('dim ')) {
+        dimensions = part.substring(4);
       }
     }
   }
@@ -82,6 +85,16 @@ function VideoStoryCard({ story }: VideoStoryCardProps) {
   if (!duration) {
     duration = story.tags.find(([name]) => name === 'duration')?.[1] || '';
   }
+
+  // Detect video orientation from dimensions
+  let isPortrait = false;
+  if (dimensions) {
+    const [width, height] = dimensions.split('x').map(Number);
+    isPortrait = height > width;
+  }
+  
+  // Determine aspect ratio class based on orientation
+  const aspectRatioClass = isPortrait ? 'aspect-[9/16]' : 'aspect-video';
 
   const handleShareToDevine = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent opening the dialog
@@ -126,7 +139,7 @@ function VideoStoryCard({ story }: VideoStoryCardProps) {
         onClick={() => setDialogOpen(true)}
       >
         {thumb && (
-          <div className="relative aspect-video overflow-hidden bg-black">
+          <div className={`relative ${aspectRatioClass} overflow-hidden bg-black`}>
             <OptimizedImage
               src={thumb}
               alt={title}
