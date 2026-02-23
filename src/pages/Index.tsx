@@ -18,7 +18,7 @@ import { CreateTripForm } from "@/components/CreateTripForm";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useReviewPermissions } from "@/hooks/useReviewPermissions";
 import { useLatestReview, useLatestStory, useLatestStockMedia, useLatestTrip, useReviewCount, useStoryCount, useStockMediaCount, useTripCount, useLatestReviews, useLatestStories, useLatestTrips, useLatestStockMediaItems } from "@/hooks/useLatestItems";
-import { useAllImages } from "@/hooks/useAllImages";
+import { useInfiniteImages } from "@/hooks/useInfiniteImages";
 import { useTravelTellyTour } from "@/hooks/useTravelTellyTour";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { MapPin, Star, Camera, Zap, Shield, BookOpen, Search, Navigation, FileImage, ArrowRight, Calendar, MessageCircle, Globe } from "lucide-react";
@@ -507,8 +507,17 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
   const { data: latestTrips = [] } = useLatestTrips();
   const { data: latestStockMediaItems = [] } = useLatestStockMediaItems();
   
-  // Get all images for image grid view (filtered by contributor status)
-  const { data: allImages = [], isLoading: imagesLoading } = useAllImages();
+  // Get images with infinite pagination for faster loading
+  const { 
+    data: infiniteImagesData, 
+    isLoading: imagesLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteImages();
+  
+  // Flatten all pages of images into a single array
+  const allImages = infiniteImagesData?.pages.flatMap(page => page.images) || [];
   
   // Get TravelTelly Tour photos
   const { data: tourItems = [] } = useTravelTellyTour();
@@ -963,6 +972,31 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                     </div>
                   </CardContent>
                 </Card>
+              )}
+              
+              {/* Load More Button */}
+              {allImages.length > 0 && hasNextPage && (
+                <div className="mt-6 flex justify-center">
+                  <Button
+                    onClick={() => fetchNextPage()}
+                    disabled={isFetchingNextPage}
+                    size="lg"
+                    variant="outline"
+                    className="rounded-full px-8"
+                  >
+                    {isFetchingNextPage ? (
+                      <>
+                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        Load More
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+                </div>
               )}
             </div>
           )}
