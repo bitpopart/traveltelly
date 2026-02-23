@@ -723,24 +723,36 @@ export function AdminMassUpload() {
     
     toast({
       title: 'Upload Complete',
-      description: `Successfully uploaded ${completed} items. ${failed > 0 ? `${failed} failed.` : ''} Page will refresh in 2 seconds...`,
+      description: `Successfully uploaded ${completed} items. ${failed > 0 ? `${failed} failed.` : ''} Click "Create Folders on Nostr" to organize them by location.`,
+      duration: 8000,
     });
 
-    // Refresh the page after 2 seconds to reset the form
-    setTimeout(() => {
-      window.location.reload();
-    }, 2000);
+    // Don't auto-refresh - let user create folders first
   };
 
   const handleReset = () => {
+    // Confirm if there are completed items
+    if (completedCount > 0) {
+      const confirmed = window.confirm(
+        `Are you sure you want to reset?\n\nThis will clear ${completedCount} completed uploads.\n\nMake sure you've created folders if needed!`
+      );
+      if (!confirmed) return;
+    }
+
     setUploadItems([]);
     setCurrentUploadIndex(-1);
+    setSelectedItems(new Set());
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
     if (csvInputRef.current) {
       csvInputRef.current.value = '';
     }
+
+    toast({
+      title: 'Reset Complete',
+      description: 'Upload form has been cleared.',
+    });
   };
 
   // Create folder/album events on Nostr to organize uploaded files
@@ -823,7 +835,8 @@ export function AdminMassUpload() {
 
       toast({
         title: 'Folders Created!',
-        description: `Created ${createdCount} album events organized by continent and country on Nostr.`,
+        description: `Created ${createdCount} album events organized by continent and country on Nostr. You can now reset the form to start a new batch.`,
+        duration: 10000,
       });
 
     } catch (error) {
