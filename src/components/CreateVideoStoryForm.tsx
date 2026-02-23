@@ -717,6 +717,14 @@ export function CreateVideoStoryForm() {
           });
         }
 
+        // Log what we're about to publish for debugging
+        console.log('📤 Publishing kind 1 note to Nostr with video:', {
+          contentPreview: noteContent.substring(0, 200) + '...',
+          videoUrl,
+          thumbnailUrl,
+          tags: noteTags,
+        });
+
         // Publish the regular note
         createEvent({
           kind: 1,
