@@ -13,6 +13,10 @@ import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
 import { nip19 } from 'nostr-tools';
 
+// The Traveltelly admin npub
+const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642';
+const ADMIN_HEX = nip19.decode(ADMIN_NPUB).data as string;
+
 interface FAQ {
   question: string;
   answer: string;
@@ -105,16 +109,19 @@ export default function Community() {
     description: 'Join the Travel, Nostr and Mobile Photo/Videography community. Resources, discussions, and helpful links.',
   });
 
-  // Fetch community data from Nostr
+  // Fetch community data from Nostr (from admin's event)
   const { data: communityData, isLoading } = useQuery({
     queryKey: ['community-data'],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
       
-      console.log('🔍 Fetching community data (kind 30079)...');
+      console.log('🔍 Fetching community data (kind 30079) from admin...');
       
+      // Query specifically for admin's community-page event
       const events = await nostr.query([{
         kinds: [COMMUNITY_KIND],
+        authors: [ADMIN_HEX],
+        '#d': ['community-page'],
         limit: 1,
       }], { signal });
 
