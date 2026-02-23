@@ -63,27 +63,27 @@ function getThumbnailUrl(url: string, width: number = 600, quality: number = 75)
 }
 
 /**
- * Generates a tiny blur placeholder URL (very low quality, ~10-20px wide)
+ * Generates a tiny blur placeholder URL (very low quality, ~10-15px wide)
  */
 function getBlurPlaceholderUrl(url: string): string {
   try {
     const urlObj = new URL(url);
-    const blossomDomains = ['nostr.build', 'satellite.earth', 'void.cat', 'nostrcheck.me', 'blossom.primal.net'];
+    const blossomDomains = ['nostr.build', 'image.nostr.build', 'satellite.earth', 'void.cat', 'nostrcheck.me', 'blossom.primal.net'];
     const isBlossomServer = blossomDomains.some(domain => urlObj.hostname.includes(domain));
     
     if (isBlossomServer) {
       // For nostr.build, use their thumbnail format
       if (urlObj.hostname.includes('nostr.build')) {
         if (!urlObj.searchParams.has('w')) {
-          urlObj.searchParams.set('w', '20'); // Small size for blur
+          urlObj.searchParams.set('w', '15'); // Tiny size for instant blur load
         }
         return urlObj.toString();
       }
       
       // For other Blossom servers
       urlObj.search = '';
-      urlObj.searchParams.set('w', '20');
-      urlObj.searchParams.set('q', '20');
+      urlObj.searchParams.set('w', '15');
+      urlObj.searchParams.set('q', '15');
       return urlObj.toString();
     }
     
@@ -115,11 +115,11 @@ export function OptimizedImage({
   // Detect mobile for ultra-optimized thumbnails
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
   
-  // Generate optimized URLs - MUCH smaller on mobile for fast loading like nostu.be
-  // Mobile: 200px (tiny thumbnails), Desktop: 400px
-  const width = thumbnail ? (isMobile ? 200 : 400) : 800;
-  // Mobile: 60% quality (smaller files), Desktop: 75%
-  const quality = thumbnail ? (isMobile ? 60 : 75) : 80;
+  // Generate optimized URLs - MUCH smaller on mobile for fast loading
+  // Mobile: 150px (ultra-tiny), Desktop: 400px
+  const width = thumbnail ? (isMobile ? 150 : 400) : 800;
+  // Mobile: 50% quality (smallest files), Desktop: 75%
+  const quality = thumbnail ? (isMobile ? 50 : 75) : 80;
   const thumbnailUrl = getThumbnailUrl(src, width, quality);
   const blurUrl = blurUp ? getBlurPlaceholderUrl(src) : null;
 
@@ -127,9 +127,9 @@ export function OptimizedImage({
   useEffect(() => {
     if (priority || shouldLoad) return; // Skip if already marked to load
 
-    // Mobile: 600px margin for ultra-early loading (like nostu.be)
-    // Desktop: 300px margin
-    const margin = isMobile ? '600px' : '300px';
+    // Mobile: 800px margin for ultra-early loading (aggressive prefetch)
+    // Desktop: 400px margin
+    const margin = isMobile ? '800px' : '400px';
 
     const observer = new IntersectionObserver(
       (entries) => {
