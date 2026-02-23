@@ -633,7 +633,7 @@ export function CreateVideoStoryForm() {
 
       // Also create a regular Nostr note (kind 1) if shareOnNostr is checked
       if (formData.shareOnNostr && user) {
-        // Share with thumbnail image and link to watch on TravelTelly
+        // Share with video and link to watch on TravelTelly
         let noteContent = '';
 
         // Add title as the first line
@@ -643,9 +643,9 @@ export function CreateVideoStoryForm() {
           noteContent += formData.summary.trim() + '\n\n';
         }
 
-        // Add thumbnail image URL so it displays as clickable image in Nostr clients
-        if (thumbnailUrl) {
-          noteContent += thumbnailUrl + '\n\n';
+        // Add video URL so it displays as playable video in Nostr clients
+        if (videoUrl) {
+          noteContent += videoUrl + '\n\n';
         }
 
         // Add hashtags to note content
