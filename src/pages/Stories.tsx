@@ -403,15 +403,28 @@ function useStories(type: 'write' | 'video' = 'write') {
 
       if (type === 'video') {
         // Query video stories (NIP-71: kind 34235 landscape + kind 34236 portrait)
+        // Fetch both videos with traveltelly tag AND videos from the admin account
+        const adminPubkey = '7d33ba57d8a6e8869a1f1d5215254597594ac0dbfeb01b690def8c461b82db35';
+        
         const events = await nostr.query([
           {
             kinds: [34235, 34236],
             '#t': ['traveltelly'],
             limit: 100,
+          },
+          {
+            kinds: [34235, 34236],
+            authors: [adminPubkey],
+            limit: 100,
           }
         ], { signal });
 
-        return events.sort((a, b) => b.created_at - a.created_at);
+        // Remove duplicates (same event ID) and sort by creation time
+        const uniqueEvents = Array.from(
+          new Map(events.map(event => [event.id, event])).values()
+        );
+
+        return uniqueEvents.sort((a, b) => b.created_at - a.created_at);
       } else {
         // Query written stories with traveltelly tag to filter out template/demo stories
         const events = await nostr.query([
