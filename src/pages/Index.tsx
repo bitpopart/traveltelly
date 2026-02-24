@@ -1024,14 +1024,10 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                           <Link key={`${item.id}-${index}`} to={`/tour-feed/${item.id}`}>
                             <Card className="hover:shadow-lg transition-shadow overflow-hidden">
                               <div className="relative aspect-square overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
-                                <OptimizedImage
+                                <FastThumbnail
                                   src={imageUrl}
                                   alt={item.content.slice(0, 60) || 'TravelTelly Tour'}
-                                  className="w-full h-full object-cover"
-                                  blurUp={true}
-                                  thumbnail={true}
                                   priority={index === 0}
-                                  aspectRatio="1/1"
                                 />
                                 {/* Globe icon overlay */}
                                 <div className="absolute top-2 right-2 z-10">
