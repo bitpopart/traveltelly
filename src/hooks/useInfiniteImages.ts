@@ -88,14 +88,15 @@ export function useInfiniteImages() {
   return useInfiniteQuery({
     queryKey: ['infinite-images', tourItems?.length],
     queryFn: async ({ pageParam, signal }) => {
-      const abortSignal = AbortSignal.any([signal, AbortSignal.timeout(3000)]);
+      // Reduced timeout for faster mobile response
+      const abortSignal = AbortSignal.any([signal, AbortSignal.timeout(2000)]);
       
       const images: ImageItem[] = [];
       const authorizedAuthors = Array.from(authorizedReviewers || []);
       const stockAuthors = Array.from(authorizedUploaders || []);
       
       // Build filters with pagination (until parameter)
-      // Reduced limits for faster mobile loading (~10 images per page)
+      // Super-optimized for mobile: 5 events per type = ~10-20 total events per page
       const filters = [];
       
       // Reviews filter
@@ -103,7 +104,7 @@ export function useInfiniteImages() {
         filters.push({
           kinds: [34879],
           authors: authorizedAuthors,
-          limit: 10, // Reduced for mobile performance
+          limit: 5, // Ultra-reduced for instant mobile loading
           ...(pageParam && { until: pageParam }),
         });
       }
@@ -112,7 +113,7 @@ export function useInfiniteImages() {
       filters.push({
         kinds: [30025],
         authors: [ADMIN_HEX],
-        limit: 10, // Reduced for mobile performance
+        limit: 5, // Ultra-reduced for instant mobile loading
         ...(pageParam && { until: pageParam }),
       });
       
@@ -120,7 +121,7 @@ export function useInfiniteImages() {
       filters.push({
         kinds: [30023],
         authors: [ADMIN_HEX],
-        limit: 10, // Reduced for mobile performance
+        limit: 5, // Ultra-reduced for instant mobile loading
         ...(pageParam && { until: pageParam }),
       });
       
@@ -129,7 +130,7 @@ export function useInfiniteImages() {
         filters.push({
           kinds: [30402],
           authors: stockAuthors,
-          limit: 10, // Reduced for mobile performance
+          limit: 5, // Ultra-reduced for instant mobile loading
           ...(pageParam && { until: pageParam }),
         });
       }

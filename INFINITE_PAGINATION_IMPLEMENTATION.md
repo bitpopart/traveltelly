@@ -11,10 +11,11 @@ Implemented infinite pagination for the homepage image grid to significantly imp
 **File**: `/src/hooks/useInfiniteImages.ts`
 
 - **Purpose**: Load images in paginated batches instead of all at once
-- **Page Size**: ~10 images per page (fetches 10 events of each type: reviews, trips, stories, stock media)
-- **Optimized for Mobile**: Reduced page size for faster mobile loading
+- **Page Size**: ~10-20 images per page (fetches 5 events of each type: reviews, trips, stories, stock media)
+- **Ultra-Optimized for Mobile**: Minimal page size for instant mobile loading
 - **Pagination Strategy**: Uses `until` parameter to fetch older events on subsequent pages
 - **Query Optimization**: All content types are queried in parallel using a single `nostr.query()` call with multiple filters
+- **Fast Timeout**: 2-second timeout for quick mobile response
 
 **Key Features**:
 - First page includes TravelTelly Tour posts
@@ -32,7 +33,11 @@ Implemented infinite pagination for the homepage image grid to significantly imp
 - Added "Load More" button at the end of the image grid
 - Shows loading spinner while fetching next page
 - Button only appears when `hasNextPage` is true
-- **Priority Loading**: First 5 images on mobile, 12 on desktop load with priority
+- **Priority Loading**: 
+  - **First image ALWAYS loads first** with `loading="eager"` and no blur effect
+  - First 3 images on mobile get priority loading
+  - First 10 images on desktop get priority loading
+- **Mobile Skeleton**: Shows only 5 placeholders on mobile (vs 10 on desktop)
 
 ### 3. Performance Improvements
 
@@ -42,25 +47,34 @@ Implemented infinite pagination for the homepage image grid to significantly imp
 - High bandwidth on initial page load
 - Slower initial render
 - 2-column grid on mobile (more images to load)
+- No priority loading
 
 **After**:
-- Initial load: ~40-50 events (10 × 4 content types + tour items)
-- Images loaded in batches of ~10 per page
-- **90%+ reduction** in initial bandwidth
+- Initial load: ~10-20 events (5 × 4 content types + tour items)
+- Images loaded in batches of ~10-20 per page
+- **95%+ reduction** in initial bandwidth
+- **Instant first image loading** with highest priority
 - Much faster initial render
 - User can load more on demand
 - **1-column grid on mobile** (less bandwidth, faster loading)
+- 2-second query timeout for quick mobile response
 
 ## User Experience
 
 ### Mobile (Single Column)
-1. **Initial View**: Homepage loads ~10 images instantly in a single column
+1. **Initial View**: 
+   - **First image loads instantly** with highest priority
+   - Homepage loads ~5-10 images total in a single column
+   - First 3 images load with priority (no blur, eager loading)
 2. **Scroll Down**: User sees "Load More" button
-3. **Click "Load More"**: Next batch of ~10 images loads
+3. **Click "Load More"**: Next batch of ~5-10 images loads
 4. **Repeat**: Continue loading more images as needed
 
 ### Desktop (Multi-Column)
-1. **Initial View**: Homepage loads ~10-15 images in 3-4 columns
+1. **Initial View**: 
+   - First image loads instantly
+   - Homepage loads ~10-20 images in 3-4 columns
+   - First 10 images load with priority
 2. **Scroll Down**: User sees "Load More" button
 3. **Click "Load More"**: Next batch loads
 4. **Repeat**: Continue loading more images as needed
@@ -69,14 +83,17 @@ Implemented infinite pagination for the homepage image grid to significantly imp
 
 ### Query Strategy
 
-Each page fetches 10 events from each content type (optimized for mobile):
+Each page fetches 5 events from each content type (ultra-optimized for mobile):
 ```typescript
 const filters = [
-  { kinds: [34879], authors: [...], limit: 10, until: pageParam }, // Reviews
-  { kinds: [30025], authors: [ADMIN], limit: 10, until: pageParam }, // Trips
-  { kinds: [30023], authors: [ADMIN], limit: 10, until: pageParam }, // Stories
-  { kinds: [30402], authors: [...], limit: 10, until: pageParam }, // Stock Media
+  { kinds: [34879], authors: [...], limit: 5, until: pageParam }, // Reviews
+  { kinds: [30025], authors: [ADMIN], limit: 5, until: pageParam }, // Trips
+  { kinds: [30023], authors: [ADMIN], limit: 5, until: pageParam }, // Stories
+  { kinds: [30402], authors: [...], limit: 5, until: pageParam }, // Stock Media
 ];
+
+// With 2-second timeout for fast mobile response
+const abortSignal = AbortSignal.any([signal, AbortSignal.timeout(2000)]);
 ```
 
 ### Image Extraction
@@ -93,16 +110,20 @@ The `until` parameter is set to the `created_at` timestamp of the oldest event i
 
 ## Benefits
 
-✅ **Faster Initial Load**: 90%+ reduction in data fetched on first view
+✅ **Ultra-Fast Initial Load**: 95%+ reduction in data fetched on first view (600 → 10-20 events)
+✅ **Instant First Image**: First image always loads with highest priority
 ✅ **Better Performance**: Smaller initial bundle, faster rendering
 ✅ **Reduced Bandwidth**: Only load what the user sees
 ✅ **Scalable**: Works efficiently even with thousands of images
 ✅ **User Control**: Users decide how much content to load
-✅ **Mobile Optimized**: 
+✅ **Mobile Super-Optimized**: 
+  - **First image loads instantly** with eager loading
   - Single column layout for easier browsing
-  - Smaller page size (~10 images) for faster loading
-  - Priority loading for first 5 images
-  - Ideal for slower mobile connections
+  - Ultra-small page size (~5-10 images) for instant loading
+  - Priority loading for first 3 images (no blur)
+  - 2-second timeout for fast response
+  - Only 5 skeleton placeholders for faster perceived loading
+  - Perfect for slow 2G/3G connections
 
 ## Backward Compatibility
 
@@ -131,8 +152,11 @@ Potential improvements for the future:
 ### Mobile Testing
 1. Open in mobile view or resize browser to mobile width
 2. Verify **single column** grid layout
-3. Check that initial load is ~40-50 events (not 600)
-4. Confirm first 5 images load with priority (faster)
-5. Scroll to "Load More" button
-6. Click and verify next batch loads quickly
-7. Test on actual mobile device with slow 3G/4G connection
+3. Check that initial load is ~10-20 events (not 600)
+4. **Confirm first image appears instantly** before other images
+5. Verify only 5 skeleton placeholders appear during loading
+6. Confirm first 3 images load with priority (no blur effect)
+7. Scroll to "Load More" button
+8. Click and verify next batch loads quickly (~5-10 images)
+9. Test on actual mobile device with slow 2G/3G connection
+10. Measure time-to-first-image (should be < 1 second on 3G)

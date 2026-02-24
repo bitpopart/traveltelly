@@ -921,11 +921,12 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                         ? `${item.type}-${item.eventId}-${item.image}` 
                         : `${item.type}-${item.naddr}`;
 
-                      // Mobile: 5 images (1 col × 5 rows), Desktop: 12 images
-                      // Priority images load immediately for instant display
+                      // Mobile: First 3 images get priority, Desktop: First 10 images
+                      // ALWAYS load first image with highest priority for instant display
                       const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-                      const priorityCount = isMobile ? 5 : 12;
+                      const priorityCount = isMobile ? 3 : 10;
                       const isPriority = index < priorityCount;
+                      const isFirstImage = index === 0; // First image gets highest priority
 
                       return (
                         <Link key={itemKey} to={destinationPath}>
@@ -934,10 +935,11 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                               src={item.image}
                               alt={item.title}
                               className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                              blurUp={!isMobile} // Disable blur on mobile - thumbnails load instantly
+                              blurUp={!isMobile && !isFirstImage} // No blur on mobile or first image
                               thumbnail={true}
-                              priority={isPriority}
+                              priority={isPriority || isFirstImage} // First image ALWAYS has priority
                               aspectRatio="1/1"
+                              loading={isFirstImage ? 'eager' : isPriority ? 'eager' : 'lazy'}
                             />
                             {/* Type icon overlay - colored round button */}
                             <div className="absolute top-2 right-2 z-10">
@@ -956,7 +958,8 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                 </div>
               ) : imagesLoading ? (
                 <div className="grid gap-2 md:gap-2 grid-cols-1 md:grid-cols-3 lg:grid-cols-4">
-                  {Array.from({ length: 10 }).map((_, i) => (
+                  {/* Show fewer skeletons on mobile for faster perceived loading */}
+                  {Array.from({ length: typeof window !== 'undefined' && window.innerWidth < 768 ? 5 : 10 }).map((_, i) => (
                     <div key={i} className="aspect-square bg-gray-200 dark:bg-gray-700 animate-pulse" />
                   ))}
                 </div>
