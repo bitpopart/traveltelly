@@ -2,7 +2,16 @@
 
 ## Overview
 
-Implemented infinite pagination for the homepage image grid to significantly improve loading performance and reduce bandwidth usage.
+Implemented infinite pagination for the homepage image grid with ultra-fast thumbnail loading to significantly improve loading performance and reduce bandwidth usage.
+
+## 🚀 Fast Thumbnail Component
+
+Created `FastThumbnail.tsx` - a simplified, high-performance image component optimized for mobile grids:
+- Uses browser's native lazy loading (faster, more efficient)
+- No blur effects (instant render)
+- Minimal thumbnail sizes (200px mobile, 400px desktop)
+- Simple, predictable behavior
+- Only applies resize to `nostr.build` (most reliable host)
 
 ## Changes Made
 

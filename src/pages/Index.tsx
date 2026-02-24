@@ -4,7 +4,7 @@ import { Navigation as NavigationComponent } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { LoginArea } from "@/components/auth/LoginArea";
 import { RelaySelector } from "@/components/RelaySelector";
-import { OptimizedImage } from "@/components/OptimizedImage";
+import { FastThumbnail } from "@/components/FastThumbnail";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -82,12 +82,9 @@ const ReviewCard = memo(function ReviewCard({ review, priority = false }: Review
       {review.image && (
         <Link to={`/review/${review.naddr}`} className="block">
           <div className="relative aspect-[4/3] overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
-            <OptimizedImage
+            <FastThumbnail
               src={review.image}
               alt={review.title}
-              className="w-full h-full object-cover"
-              blurUp={true}
-              thumbnail={true}
               priority={priority}
             />
           </div>
@@ -238,13 +235,10 @@ const StoryCard = memo(function StoryCard({ story }: StoryCardProps) {
                 preload="metadata"
               />
             ) : (
-              // Use OptimizedImage for actual image thumbnails
-              <OptimizedImage
+              // Use FastThumbnail for actual image thumbnails
+              <FastThumbnail
                 src={story.image}
                 alt={story.title}
-                className="w-full h-full object-cover"
-                blurUp={true}
-                thumbnail={true}
               />
             )}
           </div>
@@ -328,12 +322,9 @@ const TripCard = memo(function TripCard({ trip }: TripCardProps) {
       {trip.image && (
         <Link to={`/trip/${trip.naddr}`} className="block">
           <div className="relative aspect-[4/3] overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
-            <OptimizedImage
+            <FastThumbnail
               src={trip.image}
               alt={trip.title}
-              className="w-full h-full object-cover"
-              blurUp={true}
-              thumbnail={true}
             />
           </div>
         </Link>
@@ -420,12 +411,9 @@ const MediaCard = memo(function MediaCard({ media, priority = false }: MediaCard
       {media.image && (
         <Link to={`/media/preview/${media.naddr}`} className="block">
           <div className="relative aspect-[4/3] overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
-            <OptimizedImage
+            <FastThumbnail
               src={media.image}
               alt={media.title}
-              className="w-full h-full object-cover"
-              blurUp={true}
-              thumbnail={true}
               priority={priority}
             />
           </div>
@@ -586,12 +574,10 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                     <div className="relative aspect-[4/3] overflow-hidden group">
                       {latestReviews[0]?.image ? (
                         <>
-                          <OptimizedImage
+                          <FastThumbnail
                             src={latestReviews[0].image}
                             alt="Latest Review"
-                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                            blurUp={true}
-                            thumbnail={true}
+                            className="transition-transform group-hover:scale-105"
                           />
                           {/* Overlay gradient */}
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
@@ -621,12 +607,10 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                     <div className="relative aspect-[4/3] overflow-hidden group">
                       {latestStories[0]?.image ? (
                         <>
-                          <OptimizedImage
+                          <FastThumbnail
                             src={latestStories[0].image}
                             alt="Latest Story"
-                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                            blurUp={true}
-                            thumbnail={true}
+                            className="transition-transform group-hover:scale-105"
                           />
                           {/* Overlay gradient */}
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
@@ -656,12 +640,10 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                     <div className="relative aspect-[4/3] overflow-hidden group">
                       {latestTrips[0]?.image ? (
                         <>
-                          <OptimizedImage
+                          <FastThumbnail
                             src={latestTrips[0].image}
                             alt="Latest Trip"
-                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                            blurUp={true}
-                            thumbnail={true}
+                            className="transition-transform group-hover:scale-105"
                           />
                           {/* Overlay gradient */}
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
@@ -691,12 +673,10 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                     <div className="relative aspect-[4/3] overflow-hidden group">
                       {latestStockMediaItems[0]?.image ? (
                         <>
-                          <OptimizedImage
+                          <FastThumbnail
                             src={latestStockMediaItems[0].image}
                             alt="Latest Stock Media"
-                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                            blurUp={true}
-                            thumbnail={true}
+                            className="transition-transform group-hover:scale-105"
                           />
                           {/* Overlay gradient */}
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
@@ -931,14 +911,11 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                       return (
                         <Link key={itemKey} to={destinationPath}>
                           <div className="relative aspect-square overflow-hidden group cursor-pointer bg-gray-200 dark:bg-gray-700">
-                            <OptimizedImage
+                            <FastThumbnail
                               src={item.image}
                               alt={item.title}
-                              className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                              blurUp={!isMobile && !isFirstImage} // No blur on mobile or first image
-                              thumbnail={true}
-                              priority={isPriority || isFirstImage} // First image ALWAYS has priority
-                              aspectRatio="1/1"
+                              className="transition-transform group-hover:scale-105"
+                              priority={isPriority || isFirstImage}
                             />
                             {/* Type icon overlay - colored round button */}
                             <div className="absolute top-2 right-2 z-10">
