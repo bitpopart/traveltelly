@@ -23,6 +23,7 @@ export interface ImageItem {
 /**
  * Check if an image URL is a real uploaded image (not a placeholder or template)
  * ONLY ALLOW REAL IMAGE HOSTING SERVICES - NO TEMPLATE/PLACEHOLDER IMAGES EVER!
+ * Also excludes video files (.mp4, .webm, .mov, etc.)
  */
 function isValidImageUrl(url: string): boolean {
   if (!url || typeof url !== 'string') return false;
@@ -33,6 +34,12 @@ function isValidImageUrl(url: string): boolean {
   }
   
   const lowerUrl = url.toLowerCase();
+  
+  // EXCLUDE: Video files - these should not be in the image grid
+  const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.m4v', '.ogv'];
+  if (videoExtensions.some(ext => lowerUrl.includes(ext))) {
+    return false;
+  }
   
   // WHITELIST: Only allow known real image hosting services
   const allowedDomains = [
@@ -259,7 +266,7 @@ export function useInfiniteImages() {
         console.log(`🌍 Adding ${tourItems.length} TravelTelly Tour posts to first page`);
         
         tourItems.forEach((item) => {
-          // Add all images
+          // Add all images (videos are excluded by isValidImageUrl)
           item.images.forEach((imageUrl) => {
             if (isValidImageUrl(imageUrl)) {
               images.push({
@@ -274,18 +281,8 @@ export function useInfiniteImages() {
             }
           });
           
-          // Add all videos
-          item.videos.forEach((videoUrl) => {
-            images.push({
-              image: videoUrl,
-              title: item.content.slice(0, 100) || 'TravelTelly Tour',
-              naddr: '',
-              type: 'tour',
-              event: item.event,
-              created_at: item.created_at,
-              eventId: item.id,
-            });
-          });
+          // Note: Videos are intentionally excluded from the image grid
+          // They are filtered out by isValidImageUrl() to prevent loading errors
         });
       }
 

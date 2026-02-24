@@ -24,30 +24,31 @@ function getThumbnailUrl(url: string, width: number = 600, quality: number = 75)
     // Check if it's a Blossom server URL (nostr.build, satellite.earth, etc.)
     const urlObj = new URL(url);
     
-    // Common Blossom server domains that support resizing
+    // For nostr.build and image.nostr.build, use their specific thumbnail format
+    if (urlObj.hostname.includes('nostr.build')) {
+      // For image.nostr.build or nostr.build, just add width parameter
+      if (!urlObj.searchParams.has('w')) {
+        urlObj.searchParams.set('w', width.toString());
+      }
+      // Don't add quality param for nostr.build - they handle it automatically
+      return urlObj.toString();
+    }
+    
+    // For blossom.primal.net, DON'T add resize params - they don't support it reliably
+    // Just return the original URL
+    if (urlObj.hostname.includes('blossom.primal.net') || urlObj.hostname.includes('primal.net')) {
+      return url;
+    }
+    
+    // For other Blossom servers that support resizing
     const blossomDomains = [
-      'nostr.build', 
-      'image.nostr.build',
       'satellite.earth', 
       'void.cat', 
-      'nostrcheck.me', 
-      'blossom.primal.net',
-      'primal.net'
+      'nostrcheck.me',
     ];
     const isBlossomServer = blossomDomains.some(domain => urlObj.hostname.includes(domain));
     
     if (isBlossomServer) {
-      // For nostr.build and image.nostr.build, use their specific thumbnail format
-      if (urlObj.hostname.includes('nostr.build')) {
-        // For image.nostr.build or nostr.build, just add width parameter
-        if (!urlObj.searchParams.has('w')) {
-          urlObj.searchParams.set('w', width.toString());
-        }
-        // Don't add quality param for nostr.build - they handle it automatically
-        return urlObj.toString();
-      }
-      
-      // For other Blossom servers, use standard params
       urlObj.search = '';
       urlObj.searchParams.set('w', width.toString());
       urlObj.searchParams.set('q', quality.toString());
@@ -68,19 +69,25 @@ function getThumbnailUrl(url: string, width: number = 600, quality: number = 75)
 function getBlurPlaceholderUrl(url: string): string {
   try {
     const urlObj = new URL(url);
-    const blossomDomains = ['nostr.build', 'image.nostr.build', 'satellite.earth', 'void.cat', 'nostrcheck.me', 'blossom.primal.net'];
+    
+    // For nostr.build, use their thumbnail format
+    if (urlObj.hostname.includes('nostr.build')) {
+      if (!urlObj.searchParams.has('w')) {
+        urlObj.searchParams.set('w', '15'); // Tiny size for instant blur load
+      }
+      return urlObj.toString();
+    }
+    
+    // For primal.net, skip blur - just return original
+    if (urlObj.hostname.includes('primal.net')) {
+      return url;
+    }
+    
+    // For other Blossom servers that support resizing
+    const blossomDomains = ['satellite.earth', 'void.cat', 'nostrcheck.me'];
     const isBlossomServer = blossomDomains.some(domain => urlObj.hostname.includes(domain));
     
     if (isBlossomServer) {
-      // For nostr.build, use their thumbnail format
-      if (urlObj.hostname.includes('nostr.build')) {
-        if (!urlObj.searchParams.has('w')) {
-          urlObj.searchParams.set('w', '15'); // Tiny size for instant blur load
-        }
-        return urlObj.toString();
-      }
-      
-      // For other Blossom servers
       urlObj.search = '';
       urlObj.searchParams.set('w', '15');
       urlObj.searchParams.set('q', '15');
@@ -107,8 +114,9 @@ export function OptimizedImage({
   const [isLoaded, setIsLoaded] = useState(false);
   const [isError, setIsError] = useState(false);
   const [blurLoaded, setBlurLoaded] = useState(false);
-  // On mobile, load more aggressively - load immediately if thumbnail or priority
-  const [shouldLoad, setShouldLoad] = useState(priority || thumbnail); 
+  // On mobile, ALWAYS load immediately for thumbnails and priority images
+  const isMobileDevice = typeof window !== 'undefined' && window.innerWidth < 768;
+  const [shouldLoad, setShouldLoad] = useState(priority || thumbnail || isMobileDevice); 
   const containerRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
 
@@ -122,6 +130,21 @@ export function OptimizedImage({
   const quality = thumbnail ? (isMobile ? 50 : 75) : 80;
   const thumbnailUrl = getThumbnailUrl(src, width, quality);
   const blurUrl = blurUp ? getBlurPlaceholderUrl(src) : null;
+
+  // Debug logging for first few images
+  if (priority && typeof window !== 'undefined') {
+    console.log('🖼️ OptimizedImage:', {
+      alt,
+      isMobile: isMobileDevice,
+      thumbnail,
+      priority,
+      shouldLoad,
+      src: src.substring(0, 50) + '...',
+      thumbnailUrl: thumbnailUrl.substring(0, 50) + '...',
+      width,
+      quality,
+    });
+  }
 
   // Intersection Observer for lazy loading non-priority images
   useEffect(() => {
@@ -177,12 +200,19 @@ export function OptimizedImage({
   };
 
   const handleError = () => {
-    console.error('Image failed to load:', thumbnailUrl);
+    console.error('❌ Image failed to load:', {
+      thumbnailUrl,
+      originalSrc: src,
+      isMobile: isMobileDevice,
+      thumbnail,
+      priority,
+      shouldLoad,
+    });
     setIsError(true);
     
     // On mobile, try loading the original URL if thumbnail fails
     if (thumbnail && thumbnailUrl !== src && imgRef.current) {
-      console.log('Retrying with original URL:', src);
+      console.log('🔄 Retrying with original URL:', src);
       imgRef.current.src = src;
     }
   };
@@ -222,9 +252,9 @@ export function OptimizedImage({
           ref={imgRef}
           src={thumbnailUrl}
           alt={alt}
-          loading={priority || thumbnail ? 'eager' : 'lazy'}
+          loading={priority ? 'eager' : 'lazy'}
           decoding="async"
-          fetchPriority={priority || thumbnail ? 'high' : 'auto'}
+          fetchPriority={priority ? 'high' : 'auto'}
           onLoad={handleLoad}
           onError={handleError}
           className={cn(

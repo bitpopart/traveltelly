@@ -939,7 +939,6 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                               thumbnail={true}
                               priority={isPriority || isFirstImage} // First image ALWAYS has priority
                               aspectRatio="1/1"
-                              loading={isFirstImage ? 'eager' : isPriority ? 'eager' : 'lazy'}
                             />
                             {/* Type icon overlay - colored round button */}
                             <div className="absolute top-2 right-2 z-10">
