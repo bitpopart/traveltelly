@@ -95,6 +95,7 @@ export function useInfiniteImages() {
       const stockAuthors = Array.from(authorizedUploaders || []);
       
       // Build filters with pagination (until parameter)
+      // Reduced limits for faster mobile loading (~10 images per page)
       const filters = [];
       
       // Reviews filter
@@ -102,7 +103,7 @@ export function useInfiniteImages() {
         filters.push({
           kinds: [34879],
           authors: authorizedAuthors,
-          limit: 20,
+          limit: 10, // Reduced for mobile performance
           ...(pageParam && { until: pageParam }),
         });
       }
@@ -111,7 +112,7 @@ export function useInfiniteImages() {
       filters.push({
         kinds: [30025],
         authors: [ADMIN_HEX],
-        limit: 20,
+        limit: 10, // Reduced for mobile performance
         ...(pageParam && { until: pageParam }),
       });
       
@@ -119,7 +120,7 @@ export function useInfiniteImages() {
       filters.push({
         kinds: [30023],
         authors: [ADMIN_HEX],
-        limit: 20,
+        limit: 10, // Reduced for mobile performance
         ...(pageParam && { until: pageParam }),
       });
       
@@ -128,7 +129,7 @@ export function useInfiniteImages() {
         filters.push({
           kinds: [30402],
           authors: stockAuthors,
-          limit: 20,
+          limit: 10, // Reduced for mobile performance
           ...(pageParam && { until: pageParam }),
         });
       }

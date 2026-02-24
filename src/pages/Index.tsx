@@ -863,7 +863,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
           {viewMode === 'images' && !selectedLocationTag && (
             <div className="mb-8 md:mb-12">
               {allImages.length > 0 ? (
-                <div className="grid gap-1 md:gap-2 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                <div className="grid gap-2 md:gap-2 grid-cols-1 md:grid-cols-3 lg:grid-cols-4">
                   {(() => {
                     // allImages already includes ALL types: reviews, stories, trips, stock, AND tour items
                     // Just use them directly - they're already mixed by the hook
@@ -921,10 +921,10 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                         ? `${item.type}-${item.eventId}-${item.image}` 
                         : `${item.type}-${item.naddr}`;
 
-                      // Mobile: 8 images (2 cols × 4 rows), Desktop: 12 images
+                      // Mobile: 5 images (1 col × 5 rows), Desktop: 12 images
                       // Priority images load immediately for instant display
                       const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-                      const priorityCount = isMobile ? 8 : 12;
+                      const priorityCount = isMobile ? 5 : 12;
                       const isPriority = index < priorityCount;
 
                       return (
@@ -955,8 +955,8 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                   })()}
                 </div>
               ) : imagesLoading ? (
-                <div className="grid gap-1 md:gap-2 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                  {Array.from({ length: 12 }).map((_, i) => (
+                <div className="grid gap-2 md:gap-2 grid-cols-1 md:grid-cols-3 lg:grid-cols-4">
+                  {Array.from({ length: 10 }).map((_, i) => (
                     <div key={i} className="aspect-square bg-gray-200 dark:bg-gray-700 animate-pulse" />
                   ))}
                 </div>

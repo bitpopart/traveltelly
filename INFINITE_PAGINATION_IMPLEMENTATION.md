@@ -11,7 +11,8 @@ Implemented infinite pagination for the homepage image grid to significantly imp
 **File**: `/src/hooks/useInfiniteImages.ts`
 
 - **Purpose**: Load images in paginated batches instead of all at once
-- **Page Size**: ~20 images per page (fetches 20 events of each type: reviews, trips, stories, stock media)
+- **Page Size**: ~10 images per page (fetches 10 events of each type: reviews, trips, stories, stock media)
+- **Optimized for Mobile**: Reduced page size for faster mobile loading
 - **Pagination Strategy**: Uses `until` parameter to fetch older events on subsequent pages
 - **Query Optimization**: All content types are queried in parallel using a single `nostr.query()` call with multiple filters
 
@@ -26,9 +27,12 @@ Implemented infinite pagination for the homepage image grid to significantly imp
 **Changes**:
 - Replaced `useAllImages()` with `useInfiniteImages()`
 - Flattens paginated data from `infiniteImagesData.pages`
+- **Mobile Layout**: Single column grid (`grid-cols-1`) for better mobile experience
+- **Desktop Layout**: 3-4 column grid (`md:grid-cols-3 lg:grid-cols-4`)
 - Added "Load More" button at the end of the image grid
 - Shows loading spinner while fetching next page
 - Button only appears when `hasNextPage` is true
+- **Priority Loading**: First 5 images on mobile, 12 on desktop load with priority
 
 ### 3. Performance Improvements
 
@@ -37,32 +41,41 @@ Implemented infinite pagination for the homepage image grid to significantly imp
 - All images loaded immediately
 - High bandwidth on initial page load
 - Slower initial render
+- 2-column grid on mobile (more images to load)
 
 **After**:
-- Initial load: ~80-100 events (20 × 4 content types + tour items)
-- Images loaded in batches of ~20 per page
-- 75-85% reduction in initial bandwidth
+- Initial load: ~40-50 events (10 × 4 content types + tour items)
+- Images loaded in batches of ~10 per page
+- **90%+ reduction** in initial bandwidth
 - Much faster initial render
 - User can load more on demand
+- **1-column grid on mobile** (less bandwidth, faster loading)
 
 ## User Experience
 
-1. **Initial View**: Homepage loads ~20 images instantly (mix of all content types)
+### Mobile (Single Column)
+1. **Initial View**: Homepage loads ~10 images instantly in a single column
 2. **Scroll Down**: User sees "Load More" button
-3. **Click "Load More"**: Next batch of ~20 images loads
+3. **Click "Load More"**: Next batch of ~10 images loads
+4. **Repeat**: Continue loading more images as needed
+
+### Desktop (Multi-Column)
+1. **Initial View**: Homepage loads ~10-15 images in 3-4 columns
+2. **Scroll Down**: User sees "Load More" button
+3. **Click "Load More"**: Next batch loads
 4. **Repeat**: Continue loading more images as needed
 
 ## Technical Details
 
 ### Query Strategy
 
-Each page fetches 20 events from each content type:
+Each page fetches 10 events from each content type (optimized for mobile):
 ```typescript
 const filters = [
-  { kinds: [34879], authors: [...], limit: 20, until: pageParam }, // Reviews
-  { kinds: [30025], authors: [ADMIN], limit: 20, until: pageParam }, // Trips
-  { kinds: [30023], authors: [ADMIN], limit: 20, until: pageParam }, // Stories
-  { kinds: [30402], authors: [...], limit: 20, until: pageParam }, // Stock Media
+  { kinds: [34879], authors: [...], limit: 10, until: pageParam }, // Reviews
+  { kinds: [30025], authors: [ADMIN], limit: 10, until: pageParam }, // Trips
+  { kinds: [30023], authors: [ADMIN], limit: 10, until: pageParam }, // Stories
+  { kinds: [30402], authors: [...], limit: 10, until: pageParam }, // Stock Media
 ];
 ```
 
@@ -80,12 +93,16 @@ The `until` parameter is set to the `created_at` timestamp of the oldest event i
 
 ## Benefits
 
-✅ **Faster Initial Load**: 75-85% reduction in data fetched on first view
+✅ **Faster Initial Load**: 90%+ reduction in data fetched on first view
 ✅ **Better Performance**: Smaller initial bundle, faster rendering
 ✅ **Reduced Bandwidth**: Only load what the user sees
 ✅ **Scalable**: Works efficiently even with thousands of images
 ✅ **User Control**: Users decide how much content to load
-✅ **Mobile Friendly**: Especially beneficial on slower connections
+✅ **Mobile Optimized**: 
+  - Single column layout for easier browsing
+  - Smaller page size (~10 images) for faster loading
+  - Priority loading for first 5 images
+  - Ideal for slower mobile connections
 
 ## Backward Compatibility
 
@@ -102,11 +119,20 @@ Potential improvements for the future:
 
 ## Testing
 
-To verify the implementation:
-
+### Desktop Testing
 1. Open the homepage in image grid view
 2. Check browser DevTools Network tab
-3. Observe initial query loads ~80-100 events instead of 600
-4. Scroll to bottom and click "Load More"
-5. Verify additional ~80-100 events are loaded
-6. Repeat to confirm pagination continues correctly
+3. Observe initial query loads ~40-50 events instead of 600
+4. Verify 3-4 column grid layout
+5. Scroll to bottom and click "Load More"
+6. Verify additional ~40-50 events are loaded
+7. Repeat to confirm pagination continues correctly
+
+### Mobile Testing
+1. Open in mobile view or resize browser to mobile width
+2. Verify **single column** grid layout
+3. Check that initial load is ~40-50 events (not 600)
+4. Confirm first 5 images load with priority (faster)
+5. Scroll to "Load More" button
+6. Click and verify next batch loads quickly
+7. Test on actual mobile device with slow 3G/4G connection
