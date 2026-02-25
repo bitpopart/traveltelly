@@ -455,7 +455,7 @@ export default function Stories() {
   const { user } = useCurrentUser();
   const [searchParams, setSearchParams] = useSearchParams();
   const [storyType, setStoryType] = useState<'write' | 'video'>(
-    (searchParams.get('type') as 'write' | 'video') || 'write'
+    (searchParams.get('type') as 'write' | 'video') || 'video'
   );
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'browse');
 
@@ -502,33 +502,33 @@ export default function Stories() {
             </div>
           </div>
 
-          {/* Story Type Selection - Mobile Optimized */}
+          {/* Story Type Selection - Mobile Optimized with Rounded Design */}
           <div className="mb-4 md:mb-6">
             <div className="flex gap-2 md:gap-4 flex-wrap">
               <Button
-                variant={storyType === 'write' ? 'default' : 'outline'}
-                onClick={() => handleStoryTypeChange('write')}
-                className={`flex-1 min-w-[140px] md:min-w-[200px] h-auto py-3 md:py-6 ${storyType === 'write' ? 'bg-green-600 hover:bg-green-700 text-white' : 'border-2'}`}
-              >
-                <div className="flex flex-col items-center gap-1 md:gap-2">
-                  <FileText className="w-5 h-5 md:w-6 md:h-6" />
-                  <div>
-                    <div className="font-semibold text-sm md:text-base">Written Stories</div>
-                    <div className="text-[10px] md:text-xs opacity-80 hidden sm:block">Long-form travel articles</div>
-                  </div>
-                </div>
-              </Button>
-
-              <Button
                 variant={storyType === 'video' ? 'default' : 'outline'}
                 onClick={() => handleStoryTypeChange('video')}
-                className={`flex-1 min-w-[140px] md:min-w-[200px] h-auto py-3 md:py-6 ${storyType === 'video' ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'border-2'}`}
+                className={`flex-1 min-w-[140px] md:min-w-[200px] h-auto py-3 md:py-6 rounded-xl ${storyType === 'video' ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-lg' : 'border-2 hover:border-purple-300'}`}
               >
                 <div className="flex flex-col items-center gap-1 md:gap-2">
                   <Video className="w-5 h-5 md:w-6 md:h-6" />
                   <div>
                     <div className="font-semibold text-sm md:text-base">Video Stories</div>
                     <div className="text-[10px] md:text-xs opacity-80 hidden sm:block">6-second travel clips</div>
+                  </div>
+                </div>
+              </Button>
+
+              <Button
+                variant={storyType === 'write' ? 'default' : 'outline'}
+                onClick={() => handleStoryTypeChange('write')}
+                className={`flex-1 min-w-[140px] md:min-w-[200px] h-auto py-3 md:py-6 rounded-xl ${storyType === 'write' ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg' : 'border-2 hover:border-green-300'}`}
+              >
+                <div className="flex flex-col items-center gap-1 md:gap-2">
+                  <FileText className="w-5 h-5 md:w-6 md:h-6" />
+                  <div>
+                    <div className="font-semibold text-sm md:text-base">Written Stories</div>
+                    <div className="text-[10px] md:text-xs opacity-80 hidden sm:block">Long-form travel articles</div>
                   </div>
                 </div>
               </Button>

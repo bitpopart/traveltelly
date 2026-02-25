@@ -15,9 +15,10 @@ import { useUploadFile } from '@/hooks/useUploadFile';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
 import { useReviewCategories } from '@/hooks/useReviewCategories';
+import { useRecentVideos } from '@/hooks/useRecentVideos';
 import { createClawstrPost } from '@/lib/clawstr';
 import { PermissionGate } from '@/components/PermissionGate';
-import { Camera, MapPin, Star, Upload, Loader2, Zap } from 'lucide-react';
+import { Camera, MapPin, Star, Upload, Loader2, Zap, Video } from 'lucide-react';
 import { LocationMap } from '@/components/LocationMap';
 import { extractGPSFromImage, canContainEXIF } from '@/lib/exifUtils';
 import { compressImage, COMPRESSION_PRESETS } from '@/lib/imageCompression';
@@ -28,6 +29,8 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import * as geohash from 'ngeohash';
 import { testGeohashAccuracy, getGeohashPrecisionInfo } from '@/lib/geohashTest';
 import { trackCoordinates, analyzeCoordinateDrift } from '@/lib/coordinateVerification';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import type { NostrEvent } from '@nostrify/nostrify';
 
 const reviewSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -65,16 +68,21 @@ function encodeGeohash(lat: number, lng: number, precision = 8): string {
 function CreateReviewFormContent() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [selectedVideoThumbnail, setSelectedVideoThumbnail] = useState<string | null>(null);
   const [additionalPhotos, setAdditionalPhotos] = useState<string[]>([]);
   const [location, setLocation] = useState<LocationData | null>(null);
   const [showMap, setShowMap] = useState(false);
   const [extractingLocation, setExtractingLocation] = useState(false);
+  const [thumbnailSource, setThumbnailSource] = useState<'photo' | 'video'>('photo');
 
   // Get current user for naddr creation
   const { user } = useCurrentUser();
 
   // Load dynamic categories
   const { data: categories = [], isLoading: categoriesLoading } = useReviewCategories();
+  
+  // Load recent videos for thumbnail selection
+  const { data: recentVideos = [], isLoading: videosLoading } = useRecentVideos();
 
   // Test geohash accuracy in development
   React.useEffect(() => {
@@ -224,8 +232,10 @@ function CreateReviewFormContent() {
     try {
       let imageUrl = '';
 
-      // Upload image if selected
-      if (selectedFile) {
+      // Use video thumbnail if selected, otherwise upload photo
+      if (thumbnailSource === 'video' && selectedVideoThumbnail) {
+        imageUrl = selectedVideoThumbnail;
+      } else if (selectedFile) {
         const [[_, url]] = await uploadFile(selectedFile);
         imageUrl = url;
       }
@@ -456,71 +466,181 @@ ${data.content || data.description || ''}
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-      {/* Photo Upload */}
+      {/* Photo/Video Thumbnail Upload */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Camera className="w-5 h-5" />
-            Upload Photo
+            Thumbnail
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-center w-full">
-              <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-bray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600">
-                {imagePreview ? (
-                  <img src={imagePreview} alt="Preview" className="w-full h-full object-cover rounded-lg" />
-                ) : (
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <Upload className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" />
-                    <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-                      <span className="font-semibold">Click to upload</span> a photo
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      GPS location will be extracted automatically from iPhone photos (HEIC/JPEG) and placed on the map
-                    </p>
+          <Tabs value={thumbnailSource} onValueChange={(value) => setThumbnailSource(value as 'photo' | 'video')} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="photo" className="flex items-center gap-2">
+                <Camera className="w-4 h-4" />
+                Upload Photo
+              </TabsTrigger>
+              <TabsTrigger value="video" className="flex items-center gap-2">
+                <Video className="w-4 h-4" />
+                Trip Video
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="photo" className="mt-0">
+              <div className="space-y-4">
+                <div className="flex items-center justify-center w-full">
+                  <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-bray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600">
+                    {imagePreview ? (
+                      <img src={imagePreview} alt="Preview" className="w-full h-full object-cover rounded-lg" />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <Upload className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" />
+                        <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
+                          <span className="font-semibold">Click to upload</span> a photo
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          GPS location will be extracted automatically from iPhone photos (HEIC/JPEG) and placed on the map
+                        </p>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/jpeg,image/jpg,image/tiff,image/tif,image/heic,image/heif,image/png,image/webp"
+                      onChange={handleFileSelect}
+                    />
+                  </label>
+                </div>
+
+                {extractingLocation && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Extracting GPS location from photo EXIF data...
                   </div>
                 )}
-                <input
-                  type="file"
-                  className="hidden"
-                  accept="image/jpeg,image/jpg,image/tiff,image/tif,image/heic,image/heif,image/png,image/webp"
-                  onChange={handleFileSelect}
-                />
-              </label>
-            </div>
 
-            {extractingLocation && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Extracting GPS location from photo EXIF data...
+                {selectedFile && !extractingLocation && !location && (
+                  <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                      💡 <strong>Tip:</strong> For automatic GPS extraction, use photos taken with:
+                    </p>
+                    <ul className="text-xs text-blue-600 dark:text-blue-400 mt-1 ml-4 list-disc">
+                      <li>Location services enabled on your iPhone/camera</li>
+                      <li>Original HEIC/JPEG files (not edited or compressed)</li>
+                      <li>Photos taken directly from camera apps (not screenshots)</li>
+                    </ul>
+                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                      If no GPS data is found, you can manually select the location on the map below.
+                    </p>
+                    <details className="mt-2">
+                      <summary className="text-xs text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">
+                        🔍 Debug: Check what EXIF data is available
+                      </summary>
+                      <p className="text-xs text-blue-500 dark:text-blue-300 mt-1">
+                        Open browser console (F12) and re-upload your photo to see detailed GPS extraction logs.
+                      </p>
+                    </details>
+                  </div>
+                )}
               </div>
-            )}
-
-            {selectedFile && !extractingLocation && !location && (
-              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <p className="text-sm text-blue-700 dark:text-blue-300">
-                  💡 <strong>Tip:</strong> For automatic GPS extraction, use photos taken with:
-                </p>
-                <ul className="text-xs text-blue-600 dark:text-blue-400 mt-1 ml-4 list-disc">
-                  <li>Location services enabled on your iPhone/camera</li>
-                  <li>Original HEIC/JPEG files (not edited or compressed)</li>
-                  <li>Photos taken directly from camera apps (not screenshots)</li>
-                </ul>
-                <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
-                  If no GPS data is found, you can manually select the location on the map below.
-                </p>
-                <details className="mt-2">
-                  <summary className="text-xs text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">
-                    🔍 Debug: Check what EXIF data is available
-                  </summary>
-                  <p className="text-xs text-blue-500 dark:text-blue-300 mt-1">
-                    Open browser console (F12) and re-upload your photo to see detailed GPS extraction logs.
-                  </p>
-                </details>
+            </TabsContent>
+            
+            <TabsContent value="video" className="mt-0">
+              <div className="space-y-4">
+                {videosLoading ? (
+                  <div className="flex items-center justify-center h-64 text-muted-foreground">
+                    <Loader2 className="w-8 h-8 animate-spin mr-2" />
+                    Loading recent videos...
+                  </div>
+                ) : recentVideos.length === 0 ? (
+                  <div className="p-8 text-center border-2 border-dashed rounded-lg">
+                    <Video className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground mb-2">No trip videos available yet</p>
+                    <p className="text-xs text-muted-foreground">
+                      Upload videos on the Stories page to use them as review thumbnails
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      Select a video from your recent uploads to use as thumbnail:
+                    </p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-96 overflow-y-auto">
+                      {recentVideos.slice(0, 12).map((video: NostrEvent) => {
+                        // Extract thumbnail from imeta tag
+                        const imetaTag = video.tags.find(([name]) => name === 'imeta');
+                        let thumbUrl = '';
+                        let videoUrl = '';
+                        
+                        if (imetaTag) {
+                          for (let i = 1; i < imetaTag.length; i++) {
+                            const part = imetaTag[i];
+                            if (part.startsWith('image ')) {
+                              thumbUrl = part.substring(6);
+                            } else if (part.startsWith('url ')) {
+                              videoUrl = part.substring(4);
+                            }
+                          }
+                        }
+                        
+                        // Fallback to legacy tags
+                        if (!thumbUrl) {
+                          thumbUrl = video.tags.find(([name]) => name === 'thumb')?.[1] || '';
+                        }
+                        if (!videoUrl) {
+                          videoUrl = video.tags.find(([name]) => name === 'url')?.[1] || '';
+                        }
+                        
+                        const title = video.tags.find(([name]) => name === 'title')?.[1] || 'Untitled';
+                        const isSelected = selectedVideoThumbnail === thumbUrl;
+                        
+                        return (
+                          <button
+                            key={video.id}
+                            type="button"
+                            onClick={() => setSelectedVideoThumbnail(thumbUrl)}
+                            className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all ${
+                              isSelected 
+                                ? 'border-purple-500 ring-2 ring-purple-200 dark:ring-purple-800' 
+                                : 'border-gray-200 dark:border-gray-700 hover:border-purple-300'
+                            }`}
+                          >
+                            {thumbUrl ? (
+                              <img src={thumbUrl} alt={title} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                                <Video className="w-8 h-8 text-gray-400" />
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                              <Video className="w-6 h-6 text-white" />
+                            </div>
+                            {isSelected && (
+                              <div className="absolute top-2 right-2 w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center">
+                                <span className="text-white text-xs">✓</span>
+                              </div>
+                            )}
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                              <p className="text-xs text-white font-medium line-clamp-1">{title}</p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {selectedVideoThumbnail && (
+                      <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                        <p className="text-sm text-purple-700 dark:text-purple-300 flex items-center gap-2">
+                          <Video className="w-4 h-4" />
+                          <strong>Video thumbnail selected!</strong> This will be used as your review thumbnail.
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
-            )}
-          </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 
