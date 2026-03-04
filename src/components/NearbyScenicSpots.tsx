@@ -81,7 +81,7 @@ function useNearbyStockMedia(geohashStr: string) {
         geohashPrefixes.map(prefix => ({
           kinds: [30402],
           '#g': [prefix],
-          limit: 50,
+          limit: 20,
         })),
         { signal }
       );

@@ -185,7 +185,7 @@ export function useUnifiedSearch(query: string) {
           const reviewEvents = await nostr.query([{
             kinds: [34879],
             authors: Array.from(authorizedReviewers),
-            limit: 50,
+            limit: 20,
           }], { signal });
 
           const reviewResults = reviewEvents
@@ -209,7 +209,7 @@ export function useUnifiedSearch(query: string) {
         const storyEvents = await nostr.query([{
           kinds: [30023],
           authors: [ADMIN_HEX],
-          limit: 50,
+          limit: 20,
         }], { signal });
 
         const storyResults = storyEvents
@@ -231,7 +231,7 @@ export function useUnifiedSearch(query: string) {
           const mediaEvents = await nostr.query([{
             kinds: [30402],
             authors: Array.from(authorizedUploaders),
-            limit: 50,
+            limit: 20,
           }], { signal });
 
           const mediaResults = mediaEvents
@@ -261,7 +261,7 @@ export function useUnifiedSearch(query: string) {
         const tripEvents = await nostr.query([{
           kinds: [30025],
           authors: [ADMIN_HEX],
-          limit: 50,
+          limit: 20,
         }], { signal });
 
         const tripResults = tripEvents
@@ -324,7 +324,7 @@ export function useSearchSuggestions() {
           const reviewEvents = await nostr.query([{
             kinds: [34879],
             authors: Array.from(authorizedReviewers),
-            limit: 100,
+            limit: 20,
           }], { signal });
 
           reviewEvents.forEach(event => {
@@ -340,7 +340,7 @@ export function useSearchSuggestions() {
         const storyEvents = await nostr.query([{
           kinds: [30023],
           authors: [ADMIN_HEX],
-          limit: 50,
+          limit: 20,
         }], { signal });
 
         storyEvents.forEach(event => {
@@ -356,7 +356,7 @@ export function useSearchSuggestions() {
           const mediaEvents = await nostr.query([{
             kinds: [30402],
             authors: Array.from(authorizedUploaders),
-            limit: 100,
+            limit: 20,
           }], { signal });
 
           mediaEvents.forEach(event => {

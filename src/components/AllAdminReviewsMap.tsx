@@ -603,7 +603,7 @@ function useStories() {
         {
           kinds: [30023], // NIP-23 Long-form content
           authors: [ADMIN_HEX], // Only from Traveltelly admin
-          limit: 50,
+          limit: 20,
         }
       ], { signal });
       return events;
@@ -719,18 +719,13 @@ export function AllAdminReviewsMap({ zoomToLocation, onLocationChange, showTitle
 
   // Auto-refresh every 30 seconds
   useEffect(() => {
-    const interval = setInterval(() => {
-      console.log('🔄 Auto-refreshing map data...');
-      refetch();
-    }, 30000); // 30 seconds
-
+    const interval = setInterval(() => { refetch(); }, 30000);
     return () => clearInterval(interval);
   }, [refetch]);
 
   // Auto-load all pages
   useEffect(() => {
     if (hasNextPage && !isFetchingNextPage) {
-      console.log('🔄 Auto-loading next page of admin reviews...');
       fetchNextPage();
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);

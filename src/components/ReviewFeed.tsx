@@ -302,7 +302,7 @@ export function ReviewFeed() {
       const events = await nostr.query([{
         kinds: [34879],
         authors: authorizedAuthors, // Only query for authorized authors
-        limit: 50
+        limit: 20,
       }], { signal });
 
       return events

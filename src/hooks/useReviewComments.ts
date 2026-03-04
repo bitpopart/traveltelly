@@ -31,7 +31,7 @@ export function useReviewComments(reviewNaddr: string) {
       const events = await nostr.query([{
         kinds: [1111],
         '#A': [reviewNaddr],
-        limit: 100,
+        limit: 20,
       }], { signal });
 
       const validComments = events.filter(validateCommentEvent);

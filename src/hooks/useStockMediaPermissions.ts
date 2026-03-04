@@ -22,6 +22,7 @@ function npubToHex(npub: string): string {
 }
 
 const ADMIN_HEX = npubToHex(ADMIN_NPUB);
+const ADMIN_ONLY_UPLOADERS_SET = new Set<string>([ADMIN_HEX]);
 
 interface StockMediaPermissionRequest extends NostrEvent {
   kind: 31492; // Custom kind for stock media permission requests
@@ -114,7 +115,7 @@ export function useStockMediaPermissionRequests() {
       const events = await nostr.query([{
         kinds: [31492],
         '#request_type': ['stock_media_permission'],
-        limit: 50,
+        limit: 20,
       }], { signal });
 
       const validRequests = events.filter(validateStockMediaPermissionRequest);
@@ -124,7 +125,7 @@ export function useStockMediaPermissionRequests() {
         kinds: [30384],
         authors: [ADMIN_HEX],
         '#grant_type': ['stock_media_permission'],
-        limit: 100,
+        limit: 20,
       }], { signal });
 
       const validGrants = grants.filter(validateStockMediaPermissionGrant);
@@ -137,7 +138,7 @@ export function useStockMediaPermissionRequests() {
         kinds: [30384],
         authors: [ADMIN_HEX],
         '#grant_type': ['stock_media_permission_blocked'],
-        limit: 100,
+        limit: 20,
       }], { signal });
 
       const blockedPubkeys = new Set(
@@ -314,11 +315,11 @@ export function useAuthorizedMediaUploaders() {
         }
       });
 
-      console.log('📸 Authorized media uploaders:', Array.from(authorizedPubkeys));
       return authorizedPubkeys;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    initialData: ADMIN_ONLY_UPLOADERS_SET,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 }
 

@@ -1,5 +1,6 @@
 import { useSeoMeta } from '@unhead/react';
-import { useState, memo } from 'react';
+import { useState, memo, useEffect } from 'react';
+import { useInView } from 'react-intersection-observer';
 import { Navigation as NavigationComponent } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { LoginArea } from "@/components/auth/LoginArea";
@@ -506,22 +507,19 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
   
   // Flatten all pages of images into a single array
   const allImages = infiniteImagesData?.pages.flatMap(page => page.images) || [];
-  
+
+  // Sentinel fires 400px before reaching the bottom, triggering next page load
+  const { ref: sentinelRef, inView } = useInView({ threshold: 0, rootMargin: '400px' });
+  useEffect(() => {
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
   // Get TravelTelly Tour photos
   const { data: tourItems = [] } = useTravelTellyTour();
 
-  // Debug logging
-  console.log('📊 Homepage state:', {
-    viewMode,
-    selectedLocationTag,
-    allImagesCount: allImages.length,
-    imagesLoading,
-    latestReview: latestReview ? { title: latestReview.title, hasImage: !!latestReview.image } : null,
-    latestStory: latestStory ? { title: latestStory.title, hasImage: !!latestStory.image } : null,
-    latestStockMedia: latestStockMedia ? { title: latestStockMedia.title, hasImage: !!latestStockMedia.image } : null,
-    latestTrip: latestTrip ? { title: latestTrip.title, hasImage: !!latestTrip.image } : null,
-    tourPhotos: tourItems.length,
-  });
+
 
   useSeoMeta({
     title: 'Traveltelly - Nostr Powered Travel Community',
@@ -935,8 +933,8 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
               ) : imagesLoading ? (
                 <div className="grid gap-2 md:gap-2 grid-cols-1 md:grid-cols-3 lg:grid-cols-4">
                   {/* Show fewer skeletons on mobile for faster perceived loading */}
-                  {Array.from({ length: typeof window !== 'undefined' && window.innerWidth < 768 ? 5 : 10 }).map((_, i) => (
-                    <div key={i} className="aspect-square bg-gray-200 dark:bg-gray-700 animate-pulse" />
+                  {Array.from({ length: 20 }).map((_, i) => (
+                    <div key={i} className="aspect-square bg-gray-200 dark:bg-gray-700 animate-pulse rounded-sm" />
                   ))}
                 </div>
               ) : (
@@ -953,28 +951,12 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                 </Card>
               )}
               
-              {/* Load More Button */}
-              {allImages.length > 0 && hasNextPage && (
-                <div className="mt-6 flex justify-center">
-                  <Button
-                    onClick={() => fetchNextPage()}
-                    disabled={isFetchingNextPage}
-                    size="lg"
-                    variant="outline"
-                    className="rounded-full px-8"
-                  >
-                    {isFetchingNextPage ? (
-                      <>
-                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                        Loading...
-                      </>
-                    ) : (
-                      <>
-                        Load More
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </>
-                    )}
-                  </Button>
+              {/* Infinite scroll sentinel */}
+              {allImages.length > 0 && (
+                <div ref={sentinelRef} className="mt-4 flex justify-center py-4">
+                  {isFetchingNextPage && (
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+                  )}
                 </div>
               )}
             </div>

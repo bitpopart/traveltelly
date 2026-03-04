@@ -1,8 +1,7 @@
 import { useNostr } from '@nostrify/react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import type { NostrEvent } from '@nostrify/nostrify';
-import { useAuthorizedReviewers } from './useAuthorizedReviewers';
-import { useAuthorizedMediaUploaders } from './useStockMediaPermissions';
+
 import { nip19 } from 'nostr-tools';
 import { useTravelTellyTour } from './useTravelTellyTour';
 
@@ -88,64 +87,22 @@ function isValidImageUrl(url: string): boolean {
  */
 export function useInfiniteImages() {
   const { nostr } = useNostr();
-  const { data: authorizedReviewers } = useAuthorizedReviewers();
-  const { data: authorizedUploaders } = useAuthorizedMediaUploaders();
   const { data: tourItems = [] } = useTravelTellyTour();
 
   return useInfiniteQuery({
     queryKey: ['infinite-images', tourItems?.length],
     queryFn: async ({ pageParam, signal }) => {
-      // Reduced timeout for faster mobile response
-      const abortSignal = AbortSignal.any([signal, AbortSignal.timeout(2000)]);
-      
+      const abortSignal = AbortSignal.any([signal, AbortSignal.timeout(5000)]);
+
       const images: ImageItem[] = [];
-      const authorizedAuthors = Array.from(authorizedReviewers || []);
-      const stockAuthors = Array.from(authorizedUploaders || []);
-      
-      // Build filters with pagination (until parameter)
-      // Super-optimized for mobile: 5 events per type = ~10-20 total events per page
-      const filters = [];
-      
-      // Reviews filter
-      if (authorizedAuthors.length > 0) {
-        filters.push({
-          kinds: [34879],
-          authors: authorizedAuthors,
-          limit: 5, // Ultra-reduced for instant mobile loading
-          ...(pageParam && { until: pageParam }),
-        });
-      }
-      
-      // Trips filter
-      filters.push({
-        kinds: [30025],
-        authors: [ADMIN_HEX],
-        limit: 5, // Ultra-reduced for instant mobile loading
-        ...(pageParam && { until: pageParam }),
-      });
-      
-      // Stories filter
-      filters.push({
-        kinds: [30023],
-        authors: [ADMIN_HEX],
-        limit: 5, // Ultra-reduced for instant mobile loading
-        ...(pageParam && { until: pageParam }),
-      });
-      
-      // Stock media filter
-      if (stockAuthors.length > 0) {
-        filters.push({
-          kinds: [30402],
-          authors: stockAuthors,
-          limit: 5, // Ultra-reduced for instant mobile loading
-          ...(pageParam && { until: pageParam }),
-        });
-      }
+      const until = pageParam as number | undefined;
 
-      // Query all content types in parallel
-      const events = await nostr.query(filters, { signal: abortSignal });
-
-      console.log(`📥 Infinite images page query: ${events.length} events (until: ${pageParam || 'now'})`);
+      const events = await nostr.query([{
+        kinds: [34879, 30025, 30023, 30402],
+        authors: [ADMIN_HEX],
+        limit: 20,
+        ...(until && { until }),
+      }], { signal: abortSignal });
 
       // Process events and extract images
       events.forEach((event: NostrEvent) => {
@@ -263,7 +220,6 @@ export function useInfiniteImages() {
 
       // Add TravelTelly Tour posts only on first page
       if (!pageParam && tourItems && tourItems.length > 0) {
-        console.log(`🌍 Adding ${tourItems.length} TravelTelly Tour posts to first page`);
         
         tourItems.forEach((item) => {
           // Add all images (videos are excluded by isValidImageUrl)
@@ -289,27 +245,16 @@ export function useInfiniteImages() {
       // Sort by created_at (newest first)
       const sortedImages = images.sort((a, b) => b.created_at - a.created_at);
       
-      // Get oldest timestamp for next page
+      // Cursor: oldest timestamp minus 1 to avoid re-fetching the boundary event
       const nextPageParam = sortedImages.length > 0
-        ? sortedImages[sortedImages.length - 1].created_at
+        ? sortedImages[sortedImages.length - 1].created_at - 1
         : undefined;
 
-      console.log(`✅ Returning ${sortedImages.length} images. Next page: ${nextPageParam || 'none'}`);
-      console.log('  📍 Reviews:', sortedImages.filter(i => i.type === 'review').length);
-      console.log('  📝 Stories:', sortedImages.filter(i => i.type === 'story').length);
-      console.log('  ✈️ Trips:', sortedImages.filter(i => i.type === 'trip').length);
-      console.log('  📸 Stock:', sortedImages.filter(i => i.type === 'stock').length);
-      console.log('  🌍 Tour:', sortedImages.filter(i => i.type === 'tour').length);
-
-      return {
-        images: sortedImages,
-        nextPageParam,
-      };
+      return { images: sortedImages, nextPageParam };
     },
     getNextPageParam: (lastPage) => lastPage.nextPageParam,
     initialPageParam: undefined as number | undefined,
-    enabled: !!authorizedReviewers && !!authorizedUploaders,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 }

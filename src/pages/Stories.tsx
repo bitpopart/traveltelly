@@ -410,12 +410,12 @@ function useStories(type: 'write' | 'video' = 'write') {
           {
             kinds: [34235, 34236],
             '#t': ['traveltelly'],
-            limit: 100,
+            limit: 20,
           },
           {
             kinds: [34235, 34236],
             authors: [adminPubkey],
-            limit: 100,
+            limit: 20,
           }
         ], { signal });
 
@@ -431,7 +431,7 @@ function useStories(type: 'write' | 'video' = 'write') {
           {
             kinds: [30023],
             '#t': ['traveltelly'],
-            limit: 100,
+            limit: 20,
           }
         ], { signal });
 

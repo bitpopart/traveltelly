@@ -25,7 +25,7 @@ export function useNewsletterSubscribers() {
       const events = await nostr.query([{
         kinds: [30080],
         authors: [ADMIN_HEX],
-        limit: 1000,
+        limit: 20,
       }], { signal });
 
       const subscribers = events
