@@ -30,7 +30,7 @@ export function useCustomers() {
       const events = await nostr.query([{
         kinds: [CUSTOMER_RECORD_KIND],
         authors: [ADMIN_HEX],
-        limit: 1000,
+        limit: 20,
       }], { signal });
 
       const customers: CustomerData[] = [];

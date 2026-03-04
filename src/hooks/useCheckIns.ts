@@ -23,7 +23,7 @@ export function useCheckIns() {
       const events = await nostr.query([
         {
           kinds: [30026],
-          limit: 200,
+          limit: 20,
         }
       ], { signal });
 
@@ -50,7 +50,7 @@ export function useUserCheckIns(pubkey?: string) {
         {
           kinds: [30026],
           authors: [pubkey],
-          limit: 50,
+          limit: 20,
         }
       ], { signal });
 

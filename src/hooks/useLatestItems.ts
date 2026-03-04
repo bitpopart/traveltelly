@@ -340,9 +340,8 @@ export function useLatestStories() {
         };
       });
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-    refetchInterval: 30000, // Auto-refresh every 30 seconds
+      staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 }
 
@@ -411,11 +410,8 @@ export function useLatestStockMedia() {
       };
     },
     
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 30000, // Auto-refresh every 30 seconds
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 }
 
@@ -443,7 +439,7 @@ export function useLatestStockMediaItems() {
         limit: 10 // Reduced for faster loading
       }], { signal });
 
-      console.log(`📸 Stock media items query: ${events.length} total events`);
+
 
       // Find products with images
       const productsWithImages = events
@@ -467,7 +463,7 @@ export function useLatestStockMediaItems() {
         .sort((a, b) => b.created_at - a.created_at)
         .slice(0, 3); // Get the last 3
 
-      console.log(`✅ Active stock media with images: ${productsWithImages.length}`);
+
 
       return productsWithImages.map((event) => {
         const image = event.tags.find(([name]) => name === 'image')?.[1];
@@ -510,79 +506,26 @@ export function useReviewCount() {
 }
 
 /**
- * Get total count of stories
+ * Get total count of stories (derived from the latest stories query, no extra relay request)
  */
 export function useStoryCount() {
-  const { nostr } = useNostr();
-
+  const { data: stories = [] } = useLatestStories();
   return useQuery({
-    queryKey: ['story-count'],
-    queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
-      
-      const events = await nostr.query([{
-        kinds: [30023],
-        authors: [ADMIN_HEX],
-        limit: 1000
-      }], { signal });
-
-      return events.length;
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: false, // Disabled auto-refresh for performance
+    queryKey: ['story-count-derived', stories.length],
+    queryFn: async () => stories.length,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
 /**
- * Get total count of stock media products
+ * Get total count of stock media products (derived from latest items query, no extra relay request)
  */
 export function useStockMediaCount() {
-  const { nostr } = useNostr();
-  const { data: authorizedUploaders } = useAuthorizedMediaUploaders();
-
+  const { data: items = [] } = useLatestStockMediaItems();
   return useQuery({
-    queryKey: ['stock-media-count', authorizedUploaders?.size],
-    queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      
-      const authorizedAuthors = Array.from(authorizedUploaders || []);
-      
-      if (authorizedAuthors.length === 0) {
-        return 0;
-      }
-
-      const events = await nostr.query([{
-        kinds: [30402],
-        authors: authorizedAuthors,
-        limit: 1000
-      }], { signal });
-
-      console.log(`📊 Stock media count query: ${events.length} total events from ${authorizedAuthors.length} authors`);
-
-      // Filter out deleted items
-      const activeProducts = events.filter(event => {
-        const status = event.tags.find(([name]) => name === 'status')?.[1];
-        const deleted = event.tags.find(([name]) => name === 'deleted')?.[1];
-        const adminDeleted = event.tags.find(([name]) => name === 'admin_deleted')?.[1];
-        
-        const isActive = status !== 'deleted' && deleted !== 'true' && adminDeleted !== 'true';
-        
-        if (!isActive) {
-          console.log(`🗑️ Filtering out deleted media: ${event.id.substring(0, 8)}`);
-        }
-        
-        return isActive;
-      });
-
-      console.log(`✅ Active stock media count: ${activeProducts.length}`);
-      return activeProducts.length;
-    },
-    
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-    refetchInterval: false, // Disabled auto-refresh for performance
-    refetchOnMount: false, // Don't refetch on mount if cached
-    refetchOnWindowFocus: false, // Don't refetch on focus for performance
+    queryKey: ['stock-media-count-derived', items.length],
+    queryFn: async () => items.length,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -695,33 +638,13 @@ export function useLatestTrips() {
 }
 
 /**
- * Get total count of trips
+ * Get total count of trips (derived from the latest trips query, no extra relay request)
  */
 export function useTripCount() {
-  const { nostr } = useNostr();
-
+  const { data: trips = [] } = useLatestTrips();
   return useQuery({
-    queryKey: ['trip-count'],
-    queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
-      
-      const events = await nostr.query([{
-        kinds: [30025],
-        limit: 1000
-      }], { signal });
-
-      // Filter valid trips
-      const validTrips = events.filter(event => {
-        const d = event.tags.find(([name]) => name === 'd')?.[1];
-        const title = event.tags.find(([name]) => name === 'title')?.[1];
-        const images = event.tags.filter(([name]) => name === 'image');
-        
-        return !!(d && title && images.length > 0);
-      });
-
-      return validTrips.length;
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: false, // Disabled auto-refresh for performance
+    queryKey: ['trip-count-derived', trips.length],
+    queryFn: async () => trips.length,
+    staleTime: 5 * 60 * 1000,
   });
 }

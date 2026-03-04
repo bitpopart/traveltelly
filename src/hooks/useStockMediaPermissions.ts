@@ -115,7 +115,7 @@ export function useStockMediaPermissionRequests() {
       const events = await nostr.query([{
         kinds: [31492],
         '#request_type': ['stock_media_permission'],
-        limit: 50,
+        limit: 20,
       }], { signal });
 
       const validRequests = events.filter(validateStockMediaPermissionRequest);
@@ -125,7 +125,7 @@ export function useStockMediaPermissionRequests() {
         kinds: [30384],
         authors: [ADMIN_HEX],
         '#grant_type': ['stock_media_permission'],
-        limit: 100,
+        limit: 20,
       }], { signal });
 
       const validGrants = grants.filter(validateStockMediaPermissionGrant);
@@ -138,7 +138,7 @@ export function useStockMediaPermissionRequests() {
         kinds: [30384],
         authors: [ADMIN_HEX],
         '#grant_type': ['stock_media_permission_blocked'],
-        limit: 100,
+        limit: 20,
       }], { signal });
 
       const blockedPubkeys = new Set(

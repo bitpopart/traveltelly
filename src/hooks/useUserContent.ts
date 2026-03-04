@@ -17,7 +17,7 @@ export function useUserStories(pubkey?: string) {
         {
           kinds: [30023],
           authors: [pubkey],
-          limit: 50,
+          limit: 20,
         }
       ], { signal });
 
@@ -44,7 +44,7 @@ export function useUserTrips(pubkey?: string) {
         {
           kinds: [30025],
           authors: [pubkey],
-          limit: 50,
+          limit: 20,
         }
       ], { signal });
 
@@ -71,7 +71,7 @@ export function useUserMedia(pubkey?: string) {
         {
           kinds: [30402],
           authors: [pubkey],
-          limit: 100,
+          limit: 20,
         }
       ], { signal });
 

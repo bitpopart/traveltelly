@@ -107,28 +107,28 @@ export function useAllImages() {
         authorizedAuthors.length > 0 ? nostr.query([{
           kinds: [34879],
           authors: authorizedAuthors,
-          limit: 150,
+          limit: 20,
         }], { signal }) : Promise.resolve([]),
         
         // Trips - from admin only (main content source)
         nostr.query([{
           kinds: [30025],
           authors: [ADMIN_HEX],
-          limit: 150,
+          limit: 20,
         }], { signal }),
         
         // Stories - from admin only (main content source)
         nostr.query([{
           kinds: [30023],
           authors: [ADMIN_HEX],
-          limit: 150,
+          limit: 20,
         }], { signal }),
         
         // Stock Media - from all authorized uploaders
         stockAuthors.length > 0 ? nostr.query([{
           kinds: [30402],
           authors: stockAuthors,
-          limit: 150,
+          limit: 20,
         }], { signal }) : Promise.resolve([]),
       ]);
 

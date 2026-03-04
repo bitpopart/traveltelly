@@ -519,18 +519,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
   // Get TravelTelly Tour photos
   const { data: tourItems = [] } = useTravelTellyTour();
 
-  // Debug logging
-  console.log('📊 Homepage state:', {
-    viewMode,
-    selectedLocationTag,
-    allImagesCount: allImages.length,
-    imagesLoading,
-    latestReview: latestReview ? { title: latestReview.title, hasImage: !!latestReview.image } : null,
-    latestStory: latestStory ? { title: latestStory.title, hasImage: !!latestStory.image } : null,
-    latestStockMedia: latestStockMedia ? { title: latestStockMedia.title, hasImage: !!latestStockMedia.image } : null,
-    latestTrip: latestTrip ? { title: latestTrip.title, hasImage: !!latestTrip.image } : null,
-    tourPhotos: tourItems.length,
-  });
+
 
   useSeoMeta({
     title: 'Traveltelly - Nostr Powered Travel Community',
@@ -944,8 +933,8 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
               ) : imagesLoading ? (
                 <div className="grid gap-2 md:gap-2 grid-cols-1 md:grid-cols-3 lg:grid-cols-4">
                   {/* Show fewer skeletons on mobile for faster perceived loading */}
-                  {Array.from({ length: typeof window !== 'undefined' && window.innerWidth < 768 ? 5 : 10 }).map((_, i) => (
-                    <div key={i} className="aspect-square bg-gray-200 dark:bg-gray-700 animate-pulse" />
+                  {Array.from({ length: 20 }).map((_, i) => (
+                    <div key={i} className="aspect-square bg-gray-200 dark:bg-gray-700 animate-pulse rounded-sm" />
                   ))}
                 </div>
               ) : (

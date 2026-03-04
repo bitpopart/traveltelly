@@ -67,7 +67,7 @@ export function useMediaReviews(productEventId?: string) {
       const filter: NostrFilter = {
         kinds: [1985], // NIP-32 reviews
         '#e': [productEventId], // Reviews of this specific event
-        limit: 50,
+        limit: 20,
       };
 
       const events = await nostr.query([filter], { signal });

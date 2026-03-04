@@ -34,7 +34,7 @@ export function useArticleComments(articleId: string, articleAuthor: string, art
       const comments = await nostr.query([{
         kinds: [1111], // Comment events
         '#A': [`30023:${articleAuthor}:${articleIdentifier}`], // Root article reference
-        limit: 100,
+        limit: 20,
       }], { signal });
 
       // Filter and validate comments

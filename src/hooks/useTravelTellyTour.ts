@@ -108,23 +108,15 @@ export function useTravelTellyTour() {
   return useQuery({
     queryKey: ['traveltelly-tour'],
     queryFn: async (c) => {
-      console.log('🌍 TravelTelly Tour: Starting query...');
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]); // Increased to 5s for reliability
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
       
       try {
-        // Query kind 1 notes from admin with #traveltelly hashtag
         const events = await nostr.query([{
           kinds: [1],
           authors: [ADMIN_HEX],
           '#t': ['traveltelly'],
-          limit: 100, // Increased to get more posts
+          limit: 20,
         }], { signal });
-
-        console.log(`🌍 TravelTelly Tour: Found ${events.length} posts with #traveltelly from admin`);
-        
-        if (events.length > 0) {
-          console.log('📋 Sample event:', events[0]);
-        }
 
         // Filter to only posts with media and transform
         const tourItems: TravelTellyTourItem[] = events

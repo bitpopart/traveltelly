@@ -51,7 +51,7 @@ export function useTrips() {
       const events = await nostr.query([
         {
           kinds: [30025],
-          limit: 100,
+          limit: 20,
         }
       ], { signal });
 

@@ -49,7 +49,7 @@ export function useUserReviews(pubkey: string) {
       const events = await nostr.query([{
         kinds: [34879],
         authors: [pubkey],
-        limit: 50
+        limit: 20,
       }], { signal });
 
       return events

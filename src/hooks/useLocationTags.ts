@@ -186,25 +186,25 @@ export function useLocationTags(parentLocation?: string) {
         nostr.query([{
           kinds: [34879],
           authors: reviewAuthors,
-          limit: 200,
+          limit: 20,
         }], { signal }),
         // Trips
         nostr.query([{
           kinds: [30025],
           authors: [ADMIN_HEX],
-          limit: 100,
+          limit: 20,
         }], { signal }),
         // Stories
         nostr.query([{
           kinds: [30023],
           authors: [ADMIN_HEX],
-          limit: 100,
+          limit: 20,
         }], { signal }),
         // Stock Media
         nostr.query([{
           kinds: [30402],
           authors: mediaAuthors,
-          limit: 200,
+          limit: 20,
         }], { signal }),
       ]);
 

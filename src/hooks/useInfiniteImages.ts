@@ -1,8 +1,7 @@
 import { useNostr } from '@nostrify/react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import type { NostrEvent } from '@nostrify/nostrify';
-import { useAuthorizedReviewers } from './useAuthorizedReviewers';
-import { useAuthorizedMediaUploaders } from './useStockMediaPermissions';
+
 import { nip19 } from 'nostr-tools';
 import { useTravelTellyTour } from './useTravelTellyTour';
 
@@ -88,8 +87,6 @@ function isValidImageUrl(url: string): boolean {
  */
 export function useInfiniteImages() {
   const { nostr } = useNostr();
-  const { data: authorizedReviewers } = useAuthorizedReviewers();
-  const { data: authorizedUploaders } = useAuthorizedMediaUploaders();
   const { data: tourItems = [] } = useTravelTellyTour();
 
   return useInfiniteQuery({
@@ -98,18 +95,14 @@ export function useInfiniteImages() {
       const abortSignal = AbortSignal.any([signal, AbortSignal.timeout(5000)]);
 
       const images: ImageItem[] = [];
-      const authorizedAuthors = Array.from(authorizedReviewers || []);
-      const stockAuthors = Array.from(authorizedUploaders || []);
       const until = pageParam as number | undefined;
 
-      const filters = [
-        { kinds: [34879], authors: authorizedAuthors, limit: 20, ...(until && { until }) },
-        { kinds: [30025], authors: [ADMIN_HEX], limit: 20, ...(until && { until }) },
-        { kinds: [30023], authors: [ADMIN_HEX], limit: 20, ...(until && { until }) },
-        { kinds: [30402], authors: stockAuthors, limit: 20, ...(until && { until }) },
-      ];
-
-      const events = await nostr.query(filters, { signal: abortSignal });
+      const events = await nostr.query([{
+        kinds: [34879, 30025, 30023, 30402],
+        authors: [ADMIN_HEX],
+        limit: 20,
+        ...(until && { until }),
+      }], { signal: abortSignal });
 
       // Process events and extract images
       events.forEach((event: NostrEvent) => {
@@ -227,7 +220,6 @@ export function useInfiniteImages() {
 
       // Add TravelTelly Tour posts only on first page
       if (!pageParam && tourItems && tourItems.length > 0) {
-        console.log(`🌍 Adding ${tourItems.length} TravelTelly Tour posts to first page`);
         
         tourItems.forEach((item) => {
           // Add all images (videos are excluded by isValidImageUrl)
