@@ -14,7 +14,7 @@ interface AppProviderProps {
 }
 
 // Zod schema for AppConfig validation
-const AppConfigSchema: z.ZodType<AppConfig, z.ZodTypeDef, unknown> = z.object({
+const AppConfigSchema: z.ZodType<AppConfig> = z.object({
   theme: z.enum(['dark', 'light', 'system']),
   relayUrls: z.array(z.string().url()),
   mapProvider: z.enum(['openstreetmap', 'satellite']),

@@ -20,6 +20,7 @@ function npubToHex(npub: string): string {
 }
 
 const ADMIN_HEX = npubToHex(ADMIN_NPUB);
+const ADMIN_ONLY_SET = new Set<string>([ADMIN_HEX]);
 
 interface PermissionGrant extends NostrEvent {
   kind: 30383;
@@ -73,8 +74,9 @@ export function useAuthorizedReviewers() {
 
       return authorizedPubkeys;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    initialData: ADMIN_ONLY_SET,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 }
 

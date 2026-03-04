@@ -1,5 +1,6 @@
 import { useSeoMeta } from '@unhead/react';
-import { useState, memo } from 'react';
+import { useState, memo, useEffect } from 'react';
+import { useInView } from 'react-intersection-observer';
 import { Navigation as NavigationComponent } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { LoginArea } from "@/components/auth/LoginArea";
@@ -506,7 +507,15 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
   
   // Flatten all pages of images into a single array
   const allImages = infiniteImagesData?.pages.flatMap(page => page.images) || [];
-  
+
+  // Sentinel fires 400px before reaching the bottom, triggering next page load
+  const { ref: sentinelRef, inView } = useInView({ threshold: 0, rootMargin: '400px' });
+  useEffect(() => {
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
   // Get TravelTelly Tour photos
   const { data: tourItems = [] } = useTravelTellyTour();
 
@@ -953,28 +962,12 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                 </Card>
               )}
               
-              {/* Load More Button */}
-              {allImages.length > 0 && hasNextPage && (
-                <div className="mt-6 flex justify-center">
-                  <Button
-                    onClick={() => fetchNextPage()}
-                    disabled={isFetchingNextPage}
-                    size="lg"
-                    variant="outline"
-                    className="rounded-full px-8"
-                  >
-                    {isFetchingNextPage ? (
-                      <>
-                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                        Loading...
-                      </>
-                    ) : (
-                      <>
-                        Load More
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </>
-                    )}
-                  </Button>
+              {/* Infinite scroll sentinel */}
+              {allImages.length > 0 && (
+                <div ref={sentinelRef} className="mt-4 flex justify-center py-4">
+                  {isFetchingNextPage && (
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+                  )}
                 </div>
               )}
             </div>

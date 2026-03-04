@@ -75,7 +75,7 @@ export function useLatestReview() {
   return useQuery({
     queryKey: ['latest-review-with-image'],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(1000)]); // Reduced to 1s for faster initial load
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]); // Reduced to 1s for faster initial load
       
       const authorizedAuthors = Array.from(authorizedReviewers || []);
       const events = await nostr.query([{
@@ -116,7 +116,7 @@ export function useLatestReview() {
         event: reviewWithImage,
       };
     },
-    enabled: !!authorizedReviewers && authorizedReviewers.size > 0,
+    
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
@@ -132,7 +132,7 @@ export function useLatestReviews() {
   return useQuery({
     queryKey: ['latest-reviews-with-images'],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(1000)]); // Reduced to 1s
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]); // Reduced to 1s
       
       const authorizedAuthors = Array.from(authorizedReviewers || []);
       const events = await nostr.query([{
@@ -174,7 +174,7 @@ export function useLatestReviews() {
         };
       });
     },
-    enabled: !!authorizedReviewers && authorizedReviewers.size > 0,
+    
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     refetchInterval: false, // Disabled auto-refresh for performance
@@ -190,7 +190,7 @@ export function useLatestStory() {
   return useQuery({
     queryKey: ['latest-story-with-image'],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(1000)]); // Reduced to 1s
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]); // Reduced to 1s
       
       // Query for articles (kind 30023) from admin
       const events = await nostr.query([{
@@ -243,7 +243,7 @@ export function useLatestStories() {
   return useQuery({
     queryKey: ['latest-stories-with-images'],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(1000)]); // Reduced to 1s
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]); // Reduced to 1s
       
       // Query for both articles (kind 30023) and video stories (kinds 34235/34236)
       const events = await nostr.query([
@@ -356,7 +356,7 @@ export function useLatestStockMedia() {
   return useQuery({
     queryKey: ['latest-stock-media-with-image', authorizedUploaders?.size],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(1000)]); // Reduced to 1s
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]); // Reduced to 1s
       
       const authorizedAuthors = Array.from(authorizedUploaders || []);
       
@@ -410,7 +410,7 @@ export function useLatestStockMedia() {
         event: productWithImage,
       };
     },
-    enabled: !!authorizedUploaders && authorizedUploaders.size > 0,
+    
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes
     refetchInterval: 30000, // Auto-refresh every 30 seconds
@@ -429,7 +429,7 @@ export function useLatestStockMediaItems() {
   return useQuery({
     queryKey: ['latest-stock-media-items-with-images', authorizedUploaders?.size],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(1000)]); // Reduced to 1s
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]); // Reduced to 1s
       
       const authorizedAuthors = Array.from(authorizedUploaders || []);
       
@@ -488,7 +488,7 @@ export function useLatestStockMediaItems() {
         };
       });
     },
-    enabled: !!authorizedUploaders && authorizedUploaders.size > 0,
+    
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     refetchInterval: false, // Disabled auto-refresh for performance
@@ -577,7 +577,7 @@ export function useStockMediaCount() {
       console.log(`✅ Active stock media count: ${activeProducts.length}`);
       return activeProducts.length;
     },
-    enabled: !!authorizedUploaders && authorizedUploaders.size > 0,
+    
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     refetchInterval: false, // Disabled auto-refresh for performance
@@ -595,7 +595,7 @@ export function useLatestTrip() {
   return useQuery({
     queryKey: ['latest-trip-with-image'],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(1000)]); // Reduced to 1s
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]); // Reduced to 1s
       
       const events = await nostr.query([{
         kinds: [30025],
@@ -648,7 +648,7 @@ export function useLatestTrips() {
   return useQuery({
     queryKey: ['latest-trips-with-images'],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(1000)]); // Reduced to 1s
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]); // Reduced to 1s
       
       const events = await nostr.query([{
         kinds: [30025],
