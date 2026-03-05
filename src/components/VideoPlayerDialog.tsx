@@ -108,8 +108,8 @@ export function VideoPlayerDialog({ video, open, onOpenChange }: VideoPlayerDial
       return;
     }
 
-    // Open on divine.video using nostr reference
-    const divineUrl = `https://www.divine.video/v/nostr:${nostrRef}`;
+    // Open on divine.video — URL format: https://www.divine.video/{nip19}
+    const divineUrl = `https://www.divine.video/${nostrRef}`;
     window.open(divineUrl, '_blank', 'noopener,noreferrer');
 
     toast({

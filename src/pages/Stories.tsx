@@ -126,21 +126,21 @@ function VideoStoryCard({ story }: VideoStoryCardProps) {
   const aspectRatioClass = isPortrait ? 'aspect-[9/16]' : 'aspect-video';
 
   const handleShareToDevine = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent opening the dialog
+    e.stopPropagation();
 
-    // Build the nostr identifier: naddr for addressable kinds, nevent for regular kinds
+    // divine.video URL format: https://www.divine.video/{nip19}
+    // naddr for addressable kinds (34235/34236), nevent for regular kinds (21/22)
     const dTag = story.tags.find(([name]) => name === 'd')?.[1];
     const nostrRef = dTag
       ? nip19.naddrEncode({ kind: story.kind, pubkey: story.pubkey, identifier: dTag })
       : nip19.neventEncode({ id: story.id, author: story.pubkey });
 
-    // Open devine.video with the nostr event
-    const devineUrl = `https://www.divine.video/v/nostr:${nostrRef}`;
-    window.open(devineUrl, '_blank', 'noopener,noreferrer');
+    const divineUrl = `https://www.divine.video/${nostrRef}`;
+    window.open(divineUrl, '_blank', 'noopener,noreferrer');
 
     toast({
       title: 'Opening divine.video',
-      description: 'Share your video to your divine.video account',
+      description: 'Viewing your video on divine.video',
     });
   };
 
@@ -198,35 +198,6 @@ function VideoStoryCard({ story }: VideoStoryCardProps) {
                 {duration}
               </div>
             )}
-            
-            {/* Overlay action buttons */}
-            <div className="absolute bottom-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              {/* Boost to Nostr — only for own divine.video posts (kind 21/22) */}
-              {isDivineVideo && isOwnPost && (
-                <button
-                  onClick={handleBoostToNostr}
-                  disabled={isRebroadcasting}
-                  className="bg-orange-500 hover:bg-orange-600 disabled:opacity-70 text-white text-xs px-2 py-1 rounded flex items-center gap-1 shadow-lg"
-                  title="Boost to Nostr relays (Primal, Damus, etc.)"
-                >
-                  {isRebroadcasting ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <Radio className="w-3 h-3" />
-                  )}
-                  <span className="hidden sm:inline">{isRebroadcasting ? 'Boosting…' : 'Boost'}</span>
-                </button>
-              )}
-              {/* Share to divine.video */}
-              <button
-                onClick={handleShareToDevine}
-                className="bg-purple-600 hover:bg-purple-700 text-white text-xs px-2 py-1 rounded flex items-center gap-1 shadow-lg"
-                title="Open on divine.video"
-              >
-                <Share2 className="w-3 h-3" />
-                <span className="hidden sm:inline">divine</span>
-              </button>
-            </div>
           </div>
         )}
 
@@ -246,6 +217,35 @@ function VideoStoryCard({ story }: VideoStoryCardProps) {
                 {formatDistanceToNow(new Date(story.created_at * 1000), { addSuffix: true })}
               </p>
             </div>
+          </div>
+
+          {/* Action buttons — always visible, work on mobile too */}
+          <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+            {/* Boost to Nostr — only for own divine.video posts (kind 21/22) */}
+            {isDivineVideo && isOwnPost && (
+              <button
+                onClick={handleBoostToNostr}
+                disabled={isRebroadcasting}
+                className="bg-orange-500 hover:bg-orange-600 disabled:opacity-70 text-white text-xs px-2 py-1 rounded flex items-center gap-1"
+                title="Boost to Nostr (Primal, Damus, etc.)"
+              >
+                {isRebroadcasting ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Radio className="w-3 h-3" />
+                )}
+                <span>{isRebroadcasting ? 'Boosting…' : 'Boost'}</span>
+              </button>
+            )}
+            {/* Open on divine.video */}
+            <button
+              onClick={handleShareToDevine}
+              className="bg-purple-600 hover:bg-purple-700 text-white text-xs px-2 py-1 rounded flex items-center gap-1"
+              title="Open on divine.video"
+            >
+              <Share2 className="w-3 h-3" />
+              <span>divine</span>
+            </button>
           </div>
         </div>
 
