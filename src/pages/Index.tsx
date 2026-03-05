@@ -841,7 +841,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
           {viewMode === 'images' && !selectedLocationTag && (
             <div className="mb-8 md:mb-12">
               {allImages.length > 0 ? (
-                <div className="grid gap-2 md:gap-2 grid-cols-1 md:grid-cols-3 lg:grid-cols-4">
+                <div className="grid gap-1 md:gap-2 grid-cols-3 md:grid-cols-3 lg:grid-cols-4">
                   {(() => {
                     // allImages already includes ALL types: reviews, stories, trips, stock, AND tour items
                     // Just use them directly - they're already mixed by the hook
@@ -931,9 +931,9 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                   })()}
                 </div>
               ) : imagesLoading ? (
-                <div className="grid gap-2 md:gap-2 grid-cols-1 md:grid-cols-3 lg:grid-cols-4">
+                <div className="grid gap-1 md:gap-2 grid-cols-3 md:grid-cols-3 lg:grid-cols-4">
                   {/* Show fewer skeletons on mobile for faster perceived loading */}
-                  {Array.from({ length: 20 }).map((_, i) => (
+                  {Array.from({ length: 12 }).map((_, i) => (
                     <div key={i} className="aspect-square bg-gray-200 dark:bg-gray-700 animate-pulse rounded-sm" />
                   ))}
                 </div>

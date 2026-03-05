@@ -44,7 +44,7 @@ export function FastThumbnail({
 
 /**
  * Generate optimized thumbnail URL
- * Mobile: 200px width, Desktop: 400px width
+ * Mobile: 300px width (fits 3-col grid with 2x retina), Desktop: 400px width
  * Only applies to hosts that support it (nostr.build)
  */
 function getThumbnailUrl(url: string, isMobile: boolean): string {
@@ -53,7 +53,7 @@ function getThumbnailUrl(url: string, isMobile: boolean): string {
     
     // Only apply resize to nostr.build (most reliable)
     if (urlObj.hostname.includes('nostr.build')) {
-      const width = isMobile ? 200 : 400;
+      const width = isMobile ? 300 : 400;
       if (!urlObj.searchParams.has('w')) {
         urlObj.searchParams.set('w', width.toString());
       }
