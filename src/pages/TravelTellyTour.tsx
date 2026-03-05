@@ -53,6 +53,17 @@ export default function TravelTellyTour() {
                 // Get all media (images + videos)
                 const allMedia = [...item.images, ...item.videos];
                 
+                // Strip media URLs from content for display
+                const mediaSet = new Set(allMedia);
+                const cleanSnippet = item.content
+                  .split(/\s+/)
+                  .filter((word) => {
+                    try { return !mediaSet.has(new URL(word).href) && !mediaSet.has(word); }
+                    catch { return true; }
+                  })
+                  .join(' ')
+                  .trim();
+
                 return allMedia.map((mediaUrl, idx) => {
                   const isVideo = item.videos.includes(mediaUrl);
                   
@@ -91,7 +102,7 @@ export default function TravelTellyTour() {
                               <Globe className="w-3 h-3 text-white" />
                             </div>
                             <p className="text-white text-xs font-medium line-clamp-2">
-                              {item.content.slice(0, 60)}...
+                              {cleanSnippet.slice(0, 60)}{cleanSnippet.length > 60 ? '...' : ''}
                             </p>
                           </div>
                         </div>

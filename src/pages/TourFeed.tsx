@@ -71,6 +71,24 @@ export default function TourFeed() {
   const profileImage = metadata?.picture;
   const allMedia = [...item.images, ...item.videos];
 
+  // Build a synthetic event with media URLs stripped from the content
+  // so NoteContent doesn't show blossom/media URLs that are already
+  // displayed in the media grid below.
+  const mediaUrls = new Set(allMedia);
+  const cleanedContent = item.event.content
+    .split(/\s+/)
+    .filter((word) => {
+      try {
+        const url = new URL(word);
+        return !mediaUrls.has(url.href) && !mediaUrls.has(word);
+      } catch {
+        return true;
+      }
+    })
+    .join(' ')
+    .trim();
+  const cleanedEvent = { ...item.event, content: cleanedContent };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Navigation />
@@ -123,7 +141,7 @@ export default function TourFeed() {
             <CardContent className="space-y-4">
               {/* Content */}
               <div className="whitespace-pre-wrap break-words text-gray-900 dark:text-gray-100">
-                <NoteContent event={item.event} className="text-sm" />
+                <NoteContent event={cleanedEvent} className="text-sm" />
               </div>
 
               {/* Media Grid */}
