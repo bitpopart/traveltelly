@@ -16,9 +16,10 @@ import { AdminStoryManager } from '@/components/AdminStoryManager';
 import { CustomerManagement } from '@/components/CustomerManagement';
 import { NewsletterManager } from '@/components/NewsletterManager';
 import { AdminCommunityManager } from '@/components/AdminCommunityManager';
+import { BlossomDashboard } from '@/components/BlossomDashboard';
 import { useInitializeTestCustomer } from '@/hooks/useInitializeTestCustomer';
 import { nip19 } from 'nostr-tools';
-import { Shield, ArrowLeft, Camera, MessageSquare, Settings, Tag, FileImage, Coffee, MapPin, Upload, BookOpen, Smartphone, Clock, BarChart3, Crown, Users, Mail, Sparkles, UsersRound } from 'lucide-react';
+import { Shield, ArrowLeft, Camera, MessageSquare, Settings, Tag, FileImage, Coffee, MapPin, Upload, BookOpen, Smartphone, Clock, BarChart3, Crown, Users, Mail, Sparkles, UsersRound, HardDrive } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function AdminPanel() {
@@ -141,6 +142,14 @@ export default function AdminPanel() {
                     App Builder
                   </Button>
                 </Link>
+                <Button
+                  variant="default"
+                  className="bg-purple-700 hover:bg-purple-800"
+                  onClick={() => setActiveTab('blossom')}
+                >
+                  <HardDrive className="w-4 h-4 mr-2" />
+                  Blossom Files
+                </Button>
                 <Link to="/media-management">
                   <Button variant="default" className="bg-orange-600 hover:bg-orange-700">
                     <FileImage className="w-4 h-4 mr-2" />
@@ -207,7 +216,7 @@ export default function AdminPanel() {
 
           {/* Main Admin Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-2">
+            <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 lg:grid-cols-11 gap-2">
               <TabsTrigger value="manage-reviews" className="flex items-center gap-1.5 whitespace-nowrap px-3">
                 <MessageSquare className="w-4 h-4 flex-shrink-0" />
                 <span className="truncate">Reviews</span>
@@ -247,6 +256,10 @@ export default function AdminPanel() {
               <TabsTrigger value="media-management" className="flex items-center gap-1.5 whitespace-nowrap px-3">
                 <FileImage className="w-4 h-4 flex-shrink-0" />
                 <span className="truncate">Media Management</span>
+              </TabsTrigger>
+              <TabsTrigger value="blossom" className="flex items-center gap-1.5 whitespace-nowrap px-3">
+                <HardDrive className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">Blossom</span>
               </TabsTrigger>
             </TabsList>
 
@@ -288,6 +301,10 @@ export default function AdminPanel() {
 
             <TabsContent value="media-management" className="mt-6">
               <MediaManagement />
+            </TabsContent>
+
+            <TabsContent value="blossom" className="mt-6">
+              <BlossomDashboard />
             </TabsContent>
           </Tabs>
         </div>
