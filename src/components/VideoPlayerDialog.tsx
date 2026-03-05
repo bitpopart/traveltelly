@@ -89,17 +89,17 @@ export function VideoPlayerDialog({ video, open, onOpenChange }: VideoPlayerDial
     .filter((tag): tag is string => typeof tag === 'string' && tag.length > 0 && !['travel', 'traveltelly'].includes(tag))
     .slice(0, 5);
 
-  // Only create naddr if this is a video event (34235/34236) with an identifier
-  // Kind 1 notes don't have 'd' tags and shouldn't be treated as video events
-  const isVideoEvent = (video.kind === 34235 || video.kind === 34236) && identifier;
-  const naddr = isVideoEvent ? nip19.naddrEncode({
-    kind: video.kind,
-    pubkey: video.pubkey,
-    identifier,
-  }) : null;
+  // Support all NIP-71 video kinds: addressable (34235/34236) and regular (21/22 from diVine)
+  const isVideoEvent = [21, 22, 34235, 34236].includes(video.kind);
+  // Build nostr ref: naddr for addressable kinds, nevent for regular kinds
+  const nostrRef = isVideoEvent
+    ? identifier
+      ? nip19.naddrEncode({ kind: video.kind, pubkey: video.pubkey, identifier })
+      : nip19.neventEncode({ id: video.id, author: video.pubkey })
+    : null;
 
-  const handleShareToDevine = () => {
-    if (!naddr) {
+  const handleShareToDivine = () => {
+    if (!nostrRef) {
       toast({
         title: 'Cannot share',
         description: 'This is not a video event',
@@ -107,16 +107,14 @@ export function VideoPlayerDialog({ video, open, onOpenChange }: VideoPlayerDial
       });
       return;
     }
-    
-    // Create devine.video URL using nostr address
-    const devineUrl = `https://www.devine.video/v/nostr:${naddr}`;
-    
-    // Open in new window
-    window.open(devineUrl, '_blank', 'noopener,noreferrer');
-    
+
+    // Open on divine.video using nostr reference
+    const divineUrl = `https://www.divine.video/v/nostr:${nostrRef}`;
+    window.open(divineUrl, '_blank', 'noopener,noreferrer');
+
     toast({
-      title: 'Opening devine.video',
-      description: 'Share your video to your devine.video account',
+      title: 'Opening divine.video',
+      description: 'Share your video to your divine.video account',
     });
   };
 
@@ -176,18 +174,18 @@ export function VideoPlayerDialog({ video, open, onOpenChange }: VideoPlayerDial
             </div>
 
             <div className="flex gap-2">
-              {isVideoEvent && (
+              {isVideoEvent && nostrRef && (
                 <>
                   <Button
-                    onClick={handleShareToDevine}
+                    onClick={handleShareToDivine}
                     size="sm"
                     className="bg-purple-600 hover:bg-purple-700 text-white"
                   >
                     <Share2 className="w-3 h-3 mr-1" />
-                    Share to devine
+                    divine.video
                   </Button>
-                  
-                  <Link to={`/video/${naddr}`} onClick={() => onOpenChange(false)}>
+
+                  <Link to={`/video/${nostrRef}`} onClick={() => onOpenChange(false)}>
                     <Button variant="outline" size="sm">
                       <ExternalLink className="w-4 h-4 mr-2" />
                       Full Page

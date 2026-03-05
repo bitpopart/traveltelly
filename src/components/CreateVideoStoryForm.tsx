@@ -717,27 +717,61 @@ export function CreateVideoStoryForm() {
           });
         }
 
-        // Log what we're about to publish for debugging
-        console.log('📤 Publishing kind 1 note to Nostr with video:', {
-          contentPreview: noteContent.substring(0, 200) + '...',
-          videoUrl,
-          thumbnailUrl,
-          tags: noteTags,
-        });
-
-        // Publish the regular note
+        // Publish the regular kind 1 note
         createEvent({
           kind: 1,
           content: noteContent,
           tags: noteTags,
         });
-        
+
+        // Also publish a NIP-71 kind 22 (short video) event so it appears on divine.video
+        // kind 22 = regular (non-addressable) short video — the format diVine uses
+        const divineImetaTag = ['imeta'];
+        if (videoDimensions) {
+          divineImetaTag.push(`dim ${videoDimensions.width}x${videoDimensions.height}`);
+        }
+        divineImetaTag.push(`url ${videoUrl}`);
+        divineImetaTag.push(`m ${processedVideo.type}`);
+        if (thumbnailUrl) {
+          divineImetaTag.push(`image ${thumbnailUrl}`);
+        }
+        if (finalDuration > 0) {
+          divineImetaTag.push(`duration ${finalDuration.toFixed(3)}`);
+        }
+
+        const divineTags: string[][] = [
+          ['title', formData.title.trim()],
+          ['alt', `Video: ${formData.title.trim()}`],
+          divineImetaTag,
+          ['t', 'travel'],
+          ['t', 'traveltelly'],
+        ];
+
+        if (formData.summary.trim()) {
+          divineTags.push(['summary', formData.summary.trim()]);
+        }
+
+        // Add user-defined topic tags
+        if (formData.tags.trim()) {
+          formData.tags
+            .split(',')
+            .map(t => t.trim().toLowerCase())
+            .filter(t => t.length > 0)
+            .forEach(t => divineTags.push(['t', t]));
+        }
+
+        createEvent({
+          kind: 22, // NIP-71 short video — shown on divine.video
+          content: formData.summary.trim(),
+          tags: divineTags,
+        });
+
         setUploadProgress(98);
       }
 
       setUploadProgress(100);
       const successMessage = formData.shareOnNostr 
-        ? `Your ${formData.muteAudio ? 'silent ' : ''}video has been shared on Nostr and is visible on all clients.`
+        ? `Your ${formData.muteAudio ? 'silent ' : ''}video has been shared on Nostr and will appear on divine.video and all Nostr clients.`
         : `Your ${formData.muteAudio ? 'silent ' : ''}video has been published to TravelTelly.`;
       
       toast({
@@ -831,11 +865,11 @@ export function CreateVideoStoryForm() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Video className="w-5 h-5" />
-          Create Video Story for devine.video
+          Create Video Story
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Share your travel adventures in 6-second video format using NIP-71 (Kind 34235 landscape / 34236 portrait).
-          Perfect for quick, engaging travel moments on <a href="https://devine.video" target="_blank" rel="noopener noreferrer" className="underline font-medium">devine.video</a>.
+          Share your travel adventures in 6-second video format using NIP-71.
+          Perfect for quick, engaging travel moments on <a href="https://www.divine.video" target="_blank" rel="noopener noreferrer" className="underline font-medium">divine.video</a> and all Nostr video clients.
         </p>
         <div className="flex gap-2 flex-wrap">
           <Badge variant="outline" className="bg-purple-50 dark:bg-purple-900/20">
@@ -871,7 +905,7 @@ export function CreateVideoStoryForm() {
                     MP4, WebM, or other video formats (max 100MB)
                   </p>
                   <p className="text-xs text-purple-600 dark:text-purple-400 mt-2 font-medium">
-                    ⚡ 6 seconds max for devine.video
+                    ⚡ 6 seconds max for divine.video
                   </p>
                 </div>
               ) : (
@@ -1274,7 +1308,7 @@ export function CreateVideoStoryForm() {
                {videoDuration <= 6 && (
                  <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                   <span>Your video is the perfect length for devine.video!</span>
+                   <span>Your video is the perfect length for divine.video!</span>
                  </div>
                )}
              </div>
@@ -1446,8 +1480,8 @@ export function CreateVideoStoryForm() {
                 </Label>
               </div>
               <p className="text-xs text-muted-foreground">
-                Also publish as a regular note (kind 1) for visibility on all Nostr clients. 
-                Your video will appear in followers' feeds just like reviews do.
+                Also publish as a kind 1 note + kind 22 short video (NIP-71), so your video
+                appears on <strong>divine.video</strong> and in followers' feeds on all Nostr clients.
               </p>
             </div>
             <Switch
@@ -1461,13 +1495,14 @@ export function CreateVideoStoryForm() {
           <Alert>
             <AlertCircle className="w-4 h-4" />
             <AlertDescription className="text-sm">
-              <p className="font-medium mb-1">NIP-71 Video Events for devine.video</p>
+              <p className="font-medium mb-1">NIP-71 Video Events</p>
               <p className="text-xs text-muted-foreground mb-2">
-                Your video will use Kind 34235 (landscape) or 34236 (portrait) automatically based on dimensions.
-                Videos are limited to <strong>6 seconds maximum</strong> for devine.video compatibility.
+                Your video will use Kind 34235/34236 (addressable) for TravelTelly, and Kind 22
+                (short video) for <a href="https://www.divine.video" target="_blank" rel="noopener noreferrer" className="underline font-medium">divine.video</a> when "Share on Nostr" is enabled.
+                Videos are limited to <strong>6 seconds maximum</strong>.
               </p>
               <p className="text-xs text-muted-foreground">
-                Compatible with Nostr video platforms: <a href="https://devine.video" target="_blank" rel="noopener noreferrer" className="underline font-medium">devine.video</a>, Flare, and others.
+                Compatible with Nostr video platforms: <a href="https://www.divine.video" target="_blank" rel="noopener noreferrer" className="underline font-medium">divine.video</a>, Flare, and others.
               </p>
             </AlertDescription>
           </Alert>

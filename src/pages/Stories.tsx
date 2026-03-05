@@ -98,24 +98,20 @@ function VideoStoryCard({ story }: VideoStoryCardProps) {
 
   const handleShareToDevine = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent opening the dialog
-    
-    // Create naddr for the video
-    const identifier = story.tags.find(([name]) => name === 'd')?.[1];
-    if (!identifier) return;
-    
-    const naddr = nip19.naddrEncode({
-      kind: story.kind,
-      pubkey: story.pubkey,
-      identifier,
-    });
-    
+
+    // Build the nostr identifier: naddr for addressable kinds, nevent for regular kinds
+    const dTag = story.tags.find(([name]) => name === 'd')?.[1];
+    const nostrRef = dTag
+      ? nip19.naddrEncode({ kind: story.kind, pubkey: story.pubkey, identifier: dTag })
+      : nip19.neventEncode({ id: story.id, author: story.pubkey });
+
     // Open devine.video with the nostr event
-    const devineUrl = `https://www.devine.video/v/nostr:${naddr}`;
+    const devineUrl = `https://www.divine.video/v/nostr:${nostrRef}`;
     window.open(devineUrl, '_blank', 'noopener,noreferrer');
-    
+
     toast({
-      title: 'Opening devine.video',
-      description: 'Share your video to your devine.video account',
+      title: 'Opening divine.video',
+      description: 'Share your video to your divine.video account',
     });
   };
 
@@ -125,12 +121,12 @@ function VideoStoryCard({ story }: VideoStoryCardProps) {
     .filter((tag): tag is string => typeof tag === 'string' && tag.length > 0 && !['travel', 'traveltelly'].includes(tag))
     .slice(0, 2);
 
-  // Create naddr for linking
+  // Create naddr for addressable events (kind 34235/34236) or nevent for regular events (kind 21/22)
   const identifier = story.tags.find(([name]) => name === 'd')?.[1];
-  if (!identifier || typeof identifier !== 'string') {
-    console.error('Invalid video story identifier:', identifier);
-    return null;
-  }
+  const isAddressable = identifier && (story.kind === 34235 || story.kind === 34236);
+  const videoLink = isAddressable
+    ? `/video/${nip19.naddrEncode({ kind: story.kind, pubkey: story.pubkey, identifier })}`
+    : `/video/${nip19.neventEncode({ id: story.id, author: story.pubkey })}`;
 
   // Check if thumb is a video file (fallback when no separate thumbnail was uploaded)
   const isVideoThumb = thumb && (thumb.endsWith('.webm') || thumb.endsWith('.mp4') || thumb.endsWith('.mov') || thumb.includes('.webm?') || thumb.includes('.mp4?') || thumb.includes('.mov?'));
@@ -402,20 +398,22 @@ function useStories(type: 'write' | 'video' = 'write') {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
 
       if (type === 'video') {
-        // Query video stories (NIP-71: kind 34235 landscape + kind 34236 portrait)
+        // Query video stories:
+        //   - NIP-71 addressable: kind 34235 (landscape) + 34236 (portrait) from TravelTelly
+        //   - NIP-71 regular: kind 21 (normal) + 22 (short/diVine) from admin account
         // Fetch both videos with traveltelly tag AND videos from the admin account
         const adminPubkey = '7d33ba57d8a6e8869a1f1d5215254597594ac0dbfeb01b690def8c461b82db35';
-        
+
         const events = await nostr.query([
           {
-            kinds: [34235, 34236],
+            kinds: [34235, 34236, 21, 22],
             '#t': ['traveltelly'],
-            limit: 20,
+            limit: 30,
           },
           {
-            kinds: [34235, 34236],
+            kinds: [34235, 34236, 21, 22],
             authors: [adminPubkey],
-            limit: 20,
+            limit: 30,
           }
         ], { signal });
 
