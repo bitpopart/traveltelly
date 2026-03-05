@@ -83,7 +83,7 @@ function isValidImageUrl(url: string): boolean {
 
 /**
  * Fetch images with infinite pagination for faster loading
- * Loads 20 images per page
+ * Loads 10 events per page to keep initial load fast
  */
 export function useInfiniteImages() {
   const { nostr } = useNostr();
@@ -100,7 +100,7 @@ export function useInfiniteImages() {
       const events = await nostr.query([{
         kinds: [34879, 30025, 30023, 30402],
         authors: [ADMIN_HEX],
-        limit: 20,
+        limit: 10,
         ...(until && { until }),
       }], { signal: abortSignal });
 

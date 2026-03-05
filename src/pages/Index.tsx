@@ -841,11 +841,11 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
           {viewMode === 'images' && !selectedLocationTag && (
             <div className="mb-8 md:mb-12">
               {allImages.length > 0 ? (
-                <div className="grid gap-1 md:gap-2 grid-cols-3 md:grid-cols-3 lg:grid-cols-4">
+                <div className="grid gap-2 grid-cols-1 md:grid-cols-3 lg:grid-cols-4">
                   {(() => {
-                    // allImages already includes ALL types: reviews, stories, trips, stock, AND tour items
-                    // Just use them directly - they're already mixed by the hook
-                    const mixed = allImages;
+                    // On mobile cap to 10 images for fast load; desktop shows all
+                    const isMobileView = typeof window !== 'undefined' && window.innerWidth < 768;
+                    const mixed = isMobileView ? allImages.slice(0, 10) : allImages;
 
                     return mixed.map((item, index) => {
                       // Get the destination path based on type
@@ -931,9 +931,9 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                   })()}
                 </div>
               ) : imagesLoading ? (
-                <div className="grid gap-1 md:gap-2 grid-cols-3 md:grid-cols-3 lg:grid-cols-4">
+                <div className="grid gap-2 grid-cols-1 md:grid-cols-3 lg:grid-cols-4">
                   {/* Show fewer skeletons on mobile for faster perceived loading */}
-                  {Array.from({ length: 12 }).map((_, i) => (
+                  {Array.from({ length: 3 }).map((_, i) => (
                     <div key={i} className="aspect-square bg-gray-200 dark:bg-gray-700 animate-pulse rounded-sm" />
                   ))}
                 </div>
@@ -951,9 +951,9 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                 </Card>
               )}
               
-              {/* Infinite scroll sentinel */}
+              {/* Infinite scroll sentinel - desktop only */}
               {allImages.length > 0 && (
-                <div ref={sentinelRef} className="mt-4 flex justify-center py-4">
+                <div ref={sentinelRef} className="hidden md:flex mt-4 justify-center py-4">
                   {isFetchingNextPage && (
                     <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
                   )}
