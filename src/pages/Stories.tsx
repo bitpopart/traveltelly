@@ -16,6 +16,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthor } from '@/hooks/useAuthor';
+import { useRebroadcast } from '@/hooks/useRebroadcast';
 import { genUserName } from '@/lib/genUserName';
 import {
   BookOpen,
@@ -26,7 +27,9 @@ import {
   Video,
   FileText,
   Play,
-  Share2
+  Share2,
+  Loader2,
+  Radio
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { nip19 } from 'nostr-tools';
@@ -42,7 +45,33 @@ function VideoStoryCard({ story }: VideoStoryCardProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const author = useAuthor(story.pubkey);
   const metadata = author.data?.metadata;
+  const { user } = useCurrentUser();
   const { toast } = useToast();
+  const { mutate: rebroadcast, isPending: isRebroadcasting } = useRebroadcast();
+
+  // divine.video posts are kind 21 or 22 (regular, non-addressable NIP-71)
+  const isDivineVideo = story.kind === 21 || story.kind === 22;
+  // Only show boost button for the logged-in user's own divine.video posts
+  const isOwnPost = user?.pubkey === story.pubkey;
+
+  const handleBoostToNostr = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    rebroadcast(story, {
+      onSuccess: ({ succeeded, total }) => {
+        toast({
+          title: '⚡ Boosted to Nostr!',
+          description: `Sent to ${succeeded.length} of ${total} relays. It will now appear on Primal and other Nostr clients.`,
+        });
+      },
+      onError: () => {
+        toast({
+          title: 'Boost failed',
+          description: 'Could not rebroadcast the event. Please try again.',
+          variant: 'destructive',
+        });
+      },
+    });
+  };
 
   const displayName = metadata?.name || genUserName(story.pubkey);
   const profileImage = metadata?.picture;
@@ -170,15 +199,34 @@ function VideoStoryCard({ story }: VideoStoryCardProps) {
               </div>
             )}
             
-            {/* Share to devine button */}
-            <button
-              onClick={handleShareToDevine}
-              className="absolute bottom-2 right-2 bg-purple-600 hover:bg-purple-700 text-white text-xs px-2 py-1 rounded flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-              title="Share to devine.video"
-            >
-              <Share2 className="w-3 h-3" />
-              <span className="hidden sm:inline">devine</span>
-            </button>
+            {/* Overlay action buttons */}
+            <div className="absolute bottom-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* Boost to Nostr — only for own divine.video posts (kind 21/22) */}
+              {isDivineVideo && isOwnPost && (
+                <button
+                  onClick={handleBoostToNostr}
+                  disabled={isRebroadcasting}
+                  className="bg-orange-500 hover:bg-orange-600 disabled:opacity-70 text-white text-xs px-2 py-1 rounded flex items-center gap-1 shadow-lg"
+                  title="Boost to Nostr relays (Primal, Damus, etc.)"
+                >
+                  {isRebroadcasting ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Radio className="w-3 h-3" />
+                  )}
+                  <span className="hidden sm:inline">{isRebroadcasting ? 'Boosting…' : 'Boost'}</span>
+                </button>
+              )}
+              {/* Share to divine.video */}
+              <button
+                onClick={handleShareToDevine}
+                className="bg-purple-600 hover:bg-purple-700 text-white text-xs px-2 py-1 rounded flex items-center gap-1 shadow-lg"
+                title="Open on divine.video"
+              >
+                <Share2 className="w-3 h-3" />
+                <span className="hidden sm:inline">divine</span>
+              </button>
+            </div>
           </div>
         )}
 
