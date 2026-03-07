@@ -73,9 +73,9 @@ export function useLatestReview() {
   const { data: authorizedReviewers } = useAuthorizedReviewers();
 
   return useQuery({
-    queryKey: ['latest-review-with-image'],
+    queryKey: ['latest-review-with-image', authorizedReviewers?.size],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]); // Reduced to 1s for faster initial load
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
       
       const authorizedAuthors = Array.from(authorizedReviewers || []);
       const events = await nostr.query([{
@@ -117,8 +117,8 @@ export function useLatestReview() {
       };
     },
     
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 30 * 1000, // 30 seconds - so new reviews appear quickly
+    gcTime: 10 * 60 * 1000,
   });
 }
 
@@ -130,15 +130,15 @@ export function useLatestReviews() {
   const { data: authorizedReviewers } = useAuthorizedReviewers();
 
   return useQuery({
-    queryKey: ['latest-reviews-with-images'],
+    queryKey: ['latest-reviews-with-images', authorizedReviewers?.size],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]); // Reduced to 1s
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
       
       const authorizedAuthors = Array.from(authorizedReviewers || []);
       const events = await nostr.query([{
         kinds: [34879],
         authors: authorizedAuthors,
-        limit: 10 // Further reduced - we only need 3 reviews with images
+        limit: 10
       }], { signal });
 
       // Find reviews with images
@@ -175,9 +175,9 @@ export function useLatestReviews() {
       });
     },
     
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-    refetchInterval: false, // Disabled auto-refresh for performance
+    staleTime: 30 * 1000, // 30 seconds - so new reviews appear quickly
+    gcTime: 10 * 60 * 1000,
+    refetchInterval: false,
   });
 }
 

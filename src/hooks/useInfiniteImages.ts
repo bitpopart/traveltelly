@@ -254,7 +254,7 @@ export function useInfiniteImages() {
     },
     getNextPageParam: (lastPage) => lastPage.nextPageParam,
     initialPageParam: undefined as number | undefined,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 30 * 1000, // 30 seconds - so new content appears quickly
     gcTime: 5 * 60 * 1000,
   });
 }
