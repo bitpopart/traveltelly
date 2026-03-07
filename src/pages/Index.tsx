@@ -981,62 +981,142 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
               </div>
             ) : (
               <>
-                {/* Community Section - TravelTelly Tour */}
-                {tourItems.length > 0 && (
-                  <div className="mb-6 md:mb-12">
-                    <div className="flex justify-between items-center mb-4 md:mb-6">
-                      <h2 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <Globe className="w-6 h-6 md:w-8 md:h-8" style={{ color: '#9333ea' }} />
-                        Community
-                      </h2>
-                      <Link to="/traveltelly-tour">
-                        <Button variant="outline" className="rounded-full text-xs md:text-sm px-3 md:px-4" style={{ borderColor: '#9333ea', color: '#9333ea' }}>
-                          View All
-                          <ArrowRight className="w-3 h-3 md:w-4 md:h-4 ml-1 md:ml-2" />
-                        </Button>
-                      </Link>
-                    </div>
-                    <div className="grid gap-4 md:gap-6 grid-cols-3">
-                      {tourItems.slice(0, 3).map((item, index) => {
-                        // Get the first image from the tour item
-                        const imageUrl = item.images[0];
-                        if (!imageUrl) return null;
-                        
-                        return (
-                          <Link key={`${item.id}-${index}`} to={`/tour-feed/${item.id}`}>
-                            <Card className="hover:shadow-lg transition-shadow overflow-hidden">
-                              <div className="relative aspect-square overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
-                                <FastThumbnail
-                                  src={imageUrl}
-                                  alt={item.content.slice(0, 60) || 'TravelTelly Tour'}
-                                  priority={index === 0}
-                                />
-                                {/* Globe icon overlay */}
-                                <div className="absolute top-2 right-2 z-10">
-                                  <div 
-                                    className="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center shadow-lg"
-                                    style={{ backgroundColor: '#9333ea' }}
-                                  >
-                                    <Globe className="w-4 h-4 md:w-5 md:h-5 text-white" strokeWidth={2} />
+                {/* Community Section - Latest thumbnails from tour, reviews, stories, trips */}
+                {(() => {
+                  // Build a merged list of the latest thumbnails across all content types
+                  type CommunityItem = {
+                    key: string;
+                    image: string;
+                    alt: string;
+                    link: string;
+                    icon: typeof Globe;
+                    color: string;
+                    created_at: number;
+                  };
+
+                  const communityItems: CommunityItem[] = [];
+
+                  // Tour items
+                  tourItems.forEach((item) => {
+                    const imageUrl = item.images[0];
+                    if (imageUrl) {
+                      communityItems.push({
+                        key: `tour-${item.id}`,
+                        image: imageUrl,
+                        alt: item.content.slice(0, 60) || 'TravelTelly Tour',
+                        link: `/tour-feed/${item.id}`,
+                        icon: Globe,
+                        color: '#9333ea',
+                        created_at: item.created_at,
+                      });
+                    }
+                  });
+
+                  // Review items
+                  latestReviews.forEach((review) => {
+                    if (review.image) {
+                      communityItems.push({
+                        key: `review-${review.naddr}`,
+                        image: review.image,
+                        alt: review.title,
+                        link: `/review/${review.naddr}`,
+                        icon: Star,
+                        color: '#27b0ff',
+                        created_at: review.event.created_at,
+                      });
+                    }
+                  });
+
+                  // Story items
+                  latestStories.forEach((story) => {
+                    if (story.image) {
+                      communityItems.push({
+                        key: `story-${story.naddr}`,
+                        image: story.image,
+                        alt: story.title,
+                        link: `/story/${story.naddr}`,
+                        icon: BookOpen,
+                        color: '#b2d235',
+                        created_at: story.event.created_at,
+                      });
+                    }
+                  });
+
+                  // Trip items
+                  latestTrips.forEach((trip) => {
+                    if (trip.image) {
+                      communityItems.push({
+                        key: `trip-${trip.naddr}`,
+                        image: trip.image,
+                        alt: trip.title,
+                        link: `/trip/${trip.naddr}`,
+                        icon: MapPin,
+                        color: '#ffcc00',
+                        created_at: trip.event.created_at,
+                      });
+                    }
+                  });
+
+                  // Sort newest first, take top 3
+                  const top3 = communityItems
+                    .sort((a, b) => b.created_at - a.created_at)
+                    .slice(0, 3);
+
+                  if (top3.length === 0) return null;
+
+                  return (
+                    <div className="mb-6 md:mb-12">
+                      <div className="flex justify-between items-center mb-4 md:mb-6">
+                        <h2 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                          <Globe className="w-6 h-6 md:w-8 md:h-8" style={{ color: '#9333ea' }} />
+                          Community
+                        </h2>
+                        <Link to="/traveltelly-tour">
+                          <Button variant="outline" className="rounded-full text-xs md:text-sm px-3 md:px-4" style={{ borderColor: '#9333ea', color: '#9333ea' }}>
+                            View All
+                            <ArrowRight className="w-3 h-3 md:w-4 md:h-4 ml-1 md:ml-2" />
+                          </Button>
+                        </Link>
+                      </div>
+                      <div className="grid gap-4 md:gap-6 grid-cols-3">
+                        {top3.map((item, index) => {
+                          const Icon = item.icon;
+                          return (
+                            <Link key={item.key} to={item.link}>
+                              <Card className="hover:shadow-lg transition-shadow overflow-hidden">
+                                <div className="relative aspect-square overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
+                                  <FastThumbnail
+                                    src={item.image}
+                                    alt={item.alt}
+                                    priority={index === 0}
+                                  />
+                                  {/* Type icon overlay */}
+                                  <div className="absolute top-2 right-2 z-10">
+                                    <div
+                                      className="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center shadow-lg"
+                                      style={{ backgroundColor: item.color }}
+                                    >
+                                      <Icon className="w-4 h-4 md:w-5 md:h-5 text-white" strokeWidth={2} />
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            </Card>
-                          </Link>
-                        );
-                      })}
+                              </Card>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                      {/* Mobile View All Button */}
+                      <div className="mt-4 text-center md:hidden">
+                        <Link to="/traveltelly-tour">
+                          <Button variant="outline" className="rounded-full w-full" style={{ borderColor: '#9333ea', color: '#9333ea' }}>
+                            View All Community Photos
+                            <ArrowRight className="w-3 h-3 ml-2" />
+                          </Button>
+                        </Link>
+                      </div>
                     </div>
-                    {/* Mobile View All Button */}
-                    <div className="mt-4 text-center md:hidden">
-                      <Link to="/traveltelly-tour">
-                        <Button variant="outline" className="rounded-full w-full" style={{ borderColor: '#9333ea', color: '#9333ea' }}>
-                          View All Community Photos
-                          <ArrowRight className="w-3 h-3 ml-2" />
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Reviews Section */}
             {latestReviews.length > 0 && (
