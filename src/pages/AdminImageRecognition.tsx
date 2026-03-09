@@ -67,6 +67,7 @@ interface PhotoState {
   processed: boolean;
   // Download state
   downloading: boolean;
+  downloadStep?: 'embedding' | 'saving' | null;
 }
 
 type ProcessingStep = 'exif' | 'geo' | 'ai' | 'done';
@@ -246,9 +247,13 @@ export default function AdminImageRecognition() {
 
   const downloadPhoto = async (index: number) => {
     const photo = photos[index];
-    updatePhoto(index, { downloading: true });
+
+    // Step 1: embed metadata into the image bytes
+    updatePhoto(index, { downloading: true, downloadStep: 'embedding' });
+
+    let blob: Blob;
     try {
-      const blob = await embedMetadataIntoJpeg(photo.file, {
+      blob = await embedMetadataIntoJpeg(photo.file, {
         title: photo.finalTitle,
         description: photo.finalDescription,
         keywords: photo.finalTags,
@@ -257,7 +262,17 @@ export default function AdminImageRecognition() {
         city: photo.geoLocation?.city,
         country: photo.geoLocation?.country,
       });
+    } catch (err) {
+      console.error('Metadata embedding failed:', err);
+      toast({ title: 'Embedding failed', variant: 'destructive', description: String(err) });
+      updatePhoto(index, { downloading: false, downloadStep: null });
+      return;
+    }
 
+    // Step 2: trigger the file download
+    updatePhoto(index, { downloadStep: 'saving' });
+
+    try {
       const ext = photo.file.name.match(/\.[^/.]+$/)?.[0] ?? '.jpg';
       const safeName = photo.finalTitle
         .replace(/[^a-z0-9]/gi, '_')
@@ -272,14 +287,18 @@ export default function AdminImageRecognition() {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      // Small delay so the browser can initiate the download before we revoke
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
 
-      toast({ title: 'Download started', description: `${filename} with embedded metadata.` });
+      toast({
+        title: '✅ Saved & downloaded',
+        description: `Metadata embedded into ${filename} before download.`,
+      });
     } catch (err) {
-      console.error(err);
+      console.error('Download trigger failed:', err);
       toast({ title: 'Download failed', variant: 'destructive', description: String(err) });
     } finally {
-      updatePhoto(index, { downloading: false });
+      updatePhoto(index, { downloading: false, downloadStep: null });
     }
   };
 
@@ -535,12 +554,13 @@ export default function AdminImageRecognition() {
                         disabled={photo.downloading || !photo.processed}
                         className="bg-green-600 hover:bg-green-700"
                       >
-                        {photo.downloading ? (
-                          <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                        {photo.downloadStep === 'embedding' ? (
+                          <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Embedding…</>
+                        ) : photo.downloadStep === 'saving' ? (
+                          <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Saving…</>
                         ) : (
-                          <Download className="w-3.5 h-3.5 mr-1" />
+                          <><Download className="w-3.5 h-3.5 mr-1" /> Download</>
                         )}
-                        Download
                       </Button>
                     </div>
                   </div>
@@ -673,8 +693,10 @@ export default function AdminImageRecognition() {
                           disabled={photo.downloading}
                           className="bg-green-600 hover:bg-green-700"
                         >
-                          {photo.downloading ? (
-                            <><Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> Embedding…</>
+                          {photo.downloadStep === 'embedding' ? (
+                            <><Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> Embedding metadata…</>
+                          ) : photo.downloadStep === 'saving' ? (
+                            <><Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> Saving to file…</>
                           ) : (
                             <><Download className="w-3.5 h-3.5 mr-2" /> Save &amp; Download</>
                           )}
