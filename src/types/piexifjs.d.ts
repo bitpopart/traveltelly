@@ -1,9 +1,9 @@
 /**
- * Minimal type declarations for piexifjs
+ * Type declarations for piexifjs (UMD / CommonJS module)
  * https://github.com/hMatoba/piexifjs
  */
 declare module 'piexifjs' {
-  export interface IExif {
+  interface IExif {
     '0th'?: Record<number, unknown>;
     'Exif'?: Record<number, unknown>;
     'GPS'?: Record<number, unknown>;
@@ -11,40 +11,32 @@ declare module 'piexifjs' {
     thumbnail?: string | null;
   }
 
-  /** Load EXIF from a JPEG data-URL (e.g. "data:image/jpeg;base64,...") */
+  interface Piexif {
+    /** Load EXIF from a JPEG data-URL and return a structured object */
+    load(jpegData: string): IExif;
+    /** Serialise an EXIF object to a binary string */
+    dump(exifObj: IExif): string;
+    /** Insert EXIF bytes into a JPEG data-URL and return the updated data-URL */
+    insert(exifBytes: string, jpegData: string): string;
+    /** Remove existing EXIF from a JPEG data-URL */
+    remove(jpegData: string): string;
+
+    ImageIFD: Record<string, number>;
+    ExifIFD: Record<string, number>;
+    GPSIFD: Record<string, number>;
+    InteropIFD: Record<string, number>;
+    TagValues: Record<string, Record<string, number>>;
+  }
+
+  const piexif: Piexif;
+  export default piexif;
+
+  // Also export named for CommonJS-style usage
   export function load(jpegData: string): IExif;
-
-  /** Serialise an EXIF object to a binary string */
   export function dump(exifObj: IExif): string;
-
-  /** Insert EXIF bytes into a JPEG data-URL and return the new data-URL */
   export function insert(exifBytes: string, jpegData: string): string;
-
-  /** Remove existing EXIF from a JPEG data-URL */
   export function remove(jpegData: string): string;
-
-  // IFD0 / IFD1 tag numbers
-  export const ImageIFD: {
-    ImageDescription: number;
-    XPTitle: number;
-    XPComment: number;
-    XPKeywords: number;
-    [key: string]: number;
-  };
-
-  export const ExifIFD: {
-    UserComment: number;
-    [key: string]: number;
-  };
-
-  export const GPSIFD: {
-    GPSLatitudeRef: number;
-    GPSLatitude: number;
-    GPSLongitudeRef: number;
-    GPSLongitude: number;
-    [key: string]: number;
-  };
-
-  export const InteropIFD: Record<string, number>;
-  export const TagValues: Record<string, Record<string, number>>;
+  export const ImageIFD: Record<string, number>;
+  export const ExifIFD: Record<string, number>;
+  export const GPSIFD: Record<string, number>;
 }
