@@ -224,9 +224,9 @@ export default function AdminImageRecognition() {
 
       toast({
         title: 'Photo processed ✓',
-        description: aiResult.aiGenerated
-          ? 'AI recognition complete with location data.'
-          : 'Metadata extracted (no AI key – used EXIF + GPS only).',
+                        description: aiResult.aiGenerated
+          ? 'Claude AI recognition complete with location data.'
+          : 'Metadata extracted (no Anthropic key – used EXIF + GPS only).',
       });
     },
     [photos, updatePhoto, toast]
@@ -369,15 +369,15 @@ export default function AdminImageRecognition() {
           </div>
         </div>
 
-        {/* OpenAI API Key card */}
+        {/* Anthropic API Key card */}
         <Card className="mb-6 border-purple-200 bg-purple-50 dark:bg-purple-950/20">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <Key className="w-4 h-4" />
-              OpenAI API Key (for AI recognition)
+              Anthropic API Key (for AI recognition)
             </CardTitle>
             <CardDescription>
-              Enter your OpenAI API key to enable GPT-4o vision tagging. Without a key the
+              Enter your Anthropic API key to enable Claude vision tagging. Without a key the
               system still extracts EXIF + GPS data and generates basic tags.
             </CardDescription>
           </CardHeader>
@@ -388,7 +388,7 @@ export default function AdminImageRecognition() {
                   type={showApiKey ? 'text' : 'password'}
                   value={apiKey}
                   onChange={(e) => { setApiKey(e.target.value); setApiKeySaved(false); }}
-                  placeholder="sk-..."
+                  placeholder="sk-ant-..."
                   className="pr-10 font-mono text-sm"
                 />
                 <button
@@ -414,7 +414,7 @@ export default function AdminImageRecognition() {
             {!apiKey && (
               <p className="mt-2 text-xs text-amber-700 flex items-center gap-1">
                 <Info className="w-3 h-3" />
-                No API key — will use EXIF + GPS geocoding only (no AI descriptions).
+                No Anthropic key — will use EXIF + GPS geocoding only (no AI descriptions).
               </p>
             )}
           </CardContent>
@@ -561,7 +561,7 @@ export default function AdminImageRecognition() {
                         icon={<MapPin className="w-3.5 h-3.5" />}
                       />
                       <ProcessStep
-                        label="AI image recognition"
+                        label="Claude AI image recognition"
                         active={processingStep === 'ai'}
                         done={processingStep === 'done'}
                         icon={<Sparkles className="w-3.5 h-3.5" />}
@@ -591,7 +591,7 @@ export default function AdminImageRecognition() {
                       {photo.aiResult?.aiGenerated && (
                         <Badge className="bg-purple-100 text-purple-800 text-xs">
                           <Sparkles className="w-3 h-3 mr-1" />
-                          AI enhanced
+                          Claude enhanced
                         </Badge>
                       )}
                     </div>

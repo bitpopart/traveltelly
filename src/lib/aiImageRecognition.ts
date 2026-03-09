@@ -1,11 +1,14 @@
 /**
  * AI Image Recognition
  *
- * Uses OpenAI GPT-4o Vision (or any OpenAI-compatible endpoint) to analyse
- * a photo and return an auto-generated title, description, and tags.
+ * Uses Anthropic Claude (claude-3-5-sonnet) vision to analyse a photo and
+ * return an auto-generated title, description, and tags.
  *
  * The API key is read from localStorage so the admin can enter it once in the
  * Image Recognition page without hard-coding credentials.
+ *
+ * Anthropic API reference:
+ * https://docs.anthropic.com/en/api/messages
  */
 
 export interface AIRecognitionResult {
@@ -16,7 +19,7 @@ export interface AIRecognitionResult {
   aiGenerated: boolean;
 }
 
-const STORAGE_KEY = 'traveltelly_openai_key';
+const STORAGE_KEY = 'traveltelly_anthropic_key';
 
 export function getStoredApiKey(): string {
   return localStorage.getItem(STORAGE_KEY) ?? '';
@@ -27,23 +30,27 @@ export function setStoredApiKey(key: string): void {
 }
 
 /**
- * Convert a File to a base64 data-URL string
+ * Convert a File to a base64 string (without the data-URL prefix)
  */
-function fileToBase64DataURL(file: File): Promise<string> {
+function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
+    reader.onload = () => {
+      const result = reader.result as string;
+      // Strip "data:<mime>;base64," prefix
+      resolve(result.split(',')[1]);
+    };
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
 }
 
 /**
- * Analyse the image with GPT-4o vision and return structured metadata.
+ * Analyse the image with Claude vision and return structured metadata.
  *
- * @param file        The image file to analyse
+ * @param file          The image file to analyse
  * @param locationHint  Optional city/country hint to enrich the prompt
- * @param apiKey      OpenAI API key (falls back to localStorage)
+ * @param apiKey        Anthropic API key (falls back to localStorage)
  */
 export async function analyzeImageWithAI(
   file: File,
@@ -57,42 +64,49 @@ export async function analyzeImageWithAI(
   }
 
   try {
-    const dataURL = await fileToBase64DataURL(file);
-    // Strip the data-URL prefix so we send only the base64 payload
-    const base64 = dataURL.split(',')[1];
-    const mimeType = file.type || 'image/jpeg';
+    const base64 = await fileToBase64(file);
+
+    // Anthropic requires a supported media type
+    const mediaType = normalizeMediaType(file.type);
 
     const locationContext = locationHint
       ? `The photo was taken in ${[locationHint.city, locationHint.country].filter(Boolean).join(', ')}.`
       : '';
 
-    const systemPrompt = `You are an expert travel photographer and stock photo editor.
+    const userPrompt = `You are an expert travel photographer and stock photo editor.
 Analyse the provided travel photo and return a JSON object with these exact keys:
-- "title": A concise, vivid title (max 80 characters). ${locationContext ? 'Include the location.' : ''}
-- "description": A rich stock-photo description (2–4 sentences). Mention subject, mood, lighting, and composition. ${locationContext}
+- "title": A concise, vivid title (max 80 characters).${locationContext ? ' Include the location.' : ''}
+- "description": A rich stock-photo description (2–4 sentences). Mention subject, mood, lighting, and composition.${locationContext ? ' ' + locationContext : ''}
 - "tags": An array of 10–20 lowercase keyword strings suitable for stock photo search (include place names, subjects, colours, mood, activity).
-Respond ONLY with the JSON object, no markdown code blocks.`;
+Respond ONLY with the raw JSON object — no markdown, no code blocks, no extra text.`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${key}`,
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        // Required for browser-based requests (CORS)
+        'anthropic-dangerous-direct-browser-calls': 'true',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
-        max_tokens: 600,
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 700,
         messages: [
           {
             role: 'user',
             content: [
-              { type: 'text', text: systemPrompt },
               {
-                type: 'image_url',
-                image_url: {
-                  url: `data:${mimeType};base64,${base64}`,
-                  detail: 'low',
+                type: 'image',
+                source: {
+                  type: 'base64',
+                  media_type: mediaType,
+                  data: base64,
                 },
+              },
+              {
+                type: 'text',
+                text: userPrompt,
               },
             ],
           },
@@ -102,15 +116,17 @@ Respond ONLY with the JSON object, no markdown code blocks.`;
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error('OpenAI API error:', errText);
+      console.error('Anthropic API error:', response.status, errText);
       return fallbackResult(file, locationHint);
     }
 
     const json = await response.json();
-    const content: string = json.choices?.[0]?.message?.content ?? '';
+    // Claude returns content as an array of blocks
+    const textBlock = json.content?.find((b: { type: string }) => b.type === 'text');
+    const rawContent: string = textBlock?.text ?? '';
 
-    // Parse the JSON response
-    const cleaned = content
+    // Strip any accidental markdown fences
+    const cleaned = rawContent
       .replace(/^```json\s*/i, '')
       .replace(/^```\s*/i, '')
       .replace(/```\s*$/, '')
@@ -132,6 +148,22 @@ Respond ONLY with the JSON object, no markdown code blocks.`;
     console.error('AI image recognition failed:', err);
     return fallbackResult(file, locationHint);
   }
+}
+
+/**
+ * Anthropic only accepts these four media types for images.
+ */
+function normalizeMediaType(
+  mimeType: string
+): 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' {
+  const map: Record<string, 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'> = {
+    'image/jpeg': 'image/jpeg',
+    'image/jpg': 'image/jpeg',
+    'image/png': 'image/png',
+    'image/gif': 'image/gif',
+    'image/webp': 'image/webp',
+  };
+  return map[mimeType.toLowerCase()] ?? 'image/jpeg';
 }
 
 function buildFallbackTitle(
