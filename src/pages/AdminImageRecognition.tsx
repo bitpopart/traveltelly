@@ -79,6 +79,7 @@ export default function AdminImageRecognition() {
   const navigate = useNavigate();
 
   const [photos, setPhotos] = useState<PhotoState[]>([]);
+  const photosRef = useRef<PhotoState[]>([]); // always-fresh ref for async callbacks
   const [apiKey, setApiKey] = useState(getStoredApiKey);
   const [showApiKey, setShowApiKey] = useState(false);
   const [apiKeySaved, setApiKeySaved] = useState(!!getStoredApiKey());
@@ -95,6 +96,7 @@ export default function AdminImageRecognition() {
     setPhotos((prev) => {
       const updated = [...prev];
       updated[index] = { ...updated[index], ...partial };
+      photosRef.current = updated; // keep ref in sync
       return updated;
     });
   }, []);
@@ -111,7 +113,14 @@ export default function AdminImageRecognition() {
     (files: FileList | null) => {
       if (!files) return;
       const newPhotos: PhotoState[] = Array.from(files)
-        .filter((f) => f.type.startsWith('image/'))
+        .filter((f) => {
+          const name = f.name.toLowerCase();
+          return (
+            f.type.startsWith('image/') ||
+            name.endsWith('.jpg') || name.endsWith('.jpeg') ||
+            name.endsWith('.png') || name.endsWith('.heic') || name.endsWith('.webp')
+          );
+        })
         .map((file) => ({
           file,
           preview: URL.createObjectURL(file),
@@ -124,7 +133,11 @@ export default function AdminImageRecognition() {
           processed: false,
           downloading: false,
         }));
-      setPhotos((prev) => [...prev, ...newPhotos]);
+      setPhotos((prev) => {
+        const updated = [...prev, ...newPhotos];
+        photosRef.current = updated;
+        return updated;
+      });
     },
     []
   );
@@ -142,6 +155,7 @@ export default function AdminImageRecognition() {
       const updated = [...prev];
       URL.revokeObjectURL(updated[index].preview);
       updated.splice(index, 1);
+      photosRef.current = updated;
       return updated;
     });
   };
@@ -150,7 +164,7 @@ export default function AdminImageRecognition() {
 
   const processPhoto = useCallback(
     async (index: number) => {
-      const photo = photos[index];
+      const photo = photosRef.current[index];
       if (!photo) return;
 
       setProcessingIndex(index);
@@ -230,14 +244,15 @@ export default function AdminImageRecognition() {
           : 'Metadata extracted (no Anthropic key – used EXIF + GPS only).',
       });
     },
-    [photos, updatePhoto, toast]
+    [updatePhoto, toast]
   );
 
   // ── Process all unprocessed photos ─────────────────────────────────────────
 
   const processAll = async () => {
-    for (let i = 0; i < photos.length; i++) {
-      if (!photos[i].processed) {
+    const current = photosRef.current;
+    for (let i = 0; i < current.length; i++) {
+      if (!current[i].processed) {
         await processPhoto(i);
       }
     }
@@ -246,7 +261,13 @@ export default function AdminImageRecognition() {
   // ── Download with embedded metadata ────────────────────────────────────────
 
   const downloadPhoto = async (index: number) => {
-    const photo = photos[index];
+    // Read from ref so we always get fresh state even after async updates
+    const photo = photosRef.current[index];
+    if (!photo) {
+      console.error('[Download] photo not found at index', index);
+      return;
+    }
+    console.log('[Download] starting for:', photo.file.name, 'title:', photo.finalTitle);
 
     // Step 1: embed metadata into the image bytes
     updatePhoto(index, { downloading: true, downloadStep: 'embedding' });
