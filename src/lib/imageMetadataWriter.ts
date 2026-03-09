@@ -1,22 +1,12 @@
 /**
- * Image Metadata Writer — pure browser EXIF injector, zero dependencies.
+ * imageMetadataWriter.ts
  *
- * Approach: hardcoded, flat two-region layout to eliminate offset bugs.
+ * Embeds metadata into a JPEG by injecting an XMP APP1 segment.
+ * XMP is plain UTF-8 XML — no binary offset math, no TIFF IFD complexity.
+ * It is read by Lightroom, Bridge, Windows Explorer, macOS, Google Photos, etc.
  *
- * TIFF layout (all little-endian):
- *   Offset 0     : TIFF header (8 bytes)
- *   Offset 8     : IFD0  (2 + N*12 + 4 bytes)
- *   Offset 8+ifd : value heap (long values that don't fit in 4 bytes)
- *
- * We write exactly these IFD0 tags (sorted ascending):
- *   0x010E  ImageDescription  ASCII   title – city – country
- *   0x0112  Orientation       SHORT   (preserved from original)
- *   0x9C9B  XPTitle           BYTE    UTF-16LE
- *   0x9C9C  XPComment         BYTE    UTF-16LE
- *   0x9C9E  XPKeywords        BYTE    UTF-16LE
- *
- * No GPS sub-IFD in this version (to keep the layout simple and proven).
- * GPS is already preserved if the original photo had it (we keep all non-APP1 segments).
+ * We also write a minimal EXIF APP1 for the basic fields (title, description)
+ * using the simplest possible structure.
  */
 
 export interface MetadataToEmbed {
@@ -29,235 +19,207 @@ export interface MetadataToEmbed {
   country?: string;
 }
 
-// ─── Public API ───────────────────────────────────────────────────────────────
+// ─── Main export ──────────────────────────────────────────────────────────────
 
 export async function embedMetadataIntoJpeg(
   file: File,
   meta: MetadataToEmbed
 ): Promise<Blob> {
-  console.log('[EXIF] called for:', file.name, file.type, file.size, 'bytes');
+  console.log('[META] embedMetadataIntoJpeg START', file.name, file.size);
 
-  try {
-    const buf = new Uint8Array(await file.arrayBuffer());
+  const bytes = new Uint8Array(await file.arrayBuffer());
 
-    if (buf[0] !== 0xff || buf[1] !== 0xd8) {
-      console.warn('[EXIF] not a JPEG, returning original');
-      return file;
-    }
-
-    const orientation = readOrientation(buf);
-    console.log('[EXIF] original orientation:', orientation);
-
-    const app1 = makeApp1(meta, orientation);
-    console.log('[EXIF] app1 segment size:', app1.length);
-
-    const stripped = removeApp1(buf);
-    console.log('[EXIF] stripped jpeg size:', stripped.length);
-
-    // output = SOI + new APP1 + rest (skipping original SOI)
-    const out = new Uint8Array(2 + app1.length + stripped.length - 2);
-    out[0] = 0xff; out[1] = 0xd8;
-    out.set(app1, 2);
-    out.set(stripped.subarray(2), 2 + app1.length);
-
-    console.log('[EXIF] output size:', out.length);
-    return new Blob([out], { type: 'image/jpeg' });
-  } catch (err) {
-    console.error('[EXIF] error:', err);
+  // Must be a JPEG
+  if (bytes[0] !== 0xff || bytes[1] !== 0xd8) {
+    console.warn('[META] Not a JPEG, returning original');
     return file;
   }
+
+  // 1. Strip existing APP1 and APP13 segments (old EXIF / IPTC / XMP)
+  const clean = stripSegments(bytes, [0xe1, 0xed]);
+  console.log('[META] stripped size:', clean.length);
+
+  // 2. Build XMP APP1 segment (plain XML)
+  const xmp = buildXmpSegment(meta);
+  console.log('[META] XMP segment size:', xmp.length);
+
+  // 3. Build minimal EXIF APP1 segment
+  const exif = buildMinimalExifSegment(meta);
+  console.log('[META] EXIF segment size:', exif.length);
+
+  // 4. Reassemble: SOI + EXIF + XMP + rest
+  const out = concat([
+    clean.subarray(0, 2),           // SOI  (FF D8)
+    exif,                           // our EXIF APP1
+    xmp,                            // our XMP APP1
+    clean.subarray(2),              // rest of the stripped JPEG
+  ]);
+
+  console.log('[META] output size:', out.length, '— done!');
+  return new Blob([out], { type: 'image/jpeg' });
 }
 
-// ─── Read Orientation from existing EXIF ────────────────────────────────────
+// ─── Strip JPEG segments by marker ───────────────────────────────────────────
 
-function readOrientation(src: Uint8Array): number {
-  let i = 2;
-  while (i + 3 < src.length) {
-    if (src[i] !== 0xff) break;
-    const marker = src[i + 1];
-    if (marker === 0xd9) break;
-    if (marker === 0xd8 || (marker >= 0xd0 && marker <= 0xd7)) { i += 2; continue; }
-    const len = (src[i + 2] << 8) | src[i + 3];
-    if (marker === 0xe1 && len > 10) {
-      const s = i + 4;
-      // Check "Exif\0\0"
-      if (src[s] === 0x45 && src[s+1] === 0x78 && src[s+2] === 0x69 &&
-          src[s+3] === 0x66 && src[s+4] === 0x00 && src[s+5] === 0x00) {
-        const t = s + 6; // TIFF start
-        if (t + 8 < src.length) {
-          const le = src[t] === 0x49;
-          const dv = new DataView(src.buffer, src.byteOffset + t);
-          const ifd0off = dv.getUint32(4, le);
-          if (ifd0off + 2 <= dv.byteLength) {
-            const n = dv.getUint16(ifd0off, le);
-            for (let e = 0; e < n; e++) {
-              const ep = ifd0off + 2 + e * 12;
-              if (ep + 10 > dv.byteLength) break;
-              if (dv.getUint16(ep, le) === 0x0112) {
-                return dv.getUint16(ep + 8, le) || 1;
-              }
-            }
-          }
-        }
-      }
-    }
-    i += 2 + len;
-  }
-  return 1;
-}
-
-// ─── Remove all APP1 segments ─────────────────────────────────────────────────
-
-function removeApp1(src: Uint8Array): Uint8Array {
-  const chunks: Uint8Array[] = [src.subarray(0, 2)]; // keep SOI
+function stripSegments(src: Uint8Array, markers: number[]): Uint8Array {
+  const parts: Uint8Array[] = [src.subarray(0, 2)]; // keep SOI
   let i = 2;
   while (i + 1 < src.length) {
-    if (src[i] !== 0xff) { chunks.push(src.subarray(i)); break; }
+    if (src[i] !== 0xff) { parts.push(src.subarray(i)); break; }
     const m = src[i + 1];
-    if (m === 0xd9) { chunks.push(src.subarray(i, i + 2)); break; }
+    if (m === 0xd9) { parts.push(src.subarray(i, i + 2)); break; }
     if (m === 0xd8 || (m >= 0xd0 && m <= 0xd7)) {
-      chunks.push(src.subarray(i, i + 2)); i += 2; continue;
+      parts.push(src.subarray(i, i + 2)); i += 2; continue;
     }
     if (i + 3 >= src.length) break;
-    const len = (src[i + 2] << 8) | src[i + 3];
-    if (m === 0xe1) {
-      i += 2 + len; // skip
+    const len = (src[i + 2] << 8) | src[i + 3]; // includes the 2 length bytes
+    if (markers.includes(m)) {
+      i += 2 + len; // skip this segment
     } else {
-      chunks.push(src.subarray(i, i + 2 + len));
+      parts.push(src.subarray(i, i + 2 + len));
       i += 2 + len;
     }
   }
-  let total = 0; for (const c of chunks) total += c.length;
-  const out = new Uint8Array(total); let off = 0;
-  for (const c of chunks) { out.set(c, off); off += c.length; }
-  return out;
+  return concat(parts);
 }
 
-// ─── Build complete APP1 segment ─────────────────────────────────────────────
+// ─── XMP segment (APP1 with xmlns header) ────────────────────────────────────
 
-function makeApp1(meta: MetadataToEmbed, orientation: number): Uint8Array {
-  const tiff = makeTiff(meta, orientation);
+function buildXmpSegment(meta: MetadataToEmbed): Uint8Array {
+  const title = esc(meta.title ?? '');
+  const description = esc(meta.description ?? '');
+  const city = esc(meta.city ?? '');
+  const country = esc(meta.country ?? '');
+  const keywords = (meta.keywords ?? []).map(esc);
+  const lat = meta.latitude;
+  const lon = meta.longitude;
 
-  // APP1 = FF E1 + uint16BE(length) + "Exif\0\0" + tiff
-  // length field includes itself (2 bytes) + "Exif\0\0" (6 bytes) + tiff
-  const length = 2 + 6 + tiff.length;
-  const seg = new Uint8Array(2 + length);
+  const bagItems = keywords.map(k => `<rdf:li>${k}</rdf:li>`).join('');
+  const gpsXml = lat != null && lon != null && !isNaN(lat) && !isNaN(lon)
+    ? `<exif:GPSLatitude>${dmsStr(lat)}${lat >= 0 ? 'N' : 'S'}</exif:GPSLatitude>
+       <exif:GPSLongitude>${dmsStr(lon)}${lon >= 0 ? 'E' : 'W'}</exif:GPSLongitude>`
+    : '';
+
+  const xml = `<?xpacket begin="\uFEFF" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+    <rdf:Description rdf:about=""
+      xmlns:dc="http://purl.org/dc/elements/1.1/"
+      xmlns:xmp="http://ns.adobe.com/xap/1.0/"
+      xmlns:photoshop="http://ns.adobe.com/photoshop/1.0/"
+      xmlns:Iptc4xmpCore="http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/"
+      xmlns:exif="http://ns.adobe.com/exif/1.0/">
+      <dc:title><rdf:Alt><rdf:li xml:lang="x-default">${title}</rdf:li></rdf:Alt></dc:title>
+      <dc:description><rdf:Alt><rdf:li xml:lang="x-default">${description}</rdf:li></rdf:Alt></dc:description>
+      <dc:subject><rdf:Bag>${bagItems}</rdf:Bag></dc:subject>
+      <photoshop:City>${city}</photoshop:City>
+      <photoshop:Country>${country}</photoshop:Country>
+      <Iptc4xmpCore:Location>${city}${city && country ? ', ' : ''}${country}</Iptc4xmpCore:Location>
+      ${gpsXml}
+    </rdf:Description>
+  </rdf:RDF>
+</x:xmpmeta>
+<?xpacket end="w"?>`;
+
+  const ns = 'http://ns.adobe.com/xap/1.0/\0';
+  const nsBytes = encodeUtf8(ns);
+  const xmlBytes = encodeUtf8(xml);
+
+  // APP1 = FF E1 + uint16BE(length) + namespace + xml
+  const payloadLen = nsBytes.length + xmlBytes.length;
+  const seg = new Uint8Array(4 + payloadLen);
   seg[0] = 0xff; seg[1] = 0xe1;
-  seg[2] = (length >> 8) & 0xff;
-  seg[3] = length & 0xff;
-  seg[4] = 0x45; seg[5] = 0x78; seg[6] = 0x69; seg[7] = 0x66; // Exif
-  seg[8] = 0x00; seg[9] = 0x00; // padding
-  seg.set(tiff, 10);
+  seg[2] = ((payloadLen + 2) >> 8) & 0xff;
+  seg[3] = (payloadLen + 2) & 0xff;
+  seg.set(nsBytes, 4);
+  seg.set(xmlBytes, 4 + nsBytes.length);
   return seg;
 }
 
-// ─── Build TIFF block ─────────────────────────────────────────────────────────
+// ─── Minimal EXIF APP1 ────────────────────────────────────────────────────────
+// Writes only ImageDescription (ASCII) — the single most-read field.
+// Kept minimal to avoid any offset calculation bugs.
 
-function makeTiff(meta: MetadataToEmbed, orientation: number): Uint8Array {
-  // Prepare all string values we want to write
-  const imageDesc = ascii([meta.title, meta.city, meta.country].filter(Boolean).join(' - '));
-  const xpTitle   = meta.title       ? utf16(meta.title)                         : null;
-  const xpComment = meta.description ? utf16(meta.description)                   : null;
-  const xpKeyword = meta.keywords?.length ? utf16(meta.keywords.join('; '))      : null;
+function buildMinimalExifSegment(meta: MetadataToEmbed): Uint8Array {
+  const titleParts = [meta.title, meta.city, meta.country].filter(Boolean);
+  const imageDesc = titleParts.join(' - ');
+  if (!imageDesc) return new Uint8Array(0);
 
-  // Each IFD entry is 12 bytes: tag(2) type(2) count(4) value/offset(4)
-  // Collect which entries we'll write and whether their value goes in the heap
-  type Row = { tag: number; type: number; count: number; bytes: Uint8Array | null; inline16?: number; inline32?: number };
-  const rows: Row[] = [];
+  // ASCII string null-terminated
+  const str = imageDesc + '\0';
+  const strLen = str.length;
 
-  if (imageDesc.length > 0)
-    rows.push({ tag: 0x010e, type: 2 /* ASCII */, count: imageDesc.length, bytes: imageDesc });
+  // TIFF header:   8 bytes  (offset 0 in TIFF)
+  // IFD0 start:    8
+  //   entry count: 2 bytes
+  //   1 entry:    12 bytes
+  //   next IFD:    4 bytes
+  // Total IFD:    18 bytes  (offset 8)
+  // Heap start:   26
+  // String:       strLen bytes
 
-  // Orientation: SHORT inline
-  rows.push({ tag: 0x0112, type: 3 /* SHORT */, count: 1, bytes: null, inline16: orientation });
+  const TIFF_START = 0;
+  const IFD0_START = 8;
+  const HEAP_START = IFD0_START + 2 + 1 * 12 + 4; // = 26
+  const TOTAL      = HEAP_START + strLen;
 
-  if (xpTitle)
-    rows.push({ tag: 0x9c9b, type: 1 /* BYTE */, count: xpTitle.length,   bytes: xpTitle });
-  if (xpComment)
-    rows.push({ tag: 0x9c9c, type: 1 /* BYTE */, count: xpComment.length, bytes: xpComment });
-  if (xpKeyword)
-    rows.push({ tag: 0x9c9e, type: 1 /* BYTE */, count: xpKeyword.length, bytes: xpKeyword });
+  const tiff = new Uint8Array(TOTAL);
+  const dv   = new DataView(tiff.buffer);
 
-  // TIFF spec: entries must be sorted by tag ascending
-  rows.sort((a, b) => a.tag - b.tag);
+  // TIFF header
+  tiff[0] = 0x49; tiff[1] = 0x49;      // "II" LE
+  dv.setUint16(2, 42,        true);     // magic
+  dv.setUint32(4, IFD0_START, true);   // IFD0 offset
 
-  // Layout:
-  //   0        TIFF header (8 bytes): "II" + 0x002A + IFD0_OFFSET(4)
-  //   8        IFD0: uint16 entry_count + rows * 12 + uint32 next_ifd(0)
-  //   8+ifdSz  value heap (strings / arrays that don't fit in 4 bytes)
+  // IFD0: 1 entry
+  dv.setUint16(IFD0_START,      1,           true); // entry count
+  dv.setUint16(IFD0_START + 2,  0x010e,      true); // tag: ImageDescription
+  dv.setUint16(IFD0_START + 4,  2,           true); // type: ASCII
+  dv.setUint32(IFD0_START + 6,  strLen,      true); // count
+  dv.setUint32(IFD0_START + 10, HEAP_START,  true); // offset to string
+  dv.setUint32(IFD0_START + 14, 0,           true); // next IFD = 0
 
-  const IFD0_OFFSET = 8;
-  const IFD0_SIZE   = 2 + rows.length * 12 + 4;
-  let heapOff = IFD0_OFFSET + IFD0_SIZE;
-
-  // Assign heap offsets
-  const heapOffsets = new Map<Row, number>();
-  for (const r of rows) {
-    if (r.bytes && r.bytes.length > 4) {
-      heapOffsets.set(r, heapOff);
-      heapOff += r.bytes.length;
-      if (heapOff & 1) heapOff++; // word-align
-    }
+  // String in heap
+  for (let i = 0; i < strLen; i++) {
+    tiff[HEAP_START + i] = str.charCodeAt(i) & 0xff;
   }
 
-  const totalSize = heapOff;
-  const buf = new Uint8Array(totalSize);
-  const dv  = new DataView(buf.buffer);
-
-  // ── TIFF header ────────────────────────────────────────────────────────────
-  buf[0] = 0x49; buf[1] = 0x49;          // "II" = LE
-  dv.setUint16(2, 42,          true);     // TIFF magic
-  dv.setUint32(4, IFD0_OFFSET, true);     // offset to IFD0
-
-  // ── IFD0 ──────────────────────────────────────────────────────────────────
-  let pos = IFD0_OFFSET;
-  dv.setUint16(pos, rows.length, true); pos += 2;
-
-  for (const r of rows) {
-    dv.setUint16(pos,     r.tag,   true);
-    dv.setUint16(pos + 2, r.type,  true);
-    dv.setUint32(pos + 4, r.count, true);
-
-    if (r.bytes === null) {
-      // Inline SHORT
-      if (r.inline16 !== undefined) dv.setUint16(pos + 8, r.inline16, true);
-      else if (r.inline32 !== undefined) dv.setUint32(pos + 8, r.inline32, true);
-    } else if (r.bytes.length <= 4) {
-      // Inline bytes (left-justified)
-      buf.set(r.bytes, pos + 8);
-    } else {
-      // Heap offset
-      dv.setUint32(pos + 8, heapOffsets.get(r)!, true);
-    }
-    pos += 12;
-  }
-  dv.setUint32(pos, 0, true); // next IFD = 0
-
-  // ── Heap ──────────────────────────────────────────────────────────────────
-  for (const [r, off] of heapOffsets) {
-    buf.set(r.bytes!, off);
-  }
-
-  return buf;
+  // Wrap in APP1: FF E1 + length(BE) + "Exif\0\0" + tiff
+  const exifHeader = [0x45, 0x78, 0x69, 0x66, 0x00, 0x00]; // Exif\0\0
+  const payloadLen = exifHeader.length + tiff.length;
+  const seg = new Uint8Array(4 + payloadLen);
+  seg[0] = 0xff; seg[1] = 0xe1;
+  seg[2] = ((payloadLen + 2) >> 8) & 0xff;
+  seg[3] = (payloadLen + 2) & 0xff;
+  for (let i = 0; i < exifHeader.length; i++) seg[4 + i] = exifHeader[i];
+  seg.set(tiff, 4 + exifHeader.length);
+  return seg;
 }
 
-// ─── Encoding helpers ─────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/** ASCII bytes, null-terminated. */
-function ascii(str: string): Uint8Array {
-  if (!str) return new Uint8Array(0);
-  const b = new Uint8Array(str.length + 1);
-  for (let i = 0; i < str.length; i++) b[i] = str.charCodeAt(i) & 0xff;
-  return b;
+function concat(parts: Uint8Array[]): Uint8Array {
+  let total = 0;
+  for (const p of parts) total += p.length;
+  const out = new Uint8Array(total);
+  let off = 0;
+  for (const p of parts) { out.set(p, off); off += p.length; }
+  return out;
 }
 
-/** UTF-16LE bytes with 2-byte null terminator. */
-function utf16(str: string): Uint8Array {
-  const b = new Uint8Array((str.length + 1) * 2);
-  for (let i = 0; i < str.length; i++) {
-    const c = str.charCodeAt(i);
-    b[i * 2]     = c & 0xff;
-    b[i * 2 + 1] = (c >> 8) & 0xff;
-  }
-  return b;
+function encodeUtf8(str: string): Uint8Array {
+  return new TextEncoder().encode(str);
+}
+
+function esc(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function dmsStr(decimal: number): string {
+  const abs = Math.abs(decimal);
+  const deg = Math.floor(abs);
+  const minFull = (abs - deg) * 60;
+  const min = Math.floor(minFull);
+  const sec = ((minFull - min) * 60).toFixed(2);
+  return `${deg},${min},${sec}`;
 }
