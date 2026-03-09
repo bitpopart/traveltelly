@@ -19,7 +19,7 @@ import { AdminCommunityManager } from '@/components/AdminCommunityManager';
 import { BlossomDashboard } from '@/components/BlossomDashboard';
 import { useInitializeTestCustomer } from '@/hooks/useInitializeTestCustomer';
 import { nip19 } from 'nostr-tools';
-import { Shield, ArrowLeft, Camera, MessageSquare, Settings, Tag, FileImage, Coffee, MapPin, Upload, BookOpen, Smartphone, Clock, BarChart3, Crown, Users, Mail, Sparkles, UsersRound, HardDrive } from 'lucide-react';
+import { Shield, ArrowLeft, Camera, MessageSquare, Settings, Tag, FileImage, Coffee, MapPin, Upload, BookOpen, Smartphone, Clock, BarChart3, Crown, Users, Mail, Sparkles, UsersRound, HardDrive, ScanSearch } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function AdminPanel() {
@@ -160,6 +160,12 @@ export default function AdminPanel() {
                   <Button variant="default" className="bg-blue-600 hover:bg-blue-700">
                     <Upload className="w-4 h-4 mr-2" />
                     Mass Upload
+                  </Button>
+                </Link>
+                <Link to="/admin/image-recognition">
+                  <Button variant="default" className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700">
+                    <ScanSearch className="w-4 h-4 mr-2" />
+                    Image Recognition
                   </Button>
                 </Link>
                 <Link to="/hide-reviews">

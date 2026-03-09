@@ -46,6 +46,7 @@ import { SimpleMapDemoPage } from "./pages/SimpleMapDemo";
 import WhatIsNostr from "./pages/WhatIsNostr";
 import CategoryMigrationPage from "./pages/CategoryMigrationPage";
 import { AdminMassUpload } from "./pages/AdminMassUpload";
+import AdminImageRecognition from "./pages/AdminImageRecognition";
 import { LocationPage } from "./pages/LocationPage";
 import AppBuilder from "./pages/AppBuilder";
 import ShareScheduler from "./pages/ShareScheduler";
@@ -92,6 +93,7 @@ export function AppRouter() {
         <Route path="/admin/share-scheduler" element={<ShareScheduler />} />
         <Route path="/admin/analytics" element={<AnalyticsDashboard />} />
         <Route path="/admin/telly-bot" element={<TellyBot />} />
+        <Route path="/admin/image-recognition" element={<AdminImageRecognition />} />
         <Route path="/admin/events" element={<AdminEvents />} />
         <Route path="/admin-test" element={<AdminTest />} />
         <Route path="/admin-debug" element={<AdminDebug />} />
