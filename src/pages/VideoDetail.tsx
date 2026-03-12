@@ -78,18 +78,27 @@ export default function VideoDetail() {
       if (!naddr) throw new Error('No video identifier provided');
 
       const decoded = nip19.decode(naddr);
-      if (decoded.type !== 'naddr') {
-        throw new Error('Invalid video identifier');
-      }
-
-      const { kind, pubkey, identifier } = decoded.data;
-
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(10000)]);
-      const events = await nostr.query([{
-        kinds: [kind],
-        authors: [pubkey],
-        '#d': [identifier],
-      }], { signal });
+
+      let events: NostrEvent[] = [];
+
+      if (decoded.type === 'naddr') {
+        // Addressable event (kind 34235/34236)
+        const { kind, pubkey, identifier } = decoded.data;
+        events = await nostr.query([{
+          kinds: [kind],
+          authors: [pubkey],
+          '#d': [identifier],
+        }], { signal });
+      } else if (decoded.type === 'nevent') {
+        // Regular event (kind 21/22 from divine.video)
+        const { id, author } = decoded.data;
+        const filter: Record<string, unknown> = { ids: [id], kinds: [21, 22] };
+        if (author) filter['authors'] = [author];
+        events = await nostr.query([filter], { signal });
+      } else {
+        throw new Error('Invalid video identifier — expected naddr or nevent');
+      }
 
       if (events.length === 0) return null;
       return events[0];

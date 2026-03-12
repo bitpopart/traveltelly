@@ -19,7 +19,7 @@ import { CreateTripForm } from "@/components/CreateTripForm";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useReviewPermissions } from "@/hooks/useReviewPermissions";
 import { useLatestReview, useLatestStory, useLatestStockMedia, useLatestTrip, useReviewCount, useStoryCount, useStockMediaCount, useTripCount, useLatestReviews, useLatestStories, useLatestTrips, useLatestStockMediaItems, useLatestVideos, useCommunityMix } from "@/hooks/useLatestItems";
-import { VideoThumbnailGrid } from "@/components/VideoThumbnailGrid";
+import { VideoThumbnailGrid, VideoItem } from "@/components/VideoThumbnailGrid";
 import { useInfiniteImages } from "@/hooks/useInfiniteImages";
 import { useTravelTellyTour } from "@/hooks/useTravelTellyTour";
 import { useViewMode } from "@/contexts/ViewModeContext";
@@ -843,84 +843,26 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
           {/* View Mode: Images Grid */}
           {viewMode === 'images' && !selectedLocationTag && (
             <div className="mb-8 md:mb-12">
-              {allImages.length > 0 ? (
+              {(communityMix.length > 0 || allImages.length > 0) ? (
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-0.5 md:gap-1">
-                  {allImages.map((item, index) => {
-                    // Get the destination path based on type
-                    let destinationPath = '/';
-                    switch (item.type) {
-                      case 'review':
-                        destinationPath = `/review/${item.naddr}`;
-                        break;
-                      case 'trip':
-                        destinationPath = `/trip/${item.naddr}`;
-                        break;
-                      case 'story':
-                        destinationPath = `/story/${item.naddr}`;
-                        break;
-                      case 'stock':
-                        destinationPath = `/media/preview/${item.naddr}`;
-                        break;
-                      case 'tour':
-                        destinationPath = `/tour-feed/${'eventId' in item ? item.eventId : ''}`;
-                        break;
-                      case 'video':
-                        destinationPath = `/video/${item.naddr}`;
-                        break;
+                  {/* Community mix rows — always first, guaranteed variety */}
+                  {communityMix.map((item, index) => {
+                    const iconMap = { tour: Globe, review: Star, story: BookOpen, video: Video, trip: MapPin, stock: Camera } as const;
+                    const Icon = iconMap[item.type];
+                    // Videos get hover-preview behaviour via VideoItem
+                    if (item.type === 'video') {
+                      return (
+                        <div key={item.key} className="aspect-square">
+                          <VideoItem video={item.event} />
+                        </div>
+                      );
                     }
-
-                    // Get icon and color based on type
-                    let icon = Star;
-                    let color = '#27b0ff';
-                    switch (item.type) {
-                      case 'review':
-                        icon = Star;
-                        color = '#27b0ff';
-                        break;
-                      case 'story':
-                        icon = BookOpen;
-                        color = '#b2d235';
-                        break;
-                      case 'trip':
-                        icon = MapPin;
-                        color = '#ffcc00';
-                        break;
-                      case 'stock':
-                        icon = Camera;
-                        color = '#ec1a58';
-                        break;
-                      case 'tour':
-                        icon = Globe;
-                        color = '#9333ea';
-                        break;
-                      case 'video':
-                        icon = Video;
-                        color = '#9333ea';
-                        break;
-                    }
-                    const Icon = icon;
-
-                    const itemKey = item.type === 'tour' && 'eventId' in item
-                      ? `${item.type}-${item.eventId}-${item.image}`
-                      : `${item.type}-${item.naddr}`;
-
-                    const isPriority = index < 12;
-
                     return (
-                      <Link key={itemKey} to={destinationPath}>
+                      <Link key={item.key} to={item.link}>
                         <div className="relative aspect-square overflow-hidden group cursor-pointer bg-gray-200 dark:bg-gray-700">
-                          <FastThumbnail
-                            src={item.image}
-                            alt={item.title}
-                            className="transition-transform duration-300 group-hover:scale-105"
-                            priority={isPriority}
-                          />
-                          {/* Type icon — small dot bottom-left */}
+                          <FastThumbnail src={item.image} alt={item.alt} priority={index < 6} className="transition-transform duration-300 group-hover:scale-105" />
                           <div className="absolute bottom-1 left-1 z-10 opacity-80 group-hover:opacity-100 transition-opacity">
-                            <div
-                              className="w-5 h-5 rounded-full flex items-center justify-center shadow"
-                              style={{ backgroundColor: color }}
-                            >
+                            <div className="w-5 h-5 rounded-full flex items-center justify-center shadow" style={{ backgroundColor: item.color }}>
                               <Icon className="w-2.5 h-2.5 text-white" strokeWidth={2.5} />
                             </div>
                           </div>
@@ -928,6 +870,47 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                       </Link>
                     );
                   })}
+                  {/* Remaining infinite-scroll images, de-duped against community mix */}
+                  {allImages
+                    .filter(item => !communityMix.some(c => c.image === item.image))
+                    .map((item, index) => {
+                      let destinationPath = '/';
+                      switch (item.type) {
+                        case 'review': destinationPath = `/review/${item.naddr}`; break;
+                        case 'trip':   destinationPath = `/trip/${item.naddr}`; break;
+                        case 'story':  destinationPath = `/story/${item.naddr}`; break;
+                        case 'stock':  destinationPath = `/media/preview/${item.naddr}`; break;
+                        case 'tour':   destinationPath = `/tour-feed/${'eventId' in item ? item.eventId : ''}`; break;
+                        case 'video':  destinationPath = `/video/${item.naddr}`; break;
+                      }
+                      const iconMap2 = { review: Star, story: BookOpen, trip: MapPin, stock: Camera, tour: Globe, video: Video } as const;
+                      const colorMap = { review: '#27b0ff', story: '#b2d235', trip: '#ffcc00', stock: '#ec1a58', tour: '#9333ea', video: '#9333ea' } as const;
+                      const Icon2 = iconMap2[item.type];
+                      const color2 = colorMap[item.type];
+                      const itemKey = item.type === 'tour' && 'eventId' in item
+                        ? `${item.type}-${item.eventId}-${item.image}`
+                        : `${item.type}-${item.naddr}-${index}`;
+
+                      if (item.type === 'video') {
+                        return (
+                          <div key={itemKey} className="aspect-square">
+                            <VideoItem video={item.event} />
+                          </div>
+                        );
+                      }
+                      return (
+                        <Link key={itemKey} to={destinationPath}>
+                          <div className="relative aspect-square overflow-hidden group cursor-pointer bg-gray-200 dark:bg-gray-700">
+                            <FastThumbnail src={item.image} alt={item.title} className="transition-transform duration-300 group-hover:scale-105" priority={index < 6} />
+                            <div className="absolute bottom-1 left-1 z-10 opacity-80 group-hover:opacity-100 transition-opacity">
+                              <div className="w-5 h-5 rounded-full flex items-center justify-center shadow" style={{ backgroundColor: color2 }}>
+                                <Icon2 className="w-2.5 h-2.5 text-white" strokeWidth={2.5} />
+                              </div>
+                            </div>
+                          </div>
+                        </Link>
+                      );
+                    })}
                 </div>
               ) : imagesLoading ? (
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-0.5 md:gap-1">

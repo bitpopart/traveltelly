@@ -57,7 +57,7 @@ function extractVideoMeta(video: NostrEvent) {
   return { thumb, videoUrl, duration, title, isVideoThumb };
 }
 
-function VideoItem({ video }: VideoItemProps) {
+export function VideoItem({ video }: VideoItemProps) {
   const [previewing, setPreviewing] = useState(false);
   const [muted, setMuted] = useState(true);
   const [fullscreen, setFullscreen] = useState(false);
