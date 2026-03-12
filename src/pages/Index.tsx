@@ -863,6 +863,9 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                       case 'tour':
                         destinationPath = `/tour-feed/${'eventId' in item ? item.eventId : ''}`;
                         break;
+                      case 'video':
+                        destinationPath = `/video/${item.naddr}`;
+                        break;
                     }
 
                     // Get icon and color based on type
@@ -887,6 +890,10 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                         break;
                       case 'tour':
                         icon = Globe;
+                        color = '#9333ea';
+                        break;
+                      case 'video':
+                        icon = Video;
                         color = '#9333ea';
                         break;
                     }
