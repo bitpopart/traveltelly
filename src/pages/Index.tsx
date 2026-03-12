@@ -978,10 +978,9 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
               </div>
             ) : (
               <>
-                {/* Community Section - Latest thumbnails from tour, reviews, stories, trips */}
+                {/* Community Mix — guaranteed 1 latest from each category */}
                 {(() => {
-                  // Build a merged list of the latest thumbnails across all content types
-                  type CommunityItem = {
+                  type MixItem = {
                     key: string;
                     image: string;
                     alt: string;
@@ -991,92 +990,122 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                     created_at: number;
                   };
 
-                  const communityItems: CommunityItem[] = [];
+                  // Pick up to 3 latest from each bucket — all data already loaded, zero new requests
+                  const buckets: MixItem[][] = [];
 
-                  // Tour items
-                  tourItems.forEach((item) => {
-                    const imageUrl = item.images[0];
-                    if (imageUrl) {
-                      communityItems.push({
-                        key: `tour-${item.id}`,
-                        image: imageUrl,
-                        alt: item.content.slice(0, 60) || 'TravelTelly Tour',
-                        link: `/tour-feed/${item.id}`,
-                        icon: Globe,
-                        color: '#9333ea',
-                        created_at: item.created_at,
-                      });
+                  // Tour bucket
+                  const tourBucket: MixItem[] = tourItems
+                    .filter(i => i.images[0])
+                    .slice(0, 3)
+                    .map(i => ({
+                      key: `tour-${i.id}`,
+                      image: i.images[0],
+                      alt: i.content.slice(0, 60) || 'TravelTelly Tour',
+                      link: `/tour-feed/${i.id}`,
+                      icon: Globe,
+                      color: '#9333ea',
+                      created_at: i.created_at,
+                    }));
+                  if (tourBucket.length) buckets.push(tourBucket);
+
+                  // Reviews bucket
+                  const reviewBucket: MixItem[] = latestReviews
+                    .filter(r => r.image)
+                    .slice(0, 3)
+                    .map(r => ({
+                      key: `review-${r.naddr}`,
+                      image: r.image!,
+                      alt: r.title,
+                      link: `/review/${r.naddr}`,
+                      icon: Star,
+                      color: '#27b0ff',
+                      created_at: r.event.created_at,
+                    }));
+                  if (reviewBucket.length) buckets.push(reviewBucket);
+
+                  // Stories bucket (written + video)
+                  const storyBucket: MixItem[] = latestStories
+                    .filter(s => s.image)
+                    .slice(0, 3)
+                    .map(s => {
+                      const isVid = [34235, 34236, 21, 22].includes(s.event.kind);
+                      return {
+                        key: `story-${s.naddr}`,
+                        image: s.image!,
+                        alt: s.title,
+                        link: isVid ? `/video/${s.naddr}` : `/story/${s.naddr}`,
+                        icon: isVid ? Video : BookOpen,
+                        color: isVid ? '#9333ea' : '#b2d235',
+                        created_at: s.event.created_at,
+                      };
+                    });
+                  if (storyBucket.length) buckets.push(storyBucket);
+
+                  // Trips bucket
+                  const tripBucket: MixItem[] = latestTrips
+                    .filter(t => t.image)
+                    .slice(0, 3)
+                    .map(t => ({
+                      key: `trip-${t.naddr}`,
+                      image: t.image!,
+                      alt: t.title,
+                      link: `/trip/${t.naddr}`,
+                      icon: MapPin,
+                      color: '#ffcc00',
+                      created_at: t.event.created_at,
+                    }));
+                  if (tripBucket.length) buckets.push(tripBucket);
+
+                  // Stock media bucket
+                  const stockBucket: MixItem[] = latestStockMediaItems
+                    .filter(m => m.image)
+                    .slice(0, 3)
+                    .map(m => ({
+                      key: `stock-${m.naddr}`,
+                      image: m.image!,
+                      alt: m.title,
+                      link: `/media/preview/${m.naddr}`,
+                      icon: Camera,
+                      color: '#ec1a58',
+                      created_at: m.event.created_at,
+                    }));
+                  if (stockBucket.length) buckets.push(stockBucket);
+
+                  // Round-robin interleave: pick 1 from each bucket in rotation
+                  // until we have 9 items (3 rows of 3), guaranteeing diversity
+                  const mixed: MixItem[] = [];
+                  const maxItems = 9;
+                  let round = 0;
+                  while (mixed.length < maxItems) {
+                    let added = false;
+                    for (const bucket of buckets) {
+                      if (mixed.length >= maxItems) break;
+                      if (bucket[round]) {
+                        mixed.push(bucket[round]);
+                        added = true;
+                      }
                     }
-                  });
+                    if (!added) break; // all buckets exhausted
+                    round++;
+                  }
 
-                  // Review items
-                  latestReviews.forEach((review) => {
-                    if (review.image) {
-                      communityItems.push({
-                        key: `review-${review.naddr}`,
-                        image: review.image,
-                        alt: review.title,
-                        link: `/review/${review.naddr}`,
-                        icon: Star,
-                        color: '#27b0ff',
-                        created_at: review.event.created_at,
-                      });
-                    }
-                  });
-
-                  // Story items
-                  latestStories.forEach((story) => {
-                    if (story.image) {
-                      communityItems.push({
-                        key: `story-${story.naddr}`,
-                        image: story.image,
-                        alt: story.title,
-                        link: `/story/${story.naddr}`,
-                        icon: BookOpen,
-                        color: '#b2d235',
-                        created_at: story.event.created_at,
-                      });
-                    }
-                  });
-
-                  // Trip items
-                  latestTrips.forEach((trip) => {
-                    if (trip.image) {
-                      communityItems.push({
-                        key: `trip-${trip.naddr}`,
-                        image: trip.image,
-                        alt: trip.title,
-                        link: `/trip/${trip.naddr}`,
-                        icon: MapPin,
-                        color: '#ffcc00',
-                        created_at: trip.event.created_at,
-                      });
-                    }
-                  });
-
-                  // Sort newest first, take top 3
-                  const top3 = communityItems
-                    .sort((a, b) => b.created_at - a.created_at)
-                    .slice(0, 3);
-
-                  if (top3.length === 0) return null;
+                  if (mixed.length === 0) return null;
 
                   return (
-                    <div className="mb-6 md:mb-12">
-                      <div className="flex justify-between items-center mb-4 md:mb-6">
-                        <h2 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                          <Globe className="w-6 h-6 md:w-8 md:h-8" style={{ color: '#9333ea' }} />
+                    <div className="mb-6 md:mb-8">
+                      <div className="flex justify-between items-center mb-3">
+                        <h2 className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                          <Globe className="w-5 h-5 md:w-6 md:h-6" style={{ color: '#9333ea' }} />
                           Community
                         </h2>
                         <Link to="/traveltelly-tour">
-                          <Button variant="outline" className="rounded-full text-xs md:text-sm px-3 md:px-4" style={{ borderColor: '#9333ea', color: '#9333ea' }}>
-                            View All
-                            <ArrowRight className="w-3 h-3 md:w-4 md:h-4 ml-1 md:ml-2" />
+                          <Button variant="outline" className="rounded-full text-xs px-3 py-1 h-auto" style={{ borderColor: '#9333ea', color: '#9333ea' }}>
+                            View All <ArrowRight className="w-3 h-3 ml-1" />
                           </Button>
                         </Link>
                       </div>
                       <div className="grid grid-cols-3 gap-0.5 md:gap-1">
-                        {top3.map((item, index) => {
+                        {mixed.map((item, index) => {
                           const Icon = item.icon;
                           return (
                             <Link key={item.key} to={item.link}>
@@ -1084,7 +1113,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                                 <FastThumbnail
                                   src={item.image}
                                   alt={item.alt}
-                                  priority={index === 0}
+                                  priority={index < 3}
                                   className="transition-transform duration-300 group-hover:scale-105"
                                 />
                                 <div className="absolute bottom-1 left-1 z-10 opacity-80 group-hover:opacity-100 transition-opacity">
@@ -1099,15 +1128,6 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                             </Link>
                           );
                         })}
-                      </div>
-                      {/* Mobile View All Button */}
-                      <div className="mt-4 text-center md:hidden">
-                        <Link to="/traveltelly-tour">
-                          <Button variant="outline" className="rounded-full w-full" style={{ borderColor: '#9333ea', color: '#9333ea' }}>
-                            View All Community Photos
-                            <ArrowRight className="w-3 h-3 ml-2" />
-                          </Button>
-                        </Link>
                       </div>
                     </div>
                   );
