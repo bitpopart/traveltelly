@@ -18,7 +18,7 @@ import { LocationContentGrid } from "@/components/LocationContentGrid";
 import { CreateTripForm } from "@/components/CreateTripForm";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useReviewPermissions } from "@/hooks/useReviewPermissions";
-import { useLatestReview, useLatestStory, useLatestStockMedia, useLatestTrip, useReviewCount, useStoryCount, useStockMediaCount, useTripCount, useLatestReviews, useLatestStories, useLatestTrips, useLatestStockMediaItems, useLatestVideos } from "@/hooks/useLatestItems";
+import { useLatestReview, useLatestStory, useLatestStockMedia, useLatestTrip, useReviewCount, useStoryCount, useStockMediaCount, useTripCount, useLatestReviews, useLatestStories, useLatestTrips, useLatestStockMediaItems, useLatestVideos, useCommunityMix } from "@/hooks/useLatestItems";
 import { VideoThumbnailGrid } from "@/components/VideoThumbnailGrid";
 import { useInfiniteImages } from "@/hooks/useInfiniteImages";
 import { useTravelTellyTour } from "@/hooks/useTravelTellyTour";
@@ -497,6 +497,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
   const { data: latestTrips = [] } = useLatestTrips();
   const { data: latestStockMediaItems = [] } = useLatestStockMediaItems();
   const { data: latestVideos = [] } = useLatestVideos(12);
+  const { data: communityMix = [] } = useCommunityMix();
   
   // Get images with infinite pagination for faster loading
   const { 
@@ -978,160 +979,48 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
               </div>
             ) : (
               <>
-                {/* Community Mix — guaranteed 1 latest from each category */}
-                {(() => {
-                  type MixItem = {
-                    key: string;
-                    image: string;
-                    alt: string;
-                    link: string;
-                    icon: typeof Globe;
-                    color: string;
-                    created_at: number;
-                  };
-
-                  // Pick up to 3 latest from each bucket — all data already loaded, zero new requests
-                  const buckets: MixItem[][] = [];
-
-                  // Tour bucket
-                  const tourBucket: MixItem[] = tourItems
-                    .filter(i => i.images[0])
-                    .slice(0, 3)
-                    .map(i => ({
-                      key: `tour-${i.id}`,
-                      image: i.images[0],
-                      alt: i.content.slice(0, 60) || 'TravelTelly Tour',
-                      link: `/tour-feed/${i.id}`,
-                      icon: Globe,
-                      color: '#9333ea',
-                      created_at: i.created_at,
-                    }));
-                  if (tourBucket.length) buckets.push(tourBucket);
-
-                  // Reviews bucket
-                  const reviewBucket: MixItem[] = latestReviews
-                    .filter(r => r.image)
-                    .slice(0, 3)
-                    .map(r => ({
-                      key: `review-${r.naddr}`,
-                      image: r.image!,
-                      alt: r.title,
-                      link: `/review/${r.naddr}`,
-                      icon: Star,
-                      color: '#27b0ff',
-                      created_at: r.event.created_at,
-                    }));
-                  if (reviewBucket.length) buckets.push(reviewBucket);
-
-                  // Stories bucket (written + video)
-                  const storyBucket: MixItem[] = latestStories
-                    .filter(s => s.image)
-                    .slice(0, 3)
-                    .map(s => {
-                      const isVid = [34235, 34236, 21, 22].includes(s.event.kind);
-                      return {
-                        key: `story-${s.naddr}`,
-                        image: s.image!,
-                        alt: s.title,
-                        link: isVid ? `/video/${s.naddr}` : `/story/${s.naddr}`,
-                        icon: isVid ? Video : BookOpen,
-                        color: isVid ? '#9333ea' : '#b2d235',
-                        created_at: s.event.created_at,
-                      };
-                    });
-                  if (storyBucket.length) buckets.push(storyBucket);
-
-                  // Trips bucket
-                  const tripBucket: MixItem[] = latestTrips
-                    .filter(t => t.image)
-                    .slice(0, 3)
-                    .map(t => ({
-                      key: `trip-${t.naddr}`,
-                      image: t.image!,
-                      alt: t.title,
-                      link: `/trip/${t.naddr}`,
-                      icon: MapPin,
-                      color: '#ffcc00',
-                      created_at: t.event.created_at,
-                    }));
-                  if (tripBucket.length) buckets.push(tripBucket);
-
-                  // Stock media bucket
-                  const stockBucket: MixItem[] = latestStockMediaItems
-                    .filter(m => m.image)
-                    .slice(0, 3)
-                    .map(m => ({
-                      key: `stock-${m.naddr}`,
-                      image: m.image!,
-                      alt: m.title,
-                      link: `/media/preview/${m.naddr}`,
-                      icon: Camera,
-                      color: '#ec1a58',
-                      created_at: m.event.created_at,
-                    }));
-                  if (stockBucket.length) buckets.push(stockBucket);
-
-                  // Round-robin interleave: pick 1 from each bucket in rotation
-                  // until we have 9 items (3 rows of 3), guaranteeing diversity
-                  const mixed: MixItem[] = [];
-                  const maxItems = 9;
-                  let round = 0;
-                  while (mixed.length < maxItems) {
-                    let added = false;
-                    for (const bucket of buckets) {
-                      if (mixed.length >= maxItems) break;
-                      if (bucket[round]) {
-                        mixed.push(bucket[round]);
-                        added = true;
-                      }
-                    }
-                    if (!added) break; // all buckets exhausted
-                    round++;
-                  }
-
-                  if (mixed.length === 0) return null;
-
-                  return (
-                    <div className="mb-6 md:mb-8">
-                      <div className="flex justify-between items-center mb-3">
-                        <h2 className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                          <Globe className="w-5 h-5 md:w-6 md:h-6" style={{ color: '#9333ea' }} />
-                          Community
-                        </h2>
-                        <Link to="/traveltelly-tour">
-                          <Button variant="outline" className="rounded-full text-xs px-3 py-1 h-auto" style={{ borderColor: '#9333ea', color: '#9333ea' }}>
-                            View All <ArrowRight className="w-3 h-3 ml-1" />
-                          </Button>
-                        </Link>
-                      </div>
-                      <div className="grid grid-cols-3 gap-0.5 md:gap-1">
-                        {mixed.map((item, index) => {
-                          const Icon = item.icon;
-                          return (
-                            <Link key={item.key} to={item.link}>
-                              <div className="relative aspect-square overflow-hidden group cursor-pointer bg-gray-200 dark:bg-gray-700">
-                                <FastThumbnail
-                                  src={item.image}
-                                  alt={item.alt}
-                                  priority={index < 3}
-                                  className="transition-transform duration-300 group-hover:scale-105"
-                                />
-                                <div className="absolute bottom-1 left-1 z-10 opacity-80 group-hover:opacity-100 transition-opacity">
-                                  <div
-                                    className="w-5 h-5 rounded-full flex items-center justify-center shadow"
-                                    style={{ backgroundColor: item.color }}
-                                  >
-                                    <Icon className="w-2.5 h-2.5 text-white" strokeWidth={2.5} />
-                                  </div>
+                {/* Community Mix — round-robin from tour, reviews, stories, trips, stock, videos */}
+                {communityMix.length > 0 && (
+                  <div className="mb-6 md:mb-8">
+                    <div className="flex justify-between items-center mb-3">
+                      <h2 className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <Globe className="w-5 h-5 md:w-6 md:h-6" style={{ color: '#9333ea' }} />
+                        Community
+                      </h2>
+                      <Link to="/traveltelly-tour">
+                        <Button variant="outline" className="rounded-full text-xs px-3 py-1 h-auto" style={{ borderColor: '#9333ea', color: '#9333ea' }}>
+                          View All <ArrowRight className="w-3 h-3 ml-1" />
+                        </Button>
+                      </Link>
+                    </div>
+                    <div className="grid grid-cols-3 gap-0.5 md:gap-1">
+                      {communityMix.map((item, index) => {
+                        const iconMap = {
+                          tour: Globe, review: Star, story: BookOpen,
+                          video: Video, trip: MapPin, stock: Camera,
+                        } as const;
+                        const Icon = iconMap[item.type];
+                        return (
+                          <Link key={item.key} to={item.link}>
+                            <div className="relative aspect-square overflow-hidden group cursor-pointer bg-gray-200 dark:bg-gray-700">
+                              <FastThumbnail
+                                src={item.image}
+                                alt={item.alt}
+                                priority={index < 3}
+                                className="transition-transform duration-300 group-hover:scale-105"
+                              />
+                              <div className="absolute bottom-1 left-1 z-10 opacity-80 group-hover:opacity-100 transition-opacity">
+                                <div className="w-5 h-5 rounded-full flex items-center justify-center shadow" style={{ backgroundColor: item.color }}>
+                                  <Icon className="w-2.5 h-2.5 text-white" strokeWidth={2.5} />
                                 </div>
                               </div>
-                            </Link>
-                          );
-                        })}
-                      </div>
+                            </div>
+                          </Link>
+                        );
+                      })}
                     </div>
-                  );
-                })()}
+                  </div>
+                )}
 
                 {/* Videos Section */}
                 {latestVideos.length > 0 && (

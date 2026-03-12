@@ -683,3 +683,248 @@ export function useTripCount() {
     staleTime: 5 * 60 * 1000,
   });
 }
+
+export interface CommunityMixItem {
+  key: string;
+  image: string;
+  alt: string;
+  link: string;
+  type: 'tour' | 'review' | 'story' | 'video' | 'trip' | 'stock';
+  color: string;
+  created_at: number;
+}
+
+/**
+ * Single hook that fires all community content queries in parallel and returns
+ * a guaranteed round-robin mix of up to 9 items (3 from each of: tour, reviews,
+ * stories/videos, trips, stock). One cache entry, one render, no waterfall.
+ */
+export function useCommunityMix() {
+  const { nostr } = useNostr();
+
+  return useQuery({
+    queryKey: ['community-mix'],
+    queryFn: async (c) => {
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+
+      // Fire all 5 queries in parallel — one round-trip to the relay
+      const [tourEvents, reviewEvents, storyEvents, tripEvents, stockEvents, videoEvents] =
+        await Promise.all([
+          // Tour: kind 1 notes with #traveltelly from admin
+          nostr.query([{ kinds: [1], authors: [ADMIN_HEX], '#t': ['traveltelly'], limit: 10 }], { signal }),
+          // Reviews
+          nostr.query([{ kinds: [34879], authors: [ADMIN_HEX], limit: 10 }], { signal }),
+          // Written stories
+          nostr.query([{ kinds: [30023], '#t': ['traveltelly'], limit: 10 }], { signal }),
+          // Trips
+          nostr.query([{ kinds: [30025], authors: [ADMIN_HEX], limit: 10 }], { signal }),
+          // Stock media
+          nostr.query([{ kinds: [30402], authors: [ADMIN_HEX], limit: 10 }], { signal }),
+          // Videos (divine.video kinds)
+          nostr.query([
+            { kinds: [21, 22, 34235, 34236], authors: [ADMIN_HEX], limit: 10 },
+          ], { signal }),
+        ]);
+
+      // Helper: accept any https image (not a video file, not a placeholder)
+      function isOkImage(url: string | undefined): url is string {
+        if (!url || !url.startsWith('https://')) return false;
+        const lo = url.toLowerCase();
+        const badExts = ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.m4v'];
+        if (badExts.some(e => lo.includes(e))) return false;
+        const badWords = ['placeholder', 'example.com', 'localhost', 'data:image', 'blob:'];
+        if (badWords.some(w => lo.includes(w))) return false;
+        return true;
+      }
+
+      // Helper: extract URL from content or imeta tags (for kind 1 tour posts)
+      function firstImageFromNote(event: NostrEvent): string {
+        // imeta tags
+        const imetaTags = event.tags.filter(([n]) => n === 'imeta');
+        for (const tag of imetaTags) {
+          const urlPart = tag.find(p => p.startsWith('url '));
+          const mimePart = tag.find(p => p.startsWith('m '));
+          if (urlPart) {
+            const url = urlPart.slice(4);
+            const mime = mimePart?.slice(2) || '';
+            if (!mime.startsWith('video/') && isOkImage(url)) return url;
+          }
+        }
+        // Inline URLs in content
+        const match = event.content.match(/https:\/\/\S+\.(?:jpg|jpeg|png|gif|webp)(?:\?\S*)?/i);
+        if (match && isOkImage(match[0])) return match[0];
+        return '';
+      }
+
+      // Helper: extract thumbnail from imeta for video events
+      function videoThumb(event: NostrEvent): string {
+        const imeta = event.tags.find(([n]) => n === 'imeta');
+        if (imeta) {
+          for (let i = 1; i < imeta.length; i++) {
+            if (imeta[i].startsWith('image ')) {
+              const url = imeta[i].slice(6);
+              if (isOkImage(url)) return url;
+            }
+          }
+        }
+        const thumb = event.tags.find(([n]) => n === 'thumb')?.[1] || '';
+        return isOkImage(thumb) ? thumb : '';
+      }
+
+      // --- Build buckets (up to 3 items each) ---
+
+      // Tour bucket — kind 1 notes with inline images
+      const tourBucket: CommunityMixItem[] = tourEvents
+        .sort((a, b) => b.created_at - a.created_at)
+        .reduce<CommunityMixItem[]>((acc, e) => {
+          if (acc.length >= 3) return acc;
+          const img = firstImageFromNote(e);
+          if (img) acc.push({
+            key: `tour-${e.id}`,
+            image: img,
+            alt: e.content.slice(0, 60) || 'TravelTelly Tour',
+            link: `/tour-feed/${e.id}`,
+            type: 'tour',
+            color: '#9333ea',
+            created_at: e.created_at,
+          });
+          return acc;
+        }, []);
+
+      // Reviews bucket
+      const reviewBucket: CommunityMixItem[] = reviewEvents
+        .sort((a, b) => b.created_at - a.created_at)
+        .reduce<CommunityMixItem[]>((acc, e) => {
+          if (acc.length >= 3) return acc;
+          const img = e.tags.find(([n]) => n === 'image')?.[1];
+          const title = e.tags.find(([n]) => n === 'title')?.[1];
+          const d = e.tags.find(([n]) => n === 'd')?.[1];
+          if (img && isOkImage(img) && d && title) {
+            acc.push({
+              key: `review-${e.id}`,
+              image: img,
+              alt: title,
+              link: `/review/${nip19.naddrEncode({ identifier: d, pubkey: e.pubkey, kind: 34879 })}`,
+              type: 'review',
+              color: '#27b0ff',
+              created_at: e.created_at,
+            });
+          }
+          return acc;
+        }, []);
+
+      // Stories bucket (written only — videos handled separately)
+      const storyBucket: CommunityMixItem[] = storyEvents
+        .sort((a, b) => b.created_at - a.created_at)
+        .reduce<CommunityMixItem[]>((acc, e) => {
+          if (acc.length >= 3) return acc;
+          const img = e.tags.find(([n]) => n === 'image')?.[1];
+          const title = e.tags.find(([n]) => n === 'title')?.[1];
+          const d = e.tags.find(([n]) => n === 'd')?.[1];
+          if (img && isOkImage(img) && d && title) {
+            acc.push({
+              key: `story-${e.id}`,
+              image: img,
+              alt: title,
+              link: `/story/${nip19.naddrEncode({ identifier: d, pubkey: e.pubkey, kind: 30023 })}`,
+              type: 'story',
+              color: '#b2d235',
+              created_at: e.created_at,
+            });
+          }
+          return acc;
+        }, []);
+
+      // Trips bucket
+      const tripBucket: CommunityMixItem[] = tripEvents
+        .sort((a, b) => b.created_at - a.created_at)
+        .reduce<CommunityMixItem[]>((acc, e) => {
+          if (acc.length >= 3) return acc;
+          const img = e.tags.find(([n]) => n === 'image')?.[1];
+          const title = e.tags.find(([n]) => n === 'title')?.[1];
+          const d = e.tags.find(([n]) => n === 'd')?.[1];
+          if (img && isOkImage(img) && d && title) {
+            acc.push({
+              key: `trip-${e.id}`,
+              image: img,
+              alt: title,
+              link: `/trip/${nip19.naddrEncode({ identifier: d, pubkey: e.pubkey, kind: 30025 })}`,
+              type: 'trip',
+              color: '#ffcc00',
+              created_at: e.created_at,
+            });
+          }
+          return acc;
+        }, []);
+
+      // Stock media bucket
+      const stockBucket: CommunityMixItem[] = stockEvents
+        .sort((a, b) => b.created_at - a.created_at)
+        .reduce<CommunityMixItem[]>((acc, e) => {
+          if (acc.length >= 3) return acc;
+          const img = e.tags.find(([n]) => n === 'image')?.[1];
+          const title = e.tags.find(([n]) => n === 'title')?.[1];
+          const d = e.tags.find(([n]) => n === 'd')?.[1];
+          const status = e.tags.find(([n]) => n === 'status')?.[1];
+          const deleted = e.tags.find(([n]) => n === 'deleted')?.[1];
+          if (img && isOkImage(img) && d && title && status !== 'deleted' && deleted !== 'true') {
+            acc.push({
+              key: `stock-${e.id}`,
+              image: img,
+              alt: title,
+              link: `/media/preview/${nip19.naddrEncode({ identifier: d, pubkey: e.pubkey, kind: 30402 })}`,
+              type: 'stock',
+              color: '#ec1a58',
+              created_at: e.created_at,
+            });
+          }
+          return acc;
+        }, []);
+
+      // Videos bucket
+      const videoBucket: CommunityMixItem[] = videoEvents
+        .sort((a, b) => b.created_at - a.created_at)
+        .reduce<CommunityMixItem[]>((acc, e) => {
+          if (acc.length >= 3) return acc;
+          const thumb = videoThumb(e);
+          const title = e.tags.find(([n]) => n === 'title')?.[1];
+          if (!thumb || !title) return acc;
+          const d = e.tags.find(([n]) => n === 'd')?.[1];
+          const isAddressable = d && (e.kind === 34235 || e.kind === 34236);
+          const naddr = isAddressable
+            ? nip19.naddrEncode({ identifier: d!, pubkey: e.pubkey, kind: e.kind })
+            : nip19.neventEncode({ id: e.id, author: e.pubkey });
+          acc.push({
+            key: `video-${e.id}`,
+            image: thumb,
+            alt: title,
+            link: `/video/${naddr}`,
+            type: 'video',
+            color: '#9333ea',
+            created_at: e.created_at,
+          });
+          return acc;
+        }, []);
+
+      // Round-robin interleave across all non-empty buckets
+      const allBuckets = [tourBucket, reviewBucket, storyBucket, tripBucket, stockBucket, videoBucket]
+        .filter(b => b.length > 0);
+
+      const mixed: CommunityMixItem[] = [];
+      let round = 0;
+      while (mixed.length < 9) {
+        let added = false;
+        for (const bucket of allBuckets) {
+          if (mixed.length >= 9) break;
+          if (bucket[round]) { mixed.push(bucket[round]); added = true; }
+        }
+        if (!added) break;
+        round++;
+      }
+
+      return mixed;
+    },
+    staleTime: 3 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+}
