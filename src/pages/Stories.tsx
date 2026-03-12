@@ -611,11 +611,9 @@ export default function Stories() {
                 </Card>
               ) : isLoading ? (
                 storyType === 'video' ? (
-                  <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-2 md:gap-3 space-y-2 md:space-y-3">
-                    {Array.from({ length: 10 }, (_, i) => (
-                      <div key={i} className={`break-inside-avoid ${i % 3 === 0 ? 'aspect-[9/16]' : 'aspect-video'}`}>
-                        <Skeleton className="w-full h-full rounded-lg" />
-                      </div>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-0.5 md:gap-1">
+                    {Array.from({ length: 18 }, (_, i) => (
+                      <Skeleton key={i} className="aspect-square w-full rounded-sm" />
                     ))}
                   </div>
                 ) : (
