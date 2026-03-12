@@ -18,11 +18,12 @@ import { LocationContentGrid } from "@/components/LocationContentGrid";
 import { CreateTripForm } from "@/components/CreateTripForm";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useReviewPermissions } from "@/hooks/useReviewPermissions";
-import { useLatestReview, useLatestStory, useLatestStockMedia, useLatestTrip, useReviewCount, useStoryCount, useStockMediaCount, useTripCount, useLatestReviews, useLatestStories, useLatestTrips, useLatestStockMediaItems } from "@/hooks/useLatestItems";
+import { useLatestReview, useLatestStory, useLatestStockMedia, useLatestTrip, useReviewCount, useStoryCount, useStockMediaCount, useTripCount, useLatestReviews, useLatestStories, useLatestTrips, useLatestStockMediaItems, useLatestVideos } from "@/hooks/useLatestItems";
+import { VideoThumbnailGrid } from "@/components/VideoThumbnailGrid";
 import { useInfiniteImages } from "@/hooks/useInfiniteImages";
 import { useTravelTellyTour } from "@/hooks/useTravelTellyTour";
 import { useViewMode } from "@/contexts/ViewModeContext";
-import { MapPin, Star, Camera, Zap, Shield, BookOpen, Search, Navigation, FileImage, ArrowRight, Calendar, MessageCircle, Globe } from "lucide-react";
+import { MapPin, Star, Camera, Zap, Shield, BookOpen, Search, Navigation, FileImage, ArrowRight, Calendar, MessageCircle, Globe, Video } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ZapAuthorButton } from "@/components/ZapAuthorButton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -495,6 +496,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
   const { data: latestStories = [] } = useLatestStories();
   const { data: latestTrips = [] } = useLatestTrips();
   const { data: latestStockMediaItems = [] } = useLatestStockMediaItems();
+  const { data: latestVideos = [] } = useLatestVideos(12);
   
   // Get images with infinite pagination for faster loading
   const { 
@@ -1117,6 +1119,34 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                     </div>
                   );
                 })()}
+
+                {/* Videos Section */}
+                {latestVideos.length > 0 && (
+                  <div className="mb-6 md:mb-12">
+                    <div className="flex justify-between items-center mb-4 md:mb-6">
+                      <h2 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <Video className="w-6 h-6 md:w-8 md:h-8" style={{ color: '#9333ea' }} />
+                        Videos
+                      </h2>
+                      <Link to="/stories?tab=browse&type=video">
+                        <Button variant="outline" className="rounded-full text-xs md:text-sm px-3 md:px-4" style={{ borderColor: '#9333ea', color: '#9333ea' }}>
+                          View All
+                          <ArrowRight className="w-3 h-3 md:w-4 md:h-4 ml-1 md:ml-2" />
+                        </Button>
+                      </Link>
+                    </div>
+                    <VideoThumbnailGrid videos={latestVideos} />
+                    {/* Mobile View All Button */}
+                    <div className="mt-4 text-center md:hidden">
+                      <Link to="/stories?tab=browse&type=video">
+                        <Button variant="outline" className="rounded-full w-full" style={{ borderColor: '#9333ea', color: '#9333ea' }}>
+                          View All Videos
+                          <ArrowRight className="w-3 h-3 ml-2" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                )}
 
                 {/* Reviews Section */}
             {latestReviews.length > 0 && (

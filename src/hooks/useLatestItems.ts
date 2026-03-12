@@ -638,6 +638,41 @@ export function useLatestTrips() {
 }
 
 /**
+ * Fetch the latest NIP-71 divine.video videos (kinds 21, 22, 34235, 34236)
+ * Returns up to `limit` raw NostrEvent objects — the caller renders them with VideoThumbnailGrid
+ */
+export function useLatestVideos(limit = 12) {
+  const { nostr } = useNostr();
+
+  return useQuery({
+    queryKey: ['latest-videos', limit],
+    queryFn: async (c) => {
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      const adminPubkey = ADMIN_HEX;
+
+      const events = await nostr.query([
+        {
+          kinds: [34235, 34236, 21, 22],
+          '#t': ['traveltelly'],
+          limit: limit + 10,
+        },
+        {
+          kinds: [34235, 34236, 21, 22],
+          authors: [adminPubkey],
+          limit: limit + 10,
+        },
+      ], { signal });
+
+      // De-duplicate by event id, sort newest first, cap to limit
+      const unique = Array.from(new Map(events.map(e => [e.id, e])).values());
+      return unique.sort((a, b) => b.created_at - a.created_at).slice(0, limit);
+    },
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+}
+
+/**
  * Get total count of trips (derived from the latest trips query, no extra relay request)
  */
 export function useTripCount() {
