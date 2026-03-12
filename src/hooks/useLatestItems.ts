@@ -692,6 +692,7 @@ export interface CommunityMixItem {
   type: 'tour' | 'review' | 'story' | 'video' | 'trip' | 'stock';
   color: string;
   created_at: number;
+  event: NostrEvent; // always the raw event, needed for VideoItem
 }
 
 /**
@@ -787,6 +788,7 @@ export function useCommunityMix() {
             type: 'tour',
             color: '#9333ea',
             created_at: e.created_at,
+            event: e,
           });
           return acc;
         }, []);
@@ -808,6 +810,7 @@ export function useCommunityMix() {
               type: 'review',
               color: '#27b0ff',
               created_at: e.created_at,
+              event: e,
             });
           }
           return acc;
@@ -830,6 +833,7 @@ export function useCommunityMix() {
               type: 'story',
               color: '#b2d235',
               created_at: e.created_at,
+              event: e,
             });
           }
           return acc;
@@ -852,6 +856,7 @@ export function useCommunityMix() {
               type: 'trip',
               color: '#ffcc00',
               created_at: e.created_at,
+              event: e,
             });
           }
           return acc;
@@ -876,6 +881,7 @@ export function useCommunityMix() {
               type: 'stock',
               color: '#ec1a58',
               created_at: e.created_at,
+              event: e,
             });
           }
           return acc;
@@ -902,6 +908,7 @@ export function useCommunityMix() {
             type: 'video',
             color: '#9333ea',
             created_at: e.created_at,
+            event: e,
           });
           return acc;
         }, []);
