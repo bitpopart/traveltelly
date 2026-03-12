@@ -843,100 +843,88 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
           {viewMode === 'images' && !selectedLocationTag && (
             <div className="mb-8 md:mb-12">
               {allImages.length > 0 ? (
-                <div className="grid gap-2 grid-cols-1 md:grid-cols-3 lg:grid-cols-4">
-                  {(() => {
-                    // On mobile cap to 10 images for fast load; desktop shows all
-                    const isMobileView = typeof window !== 'undefined' && window.innerWidth < 768;
-                    const mixed = isMobileView ? allImages.slice(0, 10) : allImages;
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-0.5 md:gap-1">
+                  {allImages.map((item, index) => {
+                    // Get the destination path based on type
+                    let destinationPath = '/';
+                    switch (item.type) {
+                      case 'review':
+                        destinationPath = `/review/${item.naddr}`;
+                        break;
+                      case 'trip':
+                        destinationPath = `/trip/${item.naddr}`;
+                        break;
+                      case 'story':
+                        destinationPath = `/story/${item.naddr}`;
+                        break;
+                      case 'stock':
+                        destinationPath = `/media/preview/${item.naddr}`;
+                        break;
+                      case 'tour':
+                        destinationPath = `/tour-feed/${'eventId' in item ? item.eventId : ''}`;
+                        break;
+                    }
 
-                    return mixed.map((item, index) => {
-                      // Get the destination path based on type
-                      let destinationPath = '/';
-                      switch (item.type) {
-                        case 'review':
-                          destinationPath = `/review/${item.naddr}`;
-                          break;
-                        case 'trip':
-                          destinationPath = `/trip/${item.naddr}`;
-                          break;
-                        case 'story':
-                          destinationPath = `/story/${item.naddr}`;
-                          break;
-                        case 'stock':
-                          destinationPath = `/media/preview/${item.naddr}`;
-                          break;
-                        case 'tour':
-                          destinationPath = `/tour-feed/${'eventId' in item ? item.eventId : ''}`;
-                          break;
-                      }
+                    // Get icon and color based on type
+                    let icon = Star;
+                    let color = '#27b0ff';
+                    switch (item.type) {
+                      case 'review':
+                        icon = Star;
+                        color = '#27b0ff';
+                        break;
+                      case 'story':
+                        icon = BookOpen;
+                        color = '#b2d235';
+                        break;
+                      case 'trip':
+                        icon = MapPin;
+                        color = '#ffcc00';
+                        break;
+                      case 'stock':
+                        icon = Camera;
+                        color = '#ec1a58';
+                        break;
+                      case 'tour':
+                        icon = Globe;
+                        color = '#9333ea';
+                        break;
+                    }
+                    const Icon = icon;
 
-                      // Get icon and color based on type
-                      let icon = Star;
-                      let color = '#27b0ff';
-                      switch (item.type) {
-                        case 'review':
-                          icon = Star;
-                          color = '#27b0ff';
-                          break;
-                        case 'story':
-                          icon = BookOpen;
-                          color = '#b2d235';
-                          break;
-                        case 'trip':
-                          icon = MapPin;
-                          color = '#ffcc00';
-                          break;
-                        case 'stock':
-                          icon = Camera;
-                          color = '#ec1a58';
-                          break;
-                        case 'tour':
-                          icon = Globe;
-                          color = '#9333ea'; // purple-600
-                          break;
-                      }
-                      const Icon = icon;
+                    const itemKey = item.type === 'tour' && 'eventId' in item
+                      ? `${item.type}-${item.eventId}-${item.image}`
+                      : `${item.type}-${item.naddr}`;
 
-                      const itemKey = item.type === 'tour' && 'eventId' in item 
-                        ? `${item.type}-${item.eventId}-${item.image}` 
-                        : `${item.type}-${item.naddr}`;
+                    const isPriority = index < 12;
 
-                      // Mobile: First 3 images get priority, Desktop: First 10 images
-                      // ALWAYS load first image with highest priority for instant display
-                      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-                      const priorityCount = isMobile ? 3 : 10;
-                      const isPriority = index < priorityCount;
-                      const isFirstImage = index === 0; // First image gets highest priority
-
-                      return (
-                        <Link key={itemKey} to={destinationPath}>
-                          <div className="relative aspect-square overflow-hidden group cursor-pointer bg-gray-200 dark:bg-gray-700">
-                            <FastThumbnail
-                              src={item.image}
-                              alt={item.title}
-                              className="transition-transform group-hover:scale-105"
-                              priority={isPriority || isFirstImage}
-                            />
-                            {/* Type icon overlay - colored round button */}
-                            <div className="absolute top-2 right-2 z-10">
-                              <div 
-                                className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
-                                style={{ backgroundColor: color }}
-                              >
-                                <Icon className="w-5 h-5 text-white" strokeWidth={2} />
-                              </div>
+                    return (
+                      <Link key={itemKey} to={destinationPath}>
+                        <div className="relative aspect-square overflow-hidden group cursor-pointer bg-gray-200 dark:bg-gray-700">
+                          <FastThumbnail
+                            src={item.image}
+                            alt={item.title}
+                            className="transition-transform duration-300 group-hover:scale-105"
+                            priority={isPriority}
+                          />
+                          {/* Type icon — small dot bottom-left */}
+                          <div className="absolute bottom-1 left-1 z-10 opacity-80 group-hover:opacity-100 transition-opacity">
+                            <div
+                              className="w-5 h-5 rounded-full flex items-center justify-center shadow"
+                              style={{ backgroundColor: color }}
+                            >
+                              <Icon className="w-2.5 h-2.5 text-white" strokeWidth={2.5} />
                             </div>
                           </div>
-                        </Link>
-                      );
-                    });
-                  })()}
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
               ) : imagesLoading ? (
-                <div className="grid gap-2 grid-cols-1 md:grid-cols-3 lg:grid-cols-4">
-                  {/* Show fewer skeletons on mobile for faster perceived loading */}
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="aspect-square bg-gray-200 dark:bg-gray-700 animate-pulse rounded-sm" />
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-0.5 md:gap-1">
+                  {Array.from({ length: 18 }).map((_, i) => (
+                    <div key={i} className="aspect-square bg-gray-200 dark:bg-gray-700 animate-pulse" />
                   ))}
                 </div>
               ) : (
@@ -1080,29 +1068,27 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                           </Button>
                         </Link>
                       </div>
-                      <div className="grid gap-4 md:gap-6 grid-cols-3">
+                      <div className="grid grid-cols-3 gap-0.5 md:gap-1">
                         {top3.map((item, index) => {
                           const Icon = item.icon;
                           return (
                             <Link key={item.key} to={item.link}>
-                              <Card className="hover:shadow-lg transition-shadow overflow-hidden">
-                                <div className="relative aspect-square overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
-                                  <FastThumbnail
-                                    src={item.image}
-                                    alt={item.alt}
-                                    priority={index === 0}
-                                  />
-                                  {/* Type icon overlay */}
-                                  <div className="absolute top-2 right-2 z-10">
-                                    <div
-                                      className="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center shadow-lg"
-                                      style={{ backgroundColor: item.color }}
-                                    >
-                                      <Icon className="w-4 h-4 md:w-5 md:h-5 text-white" strokeWidth={2} />
-                                    </div>
+                              <div className="relative aspect-square overflow-hidden group cursor-pointer bg-gray-200 dark:bg-gray-700">
+                                <FastThumbnail
+                                  src={item.image}
+                                  alt={item.alt}
+                                  priority={index === 0}
+                                  className="transition-transform duration-300 group-hover:scale-105"
+                                />
+                                <div className="absolute bottom-1 left-1 z-10 opacity-80 group-hover:opacity-100 transition-opacity">
+                                  <div
+                                    className="w-5 h-5 rounded-full flex items-center justify-center shadow"
+                                    style={{ backgroundColor: item.color }}
+                                  >
+                                    <Icon className="w-2.5 h-2.5 text-white" strokeWidth={2.5} />
                                   </div>
                                 </div>
-                              </Card>
+                              </div>
                             </Link>
                           );
                         })}
@@ -1149,172 +1135,144 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                 )}
 
                 {/* Reviews Section */}
-            {latestReviews.length > 0 && (
-            <div className="mb-6 md:mb-12">
-              <div className="flex justify-between items-center mb-4 md:mb-6">
-                <h2 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  Reviews
-                  {reviewCount > 0 && (
-                    <span className="text-sm md:text-xl font-normal text-muted-foreground">
-                      ({reviewCount})
-                    </span>
-                  )}
-                </h2>
-                <Link to="/reviews">
-                  <Button variant="outline" className="rounded-full text-xs md:text-sm px-3 md:px-4" style={{ borderColor: '#27b0ff', color: '#27b0ff' }}>
-                    View All
-                    <ArrowRight className="w-3 h-3 md:w-4 md:h-4 ml-1 md:ml-2" />
-                  </Button>
-                </Link>
-              </div>
-              <div className="grid gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {latestReviews.slice(0, 1).map((review, index) => (
-                  <ReviewCard key={review.naddr} review={review} priority={index === 0} />
-                ))}
-                {/* Show more reviews on desktop only */}
-                <div className="hidden md:grid md:grid-cols-1 md:col-span-1 lg:col-span-2 gap-4 md:gap-6">
-                  {latestReviews.slice(1, 3).map((review, index) => (
-                    <ReviewCard key={review.naddr} review={review} priority={false} />
-                  ))}
-                </div>
-              </div>
-              {/* Mobile View All Button */}
-              <div className="mt-4 text-center md:hidden">
-                <Link to="/reviews">
-                  <Button variant="outline" className="rounded-full w-full" style={{ borderColor: '#27b0ff', color: '#27b0ff' }}>
-                    View All Reviews
-                    <ArrowRight className="w-3 h-3 ml-2" />
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          )}
+                {latestReviews.length > 0 && (
+                  <div className="mb-6 md:mb-12">
+                    <div className="flex justify-between items-center mb-3">
+                      <h2 className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <Star className="w-5 h-5 md:w-6 md:h-6" style={{ color: '#27b0ff' }} />
+                        Reviews
+                        {reviewCount > 0 && (
+                          <span className="text-sm font-normal text-muted-foreground">({reviewCount})</span>
+                        )}
+                      </h2>
+                      <Link to="/reviews">
+                        <Button variant="outline" className="rounded-full text-xs px-3 py-1 h-auto" style={{ borderColor: '#27b0ff', color: '#27b0ff' }}>
+                          View All <ArrowRight className="w-3 h-3 ml-1" />
+                        </Button>
+                      </Link>
+                    </div>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-0.5 md:gap-1">
+                      {latestReviews.map((review, index) => (
+                        <Link key={review.naddr} to={`/review/${review.naddr}`}>
+                          <div className="relative aspect-square overflow-hidden group cursor-pointer bg-gray-200 dark:bg-gray-700">
+                            <FastThumbnail src={review.image!} alt={review.title} priority={index === 0} className="transition-transform duration-300 group-hover:scale-105" />
+                            <div className="absolute bottom-1 left-1 z-10 opacity-80 group-hover:opacity-100 transition-opacity">
+                              <div className="w-5 h-5 rounded-full flex items-center justify-center shadow" style={{ backgroundColor: '#27b0ff' }}>
+                                <Star className="w-2.5 h-2.5 text-white" strokeWidth={2.5} />
+                              </div>
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-          {/* Stories Section */}
-          {latestStories.length > 0 && (
-            <div className="mb-6 md:mb-12">
-              <div className="flex justify-between items-center mb-4 md:mb-6">
-                <h2 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  Stories
-                  {storyCount > 0 && (
-                    <span className="text-sm md:text-xl font-normal text-muted-foreground">
-                      ({storyCount})
-                    </span>
-                  )}
-                </h2>
-                <Link to="/stories">
-                  <Button variant="outline" className="rounded-full text-xs md:text-sm px-3 md:px-4" style={{ borderColor: '#b2d235', color: '#b2d235' }}>
-                    View All
-                    <ArrowRight className="w-3 h-3 md:w-4 md:h-4 ml-1 md:ml-2" />
-                  </Button>
-                </Link>
-              </div>
-              <div className="grid gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {latestStories.slice(0, 1).map((story) => (
-                  <StoryCard key={story.naddr} story={story} />
-                ))}
-                {/* Show more stories on desktop only */}
-                <div className="hidden md:grid md:grid-cols-1 md:col-span-1 lg:col-span-2 gap-4 md:gap-6">
-                  {latestStories.slice(1, 3).map((story) => (
-                    <StoryCard key={story.naddr} story={story} />
-                  ))}
-                </div>
-              </div>
-              {/* Mobile View All Button */}
-              <div className="mt-4 text-center md:hidden">
-                <Link to="/stories">
-                  <Button variant="outline" className="rounded-full w-full" style={{ borderColor: '#b2d235', color: '#b2d235' }}>
-                    View All Stories
-                    <ArrowRight className="w-3 h-3 ml-2" />
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          )}
+                {/* Stories Section */}
+                {latestStories.length > 0 && (
+                  <div className="mb-6 md:mb-12">
+                    <div className="flex justify-between items-center mb-3">
+                      <h2 className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <BookOpen className="w-5 h-5 md:w-6 md:h-6" style={{ color: '#b2d235' }} />
+                        Stories
+                        {storyCount > 0 && (
+                          <span className="text-sm font-normal text-muted-foreground">({storyCount})</span>
+                        )}
+                      </h2>
+                      <Link to="/stories">
+                        <Button variant="outline" className="rounded-full text-xs px-3 py-1 h-auto" style={{ borderColor: '#b2d235', color: '#b2d235' }}>
+                          View All <ArrowRight className="w-3 h-3 ml-1" />
+                        </Button>
+                      </Link>
+                    </div>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-0.5 md:gap-1">
+                      {latestStories.map((story, index) => {
+                        const isVideoStory = story.event.kind === 34235 || story.event.kind === 34236 || story.event.kind === 21 || story.event.kind === 22;
+                        const linkPath = isVideoStory ? `/video/${story.naddr}` : `/story/${story.naddr}`;
+                        return (
+                          <Link key={story.naddr} to={linkPath}>
+                            <div className="relative aspect-square overflow-hidden group cursor-pointer bg-gray-200 dark:bg-gray-700">
+                              <FastThumbnail src={story.image!} alt={story.title} priority={index === 0} className="transition-transform duration-300 group-hover:scale-105" />
+                              <div className="absolute bottom-1 left-1 z-10 opacity-80 group-hover:opacity-100 transition-opacity">
+                                <div className="w-5 h-5 rounded-full flex items-center justify-center shadow" style={{ backgroundColor: '#b2d235' }}>
+                                  <BookOpen className="w-2.5 h-2.5 text-white" strokeWidth={2.5} />
+                                </div>
+                              </div>
+                            </div>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
-          {/* Trips Section */}
-          {latestTrips.length > 0 && (
-            <div className="mb-6 md:mb-12">
-              <div className="flex justify-between items-center mb-4 md:mb-6">
-                <h2 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  Trips
-                  {tripCount > 0 && (
-                    <span className="text-sm md:text-xl font-normal text-muted-foreground">
-                      ({tripCount})
-                    </span>
-                  )}
-                </h2>
-                <Link to="/trips">
-                  <Button variant="outline" className="rounded-full text-xs md:text-sm px-3 md:px-4" style={{ borderColor: '#ffcc00', color: '#ffcc00' }}>
-                    View All
-                    <ArrowRight className="w-3 h-3 md:w-4 md:h-4 ml-1 md:ml-2" />
-                  </Button>
-                </Link>
-              </div>
-              <div className="grid gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {latestTrips.slice(0, 1).map((trip) => (
-                  <TripCard key={trip.naddr} trip={trip} />
-                ))}
-                {/* Show more trips on desktop only */}
-                <div className="hidden md:grid md:grid-cols-1 md:col-span-1 lg:col-span-2 gap-4 md:gap-6">
-                  {latestTrips.slice(1, 3).map((trip) => (
-                    <TripCard key={trip.naddr} trip={trip} />
-                  ))}
-                </div>
-              </div>
-              {/* Mobile View All Button */}
-              <div className="mt-4 text-center md:hidden">
-                <Link to="/trips">
-                  <Button variant="outline" className="rounded-full w-full" style={{ borderColor: '#ffcc00', color: '#ffcc00' }}>
-                    View All Trips
-                    <ArrowRight className="w-3 h-3 ml-2" />
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          )}
+                {/* Trips Section */}
+                {latestTrips.length > 0 && (
+                  <div className="mb-6 md:mb-12">
+                    <div className="flex justify-between items-center mb-3">
+                      <h2 className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <MapPin className="w-5 h-5 md:w-6 md:h-6" style={{ color: '#ffcc00' }} />
+                        Trips
+                        {tripCount > 0 && (
+                          <span className="text-sm font-normal text-muted-foreground">({tripCount})</span>
+                        )}
+                      </h2>
+                      <Link to="/trips">
+                        <Button variant="outline" className="rounded-full text-xs px-3 py-1 h-auto" style={{ borderColor: '#ffcc00', color: '#b8960a' }}>
+                          View All <ArrowRight className="w-3 h-3 ml-1" />
+                        </Button>
+                      </Link>
+                    </div>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-0.5 md:gap-1">
+                      {latestTrips.map((trip, index) => (
+                        <Link key={trip.naddr} to={`/trip/${trip.naddr}`}>
+                          <div className="relative aspect-square overflow-hidden group cursor-pointer bg-gray-200 dark:bg-gray-700">
+                            <FastThumbnail src={trip.image!} alt={trip.title} priority={index === 0} className="transition-transform duration-300 group-hover:scale-105" />
+                            <div className="absolute bottom-1 left-1 z-10 opacity-80 group-hover:opacity-100 transition-opacity">
+                              <div className="w-5 h-5 rounded-full flex items-center justify-center shadow" style={{ backgroundColor: '#ffcc00' }}>
+                                <MapPin className="w-2.5 h-2.5 text-white" strokeWidth={2.5} />
+                              </div>
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-          {/* Stock Media Section */}
-          {latestStockMediaItems.length > 0 && (
-            <div className="mb-6 md:mb-12">
-              <div className="flex justify-between items-center mb-4 md:mb-6">
-                <h2 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  Stock Media
-                  {stockMediaCount > 0 && (
-                    <span className="text-sm md:text-xl font-normal text-muted-foreground">
-                      ({stockMediaCount})
-                    </span>
-                  )}
-                </h2>
-                <Link to="/marketplace">
-                  <Button variant="outline" className="rounded-full text-xs md:text-sm px-3 md:px-4" style={{ borderColor: '#ec1a58', color: '#ec1a58' }}>
-                    View All
-                    <ArrowRight className="w-3 h-3 md:w-4 md:h-4 ml-1 md:ml-2" />
-                  </Button>
-                </Link>
-              </div>
-              <div className="grid gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {latestStockMediaItems.slice(0, 1).map((media, index) => (
-                  <MediaCard key={media.naddr} media={media} priority={index === 0} />
-                ))}
-                {/* Show more media on desktop only */}
-                <div className="hidden md:grid md:grid-cols-1 md:col-span-1 lg:col-span-2 gap-4 md:gap-6">
-                  {latestStockMediaItems.slice(1, 3).map((media, index) => (
-                    <MediaCard key={media.naddr} media={media} priority={false} />
-                  ))}
-                </div>
-              </div>
-              {/* Mobile View All Button */}
-              <div className="mt-4 text-center md:hidden">
-                <Link to="/marketplace">
-                  <Button variant="outline" className="rounded-full w-full" style={{ borderColor: '#ec1a58', color: '#ec1a58' }}>
-                    View All Stock Media
-                    <ArrowRight className="w-3 h-3 ml-2" />
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          )}
+                {/* Stock Media Section */}
+                {latestStockMediaItems.length > 0 && (
+                  <div className="mb-6 md:mb-12">
+                    <div className="flex justify-between items-center mb-3">
+                      <h2 className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <Camera className="w-5 h-5 md:w-6 md:h-6" style={{ color: '#ec1a58' }} />
+                        Stock Media
+                        {stockMediaCount > 0 && (
+                          <span className="text-sm font-normal text-muted-foreground">({stockMediaCount})</span>
+                        )}
+                      </h2>
+                      <Link to="/marketplace">
+                        <Button variant="outline" className="rounded-full text-xs px-3 py-1 h-auto" style={{ borderColor: '#ec1a58', color: '#ec1a58' }}>
+                          View All <ArrowRight className="w-3 h-3 ml-1" />
+                        </Button>
+                      </Link>
+                    </div>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-0.5 md:gap-1">
+                      {latestStockMediaItems.map((media, index) => (
+                        <Link key={media.naddr} to={`/media/preview/${media.naddr}`}>
+                          <div className="relative aspect-square overflow-hidden group cursor-pointer bg-gray-200 dark:bg-gray-700">
+                            <FastThumbnail src={media.image!} alt={media.title} priority={index === 0} className="transition-transform duration-300 group-hover:scale-105" />
+                            <div className="absolute bottom-1 left-1 z-10 opacity-80 group-hover:opacity-100 transition-opacity">
+                              <div className="w-5 h-5 rounded-full flex items-center justify-center shadow" style={{ backgroundColor: '#ec1a58' }}>
+                                <Camera className="w-2.5 h-2.5 text-white" strokeWidth={2.5} />
+                              </div>
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </>
             )
           )}
