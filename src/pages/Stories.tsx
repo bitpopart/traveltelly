@@ -11,6 +11,7 @@ import { OptimizedImage } from '@/components/OptimizedImage';
 import { CreateArticleForm } from '@/components/CreateArticleForm';
 import { CreateVideoStoryForm } from '@/components/CreateVideoStoryForm';
 import { VideoPlayerDialog } from '@/components/VideoPlayerDialog';
+import { VideoThumbnailGrid } from '@/components/VideoThumbnailGrid';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostr } from '@nostrify/react';
@@ -609,11 +610,21 @@ export default function Stories() {
                   </CardContent>
                 </Card>
               ) : isLoading ? (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {Array.from({ length: 6 }, (_, i) => (
-                    <StorySkeleton key={i} />
-                  ))}
-                </div>
+                storyType === 'video' ? (
+                  <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-2 md:gap-3 space-y-2 md:space-y-3">
+                    {Array.from({ length: 10 }, (_, i) => (
+                      <div key={i} className={`break-inside-avoid ${i % 3 === 0 ? 'aspect-[9/16]' : 'aspect-video'}`}>
+                        <Skeleton className="w-full h-full rounded-lg" />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {Array.from({ length: 6 }, (_, i) => (
+                      <StorySkeleton key={i} />
+                    ))}
+                  </div>
+                )
               ) : !stories || stories.length === 0 ? (
                 <Card className="border-dashed">
                   <CardContent className="py-12 px-8 text-center">
@@ -629,20 +640,15 @@ export default function Stories() {
                     </div>
                   </CardContent>
                 </Card>
+              ) : storyType === 'video' ? (
+                <VideoThumbnailGrid videos={stories} />
               ) : (
                 <div className="grid gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {stories.map((story) => (
-                    storyType === 'video' ? (
-                      <VideoStoryCard
-                        key={story.id}
-                        story={story}
-                      />
-                    ) : (
-                      <StoryCard
-                        key={story.id}
-                        story={story}
-                      />
-                    )
+                    <StoryCard
+                      key={story.id}
+                      story={story}
+                    />
                   ))}
                 </div>
               )}
