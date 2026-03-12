@@ -35,6 +35,7 @@ interface UseMarketplaceProductsOptions {
   freeOnly?: boolean;
   continent?: string; // Filter by continent
   country?: string; // Filter by country
+  city?: string; // Filter by city/location
   geoFolder?: string; // Filter by combined continent/country path
 }
 
@@ -255,6 +256,9 @@ export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = 
             return false;
           }
           if (options.country && product.country !== options.country) {
+            return false;
+          }
+          if (options.city && product.location !== options.city) {
             return false;
           }
           if (options.geoFolder && product.geoFolder !== options.geoFolder) {

@@ -32,12 +32,165 @@ import {
   AlertCircle,
   Gift,
   FolderTree,
-  Globe2
+  Globe2,
+  MapPin,
+  Save,
+  ChevronDown,
 } from 'lucide-react';
 import type { MarketplaceProduct } from '@/hooks/useMarketplaceProducts';
 import { nip19 } from 'nostr-tools';
 import { CONTINENTS, getCountriesByContinent, getContinentLabel, getCountryLabel } from '@/lib/geoData';
 import { AutoGeoTagger } from './AutoGeoTagger';
+
+/* ─── GeoTagGrid — quick-assign continent/country/city ────────── */
+function GeoTagItem({ product }: { product: MarketplaceProduct }) {
+  const { mutate: editAsset, isPending } = useEditMediaAsset();
+  const [continent, setContinent] = useState(product.continent || '');
+  const [country, setCountry] = useState(product.country || '');
+  const [city, setCity] = useState(product.location || '');
+  const [saved, setSaved] = useState(false);
+
+  const thumb = product.images[0] || '';
+  const availableCountries = continent ? getCountriesByContinent(continent) : [];
+
+  const handleSave = () => {
+    editAsset(
+      { product, updates: { continent, country, location: city } },
+      {
+        onSuccess: () => {
+          setSaved(true);
+          setTimeout(() => setSaved(false), 2000);
+        },
+      }
+    );
+  };
+
+  const isDirty =
+    continent !== (product.continent || '') ||
+    country !== (product.country || '') ||
+    city !== (product.location || '');
+
+  return (
+    <div className="bg-white dark:bg-gray-900 border rounded-lg overflow-hidden text-xs">
+      {/* Thumbnail */}
+      <div className="relative aspect-square overflow-hidden bg-gray-100 dark:bg-gray-800">
+        {thumb ? (
+          <img src={thumb} alt={product.title} className="w-full h-full object-cover" loading="lazy" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Camera className="w-6 h-6 text-gray-400" />
+          </div>
+        )}
+        {(product.continent || product.country) && (
+          <div className="absolute top-1 left-1">
+            <Badge className="text-[9px] h-4 bg-green-500 text-white px-1">tagged</Badge>
+          </div>
+        )}
+      </div>
+      {/* Title */}
+      <div className="px-2 py-1 font-medium truncate text-[10px] text-gray-700 dark:text-gray-300" title={product.title}>
+        {product.title}
+      </div>
+      {/* Continent */}
+      <div className="px-2 pb-1">
+        <Select value={continent || 'none'} onValueChange={v => { setContinent(v === 'none' ? '' : v); setCountry(''); }}>
+          <SelectTrigger className="h-6 text-[10px]">
+            <SelectValue placeholder="Continent" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">— Continent —</SelectItem>
+            {CONTINENTS.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+      {/* Country */}
+      <div className="px-2 pb-1">
+        <Select value={country || 'none'} onValueChange={v => setCountry(v === 'none' ? '' : v)} disabled={!continent}>
+          <SelectTrigger className="h-6 text-[10px]">
+            <SelectValue placeholder="Country" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">— Country —</SelectItem>
+            {availableCountries.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+      {/* City */}
+      <div className="px-2 pb-2">
+        <Input
+          value={city}
+          onChange={e => setCity(e.target.value)}
+          placeholder="City (optional)"
+          className="h-6 text-[10px]"
+        />
+      </div>
+      {/* Save */}
+      <div className="px-2 pb-2">
+        <Button
+          size="sm"
+          onClick={handleSave}
+          disabled={!isDirty || isPending}
+          className={`w-full h-6 text-[10px] ${saved ? 'bg-green-500 hover:bg-green-500' : ''}`}
+        >
+          {isPending ? '…' : saved ? '✓ Saved' : <><Save className="w-2.5 h-2.5 mr-1" />Save</>}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function GeoTagGrid({ products }: { products: MarketplaceProduct[] }) {
+  const [showAll, setShowAll] = useState(false);
+  const untagged = products.filter(p => !p.continent);
+  const tagged = products.filter(p => !!p.continent);
+
+  const displayed = showAll ? products : (untagged.length > 0 ? untagged : products);
+  const visible = displayed.slice(0, showAll ? 200 : 24);
+
+  return (
+    <Card className="border-blue-200 dark:border-blue-800">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <MapPin className="w-4 h-4 text-blue-600" />
+            Geo Tag Media
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-[10px]">
+              {untagged.length} untagged · {tagged.length} tagged
+            </Badge>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs"
+              onClick={() => setShowAll(s => !s)}
+            >
+              {showAll ? 'Untagged only' : 'Show all'}
+              <ChevronDown className={`w-3 h-3 ml-1 transition-transform ${showAll ? 'rotate-180' : ''}`} />
+            </Button>
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {untagged.length > 0 && !showAll
+            ? `Showing ${Math.min(untagged.length, 24)} untagged items — assign location for marketplace browsing.`
+            : `Showing ${Math.min(displayed.length, 200)} items. Click Save on each to assign geo tags.`}
+        </p>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+          {visible.map(product => (
+            <GeoTagItem key={product.id} product={product} />
+          ))}
+        </div>
+        {displayed.length > 24 && !showAll && (
+          <button onClick={() => setShowAll(true)} className="mt-4 text-xs text-blue-600 hover:underline">
+            Show all {displayed.length} items…
+          </button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 interface MediaItemProps {
   product: MarketplaceProduct;
@@ -1121,6 +1274,11 @@ export function MediaManagement() {
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* Geo Tag Grid — quick assign continent/country/city to all items */}
+      {mediaAssets.length > 0 && (
+        <GeoTagGrid products={mediaAssets} />
       )}
 
       {/* Media List */}

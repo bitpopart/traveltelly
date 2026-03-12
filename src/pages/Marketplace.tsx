@@ -16,8 +16,10 @@ import { useMarketplaceSubscription } from "@/hooks/useMarketplaceSubscription";
 import { ProductCard } from "@/components/ProductCard";
 import { CreateProductDialog } from "@/components/CreateProductDialog";
 import { MarketplaceSubscriptionDialog } from "@/components/MarketplaceSubscriptionDialog";
-import { ShoppingCart, Search, Plus, Store, Zap, CreditCard, Camera, Video, Music, Palette, Crown } from "lucide-react";
+import { ShoppingCart, Search, Plus, Store, Zap, CreditCard, Camera, Video, Music, Palette, Crown, Globe } from "lucide-react";
 import { Link } from "react-router-dom";
+import { GeoBrowser } from "@/components/GeoBrowser";
+import { getContinentLabel, getCountryLabel } from "@/lib/geoData";
 
 const Marketplace = () => {
   const { user } = useCurrentUser();
@@ -26,10 +28,13 @@ const Marketplace = () => {
   const [selectedMediaType, setSelectedMediaType] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [priceRange, setPriceRange] = useState('all');
+  const [geoFilter, setGeoFilter] = useState<{ continent?: string; country?: string; city?: string }>({});
 
   const { data: products, isLoading, error } = useMarketplaceProducts({
     search: searchQuery,
     category: selectedMediaType === 'all' ? undefined : selectedMediaType,
+    continent: geoFilter.continent,
+    country: geoFilter.country,
   });
 
   // Fetch free products separately
@@ -207,6 +212,20 @@ const Marketplace = () => {
             </Link>
           </div>
 
+
+          {/* Geo Browser — World / Continent / Country / City */}
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Globe className="w-5 h-5" style={{ color: '#ec1a58' }} />
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">Browse by Location</h2>
+              {(geoFilter.continent || geoFilter.country || geoFilter.city) && (
+                <Badge variant="outline" className="text-xs ml-2" style={{ borderColor: '#ec1a58', color: '#ec1a58' }}>
+                  {geoFilter.city || (geoFilter.country ? getCountryLabel(geoFilter.country) : getContinentLabel(geoFilter.continent!))}
+                </Badge>
+              )}
+            </div>
+            <GeoBrowser onFilter={setGeoFilter} />
+          </div>
 
           {/* Search and Filters */}
           <Card className="mb-8">

@@ -414,7 +414,7 @@ export function useEditMediaAsset() {
       let updatedTags = product.event.tags
         .filter(tag => {
           // Remove tags we're explicitly updating
-          const tagsToUpdate = ['free', 'continent', 'country', 'geo_folder'];
+          const tagsToUpdate = ['free', 'continent', 'country', 'location', 'geo_folder'];
           return !tagsToUpdate.includes(tag[0]);
         })
         .map(tag => {
@@ -446,6 +446,11 @@ export function useEditMediaAsset() {
       }
       if (updates.country) {
         updatedTags.push(['country', updates.country]);
+      }
+      if (updates.location !== undefined) {
+        // Remove existing location tag first (already done via filter above? no — add to filter)
+        updatedTags = updatedTags.filter(t => t[0] !== 'location');
+        if (updates.location) updatedTags.push(['location', updates.location]);
       }
       if (updates.continent && updates.country) {
         updatedTags.push(['geo_folder', `${updates.continent}/${updates.country}`]);
