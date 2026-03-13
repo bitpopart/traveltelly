@@ -40,6 +40,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PWAStatus } from '@/components/PWAStatus';
 import { useZapstorePublish } from '@/hooks/useZapstorePublish';
 import type { ZapstoreAppConfig, ZapstoreReleaseConfig, ZapstoreAssetConfig } from '@/hooks/useZapstorePublish';
+import { useZapstoreStatus, getTag } from '@/hooks/useZapstoreStatus';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function AppBuilder() {
   const { user } = useCurrentUser();
@@ -93,7 +95,9 @@ export default function AppBuilder() {
   const [generating, setGenerating] = useState(false);
 
   // Zapstore state
+  const queryClient = useQueryClient();
   const { publishApp, publishAsset, publishRelease } = useZapstorePublish();
+  const zapstoreStatus = useZapstoreStatus(user?.pubkey, 'com.traveltelly.app');
 
   const [zapApp, setZapApp] = useState<ZapstoreAppConfig>({
     packageName: 'com.traveltelly.app',
@@ -192,6 +196,23 @@ export default function AppBuilder() {
       ...zapRelease,
       assetEventId: zapRelease.assetEventId || publishedAssetId,
     });
+    // Refresh the relay status after a short delay to show updated data
+    setTimeout(() => {
+      void queryClient.invalidateQueries({ queryKey: ['zapstore-status'] });
+    }, 3000);
+  };
+
+  // Prefill version fields for a new version bump
+  const handleBumpVersion = (newVersion: string) => {
+    const parts = newVersion.split('.').map(Number);
+    parts[2] = (parts[2] ?? 0) + 1;
+    const bumped = parts.join('.');
+    const currentCode = parseInt(zapAsset.versionCode, 10) || 1;
+    setZapAsset(prev => ({ ...prev, version: bumped, versionCode: String(currentCode + 1), sha256: '', size: '' }));
+    setZapRelease(prev => ({ ...prev, version: bumped, releaseNotes: '', assetEventId: '' }));
+    setPublishedAssetId('');
+    setPublishStep('asset'); // skip to asset step for updates
+    toast({ title: '📦 Ready for new version', description: `Fill in release notes then publish asset + release for v${bumped}` });
   };
 
   const updateConfig = (key: string, value: string | boolean) => {
@@ -975,6 +996,118 @@ export default function AppBuilder() {
                 </CardHeader>
               </Card>
 
+              {/* RELAY STATUS CHECKER */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Globe className="w-5 h-5" style={{ color: '#f7931a' }} />
+                      Relay Status — relay.zapstore.dev
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void queryClient.invalidateQueries({ queryKey: ['zapstore-status'] })}
+                      disabled={zapstoreStatus.isFetching}
+                    >
+                      <RefreshCw className={`h-4 w-4 mr-1 ${zapstoreStatus.isFetching ? 'animate-spin' : ''}`} />
+                      Refresh
+                    </Button>
+                  </CardTitle>
+                  <CardDescription>Live check of what's currently stored on the Zapstore relay for your pubkey.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {zapstoreStatus.isLoading && (
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                      <RefreshCw className="h-4 w-4 animate-spin" /> Querying relay…
+                    </div>
+                  )}
+                  {zapstoreStatus.isError && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{(zapstoreStatus.error as Error).message}</AlertDescription>
+                    </Alert>
+                  )}
+                  {zapstoreStatus.data && (
+                    <div className="space-y-3">
+                      {/* App event */}
+                      <div className="flex items-center justify-between p-3 rounded-lg border">
+                        <div className="flex items-center gap-2">
+                          {zapstoreStatus.data.appEvent
+                            ? <CheckCircle2 className="h-5 w-5 text-green-600" />
+                            : <AlertCircle className="h-5 w-5 text-red-400" />}
+                          <div>
+                            <p className="text-sm font-semibold">App Metadata (kind 32267)</p>
+                            {zapstoreStatus.data.appEvent && (
+                              <p className="text-xs text-muted-foreground font-mono">
+                                {zapstoreStatus.data.appEvent.id.slice(0, 24)}…
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <Badge variant={zapstoreStatus.data.appEvent ? 'default' : 'destructive'} className="text-xs">
+                          {zapstoreStatus.data.appEvent ? '✅ On relay' : '❌ Not found'}
+                        </Badge>
+                      </div>
+
+                      {/* Releases */}
+                      <div className="flex items-center justify-between p-3 rounded-lg border">
+                        <div className="flex items-center gap-2">
+                          {zapstoreStatus.data.releaseEvents.length > 0
+                            ? <CheckCircle2 className="h-5 w-5 text-green-600" />
+                            : <AlertCircle className="h-5 w-5 text-red-400" />}
+                          <div>
+                            <p className="text-sm font-semibold">
+                              Releases (kind 30063) — {zapstoreStatus.data.releaseEvents.length} found
+                            </p>
+                            {zapstoreStatus.data.latestVersion && (
+                              <p className="text-xs text-muted-foreground">
+                                Latest: <span className="font-semibold text-green-700">v{zapstoreStatus.data.latestVersion}</span>
+                                {' · '}all versions: {zapstoreStatus.data.allVersions.join(', ')}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <Badge variant={zapstoreStatus.data.releaseEvents.length > 0 ? 'default' : 'destructive'} className="text-xs">
+                          {zapstoreStatus.data.releaseEvents.length > 0 ? '✅ On relay' : '❌ Not found'}
+                        </Badge>
+                      </div>
+
+                      {/* Assets */}
+                      <div className="flex items-center justify-between p-3 rounded-lg border">
+                        <div className="flex items-center gap-2">
+                          {zapstoreStatus.data.assetEvents.length > 0
+                            ? <CheckCircle2 className="h-5 w-5 text-green-600" />
+                            : <AlertCircle className="h-5 w-5 text-red-400" />}
+                          <div>
+                            <p className="text-sm font-semibold">
+                              Assets (kind 3063) — {zapstoreStatus.data.assetEvents.length} found
+                            </p>
+                          </div>
+                        </div>
+                        <Badge variant={zapstoreStatus.data.assetEvents.length > 0 ? 'default' : 'destructive'} className="text-xs">
+                          {zapstoreStatus.data.assetEvents.length > 0 ? '✅ On relay' : '❌ Not found'}
+                        </Badge>
+                      </div>
+
+                      {/* All good */}
+                      {zapstoreStatus.data.appEvent && zapstoreStatus.data.releaseEvents.length > 0 && zapstoreStatus.data.assetEvents.length > 0 && (
+                        <Alert className="bg-green-50 border-green-500">
+                          <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          <AlertTitle className="text-green-800">All events confirmed on relay!</AlertTitle>
+                          <AlertDescription className="text-green-700">
+                            Your app is on the Zapstore relay. If your <code>zapstore.yaml</code> is committed to GitHub it should appear in the app within minutes.{' '}
+                            <a href={`https://zapstore.dev/apps/com.traveltelly.app`} target="_blank" rel="noopener noreferrer" className="underline font-semibold" style={{ color: '#f7931a' }}>
+                              View on zapstore.dev ↗
+                            </a>
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
               {/* How it works */}
               <Alert style={{ borderColor: '#f7931a', backgroundColor: '#fff7ed' }}>
                 <Info className="h-4 w-4" style={{ color: '#f7931a' }} />
@@ -1514,6 +1647,137 @@ export default function AppBuilder() {
                       </AlertDescription>
                     </Alert>
                   )}
+                </CardContent>
+              </Card>
+
+              {/* VERSION HISTORY & NEW VERSION */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Package className="w-5 h-5" style={{ color: '#f7931a' }} />
+                    Version History &amp; Publish New Version
+                  </CardTitle>
+                  <CardDescription>
+                    See all published releases on the relay. To ship a new version, click "Publish New Version" — it pre-fills the version fields and takes you straight to Asset → Release.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {zapstoreStatus.isLoading && (
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                      <RefreshCw className="h-4 w-4 animate-spin" /> Loading version history…
+                    </div>
+                  )}
+
+                  {zapstoreStatus.data && zapstoreStatus.data.releaseEvents.length === 0 && (
+                    <p className="text-sm text-muted-foreground">No releases found on relay yet. Complete the 3-step publish above first.</p>
+                  )}
+
+                  {zapstoreStatus.data && zapstoreStatus.data.releaseEvents.length > 0 && (
+                    <div className="space-y-2">
+                      {zapstoreStatus.data.releaseEvents.map((rel) => {
+                        const version = getTag(rel, 'version');
+                        const channel = getTag(rel, 'c');
+                        const date = new Date(rel.created_at * 1000).toLocaleDateString();
+                        const assetRef = rel.tags.find(([t]) => t === 'e')?.[1];
+                        const matchedAsset = zapstoreStatus.data?.assetEvents.find(a => a.id === assetRef);
+                        const assetUrl = matchedAsset ? getTag(matchedAsset, 'url') : '';
+
+                        return (
+                          <div key={rel.id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                            <div className="space-y-0.5">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-xs font-mono">v{version}</Badge>
+                                <Badge variant="secondary" className="text-xs">{channel || 'main'}</Badge>
+                                <span className="text-xs text-muted-foreground">{date}</span>
+                              </div>
+                              {rel.content && (
+                                <p className="text-xs text-muted-foreground line-clamp-1">{rel.content}</p>
+                              )}
+                              {assetUrl && (
+                                <p className="text-xs text-muted-foreground font-mono truncate max-w-xs">{assetUrl}</p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 ml-4 shrink-0">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(rel.id);
+                                  toast({ title: 'Copied', description: 'Event ID copied' });
+                                }}
+                                title="Copy event ID"
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Publish new version button */}
+                  {zapstoreStatus.data && zapstoreStatus.data.latestVersion && (
+                    <div className="pt-2 border-t space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-semibold">Publish New Version</p>
+                          <p className="text-xs text-muted-foreground">
+                            Current latest: <span className="font-mono font-semibold">v{zapstoreStatus.data.latestVersion}</span>
+                            {' → '}
+                            <span className="font-mono font-semibold text-orange-600">
+                              v{zapstoreStatus.data.latestVersion.split('.').map((p, i, arr) =>
+                                i === arr.length - 1 ? String(Number(p) + 1) : p
+                              ).join('.')}
+                            </span>
+                          </p>
+                        </div>
+                        <Button
+                          onClick={() => handleBumpVersion(zapstoreStatus.data?.latestVersion ?? '1.0.0')}
+                          style={{ backgroundColor: '#f7931a' }}
+                          size="sm"
+                        >
+                          <Zap className="mr-1 h-4 w-4" />
+                          Prepare New Version
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        This pre-fills the version number and clears the SHA-256 field. Then: auto-compute the hash → publish Asset → publish Release.
+                        The App Metadata (kind 32267) only needs to be re-published if name/description/icon changed.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Manual version override */}
+                  <div className="pt-2 border-t">
+                    <p className="text-xs text-muted-foreground font-semibold mb-2">Or set version manually:</p>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="e.g. 1.2.0"
+                        value={zapRelease.version}
+                        onChange={(e) => {
+                          updateZapRelease('version', e.target.value);
+                          updateZapAsset('version', e.target.value);
+                        }}
+                        className="max-w-32 font-mono"
+                      />
+                      <Input
+                        placeholder="version code e.g. 2"
+                        value={zapAsset.versionCode}
+                        onChange={(e) => updateZapAsset('versionCode', e.target.value)}
+                        className="max-w-32 font-mono"
+                      />
+                      <Button variant="outline" size="sm" onClick={() => {
+                        setPublishedAssetId('');
+                        setZapRelease(prev => ({ ...prev, assetEventId: '' }));
+                        setPublishStep('asset');
+                        toast({ title: '✅ Ready', description: `Set to v${zapRelease.version} — now publish Asset then Release above` });
+                      }}>
+                        <ChevronRight className="h-4 w-4 mr-1" />
+                        Set &amp; Go to Asset Step
+                      </Button>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
