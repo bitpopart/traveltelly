@@ -100,12 +100,12 @@ export default function AppBuilder() {
     name: 'TravelTelly',
     summary: 'Share your travel experiences and discover amazing places on Nostr',
     description: 'TravelTelly is a decentralized travel platform built on the Nostr protocol. Share GPS-tagged reviews, travel stories, and trip reports. Buy and sell travel photography with Lightning payments.',
-    icon: 'https://traveltelly.diy/icon-512.png',
-    images: ['https://traveltelly.diy/screenshot1.png'],
+    icon: 'https://traveltelly.com/icon-512.png',
+    images: ['https://traveltelly.com/screenshot1.png'],
     tags: ['travel', 'nostr', 'social', 'photography', 'maps'],
     license: 'MIT',
     repository: 'https://github.com/bitpopart/traveltelly',
-    website: 'https://traveltelly.diy',
+    website: 'https://traveltelly.com',
     supportedNips: ['01', '07', '23', '57', '99'],
     platforms: ['web'],
   });
@@ -114,7 +114,7 @@ export default function AppBuilder() {
     packageName: 'com.traveltelly.app',
     version: '1.0.0',
     versionCode: '1',
-    url: 'https://traveltelly.diy',
+    url: 'https://traveltelly.com',
     mimeType: 'text/html',
     sha256: '',
     size: '',
@@ -997,6 +997,56 @@ export default function AppBuilder() {
                 </AlertDescription>
               </Alert>
 
+              {/* WHITELIST PREREQ */}
+              <Card className="border-amber-400 bg-amber-50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-amber-800">
+                    <AlertCircle className="w-5 h-5 text-amber-600" />
+                    Required: Whitelist your pubkey first
+                  </CardTitle>
+                  <CardDescription className="text-amber-700">
+                    The Zapstore relay verifies you're the real developer before showing your app.
+                    Events land on the relay immediately, but only appear in the app store after verification.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm text-amber-900">
+                  <p>
+                    <strong>Commit a <code className="bg-amber-100 px-1 rounded">zapstore.yaml</code> file to the root of your GitHub repo</strong> with your Nostr pubkey.
+                    The relay fetches it automatically when your events arrive.
+                  </p>
+                  <div className="bg-amber-100 rounded-lg p-3 font-mono text-xs space-y-1">
+                    <p className="text-amber-600"># zapstore.yaml — commit to repo root</p>
+                    <p>repository: https://github.com/bitpopart/traveltelly</p>
+                    <p>pubkey: npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642</p>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    <a
+                      href="https://github.com/bitpopart/traveltelly/new/main?filename=zapstore.yaml&value=repository%3A+https%3A%2F%2Fgithub.com%2Fbitpopart%2Ftraveltelly%0Apubkey%3A+npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-semibold text-white"
+                      style={{ backgroundColor: '#f7931a' }}
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      Create zapstore.yaml on GitHub ↗
+                    </a>
+                    <a
+                      href="https://zapstore.dev/docs/publish"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-semibold border border-amber-400 text-amber-800 hover:bg-amber-100"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      Zapstore publishing docs ↗
+                    </a>
+                  </div>
+                  <p className="text-xs text-amber-700">
+                    ✅ Already done? You can proceed — the relay will verify automatically when your events arrive.
+                    If your Nostr identity has social reputation (followers, zaps), you may already be whitelisted.
+                  </p>
+                </CardContent>
+              </Card>
+
               {/* STEP 1 — App Metadata */}
               <Card>
                 <CardHeader>
@@ -1445,17 +1495,22 @@ export default function AppBuilder() {
                   {publishRelease.isSuccess && (
                     <Alert className="bg-green-50 border-green-500">
                       <CheckCircle2 className="h-4 w-4 text-green-600" />
-                      <AlertTitle className="text-green-800">🎉 Release Published to Zapstore!</AlertTitle>
-                      <AlertDescription className="text-green-700">
+                      <AlertTitle className="text-green-800">🎉 Events published to relay.zapstore.dev!</AlertTitle>
+                      <AlertDescription className="text-green-700 space-y-2">
                         <div className="flex items-center gap-2 mt-1">
                           <code className="text-xs bg-green-100 px-1 rounded break-all">{publishRelease.data?.id}</code>
                         </div>
-                        <p className="mt-2">
-                          TravelTelly is now listed on{' '}
-                          <a href={`https://zapstore.dev/app/${zapRelease.packageName}`} target="_blank" rel="noopener noreferrer" className="underline font-semibold" style={{ color: '#f7931a' }}>
-                            zapstore.dev ↗
+                        <p className="font-semibold text-amber-700 mt-2">⚠️ One more step required to appear in the store:</p>
+                        <p>Commit a <code className="bg-green-100 px-1 rounded">zapstore.yaml</code> file to your GitHub repo root so the relay can verify you're the real developer. See the whitelist instructions above.</p>
+                        <div className="flex gap-2 mt-2 flex-wrap">
+                          <a href={`https://zapstore.dev/apps/${zapRelease.packageName}`} target="_blank" rel="noopener noreferrer" className="underline font-semibold text-sm" style={{ color: '#f7931a' }}>
+                            View on zapstore.dev ↗
                           </a>
-                        </p>
+                          <span className="text-muted-foreground text-sm">·</span>
+                          <a href="https://github.com/bitpopart/traveltelly" target="_blank" rel="noopener noreferrer" className="underline font-semibold text-sm text-blue-700">
+                            Open GitHub repo ↗
+                          </a>
+                        </div>
                       </AlertDescription>
                     </Alert>
                   )}
