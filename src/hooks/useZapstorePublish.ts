@@ -48,43 +48,63 @@ export function useZapstorePublish() {
   const { user } = useCurrentUser();
   const { toast } = useToast();
 
-  // Helper: send event to a specific relay
+  // Helper: send event to a specific relay, returns the signed event on success
   const publishToRelay = async (event: Record<string, unknown>, relayUrl: string): Promise<void> => {
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(relayUrl);
+      let settled = false;
+
       const timeout = setTimeout(() => {
-        ws.close();
-        reject(new Error(`Timeout connecting to ${relayUrl}`));
-      }, 15000);
+        if (!settled) {
+          settled = true;
+          ws.close();
+          reject(new Error(`Timeout connecting to ${relayUrl}`));
+        }
+      }, 20000);
 
       ws.onopen = () => {
         ws.send(JSON.stringify(['EVENT', event]));
       };
 
       ws.onmessage = (msg) => {
+        if (settled) return;
         try {
-          const data = JSON.parse(msg.data);
+          const data = JSON.parse(msg.data as string) as unknown[];
           if (Array.isArray(data) && data[0] === 'OK') {
+            settled = true;
             clearTimeout(timeout);
             ws.close();
-            if (data[2] === true || data[2] === undefined) {
+            const accepted = data[2] as boolean;
+            const message = (data[3] as string) || '';
+            if (accepted) {
               resolve();
             } else {
-              reject(new Error(data[3] || 'Relay rejected event'));
+              reject(new Error(`Relay rejected event: ${message}`));
             }
+          } else if (Array.isArray(data) && data[0] === 'NOTICE') {
+            // Log NOTICE messages for debugging
+            console.warn('[Zapstore relay NOTICE]', data[1]);
           }
         } catch {
           // ignore parse errors, wait for OK
         }
       };
 
-      ws.onerror = (err) => {
-        clearTimeout(timeout);
-        reject(new Error(`WebSocket error: ${String(err)}`));
+      ws.onerror = () => {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timeout);
+          reject(new Error(`Could not connect to ${relayUrl} — check network or relay status`));
+        }
       };
 
-      ws.onclose = () => {
-        clearTimeout(timeout);
+      ws.onclose = (e) => {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timeout);
+          // Closed before OK — treat as an error
+          reject(new Error(`Connection closed before relay confirmed (code ${e.code})`));
+        }
       };
     });
   };
@@ -97,14 +117,16 @@ export function useZapstorePublish() {
       const tags: string[][] = [
         ['d', config.packageName],
         ['name', config.name],
-        ['summary', config.summary],
-        ['license', config.license],
-        ['repository', config.repository],
-        ['website', config.website],
+        ['h', 'zapstore'], // Community identifier — required by Zapstore relay
         ['alt', `${config.name} - Software Application on Zapstore`],
       ];
 
+      if (config.summary) tags.push(['summary', config.summary]);
+      if (config.license) tags.push(['license', config.license]);
+      if (config.repository) tags.push(['repository', config.repository]);
+      if (config.website) tags.push(['url', config.website]); // NIP-82 uses 'url' not 'website'
       if (config.icon) tags.push(['icon', config.icon]);
+
       for (const img of config.images) {
         if (img.trim()) tags.push(['image', img.trim()]);
       }
@@ -142,21 +164,28 @@ export function useZapstorePublish() {
     mutationFn: async (config: ZapstoreAssetConfig) => {
       if (!user) throw new Error('You must be logged in to publish to Zapstore');
 
+      // Build tags matching the NIP-82 spec from zapstore/zsp events.go exactly
       const tags: string[][] = [
-        ['i', config.packageName],
+        ['i', config.packageName],   // App identifier
         ['version', config.version],
         ['version_code', config.versionCode],
-        ['url', config.url],
-        ['m', config.mimeType],
-        ['x', config.sha256],
-        ['size', config.size],
-        ['f', config.platform],
+        ['url', config.url],         // Download URL (can appear multiple times)
+        ['m', config.mimeType],      // MIME type
+        ['f', config.platform],      // Platform identifier (REQUIRED per NIP-82)
         ['alt', `${config.packageName} v${config.version} software asset`],
       ];
 
-      if (config.apkCertHash) tags.push(['apk_certificate_hash', config.apkCertHash]);
-      if (config.minPlatformVersion) tags.push(['min_platform_version', config.minPlatformVersion]);
-      if (config.targetPlatformVersion) tags.push(['target_platform_version', config.targetPlatformVersion]);
+      // x (sha256) is required by the relay — include it even if empty for non-APK,
+      // but only push a real value; skip the tag entirely if blank to avoid relay rejection
+      if (config.sha256.trim()) tags.push(['x', config.sha256.trim()]);
+
+      // size: only include if a valid positive number
+      const sizeNum = parseInt(config.size, 10);
+      if (!isNaN(sizeNum) && sizeNum > 0) tags.push(['size', String(sizeNum)]);
+
+      if (config.apkCertHash?.trim()) tags.push(['apk_certificate_hash', config.apkCertHash.trim()]);
+      if (config.minPlatformVersion?.trim()) tags.push(['min_platform_version', config.minPlatformVersion.trim()]);
+      if (config.targetPlatformVersion?.trim()) tags.push(['target_platform_version', config.targetPlatformVersion.trim()]);
 
       const unsigned = {
         kind: 3063,

@@ -1122,6 +1122,16 @@ export default function AppBuilder() {
                       </AlertDescription>
                     </Alert>
                   )}
+                  {publishApp.isError && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>App Publish Failed</AlertTitle>
+                      <AlertDescription>
+                        <p className="font-mono text-xs break-all mt-1">{(publishApp.error as Error)?.message}</p>
+                        <p className="mt-2 text-xs">Tip: Check the browser console for relay NOTICE messages.</p>
+                      </AlertDescription>
+                    </Alert>
+                  )}
                 </CardContent>
               </Card>
 
@@ -1276,6 +1286,16 @@ export default function AppBuilder() {
                           </Button>
                         </div>
                         <p className="mt-1">Asset event ID copied to Release form. Now publish the Release in Step 3.</p>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  {publishAsset.isError && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Asset Publish Failed</AlertTitle>
+                      <AlertDescription>
+                        <p className="font-mono text-xs break-all mt-1">{(publishAsset.error as Error)?.message}</p>
+                        <p className="mt-2 text-xs">Tip: Check the browser console for relay NOTICE messages with more details.</p>
                       </AlertDescription>
                     </Alert>
                   )}
