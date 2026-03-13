@@ -134,6 +134,7 @@ export default function AppBuilder() {
 
   const [publishedAssetId, setPublishedAssetId] = useState<string>('');
   const [publishStep, setPublishStep] = useState<'app' | 'asset' | 'release'>('app');
+  const [hashingUrl, setHashingUrl] = useState(false);
 
   const updateZapApp = (key: keyof ZapstoreAppConfig, value: string | string[]) => {
     setZapApp(prev => ({ ...prev, [key]: value }));
@@ -143,6 +144,36 @@ export default function AppBuilder() {
   };
   const updateZapRelease = (key: keyof ZapstoreReleaseConfig, value: string) => {
     setZapRelease(prev => ({ ...prev, [key]: value }));
+  };
+
+  // Fetch URL and compute SHA-256 + byte size via CORS proxy
+  const handleComputeHash = async () => {
+    const url = zapAsset.url.trim();
+    if (!url) {
+      toast({ title: 'No URL', description: 'Enter an asset URL first.', variant: 'destructive' });
+      return;
+    }
+    setHashingUrl(true);
+    try {
+      const proxyUrl = `https://proxy.shakespeare.diy/?url=${encodeURIComponent(url)}`;
+      const res = await fetch(proxyUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status} from ${url}`);
+      const buf = await res.arrayBuffer();
+      const hashBuf = await crypto.subtle.digest('SHA-256', buf);
+      const hashHex = Array.from(new Uint8Array(hashBuf))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+      setZapAsset(prev => ({
+        ...prev,
+        sha256: hashHex,
+        size: String(buf.byteLength),
+      }));
+      toast({ title: '✅ Hash computed', description: `SHA-256: ${hashHex.slice(0, 16)}…` });
+    } catch (err) {
+      toast({ title: '❌ Hash failed', description: (err as Error).message, variant: 'destructive' });
+    } finally {
+      setHashingUrl(false);
+    }
   };
 
   const handlePublishApp = async () => {
@@ -1198,23 +1229,45 @@ export default function AppBuilder() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>SHA-256 Hash <span className="text-muted-foreground text-xs">(optional for PWA)</span></Label>
+                  {/* SHA-256 + auto-compute */}
+                  <div className="space-y-2">
+                    <Label>
+                      SHA-256 Hash <span className="text-red-500 text-xs font-semibold">* required by relay</span>
+                    </Label>
+                    <div className="flex gap-2">
                       <Input
                         value={zapAsset.sha256}
                         onChange={(e) => updateZapAsset('sha256', e.target.value)}
                         placeholder="e3b0c44298fc1c149afbf4c8996fb924..."
+                        className={!zapAsset.sha256 ? 'border-red-300' : 'border-green-400'}
+                        readOnly={hashingUrl}
                       />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleComputeHash}
+                        disabled={hashingUrl || !zapAsset.url}
+                        className="shrink-0 whitespace-nowrap"
+                        title="Fetch URL and compute SHA-256 automatically"
+                      >
+                        {hashingUrl
+                          ? <><RefreshCw className="mr-2 h-4 w-4 animate-spin" />Computing…</>
+                          : <><RefreshCw className="mr-2 h-4 w-4" />Auto-compute</>
+                        }
+                      </Button>
                     </div>
-                    <div className="space-y-2">
-                      <Label>File Size (bytes) <span className="text-muted-foreground text-xs">(optional for PWA)</span></Label>
-                      <Input
-                        value={zapAsset.size}
-                        onChange={(e) => updateZapAsset('size', e.target.value)}
-                        placeholder="0"
-                      />
-                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Click <strong>Auto-compute</strong> to fetch the URL and calculate the hash automatically. Required for all asset types.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>File Size (bytes) <span className="text-muted-foreground text-xs">(auto-filled by compute)</span></Label>
+                    <Input
+                      value={zapAsset.size}
+                      onChange={(e) => updateZapAsset('size', e.target.value)}
+                      placeholder="auto-filled after computing hash"
+                    />
                   </div>
 
                   <div className="space-y-2">
