@@ -16,7 +16,6 @@ import {
   AlertCircle, 
   ArrowLeft,
   Download,
-  Upload,
   Package,
   Play,
   Apple,
@@ -28,13 +27,19 @@ import {
   Zap,
   Palette,
   Globe,
-  Image as ImageIcon,
-  Settings
+  Settings,
+  Store,
+  Send,
+  Copy,
+  ChevronRight,
+  RefreshCw,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useToast } from '@/hooks/useToast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PWAStatus } from '@/components/PWAStatus';
+import { useZapstorePublish } from '@/hooks/useZapstorePublish';
+import type { ZapstoreAppConfig, ZapstoreReleaseConfig, ZapstoreAssetConfig } from '@/hooks/useZapstorePublish';
 
 export default function AppBuilder() {
   const { user } = useCurrentUser();
@@ -86,6 +91,77 @@ export default function AppBuilder() {
   });
 
   const [generating, setGenerating] = useState(false);
+
+  // Zapstore state
+  const { publishApp, publishAsset, publishRelease } = useZapstorePublish();
+
+  const [zapApp, setZapApp] = useState<ZapstoreAppConfig>({
+    packageName: 'com.traveltelly.app',
+    name: 'TravelTelly',
+    summary: 'Share your travel experiences and discover amazing places on Nostr',
+    description: 'TravelTelly is a decentralized travel platform built on the Nostr protocol. Share GPS-tagged reviews, travel stories, and trip reports. Buy and sell travel photography with Lightning payments.',
+    icon: 'https://traveltelly.diy/icon-512.png',
+    images: ['https://traveltelly.diy/screenshot1.png'],
+    tags: ['travel', 'nostr', 'social', 'photography', 'maps'],
+    license: 'MIT',
+    repository: 'https://github.com/bitpopart/traveltelly',
+    website: 'https://traveltelly.diy',
+    supportedNips: ['01', '07', '23', '57', '99'],
+    platforms: ['web'],
+  });
+
+  const [zapAsset, setZapAsset] = useState<ZapstoreAssetConfig>({
+    packageName: 'com.traveltelly.app',
+    version: '1.0.0',
+    versionCode: '1',
+    url: 'https://traveltelly.diy',
+    mimeType: 'text/html',
+    sha256: '',
+    size: '',
+    platform: 'web',
+    apkCertHash: '',
+    minPlatformVersion: '',
+    targetPlatformVersion: '',
+  });
+
+  const [zapRelease, setZapRelease] = useState<ZapstoreReleaseConfig>({
+    packageName: 'com.traveltelly.app',
+    version: '1.0.0',
+    channel: 'main',
+    releaseNotes: 'Initial release of TravelTelly on Zapstore.',
+    assetEventId: '',
+  });
+
+  const [publishedAssetId, setPublishedAssetId] = useState<string>('');
+  const [publishStep, setPublishStep] = useState<'app' | 'asset' | 'release'>('app');
+
+  const updateZapApp = (key: keyof ZapstoreAppConfig, value: string | string[]) => {
+    setZapApp(prev => ({ ...prev, [key]: value }));
+  };
+  const updateZapAsset = (key: keyof ZapstoreAssetConfig, value: string) => {
+    setZapAsset(prev => ({ ...prev, [key]: value }));
+  };
+  const updateZapRelease = (key: keyof ZapstoreReleaseConfig, value: string) => {
+    setZapRelease(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handlePublishApp = async () => {
+    await publishApp.mutateAsync(zapApp);
+  };
+
+  const handlePublishAsset = async () => {
+    const event = await publishAsset.mutateAsync(zapAsset);
+    setPublishedAssetId(event.id);
+    setZapRelease(prev => ({ ...prev, assetEventId: event.id }));
+    setPublishStep('release');
+  };
+
+  const handlePublishRelease = async () => {
+    await publishRelease.mutateAsync({
+      ...zapRelease,
+      assetEventId: zapRelease.assetEventId || publishedAssetId,
+    });
+  };
 
   const updateConfig = (key: string, value: string | boolean) => {
     setConfig(prev => ({ ...prev, [key]: value }));
@@ -272,7 +348,7 @@ export default function AppBuilder() {
           </Alert>
 
           <Tabs defaultValue="config" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="config">
                 <Settings className="mr-2 h-4 w-4" />
                 Configuration
@@ -292,6 +368,11 @@ export default function AppBuilder() {
               <TabsTrigger value="guide">
                 <FileCode2 className="mr-2 h-4 w-4" />
                 Submission Guide
+              </TabsTrigger>
+              <TabsTrigger value="zapstore" className="relative">
+                <Store className="mr-2 h-4 w-4" />
+                Zapstore
+                <Badge className="ml-1 text-xs px-1 py-0" style={{ backgroundColor: '#f7931a', color: 'white' }}>⚡</Badge>
               </TabsTrigger>
             </TabsList>
 
@@ -844,6 +925,503 @@ export default function AppBuilder() {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+            {/* Zapstore Tab */}
+            <TabsContent value="zapstore" className="space-y-6">
+
+              {/* Header Card */}
+              <Card style={{ borderColor: '#f7931a', background: 'linear-gradient(135deg, #fff7ed 0%, #fff 100%)' }}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3">
+                    <Store className="w-6 h-6" style={{ color: '#f7931a' }} />
+                    <span>Publish to Zapstore</span>
+                    <Badge style={{ backgroundColor: '#f7931a', color: 'white' }}>⚡ Lightning App Store</Badge>
+                  </CardTitle>
+                  <CardDescription>
+                    Publish TravelTelly to <a href="https://zapstore.dev" target="_blank" rel="noopener noreferrer" className="underline font-semibold" style={{ color: '#f7931a' }}>Zapstore.dev</a> — the decentralized Nostr-native app store.
+                    Sign and publish NIP-82 events to <code>relay.zapstore.dev</code> using your Nostr identity.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+
+              {/* How it works */}
+              <Alert style={{ borderColor: '#f7931a', backgroundColor: '#fff7ed' }}>
+                <Info className="h-4 w-4" style={{ color: '#f7931a' }} />
+                <AlertTitle>3-Step Publishing Process</AlertTitle>
+                <AlertDescription>
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    <Badge variant="outline" className={publishStep === 'app' ? 'border-orange-500 text-orange-700 bg-orange-50' : 'bg-green-50 border-green-500 text-green-700'}>
+                      1. App Metadata (kind 32267)
+                    </Badge>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    <Badge variant="outline" className={publishStep === 'asset' ? 'border-orange-500 text-orange-700 bg-orange-50' : publishedAssetId ? 'bg-green-50 border-green-500 text-green-700' : ''}>
+                      2. Asset Info (kind 3063)
+                    </Badge>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    <Badge variant="outline" className={publishStep === 'release' ? 'border-orange-500 text-orange-700 bg-orange-50' : ''}>
+                      3. Release (kind 30063)
+                    </Badge>
+                  </div>
+                  <p className="text-xs mt-2 text-muted-foreground">Publish in order: App → Asset → Release. All events are signed by your Nostr identity.</p>
+                </AlertDescription>
+              </Alert>
+
+              {/* STEP 1 — App Metadata */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Badge style={{ backgroundColor: '#f7931a', color: 'white' }}>Step 1</Badge>
+                    App Metadata
+                    <code className="text-xs text-muted-foreground bg-muted px-1 rounded">kind: 32267</code>
+                  </CardTitle>
+                  <CardDescription>
+                    Publishes your app's identity to Zapstore — name, icon, description, categories, and supported platforms.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Package Name (d tag)</Label>
+                      <Input
+                        value={zapApp.packageName}
+                        onChange={(e) => updateZapApp('packageName', e.target.value)}
+                        placeholder="com.traveltelly.app"
+                      />
+                      <p className="text-xs text-muted-foreground">Unique identifier e.g. com.yourapp.id</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>App Name</Label>
+                      <Input
+                        value={zapApp.name}
+                        onChange={(e) => updateZapApp('name', e.target.value)}
+                        placeholder="TravelTelly"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Summary (one-liner)</Label>
+                    <Input
+                      value={zapApp.summary}
+                      onChange={(e) => updateZapApp('summary', e.target.value)}
+                      placeholder="Short description of your app"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Full Description (Markdown supported)</Label>
+                    <Textarea
+                      value={zapApp.description}
+                      onChange={(e) => updateZapApp('description', e.target.value)}
+                      rows={4}
+                      placeholder="Full app description..."
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Icon URL</Label>
+                      <Input
+                        value={zapApp.icon}
+                        onChange={(e) => updateZapApp('icon', e.target.value)}
+                        placeholder="https://traveltelly.diy/icon-512.png"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>License (SPDX)</Label>
+                      <Input
+                        value={zapApp.license}
+                        onChange={(e) => updateZapApp('license', e.target.value)}
+                        placeholder="MIT"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Repository URL</Label>
+                      <Input
+                        value={zapApp.repository}
+                        onChange={(e) => updateZapApp('repository', e.target.value)}
+                        placeholder="https://github.com/bitpopart/traveltelly"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Website URL</Label>
+                      <Input
+                        value={zapApp.website}
+                        onChange={(e) => updateZapApp('website', e.target.value)}
+                        placeholder="https://traveltelly.diy"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Screenshot URLs (one per line)</Label>
+                    <Textarea
+                      value={zapApp.images.join('\n')}
+                      onChange={(e) => updateZapApp('images', e.target.value.split('\n').filter(Boolean))}
+                      rows={3}
+                      placeholder="https://traveltelly.diy/screenshot1.png&#10;https://traveltelly.diy/screenshot2.png"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Category Tags (comma-separated)</Label>
+                      <Input
+                        value={zapApp.tags.join(', ')}
+                        onChange={(e) => updateZapApp('tags', e.target.value.split(',').map(t => t.trim()).filter(Boolean))}
+                        placeholder="travel, nostr, photography"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Platforms (comma-separated)</Label>
+                      <Input
+                        value={zapApp.platforms.join(', ')}
+                        onChange={(e) => updateZapApp('platforms', e.target.value.split(',').map(t => t.trim()).filter(Boolean))}
+                        placeholder="web, android-arm64-v8a"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Supported NIPs (comma-separated, for Nostr clients)</Label>
+                    <Input
+                      value={zapApp.supportedNips.join(', ')}
+                      onChange={(e) => updateZapApp('supportedNips', e.target.value.split(',').map(t => t.trim()).filter(Boolean))}
+                      placeholder="01, 07, 23, 57, 99"
+                    />
+                  </div>
+
+                  <Button
+                    onClick={handlePublishApp}
+                    disabled={publishApp.isPending || !user}
+                    className="w-full"
+                    style={{ backgroundColor: '#f7931a' }}
+                  >
+                    {publishApp.isPending ? (
+                      <><RefreshCw className="mr-2 h-4 w-4 animate-spin" />Publishing App Metadata...</>
+                    ) : (
+                      <><Send className="mr-2 h-4 w-4" />Publish App Metadata (kind 32267)</>
+                    )}
+                  </Button>
+
+                  {publishApp.isSuccess && (
+                    <Alert className="bg-green-50 border-green-500">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <AlertTitle className="text-green-800">App Metadata Published!</AlertTitle>
+                      <AlertDescription className="text-green-700">
+                        <div className="flex items-center gap-2 mt-1">
+                          <code className="text-xs bg-green-100 px-1 rounded break-all">{publishApp.data?.id}</code>
+                          <Button size="sm" variant="ghost" onClick={() => navigator.clipboard.writeText(publishApp.data?.id ?? '')}>
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        <p className="mt-1">Now proceed to publish the Asset in Step 2.</p>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* STEP 2 — Asset */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Badge style={{ backgroundColor: '#f7931a', color: 'white' }}>Step 2</Badge>
+                    Software Asset
+                    <code className="text-xs text-muted-foreground bg-muted px-1 rounded">kind: 3063</code>
+                  </CardTitle>
+                  <CardDescription>
+                    Describes the binary or web asset — URL, hash, size, platform. For PWAs use <code>text/html</code> as MIME type.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>Package Name</Label>
+                      <Input
+                        value={zapAsset.packageName}
+                        onChange={(e) => updateZapAsset('packageName', e.target.value)}
+                        placeholder="com.traveltelly.app"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Version</Label>
+                      <Input
+                        value={zapAsset.version}
+                        onChange={(e) => updateZapAsset('version', e.target.value)}
+                        placeholder="1.0.0"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Version Code</Label>
+                      <Input
+                        value={zapAsset.versionCode}
+                        onChange={(e) => updateZapAsset('versionCode', e.target.value)}
+                        placeholder="1"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Asset URL</Label>
+                      <Input
+                        value={zapAsset.url}
+                        onChange={(e) => updateZapAsset('url', e.target.value)}
+                        placeholder="https://traveltelly.diy or URL to APK"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>MIME Type</Label>
+                      <Select value={zapAsset.mimeType} onValueChange={(v) => updateZapAsset('mimeType', v)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="text/html">text/html (PWA / Web App)</SelectItem>
+                          <SelectItem value="application/vnd.android.package-archive">application/vnd.android.package-archive (APK)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>SHA-256 Hash <span className="text-muted-foreground text-xs">(optional for PWA)</span></Label>
+                      <Input
+                        value={zapAsset.sha256}
+                        onChange={(e) => updateZapAsset('sha256', e.target.value)}
+                        placeholder="e3b0c44298fc1c149afbf4c8996fb924..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>File Size (bytes) <span className="text-muted-foreground text-xs">(optional for PWA)</span></Label>
+                      <Input
+                        value={zapAsset.size}
+                        onChange={(e) => updateZapAsset('size', e.target.value)}
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Platform</Label>
+                    <Select value={zapAsset.platform} onValueChange={(v) => updateZapAsset('platform', v)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="web">web (PWA)</SelectItem>
+                        <SelectItem value="android-arm64-v8a">android-arm64-v8a</SelectItem>
+                        <SelectItem value="android-universal">android-universal</SelectItem>
+                        <SelectItem value="android-armeabi-v7a">android-armeabi-v7a</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {zapAsset.mimeType === 'application/vnd.android.package-archive' && (
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label>APK Certificate Hash</Label>
+                        <Input
+                          value={zapAsset.apkCertHash}
+                          onChange={(e) => updateZapAsset('apkCertHash', e.target.value)}
+                          placeholder="SHA-256 fingerprint"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Min Android SDK</Label>
+                        <Input
+                          value={zapAsset.minPlatformVersion}
+                          onChange={(e) => updateZapAsset('minPlatformVersion', e.target.value)}
+                          placeholder="21"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Target Android SDK</Label>
+                        <Input
+                          value={zapAsset.targetPlatformVersion}
+                          onChange={(e) => updateZapAsset('targetPlatformVersion', e.target.value)}
+                          placeholder="34"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <Button
+                    onClick={handlePublishAsset}
+                    disabled={publishAsset.isPending || !user}
+                    className="w-full"
+                    style={{ backgroundColor: '#f7931a' }}
+                  >
+                    {publishAsset.isPending ? (
+                      <><RefreshCw className="mr-2 h-4 w-4 animate-spin" />Publishing Asset...</>
+                    ) : (
+                      <><Send className="mr-2 h-4 w-4" />Publish Asset (kind 3063)</>
+                    )}
+                  </Button>
+
+                  {publishAsset.isSuccess && (
+                    <Alert className="bg-green-50 border-green-500">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <AlertTitle className="text-green-800">Asset Published!</AlertTitle>
+                      <AlertDescription className="text-green-700">
+                        <div className="flex items-center gap-2 mt-1">
+                          <code className="text-xs bg-green-100 px-1 rounded break-all">{publishedAssetId}</code>
+                          <Button size="sm" variant="ghost" onClick={() => navigator.clipboard.writeText(publishedAssetId)}>
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        <p className="mt-1">Asset event ID copied to Release form. Now publish the Release in Step 3.</p>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* STEP 3 — Release */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Badge style={{ backgroundColor: '#f7931a', color: 'white' }}>Step 3</Badge>
+                    Software Release
+                    <code className="text-xs text-muted-foreground bg-muted px-1 rounded">kind: 30063</code>
+                  </CardTitle>
+                  <CardDescription>
+                    Ties together the app and asset into a versioned release with release notes.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>Package Name</Label>
+                      <Input
+                        value={zapRelease.packageName}
+                        onChange={(e) => updateZapRelease('packageName', e.target.value)}
+                        placeholder="com.traveltelly.app"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Version</Label>
+                      <Input
+                        value={zapRelease.version}
+                        onChange={(e) => updateZapRelease('version', e.target.value)}
+                        placeholder="1.0.0"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Channel</Label>
+                      <Select value={zapRelease.channel} onValueChange={(v) => updateZapRelease('channel', v)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="main">main (stable)</SelectItem>
+                          <SelectItem value="beta">beta</SelectItem>
+                          <SelectItem value="nightly">nightly</SelectItem>
+                          <SelectItem value="dev">dev</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Asset Event ID (from Step 2)</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={zapRelease.assetEventId}
+                        onChange={(e) => updateZapRelease('assetEventId', e.target.value)}
+                        placeholder="Automatically filled after Step 2..."
+                      />
+                      {publishedAssetId && (
+                        <Button variant="outline" size="sm" onClick={() => updateZapRelease('assetEventId', publishedAssetId)}>
+                          <RefreshCw className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Auto-filled when you complete Step 2, or paste manually</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Release Notes</Label>
+                    <Textarea
+                      value={zapRelease.releaseNotes}
+                      onChange={(e) => updateZapRelease('releaseNotes', e.target.value)}
+                      rows={4}
+                      placeholder="What's new in this release..."
+                    />
+                  </div>
+
+                  <Button
+                    onClick={handlePublishRelease}
+                    disabled={publishRelease.isPending || !user}
+                    className="w-full"
+                    size="lg"
+                    style={{ backgroundColor: '#f7931a' }}
+                  >
+                    {publishRelease.isPending ? (
+                      <><RefreshCw className="mr-2 h-5 w-5 animate-spin" />Publishing Release...</>
+                    ) : (
+                      <><Zap className="mr-2 h-5 w-5" />Publish Release to Zapstore (kind 30063)</>
+                    )}
+                  </Button>
+
+                  {publishRelease.isSuccess && (
+                    <Alert className="bg-green-50 border-green-500">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <AlertTitle className="text-green-800">🎉 Release Published to Zapstore!</AlertTitle>
+                      <AlertDescription className="text-green-700">
+                        <div className="flex items-center gap-2 mt-1">
+                          <code className="text-xs bg-green-100 px-1 rounded break-all">{publishRelease.data?.id}</code>
+                        </div>
+                        <p className="mt-2">
+                          TravelTelly is now listed on{' '}
+                          <a href={`https://zapstore.dev/app/${zapRelease.packageName}`} target="_blank" rel="noopener noreferrer" className="underline font-semibold" style={{ color: '#f7931a' }}>
+                            zapstore.dev ↗
+                          </a>
+                        </p>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Resources & Info */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ExternalLink className="w-5 h-5" />
+                    Zapstore Resources
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <a href="https://zapstore.dev" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm hover:underline" style={{ color: '#f7931a' }}>
+                    <Store className="w-4 h-4" />
+                    zapstore.dev — Browse the Nostr app store
+                  </a>
+                  <a href="https://github.com/zapstore/zsp" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
+                    <Code className="w-4 h-4" />
+                    github.com/zapstore/zsp — CLI publishing tool
+                  </a>
+                  <a href="https://github.com/zapstore/zapstore" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
+                    <ExternalLink className="w-4 h-4" />
+                    github.com/zapstore/zapstore — Android app source
+                  </a>
+                  <div className="mt-4 p-3 rounded-lg bg-muted">
+                    <p className="text-xs text-muted-foreground font-semibold mb-1">NIP-82 Event Kinds Used:</p>
+                    <div className="space-y-1 text-xs text-muted-foreground">
+                      <div><code>32267</code> — Software Application (app metadata, addressable)</div>
+                      <div><code>3063</code> — Software Asset (binary/PWA details, regular)</div>
+                      <div><code>30063</code> — Software Release (version + release notes, addressable)</div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">Published to: <code>wss://relay.zapstore.dev</code></p>
+                  </div>
+                </CardContent>
+              </Card>
+
             </TabsContent>
           </Tabs>
         </div>
