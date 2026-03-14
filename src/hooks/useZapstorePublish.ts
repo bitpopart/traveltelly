@@ -1,8 +1,17 @@
 import { useMutation } from '@tanstack/react-query';
 import { useCurrentUser } from './useCurrentUser';
 import { useToast } from './useToast';
+import { BlossomUploader } from '@nostrify/nostrify/uploaders';
 
 const ZAPSTORE_RELAY = 'wss://relay.zapstore.dev';
+const ZAPSTORE_BLOSSOM = 'https://cdn.zapstore.dev/';
+
+export interface ApkUploadResult {
+  url: string;       // cdn.zapstore.dev/sha256
+  sha256: string;    // hex sha256
+  size: number;      // bytes
+  filename: string;
+}
 
 export interface ZapstoreAppConfig {
   // Kind 32267 - Software Application
@@ -242,5 +251,121 @@ export function useZapstorePublish() {
     },
   });
 
-  return { publishApp, publishAsset, publishRelease };
+  // Upload APK to cdn.zapstore.dev via Blossom and return URL + hash + size
+  const uploadApkToBlossom = useMutation({
+    mutationFn: async (file: File): Promise<ApkUploadResult> => {
+      if (!user) throw new Error('You must be logged in to upload');
+
+      // Compute SHA-256 from file bytes
+      const buf = await file.arrayBuffer();
+      const hashBuf = await crypto.subtle.digest('SHA-256', buf);
+      const sha256 = Array.from(new Uint8Array(hashBuf))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+
+      // Upload to cdn.zapstore.dev (their official Blossom server)
+      const uploader = new BlossomUploader({
+        servers: [ZAPSTORE_BLOSSOM],
+        signer: user.signer,
+      });
+
+      const tags = await uploader.upload(file);
+      // Blossom returns NIP-94 tags: first tag is ["url", "https://..."]
+      const url = tags.find(([name]) => name === 'url')?.[1] ?? `${ZAPSTORE_BLOSSOM}${sha256}`;
+
+      return {
+        url,
+        sha256,
+        size: file.size,
+        filename: file.name,
+      };
+    },
+    onError: (err: Error) => {
+      toast({ title: '❌ Upload Failed', description: err.message, variant: 'destructive' });
+    },
+  });
+
+  // All-in-one: upload APK then publish asset + release in sequence
+  const publishApkRelease = useMutation({
+    mutationFn: async ({
+      file,
+      asset,
+      release,
+    }: {
+      file: File;
+      asset: Omit<ZapstoreAssetConfig, 'url' | 'sha256' | 'size'>;
+      release: ZapstoreReleaseConfig;
+    }) => {
+      if (!user) throw new Error('You must be logged in');
+
+      // Step 1: compute hash locally (fast, no network)
+      const buf = await file.arrayBuffer();
+      const hashBuf = await crypto.subtle.digest('SHA-256', buf);
+      const sha256 = Array.from(new Uint8Array(hashBuf))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+
+      // Step 2: upload to cdn.zapstore.dev
+      const uploader = new BlossomUploader({
+        servers: [ZAPSTORE_BLOSSOM],
+        signer: user.signer,
+      });
+      const tags = await uploader.upload(file);
+      const url = tags.find(([name]) => name === 'url')?.[1] ?? `${ZAPSTORE_BLOSSOM}${sha256}`;
+
+      // Step 3: publish kind 3063 asset event
+      const assetTags: string[][] = [
+        ['i', asset.packageName],
+        ['version', asset.version],
+        ['version_code', asset.versionCode],
+        ['url', url],
+        ['m', 'application/vnd.android.package-archive'],
+        ['f', asset.platform],
+        ['x', sha256],
+        ['size', String(file.size)],
+        ['alt', `${asset.packageName} v${asset.version} APK`],
+      ];
+      if (asset.apkCertHash?.trim()) assetTags.push(['apk_certificate_hash', asset.apkCertHash.trim()]);
+      if (asset.minPlatformVersion?.trim()) assetTags.push(['min_platform_version', asset.minPlatformVersion.trim()]);
+      if (asset.targetPlatformVersion?.trim()) assetTags.push(['target_platform_version', asset.targetPlatformVersion.trim()]);
+
+      const assetEvent = await user.signer.signEvent({
+        kind: 3063,
+        content: '',
+        tags: assetTags,
+        created_at: Math.floor(Date.now() / 1000),
+      });
+      await publishToRelay(assetEvent, ZAPSTORE_RELAY);
+
+      // Step 4: publish kind 30063 release event
+      const releaseTags: string[][] = [
+        ['d', `${release.packageName}@${release.version}`],
+        ['i', release.packageName],
+        ['version', release.version],
+        ['c', release.channel || 'main'],
+        ['e', assetEvent.id, ZAPSTORE_RELAY],
+        ['alt', `${release.packageName} v${release.version} release`],
+      ];
+      const releaseEvent = await user.signer.signEvent({
+        kind: 30063,
+        content: release.releaseNotes,
+        tags: releaseTags,
+        created_at: Math.floor(Date.now() / 1000),
+      });
+      await publishToRelay(releaseEvent, ZAPSTORE_RELAY);
+
+      return { url, sha256, assetEventId: assetEvent.id, releaseEventId: releaseEvent.id };
+    },
+    onSuccess: (data) => {
+      toast({
+        title: '🚀 APK Published to Zapstore!',
+        description: `Asset ${data.assetEventId.slice(0, 12)}… + Release ${data.releaseEventId.slice(0, 12)}… on relay`,
+      });
+    },
+    onError: (err: Error) => {
+      toast({ title: '❌ Publish Failed', description: err.message, variant: 'destructive' });
+    },
+  });
+
+  return { publishApp, publishAsset, publishRelease, uploadApkToBlossom, publishApkRelease };
 }

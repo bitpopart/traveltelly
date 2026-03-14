@@ -33,6 +33,9 @@ import {
   Copy,
   ChevronRight,
   RefreshCw,
+  Upload,
+  FileUp,
+  Rocket,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useToast } from '@/hooks/useToast';
@@ -96,8 +99,18 @@ export default function AppBuilder() {
 
   // Zapstore state
   const queryClient = useQueryClient();
-  const { publishApp, publishAsset, publishRelease } = useZapstorePublish();
+  const { publishApp, publishAsset, publishRelease, publishApkRelease } = useZapstorePublish();
   const zapstoreStatus = useZapstoreStatus(user?.pubkey, 'com.traveltelly.app');
+
+  // APK upload state
+  const [apkFile, setApkFile] = useState<File | null>(null);
+  const [apkDragOver, setApkDragOver] = useState(false);
+  const [apkVersion, setApkVersion] = useState('1.0.0');
+  const [apkVersionCode, setApkVersionCode] = useState('1');
+  const [apkChannel, setApkChannel] = useState('main');
+  const [apkReleaseNotes, setApkReleaseNotes] = useState('');
+  const [apkCertHash, setApkCertHash] = useState('');
+  const [apkResult, setApkResult] = useState<{ url: string; sha256: string; assetEventId: string; releaseEventId: string } | null>(null);
 
   const [zapApp, setZapApp] = useState<ZapstoreAppConfig>({
     packageName: 'com.traveltelly.app',
@@ -200,6 +213,51 @@ export default function AppBuilder() {
     setTimeout(() => {
       void queryClient.invalidateQueries({ queryKey: ['zapstore-status'] });
     }, 3000);
+  };
+
+  // APK file selection handler — parse version from filename if possible
+  const handleApkFile = (file: File) => {
+    if (!file.name.endsWith('.apk')) {
+      toast({ title: 'Wrong file type', description: 'Please select an .apk file', variant: 'destructive' });
+      return;
+    }
+    setApkFile(file);
+    setApkResult(null);
+    // Try to extract version from filename e.g. "app-1.2.3-release.apk"
+    const versionMatch = file.name.match(/[_\-v](\d+\.\d+(?:\.\d+)?)/i);
+    if (versionMatch) setApkVersion(versionMatch[1]);
+    toast({ title: '📦 APK ready', description: `${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)` });
+  };
+
+  const handleApkDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setApkDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleApkFile(file);
+  };
+
+  const handleApkPublish = async () => {
+    if (!apkFile) return;
+    const result = await publishApkRelease.mutateAsync({
+      file: apkFile,
+      asset: {
+        packageName: 'com.traveltelly.app',
+        version: apkVersion,
+        versionCode: apkVersionCode,
+        platform: 'android-arm64-v8a',
+        mimeType: 'application/vnd.android.package-archive',
+        apkCertHash,
+      },
+      release: {
+        packageName: 'com.traveltelly.app',
+        version: apkVersion,
+        channel: apkChannel,
+        releaseNotes: apkReleaseNotes,
+      },
+    });
+    setApkResult(result);
+    // Refresh relay status
+    setTimeout(() => void queryClient.invalidateQueries({ queryKey: ['zapstore-status'] }), 3000);
   };
 
   // Prefill version fields for a new version bump
@@ -1145,6 +1203,197 @@ export default function AppBuilder() {
                         </Alert>
                       )}
                     </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* ══════════════════════════════════════════════════════
+                  APK UPLOAD & ONE-CLICK PUBLISH
+                  Upload the APK from PWABuilder → upload to cdn.zapstore.dev → publish to relay
+                  ══════════════════════════════════════════════════════ */}
+              <Card className="border-2" style={{ borderColor: '#f7931a' }}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3">
+                    <Rocket className="w-6 h-6" style={{ color: '#f7931a' }} />
+                    <span>APK Upload &amp; Publish to Zapstore</span>
+                    <Badge style={{ backgroundColor: '#22c55e', color: 'white' }}>Android ✓</Badge>
+                  </CardTitle>
+                  <CardDescription>
+                    Downloaded your APK from PWABuilder? Drop it here — it gets uploaded to <code>cdn.zapstore.dev</code> and published to the relay in one click. No manual hash computation needed.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-5">
+
+                  {/* Drop zone */}
+                  <div
+                    onDragOver={(e) => { e.preventDefault(); setApkDragOver(true); }}
+                    onDragLeave={() => setApkDragOver(false)}
+                    onDrop={handleApkDrop}
+                    onClick={() => document.getElementById('apk-file-input')?.click()}
+                    className={`
+                      relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all
+                      ${apkDragOver ? 'border-orange-400 bg-orange-50 scale-[1.01]' : apkFile ? 'border-green-400 bg-green-50' : 'border-gray-300 hover:border-orange-300 hover:bg-orange-50/50'}
+                    `}
+                  >
+                    <input
+                      id="apk-file-input"
+                      type="file"
+                      accept=".apk"
+                      className="hidden"
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleApkFile(f); }}
+                    />
+                    {apkFile ? (
+                      <div className="space-y-2">
+                        <FileUp className="w-10 h-10 mx-auto text-green-600" />
+                        <p className="font-semibold text-green-800">{apkFile.name}</p>
+                        <p className="text-sm text-green-700">{(apkFile.size / 1024 / 1024).toFixed(2)} MB · Click to change</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <Upload className="w-10 h-10 mx-auto text-gray-400" />
+                        <p className="font-semibold text-gray-600">Drop your APK here or click to browse</p>
+                        <p className="text-sm text-muted-foreground">Accepts .apk files from PWABuilder or any Android build</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Release details */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Version</Label>
+                      <Input
+                        value={apkVersion}
+                        onChange={(e) => setApkVersion(e.target.value)}
+                        placeholder="1.0.0"
+                        className="font-mono text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Version Code</Label>
+                      <Input
+                        value={apkVersionCode}
+                        onChange={(e) => setApkVersionCode(e.target.value)}
+                        placeholder="1"
+                        className="font-mono text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Channel</Label>
+                      <Select value={apkChannel} onValueChange={setApkChannel}>
+                        <SelectTrigger className="text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="main">main (stable)</SelectItem>
+                          <SelectItem value="beta">beta</SelectItem>
+                          <SelectItem value="nightly">nightly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">APK Certificate Hash <span className="text-muted-foreground">(optional — from keytool or PWABuilder)</span></Label>
+                    <Input
+                      value={apkCertHash}
+                      onChange={(e) => setApkCertHash(e.target.value)}
+                      placeholder="SHA-256 fingerprint of signing certificate"
+                      className="font-mono text-xs"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Release Notes</Label>
+                    <Textarea
+                      value={apkReleaseNotes}
+                      onChange={(e) => setApkReleaseNotes(e.target.value)}
+                      placeholder="What's new in this release..."
+                      rows={3}
+                    />
+                  </div>
+
+                  {/* Progress indicators */}
+                  {publishApkRelease.isPending && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-orange-700 font-medium">
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                        Publishing… this may take a minute while the APK uploads
+                      </div>
+                      <div className="w-full bg-orange-100 rounded-full h-2">
+                        <div className="h-2 rounded-full animate-pulse" style={{ width: '60%', backgroundColor: '#f7931a' }} />
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1"><RefreshCw className="h-3 w-3 animate-spin text-orange-500" /> Computing SHA-256…</div>
+                        <div className="flex items-center gap-1"><RefreshCw className="h-3 w-3 animate-spin text-orange-500" /> Uploading to cdn.zapstore.dev…</div>
+                        <div className="flex items-center gap-1"><RefreshCw className="h-3 w-3 animate-spin text-orange-500" /> Publishing events…</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Publish button */}
+                  <Button
+                    onClick={handleApkPublish}
+                    disabled={!apkFile || publishApkRelease.isPending || !user}
+                    className="w-full text-base py-6"
+                    style={{ backgroundColor: apkFile ? '#f7931a' : undefined }}
+                    size="lg"
+                  >
+                    {publishApkRelease.isPending ? (
+                      <><RefreshCw className="mr-2 h-5 w-5 animate-spin" />Uploading &amp; Publishing…</>
+                    ) : (
+                      <><Rocket className="mr-2 h-5 w-5" />Upload APK &amp; Publish to Zapstore</>
+                    )}
+                  </Button>
+
+                  {!user && (
+                    <p className="text-xs text-center text-muted-foreground">You must be logged in with your Nostr extension to sign and publish.</p>
+                  )}
+
+                  {/* Error */}
+                  {publishApkRelease.isError && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Publish Failed</AlertTitle>
+                      <AlertDescription>
+                        <p className="font-mono text-xs break-all mt-1">{(publishApkRelease.error as Error)?.message}</p>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {/* Success */}
+                  {apkResult && (
+                    <Alert className="bg-green-50 border-green-500">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <AlertTitle className="text-green-800">🎉 APK Published to Zapstore!</AlertTitle>
+                      <AlertDescription className="text-green-700 space-y-2 text-xs">
+                        <div className="grid grid-cols-1 gap-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold shrink-0">APK URL:</span>
+                            <a href={apkResult.url} target="_blank" rel="noopener noreferrer" className="font-mono underline truncate">{apkResult.url}</a>
+                            <Button size="sm" variant="ghost" className="h-5 w-5 p-0 shrink-0" onClick={() => navigator.clipboard.writeText(apkResult.url)}><Copy className="h-3 w-3" /></Button>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold shrink-0">SHA-256:</span>
+                            <span className="font-mono truncate">{apkResult.sha256}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold shrink-0">Asset event:</span>
+                            <span className="font-mono truncate">{apkResult.assetEventId}</span>
+                            <Button size="sm" variant="ghost" className="h-5 w-5 p-0 shrink-0" onClick={() => navigator.clipboard.writeText(apkResult.assetEventId)}><Copy className="h-3 w-3" /></Button>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold shrink-0">Release event:</span>
+                            <span className="font-mono truncate">{apkResult.releaseEventId}</span>
+                            <Button size="sm" variant="ghost" className="h-5 w-5 p-0 shrink-0" onClick={() => navigator.clipboard.writeText(apkResult.releaseEventId)}><Copy className="h-3 w-3" /></Button>
+                          </div>
+                        </div>
+                        <div className="pt-1 flex gap-2">
+                          <a href="https://zapstore.dev/apps/com.traveltelly.app" target="_blank" rel="noopener noreferrer" className="underline font-semibold" style={{ color: '#f7931a' }}>
+                            View on zapstore.dev ↗
+                          </a>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
                   )}
                 </CardContent>
               </Card>
