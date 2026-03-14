@@ -1090,16 +1090,57 @@ export default function AppBuilder() {
                         </Badge>
                       </div>
 
-                      {/* All good */}
+                      {/* All good — but explain PWA limitation */}
                       {zapstoreStatus.data.appEvent && zapstoreStatus.data.releaseEvents.length > 0 && zapstoreStatus.data.assetEvents.length > 0 && (
                         <Alert className="bg-green-50 border-green-500">
                           <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          <AlertTitle className="text-green-800">All events confirmed on relay!</AlertTitle>
-                          <AlertDescription className="text-green-700">
-                            Your app is on the Zapstore relay. If your <code>zapstore.yaml</code> is committed to GitHub it should appear in the app within minutes.{' '}
-                            <a href={`https://zapstore.dev/apps/com.traveltelly.app`} target="_blank" rel="noopener noreferrer" className="underline font-semibold" style={{ color: '#f7931a' }}>
-                              View on zapstore.dev ↗
+                          <AlertTitle className="text-green-800">✅ All 3 events confirmed on relay!</AlertTitle>
+                          <AlertDescription className="text-green-700 space-y-2">
+                            <p>Your events are on <code>relay.zapstore.dev</code>. However, see the important note below about PWA visibility.</p>
+                            <a href="https://zapstore.dev/apps/com.traveltelly.app" target="_blank" rel="noopener noreferrer" className="underline font-semibold text-sm" style={{ color: '#f7931a' }}>
+                              zapstore.dev/apps/com.traveltelly.app ↗
                             </a>
+                          </AlertDescription>
+                        </Alert>
+                      )}
+
+                      {/* PWA limitation warning */}
+                      {zapstoreStatus.data.appEvent && (
+                        <Alert className="border-amber-400 bg-amber-50">
+                          <AlertCircle className="h-4 w-4 text-amber-600" />
+                          <AlertTitle className="text-amber-800">⚠️ Zapstore is currently Android-only</AlertTitle>
+                          <AlertDescription className="text-amber-700 space-y-2 text-xs">
+                            <p>
+                              Zapstore's app store and web UI currently index <strong>Android APK apps only</strong> (platform: <code>android-arm64-v8a</code>).
+                              TravelTelly is published as a <strong>PWA</strong> (platform: <code>web</code>) — the Zapstore indexer does not yet surface web apps in search or browse.
+                            </p>
+                            <p>
+                              Per the Zapstore roadmap, <strong>"Web App"</strong> support is coming in the <em>next 2 months</em>.
+                              Your events are already on the relay with the correct tags — you're ahead of the curve.
+                            </p>
+                            <p className="font-semibold">Options right now:</p>
+                            <ul className="list-disc list-inside space-y-1">
+                              <li>Contact the Zapstore team on Signal to ask about early PWA support</li>
+                              <li>Wait for web app support to launch (events already published)</li>
+                              <li>Build an Android TWA/APK wrapper using PWABuilder and re-publish as <code>android-arm64-v8a</code></li>
+                            </ul>
+                            <div className="flex gap-2 flex-wrap pt-1">
+                              <a
+                                href="https://signal.group/#CjQKIK20nMOglqNT8KYw4ZeyChsvA14TTcjtjuC2VF6j6nB5EhDLZ7pQHvOeopr36jq431ow"
+                                target="_blank" rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold text-white"
+                                style={{ backgroundColor: '#3a76f0' }}
+                              >
+                                <ExternalLink className="w-3 h-3" /> Zapstore User Support (Signal)
+                              </a>
+                              <a
+                                href="https://www.pwabuilder.com"
+                                target="_blank" rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold border border-amber-500 text-amber-800"
+                              >
+                                <ExternalLink className="w-3 h-3" /> PWABuilder (make APK)
+                              </a>
+                            </div>
                           </AlertDescription>
                         </Alert>
                       )}
