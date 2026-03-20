@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { extractApkCertFingerprint } from '@/lib/apkCertExtractor';
+import { useUploadFile } from '@/hooks/useUploadFile';
 import { Navigation } from '@/components/Navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -410,6 +411,15 @@ export default function AppBuilder() {
   const { publishApp, publishAsset, publishRelease, publishApkRelease } = useZapstorePublish();
   const zapstoreStatus = useZapstoreStatus(user?.pubkey, 'com.traveltelly.app');
 
+  // Media upload
+  const { mutateAsync: uploadFile } = useUploadFile();
+  const [iconUploading, setIconUploading] = useState(false);
+  const [iconDragOver, setIconDragOver] = useState(false);
+  const [screenshotUploading, setScreenshotUploading] = useState<number | null>(null); // index being uploaded, or null
+  const [screenshotDragOver, setScreenshotDragOver] = useState(false);
+  const iconInputRef = useRef<HTMLInputElement>(null);
+  const screenshotInputRef = useRef<HTMLInputElement>(null);
+
   // APK upload state
   const [apkFile, setApkFile] = useState<File | null>(null);
   const [apkDragOver, setApkDragOver] = useState(false);
@@ -506,6 +516,53 @@ export default function AppBuilder() {
     } finally {
       setHashingUrl(false);
     }
+  };
+
+  // ── Icon upload ──────────────────────────────────────────────────────────────
+  const handleIconFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'Not an image', description: 'Please select a PNG or JPG file', variant: 'destructive' });
+      return;
+    }
+    setIconUploading(true);
+    try {
+      const tags = await uploadFile(file);
+      const url = tags.find(([t]) => t === 'url')?.[1] ?? '';
+      if (!url) throw new Error('No URL returned from upload');
+      updateZapApp('icon', url);
+      toast({ title: '✅ Icon uploaded', description: url.slice(0, 60) + '…' });
+    } catch (err) {
+      toast({ title: '❌ Icon upload failed', description: (err as Error).message, variant: 'destructive' });
+    } finally {
+      setIconUploading(false);
+    }
+  };
+
+  // ── Screenshot upload ─────────────────────────────────────────────────────────
+  const handleScreenshotFiles = async (files: File[]) => {
+    const images = files.filter(f => f.type.startsWith('image/'));
+    if (images.length === 0) {
+      toast({ title: 'No images selected', description: 'Please select PNG or JPG files', variant: 'destructive' });
+      return;
+    }
+    for (let i = 0; i < images.length; i++) {
+      setScreenshotUploading(i);
+      try {
+        const tags = await uploadFile(images[i]);
+        const url = tags.find(([t]) => t === 'url')?.[1] ?? '';
+        if (url) {
+          setZapApp(prev => ({ ...prev, images: [...prev.images.filter(Boolean), url] }));
+        }
+      } catch (err) {
+        toast({ title: `Screenshot ${i + 1} failed`, description: (err as Error).message, variant: 'destructive' });
+      }
+    }
+    setScreenshotUploading(null);
+    toast({ title: `✅ ${images.length} screenshot${images.length > 1 ? 's' : ''} uploaded` });
+  };
+
+  const removeScreenshot = (idx: number) => {
+    setZapApp(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== idx) }));
   };
 
   const handlePublishApp = async () => {
@@ -1936,13 +1993,55 @@ export default function AppBuilder() {
                     />
                   </div>
 
+                  {/* ── Icon Upload ─────────────────────────────────── */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Icon URL</Label>
+                      <Label className="flex items-center gap-2">
+                        App Icon
+                        <span className="text-xs text-muted-foreground font-normal">PNG recommended 512×512</span>
+                      </Label>
+                      <input ref={iconInputRef} type="file" accept="image/*" className="hidden"
+                        onChange={e => { const f = e.target.files?.[0]; if (f) handleIconFile(f); e.target.value = ''; }} />
+                      <div
+                        className={`relative border-2 border-dashed rounded-xl cursor-pointer transition-all flex items-center gap-4 p-3 ${iconDragOver ? 'border-orange-400 bg-orange-50 scale-[1.01]' : 'border-gray-200 hover:border-orange-300 hover:bg-orange-50/40'}`}
+                        onClick={() => iconInputRef.current?.click()}
+                        onDragOver={e => { e.preventDefault(); setIconDragOver(true); }}
+                        onDragLeave={() => setIconDragOver(false)}
+                        onDrop={e => { e.preventDefault(); setIconDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleIconFile(f); }}
+                      >
+                        {/* Preview */}
+                        <div className="w-16 h-16 rounded-xl overflow-hidden bg-muted border shrink-0 flex items-center justify-center">
+                          {zapApp.icon ? (
+                            <img src={zapApp.icon} alt="icon" className="w-full h-full object-cover" onError={e => (e.currentTarget.style.display='none')} />
+                          ) : (
+                            <Upload className="w-6 h-6 text-muted-foreground" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          {iconUploading ? (
+                            <div className="flex items-center gap-2 text-sm text-orange-700 font-medium">
+                              <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Uploading…
+                            </div>
+                          ) : zapApp.icon ? (
+                            <>
+                              <p className="text-xs font-semibold text-green-700 flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> Uploaded</p>
+                              <p className="text-xs text-muted-foreground truncate">{zapApp.icon.split('/').pop()}</p>
+                              <p className="text-xs text-orange-600 mt-0.5">Click to replace</p>
+                            </>
+                          ) : (
+                            <>
+                              <p className="text-sm font-medium text-gray-600">Drop icon here</p>
+                              <p className="text-xs text-muted-foreground">or click to browse</p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      {/* Manual URL fallback */}
                       <Input
                         value={zapApp.icon}
-                        onChange={(e) => updateZapApp('icon', e.target.value)}
-                        placeholder="https://traveltelly.diy/icon-512.png"
+                        onChange={e => updateZapApp('icon', e.target.value)}
+                        placeholder="Or paste URL directly"
+                        className="text-xs font-mono"
                       />
                     </div>
                     <div className="space-y-2">
@@ -1974,14 +2073,76 @@ export default function AppBuilder() {
                     </div>
                   </div>
 
+                  {/* ── Screenshot Upload ────────────────────────────── */}
                   <div className="space-y-2">
-                    <Label>Screenshot URLs (one per line)</Label>
-                    <Textarea
-                      value={zapApp.images.join('\n')}
-                      onChange={(e) => updateZapApp('images', e.target.value.split('\n').filter(Boolean))}
-                      rows={3}
-                      placeholder="https://traveltelly.diy/screenshot1.png&#10;https://traveltelly.diy/screenshot2.png"
-                    />
+                    <Label className="flex items-center gap-2">
+                      Screenshots
+                      <span className="text-xs text-muted-foreground font-normal">Up to 8 · portrait preferred</span>
+                    </Label>
+                    <input ref={screenshotInputRef} type="file" accept="image/*" multiple className="hidden"
+                      onChange={e => { const files = Array.from(e.target.files ?? []); if (files.length) handleScreenshotFiles(files); e.target.value = ''; }} />
+
+                    {/* Drop zone */}
+                    <div
+                      className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all ${screenshotDragOver ? 'border-orange-400 bg-orange-50 scale-[1.01]' : 'border-gray-200 hover:border-orange-300 hover:bg-orange-50/40'} ${screenshotUploading !== null ? 'pointer-events-none' : ''}`}
+                      onClick={() => screenshotInputRef.current?.click()}
+                      onDragOver={e => { e.preventDefault(); setScreenshotDragOver(true); }}
+                      onDragLeave={() => setScreenshotDragOver(false)}
+                      onDrop={e => { e.preventDefault(); setScreenshotDragOver(false); handleScreenshotFiles(Array.from(e.dataTransfer.files)); }}
+                    >
+                      {screenshotUploading !== null ? (
+                        <div className="flex items-center justify-center gap-2 text-sm text-orange-700 font-medium py-2">
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                          Uploading screenshot {screenshotUploading + 1}…
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-1">
+                          <Upload className="h-4 w-4" />
+                          Drop screenshots here or click to browse — select multiple at once
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Thumbnail grid */}
+                    {zapApp.images.filter(Boolean).length > 0 && (
+                      <div className="grid grid-cols-4 gap-2 mt-2">
+                        {zapApp.images.filter(Boolean).map((url, idx) => (
+                          <div key={idx} className="relative group rounded-lg overflow-hidden border bg-muted aspect-[9/16]">
+                            <img
+                              src={url}
+                              alt={`Screenshot ${idx + 1}`}
+                              className="w-full h-full object-cover"
+                              onError={e => { (e.currentTarget as HTMLImageElement).src = ''; }}
+                            />
+                            {/* Overlay with index + delete */}
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-between p-1.5">
+                              <span className="text-white text-xs font-bold bg-black/50 rounded px-1.5 py-0.5">#{idx + 1}</span>
+                              <button
+                                onClick={e => { e.stopPropagation(); removeScreenshot(idx); }}
+                                className="rounded-full bg-red-500 text-white w-6 h-6 flex items-center justify-center text-xs font-bold hover:bg-red-600"
+                                title="Remove"
+                              >✕</button>
+                            </div>
+                          </div>
+                        ))}
+                        {/* Add more slot */}
+                        {zapApp.images.filter(Boolean).length < 8 && (
+                          <div
+                            onClick={() => screenshotInputRef.current?.click()}
+                            className="aspect-[9/16] border-2 border-dashed rounded-lg flex items-center justify-center cursor-pointer hover:border-orange-400 hover:bg-orange-50/40 transition-all"
+                          >
+                            <span className="text-2xl text-muted-foreground">+</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Count badge */}
+                    {zapApp.images.filter(Boolean).length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {zapApp.images.filter(Boolean).length} screenshot{zapApp.images.filter(Boolean).length !== 1 ? 's' : ''} · hover to remove
+                      </p>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
