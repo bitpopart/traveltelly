@@ -1629,29 +1629,47 @@ export default function AppBuilder() {
                         <RefreshCw className="h-4 w-4 animate-spin shrink-0" style={{ color: '#f7931a' }} />
                         {apkStage || 'Starting…'}
                       </div>
-                      {/* Progress bar — shows real upload % when uploading */}
+                      {/* Progress bar */}
                       <div className="w-full bg-orange-100 rounded-full h-2.5 overflow-hidden">
                         <div
                           className="h-2.5 rounded-full transition-all duration-300"
                           style={{
-                            width: apkStage.includes('Uploading') ? `${apkUploadPct}%` : apkStage.includes('Done') ? '100%' : '15%',
                             backgroundColor: '#f7931a',
+                            width: apkStage.includes('Done') || apkStage.includes('already on CDN')
+                              ? '100%'
+                              : apkStage.includes('Uploading')
+                              ? `${Math.max(20, apkUploadPct)}%`
+                              : apkStage.includes('Publishing')
+                              ? '85%'
+                              : apkStage.includes('Checking')
+                              ? '10%'
+                              : apkStage.includes('Hashing')
+                              ? '5%'
+                              : '3%',
                           }}
                         />
                       </div>
-                      {apkStage.includes('Uploading') && (
+                      {apkStage.includes('Uploading') && apkUploadPct > 0 && (
                         <p className="text-xs text-orange-700">{apkUploadPct}% uploaded — large APKs may take 1–3 minutes</p>
                       )}
-                      <div className="flex gap-3 text-xs text-orange-600">
-                        {['Hashing', 'Uploading', 'Publishing'].map((step) => {
-                          const done = (step === 'Hashing' && (apkStage.includes('Uploading') || apkStage.includes('Publishing') || apkStage.includes('Done')))
-                            || (step === 'Uploading' && (apkStage.includes('Publishing') || apkStage.includes('Done')))
-                            || apkStage.includes('Done');
-                          const active = apkStage.toLowerCase().includes(step.toLowerCase());
+                      {/* Step indicators */}
+                      <div className="flex gap-4 text-xs">
+                        {[
+                          { key: 'Hash', label: 'Hash', doneWhen: ['Checking', 'Uploading', 'already on CDN', 'Publishing', 'Done'] },
+                          { key: 'Upload', label: 'Upload', doneWhen: ['Publishing', 'Done'] },
+                          { key: 'Publish', label: 'Publish', doneWhen: ['Done'] },
+                        ].map(({ key, label, doneWhen }) => {
+                          const isDone = doneWhen.some(w => apkStage.includes(w));
+                          const isActive = apkStage.toLowerCase().includes(key.toLowerCase()) && !isDone;
+                          const isSkipped = key === 'Upload' && apkStage.includes('already on CDN');
                           return (
-                            <div key={step} className={`flex items-center gap-1 ${done ? 'text-green-700' : active ? 'text-orange-700 font-semibold' : 'text-orange-300'}`}>
-                              {done ? <CheckCircle2 className="h-3 w-3" /> : active ? <RefreshCw className="h-3 w-3 animate-spin" /> : <span className="w-3 h-3 rounded-full border border-current inline-block" />}
-                              {step}
+                            <div key={key} className={`flex items-center gap-1.5 font-medium ${isDone || isSkipped ? 'text-green-700' : isActive ? 'text-orange-700' : 'text-orange-300'}`}>
+                              {isDone || isSkipped
+                                ? <CheckCircle2 className="h-3.5 w-3.5" />
+                                : isActive
+                                ? <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                                : <span className="w-3.5 h-3.5 rounded-full border border-current inline-block" />}
+                              {label}{isSkipped ? ' (cached ✓)' : ''}
                             </div>
                           );
                         })}

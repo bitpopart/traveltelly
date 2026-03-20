@@ -4,50 +4,49 @@ import { useToast } from './useToast';
 
 const ZAPSTORE_RELAY = 'wss://relay.zapstore.dev';
 const ZAPSTORE_BLOSSOM = 'https://cdn.zapstore.dev';
+// CORS proxy used for the PUT /upload request from the browser
+const CORS_PROXY = 'https://proxy.shakespeare.diy/?url=';
 
 export interface ApkUploadResult {
-  url: string;       // cdn.zapstore.dev/sha256
-  sha256: string;    // hex sha256
-  size: number;      // bytes
+  url: string;
+  sha256: string;
+  size: number;
   filename: string;
 }
 
 export interface ZapstoreAppConfig {
-  // Kind 32267 - Software Application
-  packageName: string;   // d tag (identifier, e.g. com.traveltelly.app)
+  packageName: string;
   name: string;
   summary: string;
   description: string;
-  icon: string;          // URL
-  images: string[];      // Screenshot URLs
-  tags: string[];        // Category tags (t)
+  icon: string;
+  images: string[];
+  tags: string[];
   license: string;
-  repository: string;    // Source code URL
+  repository: string;
   website: string;
-  supportedNips: string[]; // for Nostr clients
-  platforms: string[];   // e.g. ["android-arm64-v8a", "android-armeabi-v7a"]
+  supportedNips: string[];
+  platforms: string[];
 }
 
 export interface ZapstoreReleaseConfig {
-  // Kind 30063 - Software Release
   packageName: string;
   version: string;
-  channel: string;       // main, beta, nightly
+  channel: string;
   releaseNotes: string;
-  assetEventId?: string; // e tag referencing kind 3063
+  assetEventId?: string;
 }
 
 export interface ZapstoreAssetConfig {
-  // Kind 3063 - Software Asset
   packageName: string;
   version: string;
   versionCode: string;
-  url: string;           // APK or PWA URL
-  mimeType: string;      // application/vnd.android.package-archive or text/html
-  sha256: string;        // file hash
-  size: string;          // file size in bytes
-  platform: string;      // android-arm64-v8a, web, etc.
-  apkCertHash?: string;  // for Android APKs
+  url: string;
+  mimeType: string;
+  sha256: string;
+  size: string;
+  platform: string;
+  apkCertHash?: string;
   minPlatformVersion?: string;
   targetPlatformVersion?: string;
 }
@@ -63,17 +62,35 @@ async function sha256Hex(buf: ArrayBuffer): Promise<string> {
 }
 
 /**
- * Upload a file to a Blossom server using the standard PUT /upload endpoint.
- * Builds a NIP-98 auth event and attaches it as a base64 header.
- * Returns the final CDN URL.
+ * Check if a file already exists on the Blossom CDN.
+ * Uses a simple GET via proxy to avoid CORS preflight issues.
+ * Returns true if the file is already there.
+ */
+async function blossomExists(sha256: string): Promise<boolean> {
+  try {
+    // HEAD via proxy - if the CDN has it, we get a 200 back
+    const proxyUrl = `${CORS_PROXY}${encodeURIComponent(`${ZAPSTORE_BLOSSOM}/${sha256}`)}`;
+    const res = await fetch(proxyUrl, { method: 'HEAD', signal: AbortSignal.timeout(8000) });
+    return res.ok;
+  } catch {
+    return false; // assume not exists if check fails
+  }
+}
+
+/**
+ * Upload a file to cdn.zapstore.dev via Blossom PUT /upload.
+ * Routes through CORS proxy to avoid browser cross-origin restrictions.
+ * Sends Content-Digest + Authorization (NIP-24242 auth event) headers.
  */
 async function blossomUpload(
   file: File,
   sha256: string,
-  signer: { signEvent: (e: object) => Promise<{ [k: string]: unknown }> },
+  signer: { signEvent: (e: object) => Promise<Record<string, unknown>> },
   onProgress?: (pct: number) => void,
 ): Promise<string> {
-  // Build a NIP-98 auth event for Blossom upload
+  const url = `${ZAPSTORE_BLOSSOM}/${sha256}`;
+
+  // Build NIP-24242 Blossom auth event (kind 24242, not 98)
   const authEvent = await signer.signEvent({
     kind: 24242,
     content: `Upload ${file.name}`,
@@ -85,48 +102,50 @@ async function blossomUpload(
     ],
   });
 
-  const authHeader = btoa(JSON.stringify(authEvent));
+  const authHeader = `Nostr ${btoa(JSON.stringify(authEvent))}`;
 
-  // Use XMLHttpRequest so we can track upload progress
-  return new Promise<string>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
+  // Read the file as ArrayBuffer so we can send it via fetch
+  // (XHR gave us 10% hang due to CORS preflight; fetch via proxy avoids this)
+  const body = await file.arrayBuffer();
 
-    // 5-minute hard timeout (APKs can be large)
-    xhr.timeout = 5 * 60 * 1000;
+  // Simulate progress since fetch doesn't expose upload progress
+  onProgress?.(10);
 
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable && onProgress) {
-        onProgress(Math.round((e.loaded / e.total) * 100));
-      }
-    };
+  const proxyUrl = `${CORS_PROXY}${encodeURIComponent(`${ZAPSTORE_BLOSSOM}/upload`)}`;
 
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const json = JSON.parse(xhr.responseText) as { url?: string };
-          const url = json.url ?? `${ZAPSTORE_BLOSSOM}/${sha256}`;
-          resolve(url);
-        } catch {
-          // If response isn't JSON, construct URL from hash
-          resolve(`${ZAPSTORE_BLOSSOM}/${sha256}`);
-        }
-      } else {
-        reject(new Error(`Upload failed: HTTP ${xhr.status} — ${xhr.responseText.slice(0, 200)}`));
-      }
-    };
+  onProgress?.(20);
 
-    xhr.onerror = () => reject(new Error('Network error during upload — check your connection'));
-    xhr.ontimeout = () => reject(new Error('Upload timed out after 5 minutes'));
-
-    xhr.open('PUT', `${ZAPSTORE_BLOSSOM}/upload`);
-    xhr.setRequestHeader('Authorization', `Nostr ${authHeader}`);
-    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
-    xhr.send(file);
+  const res = await fetch(proxyUrl, {
+    method: 'PUT',
+    headers: {
+      'Authorization': authHeader,
+      'Content-Type': 'application/vnd.android.package-archive',
+      'Content-Digest': sha256,
+      'X-Content-Length': String(file.size),
+    },
+    body,
+    signal: AbortSignal.timeout(5 * 60 * 1000), // 5-min timeout
   });
+
+  onProgress?.(90);
+
+  if (!res.ok) {
+    const reason = res.headers.get('X-Reason') ?? (await res.text().catch(() => '')).slice(0, 200);
+    throw new Error(`CDN upload failed HTTP ${res.status}${reason ? `: ${reason}` : ''}`);
+  }
+
+  onProgress?.(100);
+
+  try {
+    const json = await res.json() as { url?: string };
+    return json.url ?? url;
+  } catch {
+    return url;
+  }
 }
 
 /** Send a signed Nostr event to a relay via WebSocket. */
-const publishToRelay = async (event: Record<string, unknown>, relayUrl: string): Promise<void> => {
+async function publishToRelay(event: Record<string, unknown>, relayUrl: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(relayUrl);
     let settled = false;
@@ -144,9 +163,7 @@ const publishToRelay = async (event: Record<string, unknown>, relayUrl: string):
       settle(() => reject(new Error(`Timeout: relay ${relayUrl} did not respond in 20s`)));
     }, 20_000);
 
-    ws.onopen = () => {
-      ws.send(JSON.stringify(['EVENT', event]));
-    };
+    ws.onopen = () => { ws.send(JSON.stringify(['EVENT', event])); };
 
     ws.onmessage = (msg) => {
       if (settled) return;
@@ -156,28 +173,22 @@ const publishToRelay = async (event: Record<string, unknown>, relayUrl: string):
         if (data[0] === 'OK') {
           const accepted = data[2] as boolean;
           const message = (data[3] as string) || '';
-          if (accepted) {
-            settle(() => resolve());
-          } else {
-            settle(() => reject(new Error(`Relay rejected: ${message}`)));
-          }
+          if (accepted) settle(() => resolve());
+          else settle(() => reject(new Error(`Relay rejected: ${message}`)));
         } else if (data[0] === 'NOTICE') {
           console.warn('[Zapstore relay NOTICE]', data[1]);
         }
-      } catch {
-        // ignore parse errors
-      }
+      } catch { /* ignore */ }
     };
 
     ws.onerror = () => {
-      settle(() => reject(new Error(`Cannot connect to ${relayUrl} — check network or relay status`)));
+      settle(() => reject(new Error(`Cannot connect to ${relayUrl}`)));
     };
-
     ws.onclose = (e) => {
       settle(() => reject(new Error(`Connection closed before relay confirmed (code ${e.code})`)));
     };
   });
-};
+}
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
@@ -193,7 +204,7 @@ export function useZapstorePublish() {
       const tags: string[][] = [
         ['d', config.packageName],
         ['name', config.name],
-        ['h', 'zapstore'], // Community identifier — required by Zapstore relay
+        ['h', 'zapstore'],
         ['alt', `${config.name} - Software Application on Zapstore`],
       ];
 
@@ -203,36 +214,22 @@ export function useZapstorePublish() {
       if (config.website) tags.push(['url', config.website]);
       if (config.icon) tags.push(['icon', config.icon]);
 
-      for (const img of config.images) {
-        if (img.trim()) tags.push(['image', img.trim()]);
-      }
-      for (const tag of config.tags) {
-        if (tag.trim()) tags.push(['t', tag.trim().toLowerCase()]);
-      }
-      for (const platform of config.platforms) {
-        if (platform.trim()) tags.push(['f', platform.trim()]);
-      }
-      for (const nip of config.supportedNips) {
-        if (nip.trim()) tags.push(['nip', nip.trim()]);
-      }
+      for (const img of config.images) if (img.trim()) tags.push(['image', img.trim()]);
+      for (const tag of config.tags) if (tag.trim()) tags.push(['t', tag.trim().toLowerCase()]);
+      for (const platform of config.platforms) if (platform.trim()) tags.push(['f', platform.trim()]);
+      for (const nip of config.supportedNips) if (nip.trim()) tags.push(['nip', nip.trim()]);
 
-      const unsigned = {
+      const event = await user.signer.signEvent({
         kind: 32267,
         content: config.description,
         tags,
         created_at: Math.floor(Date.now() / 1000),
-      };
-
-      const event = await user.signer.signEvent(unsigned);
+      });
       await publishToRelay(event, ZAPSTORE_RELAY);
       return event;
     },
-    onSuccess: () => {
-      toast({ title: '✅ App Published!', description: 'Kind 32267 sent to relay.zapstore.dev' });
-    },
-    onError: (err: Error) => {
-      toast({ title: '❌ Publish Failed', description: err.message, variant: 'destructive' });
-    },
+    onSuccess: () => toast({ title: '✅ App Published!', description: 'Kind 32267 sent to relay.zapstore.dev' }),
+    onError: (err: Error) => toast({ title: '❌ Publish Failed', description: err.message, variant: 'destructive' }),
   });
 
   // Publish kind 3063 - Software Asset
@@ -251,29 +248,21 @@ export function useZapstorePublish() {
       ];
 
       if (config.sha256.trim()) tags.push(['x', config.sha256.trim()]);
-
       const sizeNum = parseInt(config.size, 10);
       if (!isNaN(sizeNum) && sizeNum > 0) tags.push(['size', String(sizeNum)]);
-
       if (config.apkCertHash?.trim()) tags.push(['apk_certificate_hash', config.apkCertHash.trim()]);
       if (config.minPlatformVersion?.trim()) tags.push(['min_platform_version', config.minPlatformVersion.trim()]);
       if (config.targetPlatformVersion?.trim()) tags.push(['target_platform_version', config.targetPlatformVersion.trim()]);
 
       const event = await user.signer.signEvent({
-        kind: 3063,
-        content: '',
-        tags,
+        kind: 3063, content: '', tags,
         created_at: Math.floor(Date.now() / 1000),
       });
       await publishToRelay(event, ZAPSTORE_RELAY);
       return event;
     },
-    onSuccess: () => {
-      toast({ title: '✅ Asset Published!', description: 'Kind 3063 sent to relay.zapstore.dev' });
-    },
-    onError: (err: Error) => {
-      toast({ title: '❌ Asset Publish Failed', description: err.message, variant: 'destructive' });
-    },
+    onSuccess: () => toast({ title: '✅ Asset Published!', description: 'Kind 3063 sent to relay.zapstore.dev' }),
+    onError: (err: Error) => toast({ title: '❌ Asset Publish Failed', description: err.message, variant: 'destructive' }),
   });
 
   // Publish kind 30063 - Software Release
@@ -288,10 +277,7 @@ export function useZapstorePublish() {
         ['c', config.channel],
         ['alt', `${config.packageName} v${config.version} release`],
       ];
-
-      if (config.assetEventId) {
-        tags.push(['e', config.assetEventId, ZAPSTORE_RELAY]);
-      }
+      if (config.assetEventId) tags.push(['e', config.assetEventId, ZAPSTORE_RELAY]);
 
       const event = await user.signer.signEvent({
         kind: 30063,
@@ -302,29 +288,26 @@ export function useZapstorePublish() {
       await publishToRelay(event, ZAPSTORE_RELAY);
       return event;
     },
-    onSuccess: () => {
-      toast({ title: '✅ Release Published!', description: 'Kind 30063 sent to relay.zapstore.dev' });
-    },
-    onError: (err: Error) => {
-      toast({ title: '❌ Release Publish Failed', description: err.message, variant: 'destructive' });
-    },
+    onSuccess: () => toast({ title: '✅ Release Published!', description: 'Kind 30063 sent to relay.zapstore.dev' }),
+    onError: (err: Error) => toast({ title: '❌ Release Publish Failed', description: err.message, variant: 'destructive' }),
   });
 
-  // Standalone Blossom upload (kept for optional separate use)
+  // Standalone upload (kept for optional separate use)
   const uploadApkToBlossom = useMutation({
     mutationFn: async (file: File): Promise<ApkUploadResult> => {
       if (!user) throw new Error('You must be logged in to upload');
       const buf = await file.arrayBuffer();
       const sha256 = await sha256Hex(buf);
-      const url = await blossomUpload(file, sha256, user.signer);
+      const exists = await blossomExists(sha256);
+      const url = exists
+        ? `${ZAPSTORE_BLOSSOM}/${sha256}`
+        : await blossomUpload(file, sha256, user.signer);
       return { url, sha256, size: file.size, filename: file.name };
     },
-    onError: (err: Error) => {
-      toast({ title: '❌ Upload Failed', description: err.message, variant: 'destructive' });
-    },
+    onError: (err: Error) => toast({ title: '❌ Upload Failed', description: err.message, variant: 'destructive' }),
   });
 
-  // All-in-one: upload APK → publish asset event → publish release event
+  // All-in-one: hash → check existence → upload if needed → publish asset + release
   const publishApkRelease = useMutation({
     mutationFn: async ({
       file,
@@ -339,35 +322,45 @@ export function useZapstorePublish() {
     }) => {
       if (!user) throw new Error('You must be logged in');
 
-      // 1. Hash the file locally (instant — no network)
+      // Step 1: Hash locally (fast, no network)
       onProgress?.('Hashing APK…', 0);
       const buf = await file.arrayBuffer();
       const sha256 = await sha256Hex(buf);
       onProgress?.('Hashing APK…', 100);
 
-      // 2. Upload to cdn.zapstore.dev via direct fetch with progress
-      onProgress?.('Uploading to cdn.zapstore.dev…', 0);
-      let url: string;
-      try {
-        url = await blossomUpload(file, sha256, user.signer, (pct) => {
-          onProgress?.('Uploading to cdn.zapstore.dev…', pct);
-        });
-      } catch (err) {
-        // If Zapstore CDN upload fails, throw a clear error
-        throw new Error(
-          `CDN upload failed: ${(err as Error).message}. ` +
-          `Try uploading the APK manually to cdn.zapstore.dev and paste the URL in the manual fields.`
-        );
-      }
-      onProgress?.('Uploading to cdn.zapstore.dev…', 100);
+      // Step 2: Check if already on CDN (content-addressed — same APK = same hash)
+      onProgress?.('Checking CDN for existing file…', 0);
+      const alreadyExists = await blossomExists(sha256);
+      let cdnUrl: string;
 
-      // 3. Publish kind 3063 asset event
+      if (alreadyExists) {
+        // File already on CDN — skip upload entirely
+        cdnUrl = `${ZAPSTORE_BLOSSOM}/${sha256}`;
+        onProgress?.('File already on CDN — skipping upload ✓', 100);
+      } else {
+        // Step 3: Upload via CORS proxy
+        onProgress?.('Uploading to cdn.zapstore.dev…', 0);
+        try {
+          cdnUrl = await blossomUpload(file, sha256, user.signer, (pct) => {
+            onProgress?.('Uploading to cdn.zapstore.dev…', pct);
+          });
+        } catch (err) {
+          throw new Error(
+            `CDN upload failed: ${(err as Error).message}\n\n` +
+            `Tip: If upload keeps failing, manually upload the APK to cdn.zapstore.dev ` +
+            `and paste the URL into the "Manual publish" fields (Step 2 above).`
+          );
+        }
+        onProgress?.('Uploading to cdn.zapstore.dev…', 100);
+      }
+
+      // Step 4: Publish kind 3063 asset event
       onProgress?.('Publishing asset event (kind 3063)…');
       const assetTags: string[][] = [
         ['i', asset.packageName],
         ['version', asset.version],
         ['version_code', asset.versionCode],
-        ['url', url],
+        ['url', cdnUrl],
         ['m', 'application/vnd.android.package-archive'],
         ['f', asset.platform],
         ['x', sha256],
@@ -377,14 +370,12 @@ export function useZapstorePublish() {
       if (asset.apkCertHash?.trim()) assetTags.push(['apk_certificate_hash', asset.apkCertHash.trim()]);
 
       const assetEvent = await user.signer.signEvent({
-        kind: 3063,
-        content: '',
-        tags: assetTags,
+        kind: 3063, content: '', tags: assetTags,
         created_at: Math.floor(Date.now() / 1000),
       });
       await publishToRelay(assetEvent, ZAPSTORE_RELAY);
 
-      // 4. Publish kind 30063 release event
+      // Step 5: Publish kind 30063 release event
       onProgress?.('Publishing release event (kind 30063)…');
       const releaseTags: string[][] = [
         ['d', `${release.packageName}@${release.version}`],
@@ -403,7 +394,7 @@ export function useZapstorePublish() {
       await publishToRelay(releaseEvent, ZAPSTORE_RELAY);
 
       onProgress?.('Done!', 100);
-      return { url, sha256, assetEventId: assetEvent.id, releaseEventId: releaseEvent.id };
+      return { url: cdnUrl, sha256, assetEventId: assetEvent.id, releaseEventId: releaseEvent.id };
     },
     onSuccess: (data) => {
       toast({
