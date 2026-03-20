@@ -548,10 +548,11 @@ export default function AppBuilder() {
       .then(result => {
         setApkCertExtracted(result.fingerprint);
         setApkCertHash(result.fingerprint);
-        toast({ title: '🔑 Certificate extracted', description: `SHA-256: ${result.fingerprint.slice(0, 16)}…` });
+        toast({ title: '🔑 Certificate extracted', description: `v${result.source === 'v2' ? '2/3' : '1'} sig · ${result.fingerprint.slice(0, 16)}…` });
       })
-      .catch(() => {
-        // Silently ignore — user can enter manually or it will fail with a clear message
+      .catch((err: Error) => {
+        // Log for debugging but don't block the UI — user can paste manually
+        console.warn('[APK cert extraction failed]', err.message);
       });
   };
 
