@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { useCurrentUser } from './useCurrentUser';
 import { useToast } from './useToast';
+import { extractApkCertFingerprint } from '@/lib/apkCertExtractor';
 
 const ZAPSTORE_RELAY = 'wss://relay.zapstore.dev';
 const ZAPSTORE_BLOSSOM = 'https://cdn.zapstore.dev';
@@ -322,10 +323,14 @@ export function useZapstorePublish() {
     }) => {
       if (!user) throw new Error('You must be logged in');
 
-      // Step 1: Hash locally (fast, no network)
-      onProgress?.('Hashing APK…', 0);
+      // Step 1: Hash + extract cert fingerprint in parallel (both read the file locally)
+      onProgress?.('Reading APK — hashing & extracting certificate…', 0);
       const buf = await file.arrayBuffer();
-      const sha256 = await sha256Hex(buf);
+      const [sha256, certResult] = await Promise.all([
+        sha256Hex(buf),
+        extractApkCertFingerprint(file).catch(() => null),
+      ]);
+      const certFingerprint = asset.apkCertHash?.trim() || certResult?.fingerprint || '';
       onProgress?.('Hashing APK…', 100);
 
       // Step 2: Check if already on CDN (content-addressed — same APK = same hash)
@@ -367,7 +372,15 @@ export function useZapstorePublish() {
         ['size', String(file.size)],
         ['alt', `${asset.packageName} v${asset.version} APK`],
       ];
-      if (asset.apkCertHash?.trim()) assetTags.push(['apk_certificate_hash', asset.apkCertHash.trim()]);
+      // apk_certificate_hash is required by the Zapstore relay for Android APKs
+      if (!certFingerprint) {
+        throw new Error(
+          'Could not extract APK certificate hash automatically.\n' +
+          'Please paste it manually in the "APK Certificate Hash" field above.\n\n' +
+          'To get it: run  keytool -printcert -jarfile your.apk  or use apksigner.'
+        );
+      }
+      assetTags.push(['apk_certificate_hash', certFingerprint]);
 
       const assetEvent = await user.signer.signEvent({
         kind: 3063, content: '', tags: assetTags,
@@ -394,7 +407,7 @@ export function useZapstorePublish() {
       await publishToRelay(releaseEvent, ZAPSTORE_RELAY);
 
       onProgress?.('Done!', 100);
-      return { url: cdnUrl, sha256, assetEventId: assetEvent.id, releaseEventId: releaseEvent.id };
+      return { url: cdnUrl, sha256, certFingerprint, assetEventId: assetEvent.id, releaseEventId: releaseEvent.id };
     },
     onSuccess: (data) => {
       toast({

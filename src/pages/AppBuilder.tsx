@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { extractApkCertFingerprint } from '@/lib/apkCertExtractor';
 import { Navigation } from '@/components/Navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -417,9 +418,10 @@ export default function AppBuilder() {
   const [apkChannel, setApkChannel] = useState('main');
   const [apkReleaseNotes, setApkReleaseNotes] = useState('');
   const [apkCertHash, setApkCertHash] = useState('');
-  const [apkResult, setApkResult] = useState<{ url: string; sha256: string; assetEventId: string; releaseEventId: string } | null>(null);
+  const [apkResult, setApkResult] = useState<{ url: string; sha256: string; certFingerprint: string; assetEventId: string; releaseEventId: string } | null>(null);
   const [apkStage, setApkStage] = useState('');
   const [apkUploadPct, setApkUploadPct] = useState(0);
+  const [apkCertExtracted, setApkCertExtracted] = useState<string>('');
 
   const [zapApp, setZapApp] = useState<ZapstoreAppConfig>({
     packageName: 'com.traveltelly.app',
@@ -536,10 +538,21 @@ export default function AppBuilder() {
     }
     setApkFile(file);
     setApkResult(null);
+    setApkCertExtracted('');
     // Try to extract version from filename e.g. "app-1.2.3-release.apk"
     const versionMatch = file.name.match(/[_\-v](\d+\.\d+(?:\.\d+)?)/i);
     if (versionMatch) setApkVersion(versionMatch[1]);
     toast({ title: '📦 APK ready', description: `${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)` });
+    // Auto-extract cert fingerprint in background
+    extractApkCertFingerprint(file)
+      .then(result => {
+        setApkCertExtracted(result.fingerprint);
+        setApkCertHash(result.fingerprint);
+        toast({ title: '🔑 Certificate extracted', description: `SHA-256: ${result.fingerprint.slice(0, 16)}…` });
+      })
+      .catch(() => {
+        // Silently ignore — user can enter manually or it will fail with a clear message
+      });
   };
 
   const handleApkDrop = (e: React.DragEvent) => {
@@ -1603,13 +1616,22 @@ export default function AppBuilder() {
                   </div>
 
                   <div className="space-y-1">
-                    <Label className="text-xs">APK Certificate Hash <span className="text-muted-foreground">(optional — from keytool or PWABuilder)</span></Label>
+                    <Label className="text-xs flex items-center gap-2">
+                      APK Certificate Hash
+                      <span className="font-semibold text-red-500">* required</span>
+                      {apkCertExtracted && (
+                        <span className="flex items-center gap-1 text-green-700 font-semibold">
+                          <CheckCircle2 className="h-3 w-3" /> auto-extracted
+                        </span>
+                      )}
+                    </Label>
                     <Input
                       value={apkCertHash}
-                      onChange={(e) => setApkCertHash(e.target.value)}
-                      placeholder="SHA-256 fingerprint of signing certificate"
-                      className="font-mono text-xs"
+                      onChange={(e) => { setApkCertHash(e.target.value); setApkCertExtracted(''); }}
+                      placeholder="Auto-extracted from APK — or paste SHA-256 fingerprint manually"
+                      className={`font-mono text-xs ${apkCertExtracted ? 'border-green-400' : !apkCertHash ? 'border-red-300' : ''}`}
                     />
+                    <p className="text-xs text-muted-foreground">Required by Zapstore relay. Extracted automatically when you drop an APK.</p>
                   </div>
 
                   <div className="space-y-1">
@@ -1722,6 +1744,11 @@ export default function AppBuilder() {
                           <div className="flex items-center gap-2">
                             <span className="font-semibold shrink-0">SHA-256:</span>
                             <span className="font-mono truncate">{apkResult.sha256}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold shrink-0">Cert hash:</span>
+                            <span className="font-mono truncate">{apkResult.certFingerprint}</span>
+                            <Button size="sm" variant="ghost" className="h-5 w-5 p-0 shrink-0" onClick={() => navigator.clipboard.writeText(apkResult.certFingerprint)}><Copy className="h-3 w-3" /></Button>
                           </div>
                           <div className="flex items-center gap-2">
                             <span className="font-semibold shrink-0">Asset event:</span>
