@@ -36,6 +36,11 @@ import {
   Upload,
   FileUp,
   Rocket,
+  ChevronLeft,
+  Star,
+  MapPin,
+  Camera,
+  Image,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useToast } from '@/hooks/useToast';
@@ -45,6 +50,308 @@ import { useZapstorePublish } from '@/hooks/useZapstorePublish';
 import type { ZapstoreAppConfig, ZapstoreReleaseConfig, ZapstoreAssetConfig } from '@/hooks/useZapstorePublish';
 import { useZapstoreStatus, getTag } from '@/hooks/useZapstoreStatus';
 import { useQueryClient } from '@tanstack/react-query';
+
+// ─── Zapstore Showcase Preview Component ─────────────────────────────────────
+// Mimics the zapstore.dev/apps/:id page layout (dark bg, icon, screenshots,
+// description, tag pills, platform badges, install button).
+interface ZapstoreShowcasePreviewProps {
+  zapApp: {
+    packageName: string;
+    name: string;
+    summary: string;
+    description: string;
+    icon: string;
+    images: string[];
+    tags: string[];
+    license: string;
+    repository: string;
+    website: string;
+    platforms: string[];
+  };
+}
+
+function ZapstoreShowcasePreview({ zapApp }: ZapstoreShowcasePreviewProps) {
+  const [activeScreenshot, setActiveScreenshot] = useState(0);
+  const screenshots = zapApp.images.filter(Boolean);
+
+  const platformLabel = (p: string) => {
+    const map: Record<string, string> = {
+      'android-arm64-v8a': 'ARM64',
+      'android-armeabi-v7a': 'ARMv7',
+      'android-x86': 'x86',
+      'android-x86_64': 'x86_64',
+      'web': 'Web',
+    };
+    return map[p] ?? p;
+  };
+
+  const isAndroid = zapApp.platforms.some(p => p.startsWith('android'));
+
+  return (
+    <div className="rounded-2xl overflow-hidden" style={{ background: '#050505', color: '#fff' }}>
+      {/* Top nav bar mimicking zapstore.dev */}
+      <div className="flex items-center gap-3 px-5 py-3 border-b" style={{ borderColor: '#1a1a1a' }}>
+        <div className="flex items-center gap-2">
+          {/* Zapstore logo */}
+          <svg width="16" height="26" viewBox="0 0 19 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="zs-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#7c3aed" />
+                <stop offset="100%" stopColor="#a855f7" />
+              </linearGradient>
+            </defs>
+            <path d="M18.8379 13.9711L8.84956 0.356086C8.30464 -0.386684 7.10438 0.128479 7.30103 1.02073L9.04686 8.94232C9.16268 9.46783 8.74887 9.96266 8.19641 9.9593L0.871032 9.91477C0.194934 9.91066 -0.223975 10.6293 0.126748 11.1916L7.69743 23.3297C7.99957 23.8141 7.73264 24.4447 7.16744 24.5816L5.40958 25.0076C4.70199 25.179 4.51727 26.0734 5.10186 26.4974L12.4572 31.8326C12.9554 32.194 13.6711 31.9411 13.8147 31.3529L15.8505 23.0152C16.0137 22.3465 15.3281 21.7801 14.6762 22.0452L13.0661 22.7001C12.5619 22.9052 11.991 22.6092 11.8849 22.0877L10.7521 16.5224C10.6486 16.014 11.038 15.5365 11.5704 15.5188L18.1639 15.2998C18.8529 15.2769 19.2383 14.517 18.8379 13.9711Z" fill="url(#zs-gradient)" />
+          </svg>
+          <span className="font-semibold text-sm" style={{ color: '#fff' }}>Zapstore</span>
+        </div>
+        <span style={{ color: '#555' }}>/</span>
+        <span className="text-sm" style={{ color: '#888' }}>apps</span>
+        <span style={{ color: '#555' }}>/</span>
+        <span className="text-sm font-mono" style={{ color: '#aaa' }}>{zapApp.packageName}</span>
+        <div className="ml-auto">
+          <span className="text-xs px-2 py-1 rounded-full" style={{ background: '#1a1a1a', color: '#888' }}>
+            Preview
+          </span>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="p-6 md:p-8 space-y-8">
+
+        {/* App Header Row */}
+        <div className="flex items-start gap-5">
+          {/* App Icon */}
+          <div className="relative shrink-0">
+            <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden border" style={{ borderColor: '#2a2a2a' }}>
+              {zapApp.icon && !zapApp.icon.includes('placeholder') ? (
+                <img
+                  src={zapApp.icon}
+                  alt={zapApp.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              ) : null}
+              <div className="w-full h-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #b700d7 0%, #7c3aed 100%)' }}>
+                <MapPin className="w-10 h-10 text-white opacity-90" />
+              </div>
+            </div>
+          </div>
+
+          {/* App Info */}
+          <div className="flex-1 min-w-0 space-y-2">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h2 className="text-2xl md:text-3xl font-bold" style={{ color: '#fff' }}>{zapApp.name || 'TravelTelly'}</h2>
+              {isAndroid && (
+                <span className="text-xs font-semibold px-2 py-1 rounded-full" style={{ background: '#1a2a1a', color: '#4ade80', border: '1px solid #166534' }}>
+                  Android
+                </span>
+              )}
+            </div>
+            <p className="text-base" style={{ color: '#aaa' }}>{zapApp.summary || 'Travel the world. Share your story.'}</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              {zapApp.tags.slice(0, 5).map(tag => (
+                <span key={tag} className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#1a1a2e', color: '#818cf8', border: '1px solid #312e81' }}>
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Install CTA */}
+          <div className="shrink-0 hidden md:flex flex-col items-end gap-2">
+            <a
+              href={`https://zapstore.dev/apps/${zapApp.packageName}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90"
+              style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: '#fff' }}
+            >
+              <Store className="w-4 h-4" />
+              View on Zapstore
+            </a>
+            <span className="text-xs" style={{ color: '#555' }}>zapstore.dev/apps/{zapApp.packageName}</span>
+          </div>
+        </div>
+
+        {/* Screenshots Carousel */}
+        {screenshots.length > 0 ? (
+          <div className="space-y-3">
+            <div className="relative rounded-xl overflow-hidden" style={{ background: '#111', minHeight: 180 }}>
+              <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory" style={{ scrollbarWidth: 'none' }}>
+                {screenshots.map((src, i) => (
+                  <div
+                    key={i}
+                    className="snap-center shrink-0 rounded-lg overflow-hidden cursor-pointer border-2 transition-all"
+                    style={{
+                      borderColor: activeScreenshot === i ? '#a855f7' : '#2a2a2a',
+                      width: 160,
+                      height: 280,
+                      background: '#1a1a1a',
+                    }}
+                    onClick={() => setActiveScreenshot(i)}
+                  >
+                    <img
+                      src={src}
+                      alt={`Screenshot ${i + 1}`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const el = e.target as HTMLImageElement;
+                        el.parentElement!.style.display = 'flex';
+                        el.parentElement!.style.alignItems = 'center';
+                        el.parentElement!.style.justifyContent = 'center';
+                        el.style.display = 'none';
+                        const ph = document.createElement('div');
+                        ph.style.cssText = 'color:#555;font-size:11px;text-align:center;padding:8px';
+                        ph.textContent = `Screenshot ${i + 1}`;
+                        el.parentElement!.appendChild(ph);
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center justify-center gap-1.5">
+              {screenshots.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setActiveScreenshot(i)}
+                  className="rounded-full transition-all"
+                  style={{
+                    width: activeScreenshot === i ? 16 : 6,
+                    height: 6,
+                    background: activeScreenshot === i ? '#a855f7' : '#333',
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        ) : (
+          // Placeholder screenshots showing the app concept
+          <div className="rounded-xl p-6 text-center" style={{ background: '#0d0d0d', border: '1px dashed #2a2a2a' }}>
+            <div className="flex gap-3 justify-center">
+              {[
+                { icon: <MapPin className="w-8 h-8" />, label: 'World Map' },
+                { icon: <Camera className="w-8 h-8" />, label: 'Reviews' },
+                { icon: <Image className="w-8 h-8" />, label: 'Marketplace' },
+                { icon: <Star className="w-8 h-8" />, label: 'Stories' },
+              ].map(({ icon, label }) => (
+                <div key={label} className="flex flex-col items-center gap-2 rounded-xl p-4" style={{ background: '#1a1a1a', width: 100 }}>
+                  <div style={{ color: '#b700d7' }}>{icon}</div>
+                  <span className="text-xs" style={{ color: '#888' }}>{label}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs mt-4" style={{ color: '#555' }}>Add screenshot URLs in Step 1 to preview them here</p>
+          </div>
+        )}
+
+        {/* Description */}
+        <div className="rounded-xl p-5 space-y-3" style={{ background: '#0d0d0d', border: '1px solid #1a1a1a' }}>
+          <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ color: '#666' }}>About</h3>
+          <div className="text-sm leading-relaxed whitespace-pre-line" style={{ color: '#ccc' }}>
+            {zapApp.description || 'No description set yet.'}
+          </div>
+        </div>
+
+        {/* Details Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: 'License', value: zapApp.license || '—' },
+            { label: 'Platform', value: isAndroid ? 'Android' : zapApp.platforms[0] || 'Web' },
+            { label: 'Package', value: zapApp.packageName },
+            { label: 'Source', value: zapApp.repository ? 'Open Source' : 'Closed Source' },
+          ].map(({ label, value }) => (
+            <div key={label} className="rounded-xl p-3 space-y-1" style={{ background: '#0d0d0d', border: '1px solid #1a1a1a' }}>
+              <p className="text-xs uppercase tracking-wider" style={{ color: '#555' }}>{label}</p>
+              <p className="text-sm font-mono truncate" style={{ color: '#ddd' }} title={value}>{value}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Platform ABIs */}
+        {zapApp.platforms.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-wider" style={{ color: '#555' }}>Supported Architectures</p>
+            <div className="flex flex-wrap gap-2">
+              {zapApp.platforms.map(p => (
+                <span
+                  key={p}
+                  className="text-xs font-mono px-3 py-1 rounded-full"
+                  style={{ background: '#1a2a1a', color: '#4ade80', border: '1px solid #166534' }}
+                >
+                  {platformLabel(p)}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Links Row */}
+        <div className="flex flex-wrap gap-3 pt-2 border-t" style={{ borderColor: '#1a1a1a' }}>
+          {zapApp.website && (
+            <a
+              href={zapApp.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-sm hover:opacity-80 transition-opacity"
+              style={{ color: '#818cf8' }}
+            >
+              <Globe className="w-4 h-4" />
+              Website
+            </a>
+          )}
+          {zapApp.repository && (
+            <a
+              href={zapApp.repository}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-sm hover:opacity-80 transition-opacity"
+              style={{ color: '#818cf8' }}
+            >
+              <Code className="w-4 h-4" />
+              Source Code
+            </a>
+          )}
+          <a
+            href={`https://zapstore.dev/apps/${zapApp.packageName}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-sm hover:opacity-80 transition-opacity"
+            style={{ color: '#f7931a' }}
+          >
+            <Store className="w-4 h-4" />
+            zapstore.dev/apps/{zapApp.packageName}
+          </a>
+        </div>
+
+        {/* Mobile install CTA */}
+        <div className="md:hidden">
+          <a
+            href={`https://zapstore.dev/apps/${zapApp.packageName}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 w-full px-5 py-3 rounded-xl text-sm font-semibold"
+            style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: '#fff' }}
+          >
+            <Store className="w-4 h-4" />
+            View on Zapstore
+          </a>
+        </div>
+
+        {/* Preview disclaimer */}
+        <div className="text-center pt-2">
+          <p className="text-xs" style={{ color: '#444' }}>
+            ↑ Live preview of your Zapstore listing — edit fields in Step 1 below to update
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function AppBuilder() {
   const { user } = useCurrentUser();
@@ -115,16 +422,20 @@ export default function AppBuilder() {
   const [zapApp, setZapApp] = useState<ZapstoreAppConfig>({
     packageName: 'com.traveltelly.app',
     name: 'TravelTelly',
-    summary: 'Share your travel experiences and discover amazing places on Nostr',
-    description: 'TravelTelly is a decentralized travel platform built on the Nostr protocol. Share GPS-tagged reviews, travel stories, and trip reports. Buy and sell travel photography with Lightning payments.',
-    icon: 'https://traveltelly.com/icon-512.png',
-    images: ['https://traveltelly.com/screenshot1.png'],
-    tags: ['travel', 'nostr', 'social', 'photography', 'maps'],
+    summary: 'Travel the world. Share your story. Own your data.',
+    description: 'TravelTelly is an open-source decentralized travel platform built on the Nostr protocol.\nYour travels. Your photos. Your rules.\n\nFeatures:\n- GPS-tagged travel reviews with star ratings and photos\n- Long-form travel stories with rich media support\n- Trip reports with GPS route visualization and distance tracking\n- Stock media marketplace — sell travel photos with Lightning payments\n- Interactive world map with community pins\n- Fully decentralized — your data lives on Nostr relays\n- Lightning payments — zap posts and profiles via NIP-57',
+    icon: 'https://traveltelly.diy/icon-512.png',
+    images: [
+      'https://traveltelly.diy/screenshot1.png',
+      'https://traveltelly.diy/screenshot2.png',
+      'https://traveltelly.diy/screenshot3.png',
+    ],
+    tags: ['travel', 'nostr', 'social', 'photography', 'maps', 'lightning', 'decentralized'],
     license: 'MIT',
     repository: 'https://github.com/bitpopart/traveltelly',
-    website: 'https://traveltelly.com',
+    website: 'https://traveltelly.diy',
     supportedNips: ['01', '07', '23', '57', '99'],
-    platforms: ['web'],
+    platforms: ['android-arm64-v8a', 'android-armeabi-v7a', 'android-x86', 'android-x86_64'],
   });
 
   const [zapAsset, setZapAsset] = useState<ZapstoreAssetConfig>({
@@ -1039,20 +1350,11 @@ export default function AppBuilder() {
             {/* Zapstore Tab */}
             <TabsContent value="zapstore" className="space-y-6">
 
-              {/* Header Card */}
-              <Card style={{ borderColor: '#f7931a', background: 'linear-gradient(135deg, #fff7ed 0%, #fff 100%)' }}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-3">
-                    <Store className="w-6 h-6" style={{ color: '#f7931a' }} />
-                    <span>Publish to Zapstore</span>
-                    <Badge style={{ backgroundColor: '#f7931a', color: 'white' }}>⚡ Lightning App Store</Badge>
-                  </CardTitle>
-                  <CardDescription>
-                    Publish TravelTelly to <a href="https://zapstore.dev" target="_blank" rel="noopener noreferrer" className="underline font-semibold" style={{ color: '#f7931a' }}>Zapstore.dev</a> — the decentralized Nostr-native app store.
-                    Sign and publish NIP-82 events to <code>relay.zapstore.dev</code> using your Nostr identity.
-                  </CardDescription>
-                </CardHeader>
-              </Card>
+              {/* ══════════════════════════════════════════════════════
+                  ZAPSTORE SHOWCASE PREVIEW — modelled after zapstore.dev/apps/pub.ditto.app
+                  Dark-themed app listing card to preview how TravelTelly will look
+                  ══════════════════════════════════════════════════════ */}
+              <ZapstoreShowcasePreview zapApp={zapApp} />
 
               {/* RELAY STATUS CHECKER */}
               <Card>
@@ -1580,12 +1882,15 @@ export default function AppBuilder() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Platforms (comma-separated)</Label>
+                      <Label>Android ABI Platforms (f tags)</Label>
                       <Input
                         value={zapApp.platforms.join(', ')}
                         onChange={(e) => updateZapApp('platforms', e.target.value.split(',').map(t => t.trim()).filter(Boolean))}
-                        placeholder="web, android-arm64-v8a"
+                        placeholder="android-arm64-v8a, android-armeabi-v7a, android-x86, android-x86_64"
                       />
+                      <p className="text-xs text-muted-foreground">
+                        Android ABIs as <code>f</code> tags — same as Ditto: <code>android-arm64-v8a</code>, <code>android-armeabi-v7a</code>, <code>android-x86</code>, <code>android-x86_64</code>
+                      </p>
                     </div>
                   </div>
 
