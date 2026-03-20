@@ -418,6 +418,8 @@ export default function AppBuilder() {
   const [apkReleaseNotes, setApkReleaseNotes] = useState('');
   const [apkCertHash, setApkCertHash] = useState('');
   const [apkResult, setApkResult] = useState<{ url: string; sha256: string; assetEventId: string; releaseEventId: string } | null>(null);
+  const [apkStage, setApkStage] = useState('');
+  const [apkUploadPct, setApkUploadPct] = useState(0);
 
   const [zapApp, setZapApp] = useState<ZapstoreAppConfig>({
     packageName: 'com.traveltelly.app',
@@ -549,6 +551,8 @@ export default function AppBuilder() {
 
   const handleApkPublish = async () => {
     if (!apkFile) return;
+    setApkStage('');
+    setApkUploadPct(0);
     const result = await publishApkRelease.mutateAsync({
       file: apkFile,
       asset: {
@@ -564,6 +568,10 @@ export default function AppBuilder() {
         version: apkVersion,
         channel: apkChannel,
         releaseNotes: apkReleaseNotes,
+      },
+      onProgress: (stage: string, pct?: number) => {
+        setApkStage(stage);
+        if (pct !== undefined) setApkUploadPct(pct);
       },
     });
     setApkResult(result);
@@ -1614,20 +1622,39 @@ export default function AppBuilder() {
                     />
                   </div>
 
-                  {/* Progress indicators */}
+                  {/* Real progress indicators */}
                   {publishApkRelease.isPending && (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm text-orange-700 font-medium">
-                        <RefreshCw className="h-4 w-4 animate-spin" />
-                        Publishing… this may take a minute while the APK uploads
+                    <div className="space-y-3 rounded-xl border p-4" style={{ borderColor: '#f7931a22', background: '#fff7ed' }}>
+                      <div className="flex items-center gap-2 text-sm font-semibold text-orange-800">
+                        <RefreshCw className="h-4 w-4 animate-spin shrink-0" style={{ color: '#f7931a' }} />
+                        {apkStage || 'Starting…'}
                       </div>
-                      <div className="w-full bg-orange-100 rounded-full h-2">
-                        <div className="h-2 rounded-full animate-pulse" style={{ width: '60%', backgroundColor: '#f7931a' }} />
+                      {/* Progress bar — shows real upload % when uploading */}
+                      <div className="w-full bg-orange-100 rounded-full h-2.5 overflow-hidden">
+                        <div
+                          className="h-2.5 rounded-full transition-all duration-300"
+                          style={{
+                            width: apkStage.includes('Uploading') ? `${apkUploadPct}%` : apkStage.includes('Done') ? '100%' : '15%',
+                            backgroundColor: '#f7931a',
+                          }}
+                        />
                       </div>
-                      <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1"><RefreshCw className="h-3 w-3 animate-spin text-orange-500" /> Computing SHA-256…</div>
-                        <div className="flex items-center gap-1"><RefreshCw className="h-3 w-3 animate-spin text-orange-500" /> Uploading to cdn.zapstore.dev…</div>
-                        <div className="flex items-center gap-1"><RefreshCw className="h-3 w-3 animate-spin text-orange-500" /> Publishing events…</div>
+                      {apkStage.includes('Uploading') && (
+                        <p className="text-xs text-orange-700">{apkUploadPct}% uploaded — large APKs may take 1–3 minutes</p>
+                      )}
+                      <div className="flex gap-3 text-xs text-orange-600">
+                        {['Hashing', 'Uploading', 'Publishing'].map((step) => {
+                          const done = (step === 'Hashing' && (apkStage.includes('Uploading') || apkStage.includes('Publishing') || apkStage.includes('Done')))
+                            || (step === 'Uploading' && (apkStage.includes('Publishing') || apkStage.includes('Done')))
+                            || apkStage.includes('Done');
+                          const active = apkStage.toLowerCase().includes(step.toLowerCase());
+                          return (
+                            <div key={step} className={`flex items-center gap-1 ${done ? 'text-green-700' : active ? 'text-orange-700 font-semibold' : 'text-orange-300'}`}>
+                              {done ? <CheckCircle2 className="h-3 w-3" /> : active ? <RefreshCw className="h-3 w-3 animate-spin" /> : <span className="w-3 h-3 rounded-full border border-current inline-block" />}
+                              {step}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
