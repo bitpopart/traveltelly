@@ -15,6 +15,7 @@ import { AppConfig } from '@/contexts/AppContext';
 import { ViewModeProvider } from '@/contexts/ViewModeContext';
 import { preloadExchangeRates } from '@/lib/exchangeRates';
 import { HelpBot } from '@/components/HelpBot';
+import { UpdateBanner } from '@/components/UpdateBanner';
 import AppRouter from './AppRouter';
 
 const head = createHead({
@@ -63,6 +64,7 @@ export function App() {
             <NostrProvider>
               <ViewModeProvider>
                 <TooltipProvider>
+                  <UpdateBanner />
                   <Toaster />
                   <Sonner />
                   <HelpBot />

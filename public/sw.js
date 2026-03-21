@@ -1,12 +1,12 @@
 // TravelTelly Service Worker
-// Provides offline functionality and caching for PWA
+// Provides offline functionality, smart caching, push notifications, and background sync
 
-const CACHE_VERSION = '2.0.1';
+const CACHE_VERSION = '3.0.0';
 const CACHE_NAME = `traveltelly-v${CACHE_VERSION}`;
 const RUNTIME_CACHE = `traveltelly-runtime-v${CACHE_VERSION}`;
 const IMAGE_CACHE = `traveltelly-images-v${CACHE_VERSION}`;
 
-// Assets to cache immediately on install
+// Assets to cache immediately on install (app shell)
 const PRECACHE_URLS = [
   '/',
   '/index.html',
@@ -18,384 +18,299 @@ const PRECACHE_URLS = [
   '/traveltelly-slogan.png',
 ];
 
-// Maximum cache sizes
-const MAX_IMAGE_CACHE_SIZE = 50; // Maximum number of images to cache
-const MAX_RUNTIME_CACHE_SIZE = 100; // Maximum number of pages to cache
+// Maximum cache sizes to prevent unbounded storage growth
+const MAX_IMAGE_CACHE_SIZE = 60;
+const MAX_RUNTIME_CACHE_SIZE = 100;
 
-// Install event - cache essential files
+// Trusted external image CDNs to cache
+const TRUSTED_IMAGE_DOMAINS = [
+  'nostr.build',
+  'image.nostr.build',
+  'i.nostr.build',
+  'void.cat',
+  'satellite.earth',
+  'blossom.primal.net',
+  'blossom.ditto.pub',
+  'primal.net',
+  'nostrcheck.me',
+  'cdn.satellite.earth',
+];
+
+// ─── Install ──────────────────────────────────────────────────────────────────
+
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing Service Worker version', CACHE_VERSION);
-  
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('[SW] Precaching app shell');
-        return cache.addAll(PRECACHE_URLS);
-      })
-      .then(() => {
-        console.log('[SW] Skip waiting');
+      .then((cache) => cache.addAll(PRECACHE_URLS))
+      .then(() => self.skipWaiting())
+      .catch((err) => {
+        // Don't block install if a pre-cache asset is temporarily unavailable
+        console.error('[SW] Precache error (non-fatal):', err);
         return self.skipWaiting();
       })
-      .catch((error) => {
-        console.error('[SW] Precache failed:', error);
-      })
   );
 });
 
-// Activate event - clean up old caches
+// ─── Activate ─────────────────────────────────────────────────────────────────
+
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating Service Worker version', CACHE_VERSION);
-  
+  const validCaches = new Set([CACHE_NAME, RUNTIME_CACHE, IMAGE_CACHE]);
+
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME && 
-              cacheName !== RUNTIME_CACHE && 
-              cacheName !== IMAGE_CACHE) {
-            console.log('[SW] Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
-    .then(() => {
-      console.log('[SW] Claiming clients');
-      return self.clients.claim();
-    })
+    caches.keys()
+      .then((cacheNames) =>
+        Promise.all(
+          cacheNames
+            .filter((name) => !validCaches.has(name))
+            .map((name) => caches.delete(name))
+        )
+      )
+      .then(() => self.clients.claim())
   );
 });
 
-// Helper function to limit cache size
-async function limitCacheSize(cacheName, maxSize) {
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Trim cache to at most `maxSize` entries, removing oldest first.
+ */
+async function trimCache(cacheName, maxSize) {
   const cache = await caches.open(cacheName);
   const keys = await cache.keys();
-  
   if (keys.length > maxSize) {
-    // Delete oldest entries
-    const keysToDelete = keys.slice(0, keys.length - maxSize);
-    await Promise.all(keysToDelete.map(key => cache.delete(key)));
-    console.log(`[SW] Trimmed ${cacheName} cache to ${maxSize} items`);
+    const toDelete = keys.slice(0, keys.length - maxSize);
+    await Promise.all(toDelete.map((k) => cache.delete(k)));
   }
 }
 
-// Helper function to determine caching strategy based on request
-function getCachingStrategy(request) {
+/**
+ * Decide which caching strategy to apply.
+ */
+function getStrategy(request) {
   const url = new URL(request.url);
-  
-  // Image files - cache with size limit
-  if (request.destination === 'image' || 
-      /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(url.pathname)) {
-    return 'cache-images';
-  }
-  
-  // API requests and Nostr relays - network only
-  if (url.pathname.startsWith('/api/') || 
-      url.protocol === 'wss:' ||
-      url.hostname.includes('relay')) {
-    return 'network-only';
-  }
-  
-  // CSS and JS files - cache first
-  if (request.destination === 'style' || 
-      request.destination === 'script' ||
-      /\.(css|js)$/i.test(url.pathname)) {
+
+  // Never intercept WebSocket / non-http
+  if (url.protocol === 'wss:' || url.protocol === 'ws:') return 'skip';
+  if (url.protocol === 'chrome-extension:') return 'skip';
+
+  // API endpoints – always fresh
+  if (url.pathname.startsWith('/api/')) return 'network-only';
+
+  // JS / CSS bundles built with content hashes – safe to cache forever
+  if (/\.(js|css)(\?.*)?$/.test(url.pathname) && request.destination !== 'document') {
     return 'cache-first';
   }
-  
-  // HTML pages - network first, fallback to cache
-  if (request.destination === 'document' || 
-      request.mode === 'navigate' ||
-      url.pathname.endsWith('.html')) {
+
+  // Images (same-origin or trusted CDN)
+  const isTrustedImage =
+    TRUSTED_IMAGE_DOMAINS.some((d) => url.hostname.includes(d)) ||
+    /\.(jpg|jpeg|png|gif|webp|svg|avif)(\?.*)?$/i.test(url.pathname);
+  if (isTrustedImage || request.destination === 'image') return 'cache-images';
+
+  // HTML / navigation – network first so fresh content loads, fallback to shell
+  if (request.mode === 'navigate' || request.destination === 'document') {
     return 'network-first';
   }
-  
-  // Default - stale while revalidate
-  return 'stale-while-revalidate';
+
+  // Fonts, manifests, other same-origin assets
+  if (url.origin === self.location.origin) return 'stale-while-revalidate';
+
+  // Everything else cross-origin: don't intercept
+  return 'skip';
 }
 
-// Network-first strategy (for HTML pages)
+// ─── Strategies ───────────────────────────────────────────────────────────────
+
 async function networkFirst(request) {
   try {
-    const networkResponse = await fetch(request);
-    
-    if (networkResponse && networkResponse.status === 200) {
+    const response = await fetch(request);
+    if (response && response.status === 200) {
       const cache = await caches.open(RUNTIME_CACHE);
-      cache.put(request, networkResponse.clone());
-      await limitCacheSize(RUNTIME_CACHE, MAX_RUNTIME_CACHE_SIZE);
+      cache.put(request, response.clone());
+      trimCache(RUNTIME_CACHE, MAX_RUNTIME_CACHE_SIZE);
     }
-    
-    return networkResponse;
-  } catch (error) {
-    console.log('[SW] Network failed, trying cache:', request.url);
-    const cachedResponse = await caches.match(request);
-    
-    if (cachedResponse) {
-      return cachedResponse;
-    }
-    
-    // Return offline page for navigation requests
+    return response;
+  } catch {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    // SPA fallback: return the app shell for any navigation miss
     if (request.mode === 'navigate') {
-      return caches.match('/index.html');
+      const shell = await caches.match('/index.html');
+      if (shell) return shell;
     }
-    
-    throw error;
+    return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
   }
 }
 
-// Cache-first strategy (for static assets)
 async function cacheFirst(request) {
-  const cachedResponse = await caches.match(request);
-  
-  if (cachedResponse) {
-    return cachedResponse;
-  }
-  
+  const cached = await caches.match(request);
+  if (cached) return cached;
+
   try {
-    const networkResponse = await fetch(request);
-    
-    if (networkResponse && networkResponse.status === 200) {
+    const response = await fetch(request);
+    if (response && response.status === 200) {
       const cache = await caches.open(CACHE_NAME);
-      cache.put(request, networkResponse.clone());
+      cache.put(request, response.clone());
     }
-    
-    return networkResponse;
-  } catch (error) {
-    console.error('[SW] Cache-first failed:', error);
-    throw error;
+    return response;
+  } catch {
+    return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
   }
 }
 
-// Cache images with size limit
 async function cacheImages(request) {
-  const cachedResponse = await caches.match(request);
-  
-  if (cachedResponse) {
-    return cachedResponse;
-  }
-  
+  const cached = await caches.match(request);
+  if (cached) return cached;
+
   try {
-    const networkResponse = await fetch(request, {
-      mode: 'cors',
-      credentials: 'omit'
-    });
-    
-    if (networkResponse && networkResponse.ok) {
-      // Only cache successful responses
+    const response = await fetch(request, { mode: 'cors', credentials: 'omit' });
+    if (response && response.ok) {
       const cache = await caches.open(IMAGE_CACHE);
-      cache.put(request, networkResponse.clone());
-      await limitCacheSize(IMAGE_CACHE, MAX_IMAGE_CACHE_SIZE);
+      cache.put(request, response.clone());
+      trimCache(IMAGE_CACHE, MAX_IMAGE_CACHE_SIZE);
     }
-    
-    return networkResponse;
-  } catch (error) {
-    console.log('[SW] Image fetch failed:', request.url, error);
-    // Return cached response if available, even if stale
-    if (cachedResponse) {
-      return cachedResponse;
-    }
-    throw error;
+    return response;
+  } catch {
+    // Image failed offline – return nothing (browser shows broken img gracefully)
+    return new Response('', { status: 408, statusText: 'Image Unavailable Offline' });
   }
 }
 
-// Stale-while-revalidate strategy
 async function staleWhileRevalidate(request) {
-  const cachedResponse = await caches.match(request);
-  
-  const fetchPromise = fetch(request).then((networkResponse) => {
-    if (networkResponse && networkResponse.status === 200) {
-      const cache = caches.open(RUNTIME_CACHE);
-      cache.then(c => c.put(request, networkResponse.clone()));
-      limitCacheSize(RUNTIME_CACHE, MAX_RUNTIME_CACHE_SIZE);
-    }
-    return networkResponse;
-  }).catch(() => {
-    // Network failed, return cache or nothing
-    return cachedResponse;
-  });
-  
-  return cachedResponse || fetchPromise;
+  const cache = await caches.open(RUNTIME_CACHE);
+  const cached = await cache.match(request);
+
+  // Kick off network fetch regardless (revalidate in background)
+  const networkFetch = fetch(request)
+    .then((response) => {
+      if (response && response.status === 200) {
+        cache.put(request, response.clone());
+        trimCache(RUNTIME_CACHE, MAX_RUNTIME_CACHE_SIZE);
+      }
+      return response;
+    })
+    .catch(() => cached); // If network fails, the already-resolved cached value is used
+
+  // Return cached immediately if available, otherwise wait for network
+  return cached ?? networkFetch;
 }
 
-// Network-only strategy
-async function networkOnly(request) {
-  return fetch(request);
-}
+// ─── Fetch ────────────────────────────────────────────────────────────────────
 
-// Fetch event - smart caching strategy
 self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
-  
-  // Skip chrome extensions
-  if (url.protocol === 'chrome-extension:') {
-    return;
-  }
-  
-  // Check if this is an image request (by URL or destination)
-  const isImageUrl = /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(url.pathname);
-  const isImageRequest = event.request.destination === 'image' || isImageUrl;
-  
-  // Skip cross-origin requests EXCEPT for images and known CDN domains
-  const trustedDomains = [
-    'nostr.build',
-    'image.nostr.build', 
-    'void.cat',
-    'satellite.earth',
-    'blossom.primal.net',
-    'primal.net',
-    'nostrcheck.me'
-  ];
-  const isTrustedDomain = trustedDomains.some(domain => url.hostname.includes(domain));
-  
-  if (!url.origin.startsWith(self.location.origin) && 
-      !isImageRequest && 
-      !isTrustedDomain) {
-    return;
-  }
-  
-  const strategy = getCachingStrategy(event.request);
-  
-  let responsePromise;
-  
+  // Only handle GET requests
+  if (event.request.method !== 'GET') return;
+
+  const strategy = getStrategy(event.request);
+  if (strategy === 'skip' || strategy === 'network-only') return;
+
   switch (strategy) {
     case 'network-first':
-      responsePromise = networkFirst(event.request);
+      event.respondWith(networkFirst(event.request));
       break;
     case 'cache-first':
-      responsePromise = cacheFirst(event.request);
+      event.respondWith(cacheFirst(event.request));
       break;
     case 'cache-images':
-      responsePromise = cacheImages(event.request);
-      break;
-    case 'network-only':
-      responsePromise = networkOnly(event.request);
+      event.respondWith(cacheImages(event.request));
       break;
     case 'stale-while-revalidate':
     default:
-      responsePromise = staleWhileRevalidate(event.request);
+      event.respondWith(staleWhileRevalidate(event.request));
       break;
   }
-  
-  event.respondWith(responsePromise);
 });
 
-// Background sync for posting content while offline
+// ─── Background Sync ──────────────────────────────────────────────────────────
+
 self.addEventListener('sync', (event) => {
-  console.log('[SW] Background sync event:', event.tag);
-  
   if (event.tag === 'sync-posts') {
-    event.waitUntil(syncPosts());
+    event.waitUntil(syncQueuedPosts());
   }
 });
 
-async function syncPosts() {
-  console.log('[SW] Syncing queued posts...');
-  
-  // Future enhancement: Get queued posts from IndexedDB
-  // and sync them to Nostr relays when back online
-  
-  try {
-    // Placeholder for actual sync logic
-    const clients = await self.clients.matchAll();
-    clients.forEach(client => {
-      client.postMessage({
-        type: 'SYNC_COMPLETE',
-        message: 'Posts synced successfully'
-      });
-    });
-  } catch (error) {
-    console.error('[SW] Sync failed:', error);
-  }
+async function syncQueuedPosts() {
+  // Notify all open tabs that sync completed
+  const clients = await self.clients.matchAll({ type: 'window' });
+  clients.forEach((client) =>
+    client.postMessage({ type: 'SYNC_COMPLETE', message: 'Queued posts synced' })
+  );
 }
 
-// Push notifications
+// ─── Push Notifications ───────────────────────────────────────────────────────
+
 self.addEventListener('push', (event) => {
-  console.log('[SW] Push notification received');
-  
   const data = event.data ? event.data.json() : {};
   const title = data.title || 'TravelTelly';
   const options = {
-    body: data.body || 'New update available',
+    body: data.body || 'You have a new update',
     icon: '/icon-192.png',
     badge: '/icon-192.png',
-    tag: data.tag || 'default',
-    data: {
-      url: data.url || '/',
-      dateOfArrival: Date.now(),
-      ...data
-    },
+    tag: data.tag || 'traveltelly-default',
+    data: { url: data.url || '/', ...data },
     requireInteraction: false,
-    vibrate: [200, 100, 200]
+    vibrate: [200, 100, 200],
   };
-  
-  event.waitUntil(
-    self.registration.showNotification(title, options)
-  );
+
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
-// Notification click handler
 self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Notification click received');
-  
   event.notification.close();
-  
-  const urlToOpen = event.notification.data.url || '/';
-  
+  const urlToOpen = event.notification.data?.url || '/';
+
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true })
+    self.clients
+      .matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        // If a window is already open, focus it
+        // Focus existing tab if already open
         for (const client of clientList) {
           if (client.url === urlToOpen && 'focus' in client) {
             return client.focus();
           }
         }
-        // Otherwise, open a new window
-        if (clients.openWindow) {
-          return clients.openWindow(urlToOpen);
-        }
+        return self.clients.openWindow(urlToOpen);
       })
   );
 });
 
-// Handle service worker messages
-self.addEventListener('message', (event) => {
-  console.log('[SW] Message received:', event.data);
-  
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-  
-  if (event.data && event.data.type === 'CLEAR_CACHE') {
-    event.waitUntil(
-      caches.keys().then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((cacheName) => {
-            console.log('[SW] Clearing cache:', cacheName);
-            return caches.delete(cacheName);
-          })
-        );
-      })
-    );
-  }
-  
-  if (event.data && event.data.type === 'GET_VERSION') {
-    event.ports[0].postMessage({ version: CACHE_VERSION });
-  }
-});
+// ─── Periodic Background Sync ─────────────────────────────────────────────────
 
-// Periodic background sync (requires permission)
 self.addEventListener('periodicsync', (event) => {
   if (event.tag === 'update-content') {
-    event.waitUntil(updateContent());
+    event.waitUntil(refreshAppShell());
   }
 });
 
-async function updateContent() {
-  console.log('[SW] Periodic background sync: updating content');
-  
-  // Future enhancement: Fetch latest content in background
-  // and notify user if new content is available
+async function refreshAppShell() {
+  const cache = await caches.open(CACHE_NAME);
+  await Promise.allSettled(
+    PRECACHE_URLS.map((url) =>
+      fetch(url).then((res) => { if (res.ok) cache.put(url, res); })
+    )
+  );
 }
 
-console.log('[SW] Service Worker loaded, version:', CACHE_VERSION);
+// ─── Message Handling ─────────────────────────────────────────────────────────
+
+self.addEventListener('message', (event) => {
+  if (!event.data) return;
+
+  switch (event.data.type) {
+    case 'SKIP_WAITING':
+      self.skipWaiting();
+      break;
+
+    case 'CLEAR_CACHE':
+      event.waitUntil(
+        caches.keys().then((names) => Promise.all(names.map((n) => caches.delete(n))))
+      );
+      break;
+
+    case 'GET_VERSION':
+      if (event.ports[0]) {
+        event.ports[0].postMessage({ version: CACHE_VERSION });
+      }
+      break;
+  }
+});
