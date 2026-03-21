@@ -438,7 +438,7 @@ export default function AppBuilder() {
     name: 'TravelTelly',
     summary: 'Travel the world. Share your story. Own your data.',
     description: 'TravelTelly is an open-source decentralized travel platform built on the Nostr protocol.\nYour travels. Your photos. Your rules.\n\nFeatures:\n- GPS-tagged travel reviews with star ratings and photos\n- Long-form travel stories with rich media support\n- Trip reports with GPS route visualization and distance tracking\n- Stock media marketplace — sell travel photos with Lightning payments\n- Interactive world map with community pins\n- Fully decentralized — your data lives on Nostr relays\n- Lightning payments — zap posts and profiles via NIP-57',
-    icon: 'https://traveltelly.diy/icon-512.png',
+    icon: 'https://blossom.ditto.pub/bdd685aa48c9f43dc907ea9c46b960905f0fb2a8fad28fd1eb1fa6e2e97a962a.png',
     images: [
       'https://traveltelly.diy/screenshot1.png',
       'https://traveltelly.diy/screenshot2.png',
