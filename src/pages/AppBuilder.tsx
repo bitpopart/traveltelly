@@ -1851,39 +1851,15 @@ export default function AppBuilder() {
                 </CardContent>
               </Card>
 
-              {/* How it works */}
-              <Alert style={{ borderColor: '#f7931a', backgroundColor: '#fff7ed' }}>
-                <Info className="h-4 w-4" style={{ color: '#f7931a' }} />
-                <AlertTitle>3-Step Publishing Process</AlertTitle>
-                <AlertDescription>
-                  <div className="flex items-center gap-2 mt-2 flex-wrap">
-                    <Badge variant="outline" className={publishStep === 'app' ? 'border-orange-500 text-orange-700 bg-orange-50' : 'bg-green-50 border-green-500 text-green-700'}>
-                      1. App Metadata (kind 32267)
-                    </Badge>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    <Badge variant="outline" className={publishStep === 'asset' ? 'border-orange-500 text-orange-700 bg-orange-50' : publishedAssetId ? 'bg-green-50 border-green-500 text-green-700' : ''}>
-                      2. Asset Info (kind 3063)
-                    </Badge>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    <Badge variant="outline" className={publishStep === 'release' ? 'border-orange-500 text-orange-700 bg-orange-50' : ''}>
-                      3. Release (kind 30063)
-                    </Badge>
-                  </div>
-                  <p className="text-xs mt-2 text-muted-foreground">Publish in order: App → Asset → Release. All events are signed by your Nostr identity.</p>
-                </AlertDescription>
-              </Alert>
-
-              {/* WHY IS MY APP NOT SHOWING — complete checklist */}
-              {/* STEP 1 — App Metadata */}
+              {/* STEP 1 — App Metadata (one-time setup) */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Badge style={{ backgroundColor: '#f7931a', color: 'white' }}>Step 1</Badge>
-                    App Metadata
-                    <code className="text-xs text-muted-foreground bg-muted px-1 rounded">kind: 32267</code>
+                    <Badge variant="outline" className="border-blue-400 text-blue-700">One-time setup</Badge>
+                    App Profile on Zapstore
                   </CardTitle>
                   <CardDescription>
-                    Publishes your app's identity to Zapstore — name, icon, description, categories, and supported platforms.
+                    Your app's name, icon, description and categories on Zapstore. <strong>Do this once</strong> — only re-publish here if you change the icon, description, or name.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -2133,7 +2109,7 @@ export default function AppBuilder() {
                             <Copy className="h-3 w-3" />
                           </Button>
                         </div>
-                        <p className="mt-1">Now proceed to publish the Asset in Step 2.</p>
+                        <p className="mt-1">Your app profile is live on Zapstore. Use the APK upload above to publish releases.</p>
                       </AlertDescription>
                     </Alert>
                   )}
@@ -2150,8 +2126,8 @@ export default function AppBuilder() {
                 </CardContent>
               </Card>
 
-              {/* STEP 2 — Asset */}
-              <Card>
+              {/* STEP 2 — Asset (hidden — handled automatically by APK upload above) */}
+              {false && <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Badge style={{ backgroundColor: '#f7931a', color: 'white' }}>Step 2</Badge>
@@ -2337,10 +2313,10 @@ export default function AppBuilder() {
                     </Alert>
                   )}
                 </CardContent>
-              </Card>
+              </Card>}
 
-              {/* STEP 3 — Release */}
-              <Card>
+              {/* STEP 3 — Release (hidden — handled automatically by APK upload above) */}
+              {false && <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Badge style={{ backgroundColor: '#f7931a', color: 'white' }}>Step 3</Badge>
@@ -2443,17 +2419,17 @@ export default function AppBuilder() {
                     </Alert>
                   )}
                 </CardContent>
-              </Card>
+              </Card>}
 
               {/* VERSION HISTORY & NEW VERSION */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Package className="w-5 h-5" style={{ color: '#f7931a' }} />
-                    Version History &amp; Publish New Version
+                    Version History
                   </CardTitle>
                   <CardDescription>
-                    See all published releases on the relay. To ship a new version, click "Publish New Version" — it pre-fills the version fields and takes you straight to Asset → Release.
+                    All published releases on Zapstore. To ship a new version, build a new APK on PWABuilder, then drop it in the upload box above.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -2464,7 +2440,7 @@ export default function AppBuilder() {
                   )}
 
                   {zapstoreStatus.data && zapstoreStatus.data.releaseEvents.length === 0 && (
-                    <p className="text-sm text-muted-foreground">No releases found on relay yet. Complete the 3-step publish above first.</p>
+                    <p className="text-sm text-muted-foreground">No releases found yet. Drop your APK in the upload box above to publish your first release.</p>
                   )}
 
                   {zapstoreStatus.data && zapstoreStatus.data.releaseEvents.length > 0 && (
@@ -2537,15 +2513,14 @@ export default function AppBuilder() {
                         </Button>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        This pre-fills the version number and clears the SHA-256 field. Then: auto-compute the hash → publish Asset → publish Release.
-                        The App Metadata (kind 32267) only needs to be re-published if name/description/icon changed.
+                        Build a new APK on PWABuilder, drop it in the upload box above, and publish. The version number will be pre-filled.
                       </p>
                     </div>
                   )}
 
                   {/* Manual version override */}
                   <div className="pt-2 border-t">
-                    <p className="text-xs text-muted-foreground font-semibold mb-2">Or set version manually:</p>
+                    <p className="text-xs text-muted-foreground font-semibold mb-2">Set version number manually:</p>
                     <div className="flex gap-2">
                       <Input
                         placeholder="e.g. 1.2.0"
