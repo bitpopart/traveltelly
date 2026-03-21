@@ -13,13 +13,13 @@
   "icons": [
     {
       "src": "/icon-192.png",
-      "sizes": "192x192",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
       "src": "/icon-192.png",
-      "sizes": "192x192",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     },
@@ -39,7 +39,7 @@
   "screenshots": [
     {
       "src": "https://blossom.ditto.pub/456920f3e3df8b6ce08d4747c70f099cd30bdd3642271acd526556bb506038ed.jpeg",
-      "sizes": "828x1792",
+      "sizes": "1080x1920",
       "type": "image/jpeg",
       "form_factor": "narrow",
       "label": "TravelTelly home screen showing a grid of travel photos and videos with navigation bar"
@@ -53,8 +53,8 @@
       "url": "/create-review",
       "icons": [
         {
-          "src": "/icon-192.png",
-          "sizes": "192x192"
+          "src": "/icon-512.png",
+          "sizes": "512x512"
         }
       ]
     },
@@ -65,8 +65,8 @@
       "url": "/world-map",
       "icons": [
         {
-          "src": "/icon-192.png",
-          "sizes": "192x192"
+          "src": "/icon-512.png",
+          "sizes": "512x512"
         }
       ]
     },
@@ -77,8 +77,8 @@
       "url": "/stories",
       "icons": [
         {
-          "src": "/icon-192.png",
-          "sizes": "192x192"
+          "src": "/icon-512.png",
+          "sizes": "512x512"
         }
       ]
     },
@@ -89,8 +89,8 @@
       "url": "/marketplace",
       "icons": [
         {
-          "src": "/icon-192.png",
-          "sizes": "192x192"
+          "src": "/icon-512.png",
+          "sizes": "512x512"
         }
       ]
     }
