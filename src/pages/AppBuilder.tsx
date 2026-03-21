@@ -1593,6 +1593,15 @@ export default function AppBuilder() {
                   ══════════════════════════════════════════════════════ */}
               <div className="space-y-3">
 
+                {/* Known Zapstore bug notice */}
+                <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 flex items-start gap-3">
+                  <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                  <div className="text-xs text-blue-800 space-y-0.5">
+                    <p className="font-bold">⚠️ "Installation timed out" = known Zapstore bug — your app DID install</p>
+                    <p>Zapstore issue <a href="https://github.com/zapstore/zapstore/issues/336" target="_blank" rel="noopener noreferrer" className="underline font-semibold">#336</a> (open, milestoned for v1.0): the timeout error is shown incorrectly even when installation succeeds. <strong>Check your app drawer — TravelTelly is probably already installed.</strong> Just tap retry if not.</p>
+                  </div>
+                </div>
+
                 {/* ── STEP 1: Get APK from PWABuilder ── */}
                 <div className={`rounded-2xl border-2 p-5 transition-all ${apkFile ? 'border-green-400 bg-green-50/50' : 'border-gray-200 bg-white'}`}>
                   <div className="flex items-start gap-4">
