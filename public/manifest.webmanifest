@@ -1,4 +1,5 @@
 {
+  "id": "traveltelly-nostr-travel-community",
   "name": "TravelTelly - Nostr Powered Travel Community",
   "short_name": "TravelTelly",
   "description": "Share your travel experiences and discover amazing places on Nostr",
@@ -35,7 +36,15 @@
       "purpose": "maskable"
     }
   ],
-  "screenshots": [],
+  "screenshots": [
+    {
+      "src": "https://blossom.ditto.pub/a1200181dce3499eb3e00bd140cc1e510648e2f5a7e7d3c5f3515ca747a2f7f3.jpeg",
+      "sizes": "828x1792",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "TravelTelly home screen showing travel photos and navigation"
+    }
+  ],
   "shortcuts": [
     {
       "name": "Create Review",
