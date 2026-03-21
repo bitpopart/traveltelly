@@ -1605,6 +1605,27 @@ export default function AppBuilder() {
                 </CardHeader>
                 <CardContent className="space-y-5">
 
+                  {/* ⚠️ Critical: one APK per publish warning */}
+                  <Alert className="border-red-400 bg-red-50">
+                    <AlertCircle className="h-4 w-4 text-red-600 shrink-0" />
+                    <AlertTitle className="text-red-800 font-bold">Use the SAME APK file you upload here — every time</AlertTitle>
+                    <AlertDescription className="text-red-700 space-y-1.5 text-xs mt-1">
+                      <p>
+                        <strong>PWABuilder creates a brand-new APK with a unique SHA-256 hash on every build</strong> — even from the same URL.
+                        Zapstore records that exact hash in the release event and verifies it on install.
+                        If the downloaded APK doesn't match the published hash → <strong>"Invalid app file"</strong>.
+                      </p>
+                      <p className="font-semibold">✅ Correct workflow:</p>
+                      <ol className="list-decimal list-inside space-y-0.5 ml-1">
+                        <li>Build APK once on PWABuilder → download it</li>
+                        <li>Drop <strong>that exact file</strong> here → this tool hashes it, uploads it, publishes the hash</li>
+                        <li>Share the Zapstore link — users download the same file from <code>cdn.zapstore.dev</code></li>
+                        <li>For updates: build a <em>new</em> APK, drop the new file here, publish as a new version</li>
+                      </ol>
+                      <p className="text-red-600 font-semibold">❌ Never re-generate the APK after publishing — that creates a different hash and breaks existing installs.</p>
+                    </AlertDescription>
+                  </Alert>
+
                   {/* Drop zone */}
                   <div
                     onDragOver={(e) => { e.preventDefault(); setApkDragOver(true); }}
