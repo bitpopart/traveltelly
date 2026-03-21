@@ -1853,94 +1853,6 @@ export default function AppBuilder() {
               </Alert>
 
               {/* WHY IS MY APP NOT SHOWING — complete checklist */}
-              <Card className="border-2 border-red-300 bg-red-50">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-red-800 text-base">
-                    <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
-                    "App not found" on zapstore.dev? Do these 3 things first
-                  </CardTitle>
-                  <CardDescription className="text-red-700">
-                    Events are accepted by the relay immediately, but the <strong>public app listing</strong> only appears after all 3 steps below are complete.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-
-                  {/* Step A: zapstore.yaml */}
-                  <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-400 text-white">A</span>
-                      <span className="font-semibold text-amber-900 text-sm">Commit <code className="bg-amber-100 px-1 rounded">zapstore.yaml</code> to your GitHub repo root</span>
-                    </div>
-                    <p className="text-xs text-amber-800">The relay fetches this file to verify you own the repo and whitelist your pubkey. Without it, your app stays invisible.</p>
-                    <div className="bg-white rounded-lg p-3 font-mono text-xs space-y-0.5 border border-amber-200">
-                      <p className="text-slate-400"># zapstore.yaml — add this to your repo root</p>
-                      <p className="text-slate-700">repository: https://github.com/bitpopart/traveltelly</p>
-                      <p className="text-slate-700">pubkey: npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642</p>
-                    </div>
-                    <a
-                      href="https://github.com/bitpopart/traveltelly/new/main?filename=zapstore.yaml&value=repository%3A+https%3A%2F%2Fgithub.com%2Fbitpopart%2Ftraveltelly%0Apubkey%3A+npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642"
-                      target="_blank" rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white mt-1"
-                      style={{ backgroundColor: '#f7931a' }}
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      Create zapstore.yaml on GitHub ↗
-                    </a>
-                  </div>
-
-                  {/* Step B: Re-publish AFTER yaml is committed */}
-                  <div className="rounded-xl border border-blue-300 bg-blue-50 p-4 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-500 text-white">B</span>
-                      <span className="font-semibold text-blue-900 text-sm">Re-publish your app event <em>after</em> committing the yaml</span>
-                    </div>
-                    <p className="text-xs text-blue-800">
-                      The relay only checks <code>zapstore.yaml</code> when an event arrives. If you published before adding the file,
-                      the relay didn't verify you yet. <strong>Publish App Metadata (Step 1 below) again</strong> — the relay will re-check and whitelist you.
-                    </p>
-                  </div>
-
-                  {/* Step C: Certificate linking */}
-                  <div className="rounded-xl border border-purple-300 bg-purple-50 p-4 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-purple-500 text-white">C</span>
-                      <span className="font-semibold text-purple-900 text-sm">Link your APK signing certificate to your Nostr identity (NIP-C1)</span>
-                    </div>
-                    <p className="text-xs text-purple-800">
-                      Zapstore requires a cryptographic proof linking your APK signing key (.jks keystore) to your Nostr pubkey.
-                      This is a one-time step done via the <code>zsp</code> CLI tool.
-                    </p>
-                    <div className="bg-white rounded-lg p-3 font-mono text-xs border border-purple-200 space-y-1">
-                      <p className="text-slate-400"># Install zsp CLI</p>
-                      <p className="text-slate-700">go install github.com/zapstore/zsp@latest</p>
-                      <p className="text-slate-400 mt-2"># Link your cert (interactive — needs your keystore)</p>
-                      <p className="text-slate-700">SIGN_WITH=browser zsp identity --link-key {'<your-cert-fingerprint>'}</p>
-                    </div>
-                    <div className="flex gap-2 flex-wrap mt-1">
-                      <a
-                        href="https://github.com/zapstore/zsp"
-                        target="_blank" rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-purple-400 text-purple-800 bg-white hover:bg-purple-50"
-                      >
-                        <ExternalLink className="w-3 h-3" /> zsp CLI on GitHub
-                      </a>
-                      <a
-                        href="https://zapstore.dev/docs/trust-model"
-                        target="_blank" rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-purple-400 text-purple-800 bg-white hover:bg-purple-50"
-                      >
-                        <ExternalLink className="w-3 h-3" /> Trust model docs
-                      </a>
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-red-700 font-medium">
-                    ✅ All 3 done and still not showing? Wait ~5 minutes for the relay indexer, then check again. If still missing, reach out on the{' '}
-                    <a href="https://signal.group/#CjQKIC0VCHf6gGeeHKcIrKcaI-B5Kjvge2NKw2i4P55tMkCwEhBaOk9B80F3_MhMYVbgj7lL" target="_blank" rel="noopener noreferrer" className="underline">Zapstore dev Signal group</a>.
-                  </p>
-                </CardContent>
-              </Card>
-
               {/* STEP 1 — App Metadata */}
               <Card>
                 <CardHeader>
@@ -2496,29 +2408,14 @@ export default function AppBuilder() {
                   {publishRelease.isSuccess && (
                     <Alert className="bg-green-50 border-green-500">
                       <CheckCircle2 className="h-4 w-4 text-green-600" />
-                      <AlertTitle className="text-green-800">🎉 Events published to relay.zapstore.dev!</AlertTitle>
+                      <AlertTitle className="text-green-800">🎉 Release published to relay.zapstore.dev!</AlertTitle>
                       <AlertDescription className="text-green-700 space-y-2 text-xs">
                         <div className="flex items-center gap-2 mt-1">
                           <code className="bg-green-100 px-1 rounded break-all">{publishRelease.data?.id}</code>
                         </div>
-                        <div className="mt-2 rounded-lg bg-amber-50 border border-amber-300 p-3 space-y-1.5">
-                          <p className="font-bold text-amber-800">⚠️ App not showing on zapstore.dev? Complete all 3 steps:</p>
-                          <p className="text-amber-700">A) Commit <code className="bg-amber-100 px-0.5 rounded">zapstore.yaml</code> with your pubkey to GitHub repo root</p>
-                          <p className="text-amber-700">B) <strong>Re-publish App Metadata (Step 1)</strong> after committing — relay re-checks on new events</p>
-                          <p className="text-amber-700">C) Link APK cert to Nostr identity via <code className="bg-amber-100 px-0.5 rounded">zsp identity --link-key</code></p>
-                          <p className="text-amber-600">See the red checklist card above for full instructions.</p>
-                        </div>
-                        <div className="flex gap-2 mt-1 flex-wrap">
+                        <div className="flex gap-2 mt-2">
                           <a href={`https://zapstore.dev/apps/${zapRelease.packageName}`} target="_blank" rel="noopener noreferrer" className="underline font-semibold" style={{ color: '#f7931a' }}>
                             View on zapstore.dev ↗
-                          </a>
-                          <span className="text-muted-foreground">·</span>
-                          <a
-                            href="https://github.com/bitpopart/traveltelly/new/main?filename=zapstore.yaml&value=repository%3A+https%3A%2F%2Fgithub.com%2Fbitpopart%2Ftraveltelly%0Apubkey%3A+npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642"
-                            target="_blank" rel="noopener noreferrer"
-                            className="underline font-semibold text-amber-700"
-                          >
-                            Create zapstore.yaml ↗
                           </a>
                         </div>
                       </AlertDescription>
