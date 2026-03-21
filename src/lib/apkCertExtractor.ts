@@ -220,19 +220,25 @@ function extractCertFromSigningBlockV2(b: Uint8Array, cdOffset: number): Uint8Ar
     const expected = new TextEncoder().encode('APK Sig Block 42');
     for (let i = 0; i < 16; i++) if (magic[i] !== expected[i]) return null;
 
-    // Block size is 8 bytes before magic
-    const blockSizeHi = u32le(b, cdOffset - 24);
-    const blockSizeLo = u32le(b, cdOffset - 28);
+    // Trailing u64le block size is immediately before the 16-byte magic:
+    //   [... id-value pairs ...][size u64le 8 bytes][magic 16 bytes][Central Dir]
+    // So lo-word is at cdOffset-24, hi-word is at cdOffset-20.
+    const blockSizeLo = u32le(b, cdOffset - 24);
+    const blockSizeHi = u32le(b, cdOffset - 20);
     if (blockSizeHi !== 0) return null; // >4GB blocks not handled
     const blockSize = blockSizeLo;
 
-    // Block starts at: cdOffset - 8 (size field) - 16 (magic) - (blockSize - 8)
-    const blockStart = cdOffset - 8 - 16 - (blockSize - 8);
+    // blockSize counts from the first byte of the block up to (but not including)
+    // the trailing magic. The block itself is:
+    //   [leading size u64le][id-value pairs...][trailing size u64le][magic 16 bytes]
+    // leading size field starts at: cdOffset - 16 (magic) - 8 (trailing size) - (blockSize - 8)
+    // = cdOffset - 16 - blockSize
+    const blockStart = cdOffset - 16 - blockSize;
     if (blockStart < 0 || blockStart >= cdOffset) return null;
 
-    // First 8 bytes of block = blockSize (again), skip them
+    // Skip the leading 8-byte size field — id-value pairs start right after
     let pos = blockStart + 8;
-    const blockEnd = cdOffset - 8 - 16; // before the trailing size+magic
+    const blockEnd = cdOffset - 16 - 8; // everything before trailing size + magic
 
     // Walk ID-value pairs
     while (pos + 12 <= blockEnd) {
@@ -310,10 +316,18 @@ export async function extractApkCertFingerprint(file: File): Promise<ApkCertResu
   const buf = await file.arrayBuffer();
   const b = new Uint8Array(buf);
 
-  // --- Try v1 (META-INF/*.RSA) ---
-  let { sigFiles, cdOffset } = await findSigFilesInZip(buf);
+  const { sigFiles, cdOffset } = await findSigFilesInZip(buf);
 
-  // Only look at .RSA / .DSA / .EC files (not .SF)
+  // --- Try v2/v3 APK Signing Block FIRST ---
+  // Zapstore and modern Android validate against the v2/v3 cert.
+  // A v2-signed APK also has a v1 block, but those certs can differ.
+  const certDerV2 = extractCertFromSigningBlockV2(b, cdOffset);
+  if (certDerV2 && certDerV2.length > 0) {
+    const hash = await crypto.subtle.digest('SHA-256', certDerV2);
+    return { fingerprint: hexOf(new Uint8Array(hash)), source: 'v2' };
+  }
+
+  // --- Fall back to v1 (META-INF/*.RSA / *.DSA / *.EC) ---
   const certFiles = sigFiles.filter(f => {
     const u = f.name.toUpperCase();
     return u.endsWith('.RSA') || u.endsWith('.DSA') || u.endsWith('.EC');
@@ -325,13 +339,6 @@ export async function extractApkCertFingerprint(file: File): Promise<ApkCertResu
       const hash = await crypto.subtle.digest('SHA-256', certDer);
       return { fingerprint: hexOf(new Uint8Array(hash)), source: 'v1' };
     }
-  }
-
-  // --- Try v2/v3 APK Signing Block ---
-  const certDerV2 = extractCertFromSigningBlockV2(b, cdOffset);
-  if (certDerV2 && certDerV2.length > 0) {
-    const hash = await crypto.subtle.digest('SHA-256', certDerV2);
-    return { fingerprint: hexOf(new Uint8Array(hash)), source: 'v2' };
   }
 
   // --- Nothing worked: surface a useful diagnostic ---

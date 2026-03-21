@@ -605,7 +605,7 @@ export default function AppBuilder() {
       .then(result => {
         setApkCertExtracted(result.fingerprint);
         setApkCertHash(result.fingerprint);
-        toast({ title: '🔑 Certificate extracted', description: `v${result.source === 'v2' ? '2/3' : '1'} sig · ${result.fingerprint.slice(0, 16)}…` });
+        toast({ title: '🔑 Certificate extracted', description: `APK Signing Scheme v${result.source === 'v2' ? '2/3 ✓ (preferred)' : '1 (fallback)'} · ${result.fingerprint.slice(0, 16)}…` });
       })
       .catch((err: Error) => {
         // Log for debugging but don't block the UI — user can paste manually
