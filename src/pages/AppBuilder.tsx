@@ -409,7 +409,7 @@ export default function AppBuilder() {
   // Zapstore state
   const queryClient = useQueryClient();
   const { publishApp, publishAsset, publishRelease, publishApkRelease } = useZapstorePublish();
-  const zapstoreStatus = useZapstoreStatus(user?.pubkey, 'com.traveltelly.app');
+  const zapstoreStatus = useZapstoreStatus(user?.pubkey, 'com.traveltelly.twa');
 
   // Media upload
   const { mutateAsync: uploadFile } = useUploadFile();
@@ -434,7 +434,7 @@ export default function AppBuilder() {
   const [apkCertExtracted, setApkCertExtracted] = useState<string>('');
 
   const [zapApp, setZapApp] = useState<ZapstoreAppConfig>({
-    packageName: 'com.traveltelly.app',
+    packageName: 'com.traveltelly.twa',
     name: 'TravelTelly',
     summary: 'Travel the world. Share your story. Own your data.',
     description: 'TravelTelly is an open-source decentralized travel platform built on the Nostr protocol.\nYour travels. Your photos. Your rules.\n\nFeatures:\n- GPS-tagged travel reviews with star ratings and photos\n- Long-form travel stories with rich media support\n- Trip reports with GPS route visualization and distance tracking\n- Stock media marketplace — sell travel photos with Lightning payments\n- Interactive world map with community pins\n- Fully decentralized — your data lives on Nostr relays\n- Lightning payments — zap posts and profiles via NIP-57',
@@ -453,7 +453,7 @@ export default function AppBuilder() {
   });
 
   const [zapAsset, setZapAsset] = useState<ZapstoreAssetConfig>({
-    packageName: 'com.traveltelly.app',
+    packageName: 'com.traveltelly.twa',
     version: '1.0.0',
     versionCode: '1',
     url: 'https://traveltelly.com',
@@ -467,7 +467,7 @@ export default function AppBuilder() {
   });
 
   const [zapRelease, setZapRelease] = useState<ZapstoreReleaseConfig>({
-    packageName: 'com.traveltelly.app',
+    packageName: 'com.traveltelly.twa',
     version: '1.0.0',
     channel: 'main',
     releaseNotes: 'Initial release of TravelTelly on Zapstore.',
@@ -627,7 +627,7 @@ export default function AppBuilder() {
     const result = await publishApkRelease.mutateAsync({
       file: apkFile,
       asset: {
-        packageName: 'com.traveltelly.app',
+        packageName: 'com.traveltelly.twa',
         version: apkVersion,
         versionCode: apkVersionCode,
         platform: 'android-arm64-v8a',
@@ -635,7 +635,7 @@ export default function AppBuilder() {
         apkCertHash,
       },
       release: {
-        packageName: 'com.traveltelly.app',
+        packageName: 'com.traveltelly.twa',
         version: apkVersion,
         channel: apkChannel,
         releaseNotes: apkReleaseNotes,
@@ -1597,8 +1597,8 @@ export default function AppBuilder() {
                 <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 flex items-start gap-3">
                   <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
                   <div className="text-xs text-blue-800 space-y-0.5">
-                    <p className="font-bold">⚠️ "Installation timed out" = known Zapstore bug — your app DID install</p>
-                    <p>Zapstore issue <a href="https://github.com/zapstore/zapstore/issues/336" target="_blank" rel="noopener noreferrer" className="underline font-semibold">#336</a> (open, milestoned for v1.0): the timeout error is shown incorrectly even when installation succeeds. <strong>Check your app drawer — TravelTelly is probably already installed.</strong> Just tap retry if not.</p>
+                    <p className="font-bold">Root cause of past install errors: package ID mismatch — now fixed ✅</p>
+                    <p>PWABuilder's APK used <code>com.traveltelly.twa</code> but Zapstore events said <code>com.traveltelly.app</code>. Both are now aligned to <strong>com.traveltelly.twa</strong>. Rebuild your APK and re-publish. Also: "Installation timed out" is a separate known Zapstore bug <a href="https://github.com/zapstore/zapstore/issues/336" target="_blank" rel="noopener noreferrer" className="underline font-semibold">#336</a> — if you see it, check your app drawer first (it usually installed fine).</p>
                   </div>
                 </div>
 
@@ -1612,8 +1612,16 @@ export default function AppBuilder() {
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-base text-gray-900">Build your APK on PWABuilder</p>
                       <p className="text-sm text-muted-foreground mt-0.5">
-                        Go to PWABuilder, enter <strong>https://traveltelly.com</strong>, click <em>Package for Stores → Android</em>, and download the <code>.apk</code> file.
+                        Go to PWABuilder, enter <strong>https://traveltelly.com</strong>, click <em>Package for Stores → Android</em>, then <strong>before downloading</strong> set the Package ID.
                       </p>
+
+                      {/* Critical: package ID instruction */}
+                      <div className="mt-3 rounded-lg border-2 border-purple-300 bg-purple-50 px-4 py-3 space-y-1">
+                        <p className="text-sm font-bold text-purple-900">🔑 Set Package ID to exactly:</p>
+                        <p className="font-mono text-base font-bold text-purple-800 bg-white rounded px-2 py-1 inline-block border border-purple-200 select-all">com.traveltelly.twa</p>
+                        <p className="text-xs text-purple-700">In PWABuilder → Android options → <em>Package ID</em> field. This must match the APK manifest — a mismatch causes install failure on Zapstore.</p>
+                      </div>
+
                       <div className="mt-3 flex items-center gap-3 flex-wrap">
                         <a
                           href="https://www.pwabuilder.com/generate?url=https://traveltelly.com"
@@ -1630,7 +1638,7 @@ export default function AppBuilder() {
                         )}
                       </div>
                       <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-3">
-                        ⚠️ <strong>Important:</strong> Once you download the APK and publish it here, <strong>never build a new APK for the same version</strong>. Every PWABuilder build has a unique ID — a new build = a different file = "Invalid app file" error on Zapstore.
+                        ⚠️ Once you publish an APK here, <strong>never rebuild that same version</strong> on PWABuilder — each build has a unique hash, so a rebuild = "Invalid app file" on Zapstore.
                       </p>
                     </div>
                   </div>
@@ -1810,7 +1818,7 @@ export default function AppBuilder() {
                     <p className="text-sm text-green-700">The APK has been uploaded and the release is signed and published.</p>
                     <div className="flex gap-3 justify-center flex-wrap mt-2">
                       <a
-                        href="https://zapstore.dev/apps/com.traveltelly.app"
+                        href="https://zapstore.dev/apps/com.traveltelly.twa"
                         target="_blank" rel="noopener noreferrer"
                         className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold text-white"
                         style={{ backgroundColor: '#f7931a' }}
@@ -1864,7 +1872,7 @@ export default function AppBuilder() {
                       <Input
                         value={zapApp.packageName}
                         onChange={(e) => updateZapApp('packageName', e.target.value)}
-                        placeholder="com.traveltelly.app"
+                        placeholder="com.traveltelly.twa"
                       />
                       <p className="text-xs text-muted-foreground">Unique identifier e.g. com.yourapp.id</p>
                     </div>
