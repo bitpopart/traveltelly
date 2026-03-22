@@ -1591,7 +1591,7 @@ export default function AppBuilder() {
               {/* ══════════════════════════════════════════════════════
                   ZAPSTORE PUBLISH WIZARD — 3 numbered steps, hard gates
                   ══════════════════════════════════════════════════════ */}
-              <div className="space-y-3">
+              <div id="zapstore-wizard" className="space-y-3">
 
                 {/* Known Zapstore bug notice */}
                 <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 flex items-start gap-3">
@@ -1637,9 +1637,10 @@ export default function AppBuilder() {
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-3">
-                        ⚠️ Once you publish an APK here, <strong>never rebuild that same version</strong> on PWABuilder — each build has a unique hash, so a rebuild = "Invalid app file" on Zapstore.
-                      </p>
+                      <div className="text-xs bg-muted rounded-lg px-3 py-2.5 mt-3 space-y-1 border">
+                        <p className="font-semibold text-foreground">Publishing a new version? That's fine — just build a fresh APK.</p>
+                        <p className="text-muted-foreground">⚠️ The only thing to avoid: going back to PWABuilder and rebuilding the <em>same version number</em> after you've already published it. A new build = new hash = mismatch. Always bump the version (e.g. 1.0 → 1.1) when you release an update.</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2432,7 +2433,7 @@ export default function AppBuilder() {
                     Version History
                   </CardTitle>
                   <CardDescription>
-                    All published releases on Zapstore. To ship a new version, build a new APK on PWABuilder, then drop it in the upload box above.
+                    All published releases on Zapstore.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -2490,66 +2491,40 @@ export default function AppBuilder() {
                     </div>
                   )}
 
-                  {/* Publish new version button */}
-                  {zapstoreStatus.data && zapstoreStatus.data.latestVersion && (
-                    <div className="pt-2 border-t space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-semibold">Publish New Version</p>
-                          <p className="text-xs text-muted-foreground">
-                            Current latest: <span className="font-mono font-semibold">v{zapstoreStatus.data.latestVersion}</span>
-                            {' → '}
-                            <span className="font-mono font-semibold text-orange-600">
-                              v{zapstoreStatus.data.latestVersion.split('.').map((p, i, arr) =>
-                                i === arr.length - 1 ? String(Number(p) + 1) : p
-                              ).join('.')}
-                            </span>
-                          </p>
-                        </div>
-                        <Button
-                          onClick={() => handleBumpVersion(zapstoreStatus.data?.latestVersion ?? '1.0.0')}
-                          style={{ backgroundColor: '#f7931a' }}
-                          size="sm"
-                        >
-                          <Zap className="mr-1 h-4 w-4" />
-                          Prepare New Version
-                        </Button>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Build a new APK on PWABuilder, drop it in the upload box above, and publish. The version number will be pre-filled.
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Manual version override */}
-                  <div className="pt-2 border-t">
-                    <p className="text-xs text-muted-foreground font-semibold mb-2">Set version number manually:</p>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="e.g. 1.2.0"
-                        value={zapRelease.version}
-                        onChange={(e) => {
-                          updateZapRelease('version', e.target.value);
-                          updateZapAsset('version', e.target.value);
+                  {/* How to publish a new version */}
+                  <div className="pt-3 border-t">
+                    <p className="text-sm font-semibold mb-2">Publishing a new version?</p>
+                    <ol className="space-y-1.5 text-sm text-muted-foreground list-none">
+                      <li className="flex items-start gap-2">
+                        <span className="shrink-0 w-5 h-5 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-foreground">1</span>
+                        <span>Go to <strong>PWABuilder</strong>, build a new APK with a <strong>higher version number</strong> (e.g. 1.0 → 1.1)</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="shrink-0 w-5 h-5 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-foreground">2</span>
+                        <span>Scroll <strong>up to the wizard above</strong> ↑ and drop your new APK into the upload box</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="shrink-0 w-5 h-5 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-foreground">3</span>
+                        <span>Update the version number field and click <strong>Publish to Zapstore</strong></span>
+                      </li>
+                    </ol>
+                    {zapstoreStatus.data?.latestVersion && (
+                      <Button
+                        className="mt-3 w-full"
+                        style={{ backgroundColor: '#f7931a' }}
+                        size="sm"
+                        onClick={() => {
+                          handleBumpVersion(zapstoreStatus.data?.latestVersion ?? '1.0.0');
+                          // Scroll to the wizard
+                          document.getElementById('zapstore-wizard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         }}
-                        className="max-w-32 font-mono"
-                      />
-                      <Input
-                        placeholder="version code e.g. 2"
-                        value={zapAsset.versionCode}
-                        onChange={(e) => updateZapAsset('versionCode', e.target.value)}
-                        className="max-w-32 font-mono"
-                      />
-                      <Button variant="outline" size="sm" onClick={() => {
-                        setPublishedAssetId('');
-                        setZapRelease(prev => ({ ...prev, assetEventId: '' }));
-                        setPublishStep('asset');
-                        toast({ title: '✅ Ready', description: `Set to v${zapRelease.version} — now publish Asset then Release above` });
-                      }}>
-                        <ChevronRight className="h-4 w-4 mr-1" />
-                        Set &amp; Go to Asset Step
+                      >
+                        <ChevronLeft className="mr-1 h-4 w-4 rotate-90" />
+                        Prepare v{zapstoreStatus.data.latestVersion.split('.').map((p, i, arr) =>
+                          i === arr.length - 1 ? String(Number(p) + 1) : p
+                        ).join('.')} — scroll up to wizard ↑
                       </Button>
-                    </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
