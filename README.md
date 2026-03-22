@@ -50,7 +50,7 @@ All data is stored on decentralized Nostr relays with no central database.
 
 ### For Users
 
-**Visit**: https://traveltelly.diy
+**Visit**: https://traveltelly.com
 
 1. **Explore** - Browse reviews, stories, trips, and stock media (no account needed)
 2. **Login** - Use a Nostr extension (nos2x, Alby) to create content
@@ -324,7 +324,7 @@ Contributions welcome! Please:
 
 ## 🔗 Links
 
-- **Live Site**: https://traveltelly.diy
+- **Live Site**: https://traveltelly.com
 - **Repository**: https://github.com/bitpopart/traveltelly
 - **Shakespeare AI**: https://shakespeare.diy
 - **MKStack Template**: https://soapbox.pub/mkstack

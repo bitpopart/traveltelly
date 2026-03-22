@@ -26,7 +26,7 @@ export async function reverseGeocode(
     const response = await fetch(url, {
       headers: {
         // Nominatim requires a User-Agent
-        'User-Agent': 'Traveltelly/1.0 (https://traveltelly.diy)',
+        'User-Agent': 'Traveltelly/1.0 (https://traveltelly.com)',
         'Accept-Language': 'en',
       },
     });

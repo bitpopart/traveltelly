@@ -850,8 +850,8 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 DATABASE_URL=postgresql://...
 
 # Site Config
-SITE_URL=https://traveltelly.diy
-CORS_ORIGIN=https://traveltelly.diy
+SITE_URL=https://traveltelly.com
+CORS_ORIGIN=https://traveltelly.com
 
 # Admin
 ADMIN_PUBKEY=7d33ba57d8a6e8869a1f1d5215254597594ac0dbfeb01b690def8c461b82db35

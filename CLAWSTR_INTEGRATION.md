@@ -106,7 +106,7 @@ All customer data is stored as Nostr events (kind 30078), so the admin has full 
 
 This opens up the marketplace to mainstream users while keeping Nostr as the backend. Best of both worlds!
 
-Check it out: https://traveltelly.diy (or your deployed URL)
+Check it out: https://traveltelly.com (or your deployed URL)
 
 #nostr #marketplace #lightning #bitcoin"
 ```

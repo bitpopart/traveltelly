@@ -374,7 +374,7 @@ export default function AppBuilder() {
     // URLs
     startUrl: '/',
     scope: '/',
-    siteUrl: 'https://traveltelly.diy',
+    siteUrl: 'https://traveltelly.com',
     
     // Display
     display: 'standalone',
@@ -440,14 +440,14 @@ export default function AppBuilder() {
     description: 'TravelTelly is an open-source decentralized travel platform built on the Nostr protocol.\nYour travels. Your photos. Your rules.\n\nFeatures:\n- GPS-tagged travel reviews with star ratings and photos\n- Long-form travel stories with rich media support\n- Trip reports with GPS route visualization and distance tracking\n- Stock media marketplace — sell travel photos with Lightning payments\n- Interactive world map with community pins\n- Fully decentralized — your data lives on Nostr relays\n- Lightning payments — zap posts and profiles via NIP-57',
     icon: 'https://blossom.ditto.pub/179ece062bb710480f9238f079eadb54c84d02ecf1bea303ac44a5d4485c870b.jpeg',
     images: [
-      'https://traveltelly.diy/screenshot1.png',
-      'https://traveltelly.diy/screenshot2.png',
-      'https://traveltelly.diy/screenshot3.png',
+      'https://traveltelly.com/screenshot1.png',
+      'https://traveltelly.com/screenshot2.png',
+      'https://traveltelly.com/screenshot3.png',
     ],
     tags: ['travel', 'nostr', 'social', 'photography', 'maps', 'lightning', 'decentralized'],
     license: 'MIT',
     repository: 'https://github.com/bitpopart/traveltelly',
-    website: 'https://traveltelly.diy',
+    website: 'https://traveltelly.com',
     supportedNips: ['01', '07', '23', '57', '99'],
     platforms: ['android-arm64-v8a', 'android-armeabi-v7a', 'android-x86', 'android-x86_64'],
   });
@@ -1981,7 +1981,7 @@ export default function AppBuilder() {
                       <Input
                         value={zapApp.website}
                         onChange={(e) => updateZapApp('website', e.target.value)}
-                        placeholder="https://traveltelly.diy"
+                      placeholder="https://traveltelly.com"
                       />
                     </div>
                   </div>
@@ -2176,7 +2176,7 @@ export default function AppBuilder() {
                       <Input
                         value={zapAsset.url}
                         onChange={(e) => updateZapAsset('url', e.target.value)}
-                        placeholder="https://traveltelly.diy or URL to APK"
+                        placeholder="https://traveltelly.com or URL to APK"
                       />
                     </div>
                     <div className="space-y-2">

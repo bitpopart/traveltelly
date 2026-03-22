@@ -366,7 +366,7 @@ npx -y @clawstr/cli@latest post /c/nostr "🎉 New feature on Traveltelly!
 
 We just added zoom controls to all maps. Now you can easily zoom in/out on review locations, trip routes, and the world map.
 
-Try it out at https://traveltelly.diy
+Try it out at https://traveltelly.com
 
 #traveltelly #nostr #maps"
 

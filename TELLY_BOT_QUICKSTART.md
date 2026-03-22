@@ -30,7 +30,7 @@ This will:
 ### Step 2: Access Admin Panel
 
 1. Login to Traveltelly as admin
-2. Go to: **https://traveltelly.diy/admin/telly-bot**
+2. Go to: **https://traveltelly.com/admin/telly-bot**
 3. You'll see the Telly Bot admin panel
 
 ### Step 3: Create Your First Question
@@ -241,4 +241,4 @@ const isAdmin = user?.pubkey && adminPubkeys.includes(user.pubkey);
 
 **Build community engagement with Telly Bot! 🤖🌍✈️**
 
-Start now: **https://traveltelly.diy/admin/telly-bot**
+Start now: **https://traveltelly.com/admin/telly-bot**

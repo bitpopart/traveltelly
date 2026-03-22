@@ -31,7 +31,7 @@ export const BOT_INFO = {
   name: 'Traveltelly Help Bot',
   about: 'AI assistant for Traveltelly - helping users with reviews, stories, trips, and marketplace questions. Ask me anything! 🌍✈️📸',
   picture: '/bot-avatar.png', // Optional: add a bot avatar to /public
-  nip05: 'bot@traveltelly.diy', // Optional: set up NIP-05 verification
+  nip05: 'bot@traveltelly.com', // Optional: set up NIP-05 verification
 };
 
 /**

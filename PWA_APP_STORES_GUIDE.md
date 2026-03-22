@@ -22,7 +22,7 @@ A **Progressive Web App** is a web application that can be installed on mobile d
 
 ### General Requirements
 
-- ✅ TravelTelly must be live at `https://traveltelly.diy`
+- ✅ TravelTelly must be live at `https://traveltelly.com`
 - ✅ Valid SSL certificate (HTTPS required)
 - ✅ Service Worker enabled for offline support
 - ✅ Web App Manifest properly configured
@@ -61,7 +61,7 @@ A **Progressive Web App** is a web application that can be installed on mobile d
 
 1. **Go to PWABuilder**
    - Visit: https://www.pwabuilder.com
-   - Enter your URL: `https://traveltelly.diy`
+   - Enter your URL: `https://traveltelly.com`
    - Click "Start"
 
 2. **Review PWA Score**
@@ -81,7 +81,7 @@ A **Progressive Web App** is a web application that can be installed on mobile d
 
 4. **Upload Digital Asset Links**
    - PWABuilder will give you an `assetlinks.json` file
-   - Upload to: `https://traveltelly.diy/.well-known/assetlinks.json`
+   - Upload to: `https://traveltelly.com/.well-known/assetlinks.json`
    - Verify it's accessible at that URL
 
 5. **Create Google Play Console Listing**
@@ -132,7 +132,7 @@ A **Progressive Web App** is a web application that can be installed on mobile d
 
 2. **Initialize Project**
    ```bash
-   bubblewrap init --manifest https://traveltelly.diy/manifest.webmanifest
+   bubblewrap init --manifest https://traveltelly.com/manifest.webmanifest
    ```
 
 3. **Follow Prompts**
@@ -162,7 +162,7 @@ A **Progressive Web App** is a web application that can be installed on mobile d
 
 1. **Go to PWABuilder**
    - Visit: https://www.pwabuilder.com
-   - Enter your URL: `https://traveltelly.diy`
+   - Enter your URL: `https://traveltelly.com`
    - Click "Package for Stores"
 
 2. **Generate iOS Package**
@@ -174,9 +174,9 @@ A **Progressive Web App** is a web application that can be installed on mobile d
 
 3. **Upload Apple App Site Association**
    - PWABuilder gives you `apple-app-site-association` file
-   - Upload to: `https://traveltelly.diy/.well-known/apple-app-site-association`
+   - Upload to: `https://traveltelly.com/.well-known/apple-app-site-association`
    - Must be accessible without `.json` extension
-   - Verify with: `curl https://traveltelly.diy/.well-known/apple-app-site-association`
+   - Verify with: `curl https://traveltelly.com/.well-known/apple-app-site-association`
 
 4. **Set Up in Apple Developer Portal**
    - Go to: https://developer.apple.com
@@ -216,7 +216,7 @@ A **Progressive Web App** is a web application that can be installed on mobile d
      - Price: Free
      - Availability: All countries
    - **App Privacy:**
-     - Privacy Policy URL: `https://traveltelly.diy/privacy`
+     - Privacy Policy URL: `https://traveltelly.com/privacy`
      - Data collection details (if any)
 
 9. **Add Screenshots**
@@ -291,7 +291,7 @@ A **Progressive Web App** is a web application that can be installed on mobile d
 
 2. **Test Digital Asset Links**
    ```bash
-   curl https://traveltelly.diy/.well-known/assetlinks.json
+   curl https://traveltelly.com/.well-known/assetlinks.json
    ```
    - Should return valid JSON
    - Package name must match
@@ -306,7 +306,7 @@ A **Progressive Web App** is a web application that can be installed on mobile d
 
 2. **Test Apple App Site Association**
    ```bash
-   curl https://traveltelly.diy/.well-known/apple-app-site-association
+   curl https://traveltelly.com/.well-known/apple-app-site-association
    ```
    - Should return valid JSON (no .json extension)
 

@@ -10,7 +10,7 @@
 
 1. **Navigate to Admin Panel**
    ```
-   https://traveltelly.diy/admin
+   https://traveltelly.com/admin
    ```
 
 2. **Look for Quick Actions section**
@@ -24,7 +24,7 @@
 ### Method 2: Direct URL
 
 ```
-https://traveltelly.diy/admin/telly-bot
+https://traveltelly.com/admin/telly-bot
 ```
 
 ---

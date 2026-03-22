@@ -406,7 +406,7 @@ const relay = import.meta.env.VITE_DEFAULT_RELAY;
 
 ## Useful Links
 
-- **Live Site**: https://traveltelly.diy
+- **Live Site**: https://traveltelly.com
 - **Repository**: https://github.com/bitpopart/traveltelly
 - **Shakespeare**: https://shakespeare.diy
 - **MKStack**: https://soapbox.pub/mkstack

@@ -41,7 +41,7 @@ The app builder has four tabs:
   - App Name: `TravelTelly`
   - Short Name: `TravelTelly` (max 12 chars for home screen)
   - Description: Full app description
-  - Website URL: `https://traveltelly.diy`
+  - Website URL: `https://traveltelly.com`
 
 - **Display & Appearance:**
   - Theme Color: `#b700d7` (TravelTelly purple)
@@ -76,14 +76,14 @@ Click **"Generate PWA Configuration"** to prepare your app.
 ### Prerequisites
 
 - Google Play Console account ($25 one-time fee)
-- Website live at `https://traveltelly.diy`
+- Website live at `https://traveltelly.com`
 - HTTPS with valid SSL certificate
 
 ### Recommended: PWABuilder Method
 
 1. **Go to PWABuilder**
    - Visit: https://www.pwabuilder.com
-   - Enter URL: `https://traveltelly.diy`
+   - Enter URL: `https://traveltelly.com`
    - Click "Start"
 
 2. **Review PWA Score**
@@ -99,7 +99,7 @@ Click **"Generate PWA Configuration"** to prepare your app.
    - Download `.aab` file
 
 4. **Upload Digital Asset Links**
-   - Upload `assetlinks.json` to: `https://traveltelly.diy/.well-known/assetlinks.json`
+   - Upload `assetlinks.json` to: `https://traveltelly.com/.well-known/assetlinks.json`
    - Verify it's accessible
 
 5. **Create Play Console Listing**
@@ -117,7 +117,7 @@ Click **"Generate PWA Configuration"** to prepare your app.
 npm install -g @bubblewrap/cli
 
 # Initialize
-bubblewrap init --manifest https://traveltelly.diy/manifest.webmanifest
+bubblewrap init --manifest https://traveltelly.com/manifest.webmanifest
 
 # Build
 bubblewrap build
@@ -133,13 +133,13 @@ bubblewrap build
 
 - Apple Developer account ($99/year)
 - macOS with Xcode installed
-- Website live at `https://traveltelly.diy`
+- Website live at `https://traveltelly.com`
 
 ### Steps
 
 1. **Go to PWABuilder**
    - Visit: https://www.pwabuilder.com
-   - Enter URL: `https://traveltelly.diy`
+   - Enter URL: `https://traveltelly.com`
    - Click "Package for Stores" → "iOS"
 
 2. **Generate iOS Package**
@@ -147,9 +147,9 @@ bubblewrap build
    - Download `.zip` file
 
 3. **Upload Apple App Site Association**
-   - Upload to: `https://traveltelly.diy/.well-known/apple-app-site-association`
+   - Upload to: `https://traveltelly.com/.well-known/apple-app-site-association`
    - No `.json` extension!
-   - Verify with: `curl https://traveltelly.diy/.well-known/apple-app-site-association`
+   - Verify with: `curl https://traveltelly.com/.well-known/apple-app-site-association`
 
 4. **Set Up Apple Developer Portal**
    - Create App ID: `com.traveltelly.app`

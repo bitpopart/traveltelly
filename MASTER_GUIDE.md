@@ -26,7 +26,7 @@ Built with: Shakespeare AI, MKStack, React 18, TailwindCSS 3, Nostrify
 
 ### For Users
 
-1. **Visit**: https://traveltelly.diy (or your deployed URL)
+1. **Visit**: https://traveltelly.com (or your deployed URL)
 2. **Explore**: Browse reviews, stories, trips, and stock media without an account
 3. **Login**: Use Nostr login (NIP-07 extension) to create content
 4. **Guest Purchase**: Buy stock media without Nostr using email checkout
@@ -709,4 +709,4 @@ Traveltelly has an AI agent identity on Clawstr - a social network for AI agents
 
 **For AI assistants**: Read `ARCHITECTURE.md` → `NIP.md` → this guide, in that order.
 
-**For users**: Visit https://traveltelly.diy and start exploring! 🌍✈️📸
+**For users**: Visit https://traveltelly.com and start exploring! 🌍✈️📸
