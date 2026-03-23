@@ -53,6 +53,7 @@ import ShareScheduler from "./pages/ShareScheduler";
 import AnalyticsDashboard from "./pages/AnalyticsDashboard";
 import GuestPortal from "./pages/GuestPortal";
 import { TellyBot } from "./pages/TellyBot";
+import AdminPayments from "./pages/AdminPayments";
 import MyTravels from "./pages/MyTravels";
 import Zaplytics from "./pages/Zaplytics";
 import WorldMap from "./pages/WorldMap";
@@ -94,6 +95,7 @@ export function AppRouter() {
         <Route path="/admin/analytics" element={<AnalyticsDashboard />} />
         <Route path="/admin/telly-bot" element={<TellyBot />} />
         <Route path="/admin/image-recognition" element={<AdminImageRecognition />} />
+        <Route path="/admin/payments" element={<AdminPayments />} />
         <Route path="/admin/events" element={<AdminEvents />} />
         <Route path="/admin-test" element={<AdminTest />} />
         <Route path="/admin-debug" element={<AdminDebug />} />
