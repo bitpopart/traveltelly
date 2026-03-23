@@ -53,6 +53,9 @@ function LightningPaymentSettings() {
   const metadata = author.data?.metadata;
 
   const [lightningAddress, setLightningAddress] = useState('');
+  const [lsAddress, setLsAddress] = useState(
+    localStorage.getItem('traveltelly_lightning_address') || ''
+  );
   const [isValidating, setIsValidating] = useState(false);
   const [isValid, setIsValid] = useState<boolean | null>(null);
   const [lightningEnabled, setLightningEnabled] = useState(
@@ -92,7 +95,10 @@ function LightningPaymentSettings() {
       content: JSON.stringify({ ...(metadata || {}), lud16: lightningAddress }),
       tags: [],
     });
-    toast({ title: 'Lightning address saved!', description: 'Your Nostr profile has been updated.' });
+    // Also persist in localStorage so the marketplace uses it immediately
+    localStorage.setItem('traveltelly_lightning_address', lightningAddress);
+    setLsAddress(lightningAddress);
+    toast({ title: 'Lightning address saved!', description: 'Profile updated and marketplace configured.' });
   };
 
   const handleToggle = (val: boolean) => {
@@ -128,22 +134,31 @@ function LightningPaymentSettings() {
       </div>
 
       {/* Current address display */}
-      {currentAddress && (
+      {(currentAddress || lsAddress) && (
         <Card className="border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-                <div>
-                  <p className="text-sm font-semibold text-green-700 dark:text-green-300">Active Lightning Address</p>
-                  <p className="text-sm font-mono text-green-600 dark:text-green-400">{currentAddress}</p>
+          <CardContent className="p-4 space-y-3">
+            {currentAddress && (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <div>
+                    <p className="text-sm font-semibold text-green-700 dark:text-green-300">Nostr Profile Address (lud16)</p>
+                    <p className="text-sm font-mono text-green-600 dark:text-green-400">{currentAddress}</p>
+                  </div>
                 </div>
+                <Button variant="outline" size="sm" onClick={copyAddress} className="border-green-400 text-green-700 hover:bg-green-100">
+                  <Copy className="w-4 h-4 mr-1" /> Copy
+                </Button>
               </div>
-              <Button variant="outline" size="sm" onClick={copyAddress} className="border-green-400 text-green-700 hover:bg-green-100">
-                <Copy className="w-4 h-4 mr-1" />
-                Copy
-              </Button>
-            </div>
+            )}
+            {lsAddress && (
+              <div className="flex items-center gap-2 text-sm">
+                <Zap className="w-4 h-4 text-yellow-500" />
+                <span className="text-green-700 dark:text-green-300">
+                  <strong>Marketplace uses:</strong> <span className="font-mono">{lsAddress}</span>
+                </span>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -259,10 +274,15 @@ function LightningPaymentSettings() {
 }
 
 // ─── Stripe Payment Section ────────────────────────────────────────────────────
+const LS_STRIPE_PAYMENT_LINK = 'traveltelly_stripe_payment_link';
+
 function StripePaymentSettings() {
   const { toast } = useToast();
   const [publishableKey, setPublishableKey] = useState(
     localStorage.getItem(LS_STRIPE_PK) || import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || ''
+  );
+  const [paymentLink, setPaymentLink] = useState(
+    localStorage.getItem(LS_STRIPE_PAYMENT_LINK) || ''
   );
   const [stripeEnabled, setStripeEnabled] = useState(
     localStorage.getItem(LS_STRIPE_ENABLED) !== 'false'
@@ -279,6 +299,7 @@ function StripePaymentSettings() {
     await new Promise((r) => setTimeout(r, 400));
     localStorage.setItem(LS_STRIPE_PK, publishableKey);
     localStorage.setItem(LS_STRIPE_ENABLED, String(stripeEnabled));
+    if (paymentLink) localStorage.setItem(LS_STRIPE_PAYMENT_LINK, paymentLink);
     setIsSaving(false);
     toast({
       title: 'Stripe settings saved!',
@@ -376,6 +397,22 @@ function StripePaymentSettings() {
               <strong>Secret Key:</strong> Never enter your Stripe <em>secret</em> key here. Only the publishable key (pk_…) is safe to store client-side. Your secret key stays on your server.
             </AlertDescription>
           </Alert>
+
+          {/* Stripe Payment Link */}
+          <div className="space-y-2">
+            <Label htmlFor="stripe-pl">Stripe Payment Link (optional)</Label>
+            <Input
+              id="stripe-pl"
+              type="url"
+              placeholder="https://buy.stripe.com/..."
+              value={paymentLink}
+              onChange={(e) => setPaymentLink(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Create a <a href="https://dashboard.stripe.com/payment-links" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline inline-flex items-center gap-0.5">Payment Link <ExternalLink className="w-3 h-3" /></a> in Stripe for your products.
+              Buyers will be redirected here for card checkout without needing a backend server.
+            </p>
+          </div>
 
           <Button
             onClick={handleSaveStripe}
