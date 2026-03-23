@@ -186,6 +186,12 @@ export default function AdminPanel() {
                     Marketplace Editor
                   </Button>
                 </Link>
+                <Link to="/admin/bin-workspace">
+                  <Button variant="default" className="bg-pink-500 hover:bg-pink-600 text-white">
+                    <FileImage className="w-4 h-4 mr-2" />
+                    Bin · Media Workspace
+                  </Button>
+                </Link>
                 <Link to="/admin/payments">
                   <Button variant="default" className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600">
                     <Zap className="w-4 h-4 mr-2" />

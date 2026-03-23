@@ -655,6 +655,12 @@ export default function AdminMarketplace() {
             </p>
           </div>
           <div className="flex gap-2 flex-shrink-0">
+            <Link to="/admin/bin-workspace">
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <LayoutGrid className="w-4 h-4" />
+                Bin · Media Workspace
+              </Button>
+            </Link>
             <Link to="/marketplace" target="_blank">
               <Button variant="outline" size="sm" className="gap-1.5">
                 <ExternalLink className="w-4 h-4" />
