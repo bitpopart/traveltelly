@@ -13,10 +13,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useMarketplaceProducts } from "@/hooks/useMarketplaceProducts";
 import { useMarketplaceSubscription } from "@/hooks/useMarketplaceSubscription";
+import { useMarketplaceBins } from "@/hooks/useMarketplaceBins";
 import { ProductCard } from "@/components/ProductCard";
 import { CreateProductDialog } from "@/components/CreateProductDialog";
 import { MarketplaceSubscriptionDialog } from "@/components/MarketplaceSubscriptionDialog";
-import { ShoppingCart, Search, Plus, Store, Zap, CreditCard, Camera, Video, Music, Palette, Crown, Globe } from "lucide-react";
+import { MarketplaceBinSection } from "@/components/MarketplaceBinSection";
+import { ShoppingCart, Search, Plus, Store, Zap, CreditCard, Camera, Video, Music, Palette, Crown, Globe, LayoutGrid } from "lucide-react";
 import { Link } from "react-router-dom";
 import { GeoBrowser } from "@/components/GeoBrowser";
 import { getContinentLabel, getCountryLabel } from "@/lib/geoData";
@@ -24,11 +26,17 @@ import { getContinentLabel, getCountryLabel } from "@/lib/geoData";
 const Marketplace = () => {
   const { user } = useCurrentUser();
   const { data: subscription } = useMarketplaceSubscription(user?.pubkey);
+  const { data: binsConfig } = useMarketplaceBins();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMediaType, setSelectedMediaType] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [priceRange, setPriceRange] = useState('all');
   const [geoFilter, setGeoFilter] = useState<{ continent?: string; country?: string; city?: string }>({});
+
+  // Bins that are visible, sorted by sortOrder
+  const visibleBins = (binsConfig?.bins ?? [])
+    .filter((b) => b.isVisible)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
 
   const { data: products, isLoading, error } = useMarketplaceProducts({
     search: searchQuery,
@@ -212,6 +220,20 @@ const Marketplace = () => {
             </Link>
           </div>
 
+
+          {/* ── Photo Bins / Collections (admin-curated) ── */}
+          {visibleBins.length > 0 && (
+            <div className="mb-10">
+              <div className="flex items-center gap-2 mb-6">
+                <LayoutGrid className="w-5 h-5" style={{ color: '#ec1a58' }} />
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Browse Collections</h2>
+              </div>
+              {visibleBins.map((bin) => (
+                <MarketplaceBinSection key={bin.id} bin={bin} />
+              ))}
+              <hr className="my-8 border-gray-200 dark:border-gray-700" />
+            </div>
+          )}
 
           {/* Geo Browser — World / Continent / Country / City */}
           <div className="mb-6">

@@ -180,10 +180,10 @@ export default function AdminPanel() {
                     Remove User Reviews
                   </Button>
                 </Link>
-                <Link to="/marketplace">
-                  <Button variant="outline">
+                <Link to="/admin/marketplace">
+                  <Button variant="default" className="bg-pink-600 hover:bg-pink-700 text-white">
                     <Camera className="w-4 h-4 mr-2" />
-                    Marketplace
+                    Marketplace Editor
                   </Button>
                 </Link>
                 <Link to="/admin/payments">
