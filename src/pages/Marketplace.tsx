@@ -2,7 +2,6 @@ import { useSeoMeta } from '@unhead/react';
 import { useState } from 'react';
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
-import { LoginArea } from "@/components/auth/LoginArea";
 import { RelaySelector } from "@/components/RelaySelector";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,12 +17,21 @@ import { ProductCard } from "@/components/ProductCard";
 import { CreateProductDialog } from "@/components/CreateProductDialog";
 import { MarketplaceSubscriptionDialog } from "@/components/MarketplaceSubscriptionDialog";
 import { MarketplaceBinSection } from "@/components/MarketplaceBinSection";
-import { ShoppingCart, Search, Plus, Store, Zap, CreditCard, Camera, Video, Music, Palette, Crown, Globe, LayoutGrid } from "lucide-react";
+import { AdminSelectionProvider, useAdminSelection } from "@/contexts/AdminSelectionContext";
+import { adminBulkDownload } from "@/lib/adminBulkDownload";
+import type { BulkDownloadProgress } from "@/lib/adminBulkDownload";
+import { ShoppingCart, Search, Plus, Store, Zap, CreditCard, Camera, Video, Crown, Globe, LayoutGrid, Download, CheckSquare, X, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { GeoBrowser } from "@/components/GeoBrowser";
 import { getContinentLabel, getCountryLabel } from "@/lib/geoData";
+import { nip19 } from "nostr-tools";
+import type { MarketplaceProduct } from "@/hooks/useMarketplaceProducts";
 
-const Marketplace = () => {
+// Admin-only pubkey — same constant used in ProductCard
+const ADMIN_HEX = nip19.decode('npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642').data as string;
+
+// ─── Inner component so it can access AdminSelectionContext ───────────────────
+function MarketplaceInner() {
   const { user } = useCurrentUser();
   const { data: subscription } = useMarketplaceSubscription(user?.pubkey);
   const { data: binsConfig } = useMarketplaceBins();
@@ -32,6 +40,11 @@ const Marketplace = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [priceRange, setPriceRange] = useState('all');
   const [geoFilter, setGeoFilter] = useState<{ continent?: string; country?: string; city?: string }>({});
+
+  // Bulk-download state (admin only)
+  const isAdmin = user?.pubkey === ADMIN_HEX;
+  const { selectedIds, selectedProducts, selectAll, clearAll } = useAdminSelection();
+  const [bulkProgress, setBulkProgress] = useState<BulkDownloadProgress | null>(null);
 
   // Bins that are visible, sorted by sortOrder
   const visibleBins = (binsConfig?.bins ?? [])
@@ -77,9 +90,71 @@ const Marketplace = () => {
     return true;
   }) || [];
 
+  // Admin-only: own products visible in current filtered view
+  const ownFilteredProducts: MarketplaceProduct[] = isAdmin
+    ? filteredProducts.filter(p => p.seller.pubkey === ADMIN_HEX && p.images.length > 0)
+    : [];
+
+  const handleBulkDownload = async () => {
+    if (selectedIds.size === 0) return;
+    const toDownload = Array.from(selectedProducts.values());
+    try {
+      await adminBulkDownload(toDownload, (p) => setBulkProgress(p));
+    } finally {
+      setBulkProgress(null);
+      clearAll();
+    }
+  };
+
   return (
     <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#f4f4f5' }}>
       <Navigation />
+
+      {/* ── Admin bulk-download sticky toolbar ──────────────────────────────── */}
+      {isAdmin && selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-gray-900 text-white rounded-full px-5 py-3 shadow-2xl border border-amber-500/40">
+          <CheckSquare className="w-5 h-5 text-amber-400 shrink-0" />
+          <span className="text-sm font-medium whitespace-nowrap">
+            {selectedIds.size} photo{selectedIds.size !== 1 ? 's' : ''} selected
+          </span>
+          <Button
+            size="sm"
+            className="rounded-full bg-amber-500 hover:bg-amber-400 text-gray-900 font-semibold ml-1"
+            onClick={handleBulkDownload}
+            disabled={bulkProgress !== null}
+          >
+            {bulkProgress ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                {bulkProgress.done}/{bulkProgress.total}
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4 mr-1.5" />
+                Download ZIP
+              </>
+            )}
+          </Button>
+          {isAdmin && ownFilteredProducts.length > 0 && selectedIds.size < ownFilteredProducts.length && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="rounded-full text-gray-300 hover:text-white hover:bg-white/10 text-xs"
+              onClick={() => selectAll(ownFilteredProducts)}
+            >
+              Select all ({ownFilteredProducts.length})
+            </Button>
+          )}
+          <button
+            onClick={clearAll}
+            className="ml-1 text-gray-400 hover:text-white transition-colors"
+            aria-label="Clear selection"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
@@ -126,6 +201,25 @@ const Marketplace = () => {
                     My Portfolio
                   </Button>
                 </Link>
+
+                {/* Admin: Select-all shortcut in header */}
+                {isAdmin && ownFilteredProducts.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="rounded-full border-amber-500 text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                    onClick={() =>
+                      selectedIds.size === ownFilteredProducts.length
+                        ? clearAll()
+                        : selectAll(ownFilteredProducts)
+                    }
+                  >
+                    <CheckSquare className="w-4 h-4 mr-2" />
+                    {selectedIds.size === ownFilteredProducts.length
+                      ? 'Deselect all'
+                      : `Select all (${ownFilteredProducts.length})`}
+                  </Button>
+                )}
               </div>
             )}
           </div>
@@ -355,7 +449,7 @@ const Marketplace = () => {
                           'https://picsum.photos/1200/800?random=1'
                         ],
                         description: 'High-quality landscape photography collection featuring stunning mountain sunsets. Perfect for commercial and personal use.',
-                        category: 'photos', // Keep for backward compatibility
+                        category: 'photos',
                         mediaType: 'photos',
                         contentCategory: 'Landscape',
                         seller: {
@@ -544,7 +638,6 @@ const Marketplace = () => {
 
           {/* Footer */}
           <div className="text-center text-gray-600 dark:text-gray-400">
-
           </div>
         </div>
       </div>
@@ -552,6 +645,13 @@ const Marketplace = () => {
       <Footer showStockMediaPartners={true} />
     </div>
   );
-};
+}
+
+// ─── Outer wrapper: provides AdminSelectionContext ────────────────────────────
+const Marketplace = () => (
+  <AdminSelectionProvider>
+    <MarketplaceInner />
+  </AdminSelectionProvider>
+);
 
 export default Marketplace;

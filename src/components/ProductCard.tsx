@@ -12,12 +12,13 @@ import { useMarketplaceSubscription } from '@/hooks/useMarketplaceSubscription';
 import { usePriceConversion } from '@/hooks/usePriceConversion';
 import { genUserName } from '@/lib/genUserName';
 import { embedMetadataIntoJpeg } from '@/lib/imageMetadataWriter';
-import { MapPin, User, ShoppingCart, Zap, CreditCard, Download, Eye, Camera, Video, Music, Palette, Images, Crown, Loader2 } from 'lucide-react';
+import { useAdminSelection } from '@/contexts/AdminSelectionContext';
+import { MapPin, User, ShoppingCart, Zap, CreditCard, Download, Eye, Camera, Video, Music, Palette, Images, Crown, Loader2, CheckSquare, Square } from 'lucide-react';
 import type { MarketplaceProduct } from '@/hooks/useMarketplaceProducts';
 import { Link } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
 
-// Admin-only pubkey — only this user sees the download button
+// Admin-only pubkey — only this user sees the download / selection UI
 const ADMIN_HEX = nip19.decode('npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642').data as string;
 
 interface ProductCardProps {
@@ -31,8 +32,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const { data: subscription } = useMarketplaceSubscription(user?.pubkey);
   const author = useAuthor(product.seller.pubkey);
   const metadata = author.data?.metadata;
-
-
+  const { selectedIds, toggle } = useAdminSelection();
 
   const displayName = metadata?.name || genUserName(product.seller.pubkey);
   const profileImage = metadata?.picture;
@@ -40,8 +40,11 @@ export function ProductCard({ product }: ProductCardProps) {
   // Don't show buy button for own products
   const isOwnProduct = user && user.pubkey === product.seller.pubkey;
 
-  // Admin-only: only the Traveltelly admin pubkey sees the download button
+  // Admin-only: only the Traveltelly admin pubkey sees the download / selection UI
   const isAdmin = user?.pubkey === ADMIN_HEX;
+
+  // Is this card currently selected for bulk download?
+  const isSelected = selectedIds.has(product.id);
 
   // Extract tags (keywords) from the Nostr event
   const productTags = product.event.tags
@@ -49,7 +52,7 @@ export function ProductCard({ product }: ProductCardProps) {
     .map(([, val]) => val)
     .filter(Boolean);
 
-  // Admin download: fetch image, embed metadata, and save
+  // Admin single-item download: fetch image, embed metadata, and save
   const handleAdminDownload = async () => {
     if (!product.images[0]) return;
     setIsDownloading(true);
@@ -125,96 +128,130 @@ export function ProductCard({ product }: ProductCardProps) {
     }
   };
 
+  // Admin selection toggle — stop propagation so link doesn't fire
+  const handleCheckboxClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggle(product);
+  };
+
   return (
     <>
-      <Card className="group hover:shadow-lg transition-shadow duration-200 overflow-hidden">
+      <Card
+        className={`group hover:shadow-lg transition-shadow duration-200 overflow-hidden ${
+          isAdmin && isOwnProduct && isSelected
+            ? 'ring-2 ring-amber-500 ring-offset-2'
+            : ''
+        }`}
+      >
         <CardHeader className="p-0">
           {/* Product Image - Clickable */}
-          <Link to={`/media/preview/${generateProductNaddr()}`} className="block">
-            <div className="relative w-full pb-[100%] bg-gray-100 dark:bg-gray-800 overflow-hidden cursor-pointer">
-              {product.images.length > 0 ? (
-                <>
-                  <img
-                    src={product.images[0]}
-                    alt={product.title}
-                    loading="eager"
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                  />
+          <div className="relative">
+            <Link to={`/media/preview/${generateProductNaddr()}`} className="block">
+              <div className="relative w-full pb-[100%] bg-gray-100 dark:bg-gray-800 overflow-hidden cursor-pointer">
+                {product.images.length > 0 ? (
+                  <>
+                    <img
+                      src={product.images[0]}
+                      alt={product.title}
+                      loading="eager"
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                    />
 
-                  {/* Preview Overlay */}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200 flex items-center justify-center">
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white/90 dark:bg-gray-800/90 rounded-full p-3">
-                      <Eye className="w-6 h-6 text-gray-800 dark:text-gray-200" />
+                    {/* Preview Overlay */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200 flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white/90 dark:bg-gray-800/90 rounded-full p-3">
+                        <Eye className="w-6 h-6 text-gray-800 dark:text-gray-200" />
+                      </div>
+                    </div>
+
+                    {/* Very small TravelTelly watermark on thumbnail */}
+                    <div className="absolute bottom-2 right-2 text-white/15 text-xs font-light select-none">
+                      TravelTelly
+                    </div>
+                  </>
+                ) : null}
+
+                {/* No images fallback */}
+                {product.images.length === 0 && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center">
+                      <ShoppingCart className="w-16 h-16 mx-auto mb-2 text-gray-400" />
+                      <p className="text-xs text-gray-500">No preview available</p>
                     </div>
                   </div>
+                )}
 
-                  {/* Very small TravelTelly watermark on thumbnail */}
-                  <div className="absolute bottom-2 right-2 text-white/15 text-xs font-light select-none">
-                    TravelTelly
-                  </div>
-                </>
-              ) : null}
+                {/* Free Badge */}
+                {isFree && (
+                  <Badge
+                    className="absolute top-2 right-2 bg-green-600 hover:bg-green-700 text-white font-bold"
+                  >
+                    🎁 FREE
+                  </Badge>
+                )}
+                
+                {/* Status Badge */}
+                {!isFree && product.status !== 'active' && (
+                  <Badge
+                    variant={product.status === 'sold' ? 'destructive' : 'secondary'}
+                    className="absolute top-2 right-2"
+                  >
+                    {product.status}
+                  </Badge>
+                )}
 
-              {/* No images fallback */}
-              {product.images.length === 0 && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <ShoppingCart className="w-16 h-16 mx-auto mb-2 text-gray-400" />
-                    <p className="text-xs text-gray-500">No preview available</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Free Badge */}
-              {isFree && (
+                {/* Media Type Badge */}
                 <Badge
-                  className="absolute top-2 right-2 bg-green-600 hover:bg-green-700 text-white font-bold"
+                  variant="secondary"
+                  className="absolute top-2 left-2 capitalize flex items-center gap-1"
                 >
-                  🎁 FREE
+                  {getCategoryIcon(product.mediaType || product.category)}
+                  {product.mediaType || product.category}
                 </Badge>
-              )}
-              
-              {/* Status Badge */}
-              {!isFree && product.status !== 'active' && (
-                <Badge
-                  variant={product.status === 'sold' ? 'destructive' : 'secondary'}
-                  className="absolute top-2 right-2"
-                >
-                  {product.status}
-                </Badge>
-              )}
 
-              {/* Media Type Badge */}
-              <Badge
-                variant="secondary"
-                className="absolute top-2 left-2 capitalize flex items-center gap-1"
+                {/* Content Category Badge */}
+                {product.contentCategory && (
+                  <Badge
+                    variant="outline"
+                    className="absolute top-12 left-2 text-xs bg-white/90 dark:bg-gray-800/90"
+                  >
+                    🏷️ {product.contentCategory}
+                  </Badge>
+                )}
+
+                {/* Multiple Images Badge */}
+                {product.images.length > 1 && (
+                  <Badge
+                    variant="default"
+                    className="absolute bottom-2 right-2 text-xs bg-blue-600 hover:bg-blue-700 flex items-center gap-1"
+                  >
+                    <Images className="w-3 h-3" />
+                    {product.images.length}
+                  </Badge>
+                )}
+              </div>
+            </Link>
+
+            {/* Admin selection checkbox — floats over the top-right corner of the image */}
+            {isAdmin && isOwnProduct && product.images.length > 0 && (
+              <button
+                onClick={handleCheckboxClick}
+                className={`absolute top-2 right-2 z-10 rounded p-0.5 transition-colors ${
+                  isSelected
+                    ? 'text-amber-500 bg-white/95 dark:bg-gray-900/95'
+                    : 'text-gray-400 bg-white/80 dark:bg-gray-900/80 opacity-0 group-hover:opacity-100'
+                }`}
+                title={isSelected ? 'Deselect' : 'Select for bulk download'}
+                aria-label={isSelected ? 'Deselect photo' : 'Select photo for bulk download'}
               >
-                {getCategoryIcon(product.mediaType || product.category)}
-                {product.mediaType || product.category}
-              </Badge>
-
-              {/* Content Category Badge */}
-              {product.contentCategory && (
-                <Badge
-                  variant="outline"
-                  className="absolute top-12 left-2 text-xs bg-white/90 dark:bg-gray-800/90"
-                >
-                  🏷️ {product.contentCategory}
-                </Badge>
-              )}
-
-              {/* Multiple Images Badge */}
-              {product.images.length > 1 && (
-                <Badge
-                  variant="default"
-                  className="absolute bottom-2 right-2 text-xs bg-blue-600 hover:bg-blue-700 flex items-center gap-1"
-                >
-                  <Images className="w-3 h-3" />
-                  {product.images.length}
-                </Badge>
-              )}
-            </div>
-          </Link>
+                {isSelected
+                  ? <CheckSquare className="w-5 h-5" />
+                  : <Square className="w-5 h-5" />
+                }
+              </button>
+            )}
+          </div>
         </CardHeader>
 
         <CardContent className="p-4">
@@ -290,7 +327,7 @@ export function ProductCard({ product }: ProductCardProps) {
               <Button variant="outline" className="w-full" disabled>
                 Your Media
               </Button>
-              {/* Admin-only: Download with embedded metadata */}
+              {/* Admin-only: single-item download with embedded metadata */}
               {isAdmin && product.images.length > 0 && (
                 <Button
                   variant="outline"
