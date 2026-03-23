@@ -11,10 +11,14 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useMarketplaceSubscription } from '@/hooks/useMarketplaceSubscription';
 import { usePriceConversion } from '@/hooks/usePriceConversion';
 import { genUserName } from '@/lib/genUserName';
-import { MapPin, User, ShoppingCart, Zap, CreditCard, Download, Eye, Camera, Video, Music, Palette, Images, Crown } from 'lucide-react';
+import { embedMetadataIntoJpeg } from '@/lib/imageMetadataWriter';
+import { MapPin, User, ShoppingCart, Zap, CreditCard, Download, Eye, Camera, Video, Music, Palette, Images, Crown, Loader2 } from 'lucide-react';
 import type { MarketplaceProduct } from '@/hooks/useMarketplaceProducts';
 import { Link } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
+
+// Admin-only pubkey — only this user sees the download button
+const ADMIN_HEX = nip19.decode('npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642').data as string;
 
 interface ProductCardProps {
   product: MarketplaceProduct;
@@ -22,6 +26,7 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const { user } = useCurrentUser();
   const { data: subscription } = useMarketplaceSubscription(user?.pubkey);
   const author = useAuthor(product.seller.pubkey);
@@ -34,6 +39,54 @@ export function ProductCard({ product }: ProductCardProps) {
 
   // Don't show buy button for own products
   const isOwnProduct = user && user.pubkey === product.seller.pubkey;
+
+  // Admin-only: only the Traveltelly admin pubkey sees the download button
+  const isAdmin = user?.pubkey === ADMIN_HEX;
+
+  // Extract tags (keywords) from the Nostr event
+  const productTags = product.event.tags
+    .filter(([name]) => name === 't')
+    .map(([, val]) => val)
+    .filter(Boolean);
+
+  // Admin download: fetch image, embed metadata, and save
+  const handleAdminDownload = async () => {
+    if (!product.images[0]) return;
+    setIsDownloading(true);
+    try {
+      const response = await fetch(product.images[0]);
+      if (!response.ok) throw new Error('Failed to fetch image');
+      const blob = await response.blob();
+      const file = new File([blob], 'photo.jpg', { type: blob.type || 'image/jpeg' });
+
+      const enrichedBlob = await embedMetadataIntoJpeg(file, {
+        title: product.title,
+        description: product.description,
+        keywords: productTags,
+      });
+
+      // Build a safe filename from the title
+      const safeName = product.title
+        .replace(/[^a-z0-9]/gi, '_')
+        .replace(/_+/g, '_')
+        .toLowerCase()
+        .slice(0, 60);
+
+      const url = URL.createObjectURL(enrichedBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${safeName}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('[Admin Download] Error:', err);
+      alert('Download failed. Check the console for details.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
   
   // Check if this is a free item
   const isFree = product.event.tags.some(tag => tag[0] === 'free' && tag[1] === 'true');
@@ -231,11 +284,34 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
         </CardContent>
 
-        <CardFooter className="p-4 pt-0">
+        <CardFooter className="p-4 pt-0 flex flex-col gap-2">
           {isOwnProduct ? (
-            <Button variant="outline" className="w-full" disabled>
-              Your Media
-            </Button>
+            <>
+              <Button variant="outline" className="w-full" disabled>
+                Your Media
+              </Button>
+              {/* Admin-only: Download with embedded metadata */}
+              {isAdmin && product.images.length > 0 && (
+                <Button
+                  variant="outline"
+                  className="w-full border-amber-500 text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                  onClick={handleAdminDownload}
+                  disabled={isDownloading}
+                >
+                  {isDownloading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Embedding metadata…
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4 mr-2" />
+                      Download + Metadata
+                    </>
+                  )}
+                </Button>
+              )}
+            </>
           ) : product.status === 'sold' ? (
             <Button variant="outline" className="w-full" disabled>
               Sold Out
