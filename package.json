@@ -7,9 +7,16 @@
     "dev": "npm i && vite",
     "build": "vite build",
     "test": "tsc -p tsconfig.app.json --noEmit && eslint && vitest run && vite build",
-    "deploy": "npm run build && npx -y nostr-deploy-cli deploy --skip-setup"
+    "deploy": "npm run build && npx -y nostr-deploy-cli deploy --skip-setup",
+    "keygen": "keytool -genkey -v -keystore android/app/my-upload-key.keystore -keyalg RSA -keysize 2048 -validity 10000 -alias upload",
+    "release": "git tag \"v$(date +%Y.%m.%d)-$(git rev-parse --short HEAD)\" && git push origin --tags"
   },
   "dependencies": {
+    "@capacitor/android": "^8.2.0",
+    "@capacitor/app": "^8.0.1",
+    "@capacitor/cli": "^8.2.0",
+    "@capacitor/core": "^8.2.0",
+    "@capacitor/status-bar": "^8.0.1",
     "@fontsource-variable/inter": "^5.2.6",
     "@hookform/resolvers": "^5.1.1",
     "@nostrify/nostrify": "^0.50.3",

@@ -1,2 +1,47 @@
 repository: https://github.com/bitpopart/traveltelly
 pubkey: npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642
+
+name: TravelTelly
+
+summary: Travel the world. Share your story. Own your data.
+
+description: |
+  TravelTelly is an open-source decentralized travel platform built on the Nostr protocol.
+  Your travels. Your photos. Your rules.
+
+  Features:
+  - GPS-tagged travel reviews with star ratings and photos
+  - Long-form travel stories with rich media support
+  - Trip reports with GPS route visualization and distance tracking
+  - Stock media marketplace — sell travel photos with Lightning payments
+  - Interactive world map with community pins
+  - Fully decentralized — your data lives on Nostr relays
+  - Lightning payments — zap posts and profiles via NIP-57
+
+tags:
+  - travel
+  - nostr
+  - social
+  - photography
+  - maps
+  - lightning
+  - decentralized
+
+license: MIT
+
+website: https://traveltelly.com
+
+icon: ./public/traveltelly-logo.png
+
+images:
+  - https://npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642.blossom.band/456920f3e3df8b6ce08d4747c70f099cd30bdd3642271acd526556bb506038ed.jpg
+
+metadata_sources:
+  - github
+
+supported_nips:
+  - "01"  # Basic protocol — events, filters, subscriptions
+  - "07"  # Browser extension signing (window.nostr)
+  - "23"  # Long-form content / articles (kind 30023)
+  - "57"  # Lightning zaps (kind 9734/9735)
+  - "99"  # Classified listings (kind 30402)

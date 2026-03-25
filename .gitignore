@@ -28,3 +28,11 @@ dist-ssr
 .env
 .env.*
 !.env.example
+
+# Android signing
+android/app/my-upload-key.keystore
+android/key.properties
+android/local.properties
+android/build/
+android/.gradle/
+android/*/build/
