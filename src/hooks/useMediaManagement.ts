@@ -121,40 +121,25 @@ export function useAllMediaAssets(filters: MediaManagementFilters = {}) {
   return useQuery({
     queryKey: ['admin-media-assets', filters, authorizedUploaders],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(10000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(20000)]);
 
       try {
-        // Query specifically for authorized uploaders' media
         const authorizedAuthors = Array.from(authorizedUploaders || []);
-        console.log('🔍 Querying media from authorized authors:', authorizedAuthors);
 
-        // Fetch in pages of 500 until we have all events
-        let allEvents: Awaited<ReturnType<typeof nostr.query>> = [];
-        let until: number | undefined = undefined;
-        const PAGE = 500;
+        // Single large-limit query — the NPool fans out to all configured relays
+        // and merges their results. Timestamp-cursor pagination is unreliable with
+        // a multi-relay pool because each relay returns different page boundaries,
+        // causing the cursor to skip events on some relays. Instead, ask for a high
+        // limit in one shot and deduplicate client-side.
+        const allEvents = await nostr.query([{
+          kinds: [30402],
+          authors: authorizedAuthors,
+          limit: 5000,
+        }], { signal });
 
-        for (let page = 0; page < 20; page++) {
-          const filter: { kinds: number[]; authors: string[]; limit: number; until?: number } = {
-            kinds: [30402],
-            authors: authorizedAuthors,
-            limit: PAGE,
-          };
-          if (until !== undefined) filter.until = until;
-
-          const batch = await nostr.query([filter], { signal });
-          if (batch.length === 0) break;
-
-          allEvents = allEvents.concat(batch);
-
-          // Addressable events (30000–39999) are deduplicated by d-tag on relays,
-          // so if we got a full page there could be more — paginate by oldest timestamp.
-          if (batch.length < PAGE) break;
-          const oldest = Math.min(...batch.map((e) => e.created_at));
-          if (oldest === until) break; // no progress
-          until = oldest - 1;
-        }
-
-        // Deduplicate addressable events by pubkey+d-tag, keeping only the newest version
+        // Deduplicate addressable events by pubkey+d-tag, keeping only the newest version.
+        // Each relay may return multiple versions of the same addressable event (old edits),
+        // so we keep only the one with the highest created_at.
         const addrSeen = new Map<string, NostrEvent>();
         for (const e of allEvents) {
           const dTag = e.tags.find(([n]) => n === 'd')?.[1] ?? '';
@@ -260,10 +245,9 @@ export function useAllMediaAssets(filters: MediaManagementFilters = {}) {
         return [];
       }
     },
-    enabled: true, // Always run; authorizedUploaders has initialData so it is never empty
-    staleTime: 10 * 1000, // 10 seconds - shorter for better real-time updates
-    gcTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 15 * 1000, // Auto-refetch every 15 seconds
+    enabled: true,
+    staleTime: 2 * 60 * 1000, // 2 minutes — stable count between manual refreshes
+    gcTime: 10 * 60 * 1000,
   });
 }
 

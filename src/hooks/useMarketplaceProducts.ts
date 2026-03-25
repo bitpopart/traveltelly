@@ -199,7 +199,7 @@ export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = 
   return useQuery({
     queryKey: ['marketplace-products', JSON.stringify(options), Array.from(authorizedUploaders || [])],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(10000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(20000)]);
       
       const authorizedAuthors = Array.from(authorizedUploaders || []);
 
@@ -207,29 +207,19 @@ export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = 
         return [];
       }
 
-      // Paginate to fetch all events (relays cap responses per request)
+      // Single large-limit query — the NPool fans out to all configured relays and
+      // merges their results. Timestamp-cursor pagination is unreliable with a
+      // multi-relay pool because each relay returns different page boundaries,
+      // causing the cursor to skip events on some relays.
       const authors = options.seller ? [options.seller] : authorizedAuthors;
-      let allEvents: Awaited<ReturnType<typeof nostr.query>> = [];
-      let until: number | undefined = undefined;
-      const PAGE = 500;
+      const filter: NostrFilter = {
+        kinds: [30402],
+        authors,
+        limit: 5000,
+      };
+      if (options.category) filter['#t'] = [options.category];
 
-      for (let page = 0; page < 20; page++) {
-        const filter: NostrFilter & { until?: number } = {
-          kinds: [30402],
-          authors,
-          limit: PAGE,
-        };
-        if (options.category) filter['#t'] = [options.category];
-        if (until !== undefined) filter.until = until;
-
-        const batch = await nostr.query([filter], { signal });
-        if (batch.length === 0) break;
-        allEvents = allEvents.concat(batch);
-        if (batch.length < PAGE) break;
-        const oldest = Math.min(...batch.map((e) => e.created_at));
-        if (oldest === until) break;
-        until = oldest - 1;
-      }
+      const allEvents = await nostr.query([filter], { signal });
 
       // Deduplicate addressable events by pubkey+d-tag, keeping newest version
       const addrSeen = new Map<string, typeof allEvents[0]>();
