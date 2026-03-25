@@ -21,8 +21,9 @@ export interface MarketplaceBin {
   id: string;            // unique id (UUID or slug)
   title: string;         // e.g. "Wildlife & Animals"
   description: string;  // short subtitle shown on the card
-  emoji: string;         // e.g. "🐘"
-  coverImage?: string;  // optional cover photo URL
+  emoji: string;         // e.g. "🐘" (kept for backward compat, no longer used in UI)
+  coverImage?: string;  // optional cover photo URL (legacy)
+  thumbnailImage?: string; // image URL picked from collection media items
   /** Filter mode: category = content category tag, tag = t-tag, geo = continent/country, featured = hand-picked ids */
   filterType: 'category' | 'tag' | 'geo' | 'featured';
   /** Value that drives the filter:

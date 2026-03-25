@@ -187,16 +187,18 @@ export function MarketplaceBinSection({ bin }: MarketplaceBinSectionProps) {
       {/* Section header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          {bin.coverImage ? (
-            <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0">
-              <img src={bin.coverImage} alt={bin.title} className="w-full h-full object-cover" />
+          {(bin.thumbnailImage || bin.coverImage) ? (
+            <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 shadow-sm">
+              <img
+                src={bin.thumbnailImage || bin.coverImage}
+                alt={bin.title}
+                className="w-full h-full object-cover"
+              />
             </div>
-          ) : (
-            <span className="text-3xl">{bin.emoji}</span>
-          )}
+          ) : null}
           <div>
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-              {bin.emoji} {bin.title}
+              {bin.title}
             </h2>
             {bin.description && (
               <p className="text-sm text-muted-foreground">{bin.description}</p>

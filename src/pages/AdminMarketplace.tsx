@@ -21,10 +21,15 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useReviewPermissions } from '@/hooks/useReviewPermissions';
 import { useMarketplaceBins, useSaveMarketplaceBins, type MarketplaceBin } from '@/hooks/useMarketplaceBins';
+import { useNostr } from '@nostrify/react';
+import { useQuery } from '@tanstack/react-query';
+import { useAuthorizedMediaUploaders } from '@/hooks/useStockMediaPermissions';
 import { nip19 } from 'nostr-tools';
+import type { NostrFilter } from '@nostrify/nostrify';
 import {
   ArrowLeft,
   Plus,
@@ -46,6 +51,7 @@ import {
   Star,
   LayoutGrid,
   ExternalLink,
+  CheckCircle2,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -96,6 +102,7 @@ interface BinFormData {
   description: string;
   emoji: string;
   coverImage: string;
+  thumbnailImage: string;
   filterType: MarketplaceBin['filterType'];
   filterValue: string;
   isVisible: boolean;
@@ -106,6 +113,7 @@ const emptyForm = (): BinFormData => ({
   description: '',
   emoji: '📸',
   coverImage: '',
+  thumbnailImage: '',
   filterType: 'category',
   filterValue: '',
   isVisible: true,
@@ -234,19 +242,19 @@ function BinCard({
             </button>
           </div>
 
-          {/* Cover image or emoji */}
+          {/* Thumbnail image or fallback icon */}
           <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center text-3xl">
-            {bin.coverImage ? (
-              <img src={bin.coverImage} alt={bin.title} className="w-full h-full object-cover" />
+            {(bin.thumbnailImage || bin.coverImage) ? (
+              <img src={bin.thumbnailImage || bin.coverImage} alt={bin.title} className="w-full h-full object-cover" />
             ) : (
-              <span>{bin.emoji}</span>
+              <ImageIcon className="w-7 h-7 text-gray-300" />
             )}
           </div>
 
           {/* Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-semibold text-gray-900">{bin.emoji} {bin.title}</h3>
+              <h3 className="font-semibold text-gray-900">{bin.title}</h3>
               <Badge variant="outline" className="text-xs gap-1 flex items-center">
                 {filterTypeIcon(bin.filterType)}
                 {filterTypeLabel(bin.filterType)}: <span className="font-medium ml-0.5">{bin.filterValue || '—'}</span>
@@ -308,6 +316,68 @@ function BinCard({
   );
 }
 
+// ── useBinMediaImages ─────────────────────────────────────────────────────────
+// Fetches the first batch of images from the bin's matching media for thumbnail picking
+
+function useBinMediaImages(filterType: MarketplaceBin['filterType'], filterValue: string) {
+  const { nostr } = useNostr();
+  const { data: authorizedUploaders = [] } = useAuthorizedMediaUploaders();
+  const uploaders = Array.from(authorizedUploaders);
+
+  return useQuery({
+    queryKey: ['bin-thumbnail-candidates', filterType, filterValue, uploaders],
+    queryFn: async (c) => {
+      if (!uploaders.length || !filterValue.trim()) return [];
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(8000)]);
+      const filter: NostrFilter = {
+        kinds: [30402],
+        authors: uploaders,
+        limit: 40,
+      };
+      if (filterType === 'tag') filter['#t'] = [filterValue.trim()];
+
+      const events = await nostr.query([filter], { signal });
+
+      // Collect all images from events matching the bin filter
+      const images: string[] = [];
+      for (const event of events) {
+        // Client-side filter for category / geo / featured
+        if (filterType === 'category') {
+          const cats = event.tags.filter(([n]) => n === 'category').map(([, v]) => v);
+          const ts = event.tags.filter(([n]) => n === 't').map(([, v]) => v);
+          if (!cats.includes(filterValue) && !ts.includes(filterValue)) continue;
+        }
+        if (filterType === 'geo') {
+          const continent = event.tags.find(([n]) => n === 'continent')?.[1];
+          const country = event.tags.find(([n]) => n === 'country')?.[1];
+          const geoFolder = event.tags.find(([n]) => n === 'geo_folder')?.[1];
+          if (continent !== filterValue && country !== filterValue && !geoFolder?.startsWith(filterValue)) continue;
+        }
+        if (filterType === 'featured') {
+          const ids = filterValue.split(',').map((s) => s.trim());
+          const d = event.tags.find(([n]) => n === 'd')?.[1];
+          if (!d || !ids.includes(d)) continue;
+        }
+
+        // Extract images from this event
+        const imageTagNames = ['image', 'img', 'photo', 'picture', 'url'];
+        const tagImgs = event.tags.filter(([n]) => imageTagNames.includes(n)).map(([, u]) => u).filter(Boolean);
+        const imetaImgs = event.tags
+          .filter(([n]) => n === 'imeta')
+          .map(([, v]) => { const m = v?.match(/url\s+(.+)/); return m ? m[1] : null; })
+          .filter(Boolean) as string[];
+        images.push(...tagImgs, ...imetaImgs);
+
+        if (images.length >= 20) break;
+      }
+
+      return [...new Set(images)].slice(0, 20);
+    },
+    staleTime: 60_000,
+    enabled: uploaders.length > 0 && filterValue.trim().length > 0,
+  });
+}
+
 // ── BinEditDialog ─────────────────────────────────────────────────────────────
 
 function BinEditDialog({
@@ -329,43 +399,30 @@ function BinEditDialog({
 
   const set = (patch: Partial<BinFormData>) => setForm((f) => ({ ...f, ...patch }));
 
+  // Load candidate thumbnail images based on current filter settings
+  const { data: candidateImages = [], isLoading: isLoadingImages } = useBinMediaImages(
+    form.filterType,
+    form.filterValue,
+  );
+
+  // When candidate images load and no thumbnail is set yet, auto-select the first one
+  useEffect(() => {
+    if (candidateImages.length > 0 && !form.thumbnailImage) {
+      set({ thumbnailImage: candidateImages[0] });
+    }
+  }, [candidateImages, form.thumbnailImage]);
+
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FolderOpen className="w-5 h-5" style={{ color: '#ec1a58' }} />
-            {initialData.title ? 'Edit Bin' : 'New Bin'}
+            {initialData.title ? 'Edit Collection' : 'New Collection'}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          {/* Emoji picker (quick row) */}
-          <div>
-            <Label className="mb-2 block">Emoji</Label>
-            <div className="flex flex-wrap gap-2">
-              {EMOJIS.map((e) => (
-                <button
-                  key={e}
-                  type="button"
-                  onClick={() => set({ emoji: e })}
-                  className={`text-xl p-1.5 rounded-lg border-2 transition-all ${
-                    form.emoji === e ? 'border-pink-500 bg-pink-50' : 'border-transparent hover:border-gray-300'
-                  }`}
-                >
-                  {e}
-                </button>
-              ))}
-              <Input
-                className="w-16 text-center text-lg"
-                value={form.emoji}
-                onChange={(e) => set({ emoji: e.target.value })}
-                placeholder="✏️"
-                maxLength={4}
-              />
-            </div>
-          </div>
-
           {/* Title */}
           <div>
             <Label htmlFor="bin-title">Title <span className="text-red-500">*</span></Label>
@@ -391,23 +448,6 @@ function BinEditDialog({
             />
           </div>
 
-          {/* Cover image URL */}
-          <div>
-            <Label htmlFor="bin-cover">Cover image URL (optional)</Label>
-            <Input
-              id="bin-cover"
-              placeholder="https://…"
-              value={form.coverImage}
-              onChange={(e) => set({ coverImage: e.target.value })}
-              className="mt-1"
-            />
-            {form.coverImage && (
-              <div className="mt-2 w-full h-28 rounded-lg overflow-hidden border">
-                <img src={form.coverImage} alt="cover preview" className="w-full h-full object-cover" />
-              </div>
-            )}
-          </div>
-
           {/* Filter type */}
           <div>
             <Label>Filter type <span className="text-red-500">*</span></Label>
@@ -419,7 +459,7 @@ function BinEditDialog({
                 <button
                   key={ft}
                   type="button"
-                  onClick={() => set({ filterType: ft, filterValue: '' })}
+                  onClick={() => set({ filterType: ft, filterValue: '', thumbnailImage: '' })}
                   className={`flex items-center gap-2 p-2.5 rounded-lg border-2 text-sm font-medium transition-all ${
                     form.filterType === ft
                       ? 'border-pink-500 bg-pink-50 text-pink-700'
@@ -446,7 +486,7 @@ function BinEditDialog({
               <FilterValueInput
                 filterType={form.filterType}
                 value={form.filterValue}
-                onChange={(v) => set({ filterValue: v })}
+                onChange={(v) => set({ filterValue: v, thumbnailImage: '' })}
               />
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -455,6 +495,78 @@ function BinEditDialog({
               {form.filterType === 'geo' && 'Products from this geographic region will appear in the bin.'}
               {form.filterType === 'featured' && 'Enter the d-tag IDs of specific products to feature, comma-separated.'}
             </p>
+          </div>
+
+          {/* Thumbnail image picker */}
+          <div>
+            <Label className="mb-1 block">Collection Thumbnail</Label>
+            <p className="text-xs text-muted-foreground mb-2">
+              Pick one of the media items from this collection as the thumbnail. The first image is selected by default.
+            </p>
+
+            {/* Current thumbnail preview */}
+            {form.thumbnailImage && (
+              <div className="mb-3 flex items-center gap-3">
+                <div className="w-20 h-20 rounded-lg overflow-hidden border-2 border-pink-500 flex-shrink-0">
+                  <img src={form.thumbnailImage} alt="Selected thumbnail" className="w-full h-full object-cover" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-green-700 flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Selected as thumbnail
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => set({ thumbnailImage: '' })}
+                    className="text-xs text-muted-foreground hover:text-red-500 mt-0.5"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Image grid picker */}
+            {!form.filterValue.trim() ? (
+              <p className="text-xs text-muted-foreground italic">
+                Set the filter type and value above to load media images for selection.
+              </p>
+            ) : isLoadingImages ? (
+              <div className="grid grid-cols-4 gap-2">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                  <Skeleton key={i} className="aspect-square rounded-lg" />
+                ))}
+              </div>
+            ) : candidateImages.length === 0 ? (
+              <div className="border-2 border-dashed rounded-lg py-6 text-center">
+                <ImageIcon className="w-6 h-6 mx-auto mb-1 text-gray-300" />
+                <p className="text-xs text-muted-foreground">No media found for this filter yet.</p>
+              </div>
+            ) : (
+              <ScrollArea className="h-48">
+                <div className="grid grid-cols-4 gap-2 pr-2">
+                  {candidateImages.map((url) => (
+                    <button
+                      key={url}
+                      type="button"
+                      onClick={() => set({ thumbnailImage: url })}
+                      className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+                        form.thumbnailImage === url
+                          ? 'border-pink-500 ring-2 ring-pink-200'
+                          : 'border-transparent hover:border-gray-300'
+                      }`}
+                    >
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                      {form.thumbnailImage === url && (
+                        <div className="absolute inset-0 bg-pink-500/20 flex items-center justify-center">
+                          <CheckCircle2 className="w-5 h-5 text-white drop-shadow" />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
           </div>
 
           {/* Visibility */}
@@ -526,8 +638,9 @@ export default function AdminMarketplace() {
     setFormData({
       title: bin.title,
       description: bin.description,
-      emoji: bin.emoji,
+      emoji: bin.emoji || '📸',
       coverImage: bin.coverImage || '',
+      thumbnailImage: bin.thumbnailImage || bin.coverImage || '',
       filterType: bin.filterType,
       filterValue: bin.filterValue,
       isVisible: bin.isVisible,
