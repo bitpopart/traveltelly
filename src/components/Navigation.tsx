@@ -311,8 +311,8 @@ export function Navigation({ className }: NavigationProps) {
         )}
       </div>
     </nav>
-    {/* Spacer to push page content below the fixed navigation bar */}
-    <div className="h-16" />
+    {/* Spacer — pushes content just below the fixed nav bar */}
+    <div className="h-16 -mb-4" />
     </>
   );
 }
