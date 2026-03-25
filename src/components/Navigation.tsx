@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { LoginArea } from '@/components/auth/LoginArea';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useReviewPermissions } from '@/hooks/useReviewPermissions';
+import { UnifiedSearchBar } from '@/components/UnifiedSearchBar';
 import {
   Home,
   BookOpen,
@@ -242,6 +243,11 @@ export function Navigation({ className }: NavigationProps) {
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-gray-200 dark:border-gray-800 py-4 space-y-2">
+            {/* Search Bar */}
+            <div className="px-1 pb-2">
+              <UnifiedSearchBar placeholder="Search reviews, stories, trips..." />
+            </div>
+
             {navItems.map((item) => (
               <NavButton
                 key={item.path}

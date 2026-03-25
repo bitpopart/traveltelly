@@ -943,8 +943,8 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
             </div>
           )}
 
-          {/* Search Bar - Mobile Only (after Popular Destinations) - Only in Map Mode */}
-          {viewMode === 'map' && (
+          {/* Search Bar - Mobile Only (after content grid) - Both View Modes */}
+          {!selectedLocationTag && (
             <div className="md:hidden mb-8">
               <Card className="shadow-lg">
                 <CardContent className="p-4">
