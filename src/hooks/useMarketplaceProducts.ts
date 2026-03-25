@@ -202,29 +202,46 @@ export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = 
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(10000)]);
       
       const authorizedAuthors = Array.from(authorizedUploaders || []);
-      
+
       if (authorizedAuthors.length === 0) {
         return [];
       }
 
-      // Build filter for classified listings
-      const filter: NostrFilter = {
-        kinds: [30402],
-        authors: authorizedAuthors,
-        limit: 20,
-      };
+      // Paginate to fetch all events (relays cap responses per request)
+      const authors = options.seller ? [options.seller] : authorizedAuthors;
+      let allEvents: Awaited<ReturnType<typeof nostr.query>> = [];
+      let until: number | undefined = undefined;
+      const PAGE = 500;
 
-      // Add category filter if specified
-      if (options.category) {
-        filter['#t'] = [options.category];
+      for (let page = 0; page < 20; page++) {
+        const filter: NostrFilter & { until?: number } = {
+          kinds: [30402],
+          authors,
+          limit: PAGE,
+        };
+        if (options.category) filter['#t'] = [options.category];
+        if (until !== undefined) filter.until = until;
+
+        const batch = await nostr.query([filter], { signal });
+        if (batch.length === 0) break;
+        allEvents = allEvents.concat(batch);
+        if (batch.length < PAGE) break;
+        const oldest = Math.min(...batch.map((e) => e.created_at));
+        if (oldest === until) break;
+        until = oldest - 1;
       }
 
-      // Add seller filter if specified
-      if (options.seller) {
-        filter.authors = [options.seller];
+      // Deduplicate addressable events by pubkey+d-tag, keeping newest version
+      const addrSeen = new Map<string, typeof allEvents[0]>();
+      for (const e of allEvents) {
+        const dTag = e.tags.find(([n]) => n === 'd')?.[1] ?? '';
+        const key = `${e.pubkey}:${dTag}`;
+        const existing = addrSeen.get(key);
+        if (!existing || e.created_at > existing.created_at) {
+          addrSeen.set(key, e);
+        }
       }
-
-      const events = await nostr.query([filter], { signal });
+      const events = Array.from(addrSeen.values());
 
       // Filter and parse events
       const products = events

@@ -12,6 +12,8 @@ export interface MediaManagementFilters {
   status?: 'all' | 'active' | 'inactive' | 'flagged';
   seller?: string;
   dateRange?: 'all' | 'today' | 'week' | 'month';
+  continent?: string;
+  country?: string;
 }
 
 function validateMediaEvent(event: NostrEvent): boolean {
@@ -37,71 +39,79 @@ function validateMediaEvent(event: NostrEvent): boolean {
   return true;
 }
 
-function parseMediaEvent(event: NostrEvent): MarketplaceProduct {
-  const d = event.tags.find(([name]) => name === 'd')?.[1] || '';
-  const title = event.tags.find(([name]) => name === 'title')?.[1] || '';
-  const summary = event.tags.find(([name]) => name === 'summary')?.[1];
-  const description = summary || event.content || '';
-  const price = event.tags.find(([name]) => name === 'price');
-  const category = event.tags.find(([name]) => name === 't')?.[1] || 'other';
-  const location = event.tags.find(([name]) => name === 'location')?.[1];
-  const status = event.tags.find(([name]) => name === 'status')?.[1] || 'active';
-  // Get all image tags - check multiple possible tag names
-  const imageTagNames = ['image', 'img', 'photo', 'picture', 'url'];
-  const images = event.tags
-    .filter(([name]) => imageTagNames.includes(name))
-    .map(([, url]) => url)
-    .filter(Boolean);
+function parseMediaEvent(event: NostrEvent): MarketplaceProduct | null {
+  try {
+    const d = event.tags.find(([name]) => name === 'd')?.[1];
+    const title = event.tags.find(([name]) => name === 'title')?.[1];
+    const summary = event.tags.find(([name]) => name === 'summary')?.[1];
+    const price = event.tags.find(([name]) => name === 'price');
+    const location = event.tags.find(([name]) => name === 'location')?.[1];
+    const status = (event.tags.find(([name]) => name === 'status')?.[1] || 'active') as 'active' | 'sold' | 'inactive' | 'deleted';
 
-  // Also check content field for URLs or JSON with images
-  let contentImages: string[] = [];
-  if (event.content) {
-    try {
-      // Try to parse as JSON
-      const contentJson = JSON.parse(event.content);
-      if (contentJson.images && Array.isArray(contentJson.images)) {
-        contentImages = contentJson.images;
-      } else if (contentJson.image) {
-        contentImages = [contentJson.image];
-      }
-    } catch {
-      // Check if content contains URLs
-      const urlRegex = /https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|svg)/gi;
-      const urlMatches = event.content.match(urlRegex);
-      if (urlMatches) {
-        contentImages = urlMatches;
+    if (!d || !title || !price) return null;
+    const [, amount, currency] = price;
+    if (!amount || !currency) return null;
+
+    // ── Images: named tags ────────────────────────────────────────
+    const imageTagNames = ['image', 'img', 'photo', 'picture', 'url'];
+    const tagImages = event.tags
+      .filter(([name]) => imageTagNames.includes(name))
+      .map(([, url]) => url)
+      .filter(Boolean);
+
+    // ── Images: imeta tags (NIP-94 format) ───────────────────────
+    const imetaImages = event.tags
+      .filter(([name]) => name === 'imeta')
+      .map(([, value]) => value?.match(/url\s+(\S+)/)?.[1])
+      .filter((u): u is string => Boolean(u));
+
+    // ── Images: content field fallback ───────────────────────────
+    let contentImages: string[] = [];
+    if (event.content) {
+      try {
+        const json = JSON.parse(event.content);
+        if (Array.isArray(json.images)) contentImages = json.images;
+        else if (json.image) contentImages = [json.image];
+      } catch {
+        const urlRegex = /https?:\/\/\S+\.(?:jpg|jpeg|png|gif|webp|svg|tiff|tif|heic|bmp)/gi;
+        contentImages = event.content.match(urlRegex) ?? [];
       }
     }
+
+    const allImages = [...new Set([...tagImages, ...imetaImages, ...contentImages])].filter(Boolean);
+
+    // ── Category / media type (t tags) ───────────────────────────
+    const mediaTypes = event.tags.filter(([n]) => n === 't').map(([, v]) => v).filter(Boolean);
+    // ── Content categories (category tags) ──────────────────────
+    const contentCategories = event.tags.filter(([n]) => n === 'category').map(([, v]) => v).filter(Boolean);
+
+    // ── Geography ────────────────────────────────────────────────
+    const continent = event.tags.find(([n]) => n === 'continent')?.[1];
+    const country = event.tags.find(([n]) => n === 'country')?.[1];
+    const geoFolder = event.tags.find(([n]) => n === 'geo_folder')?.[1];
+
+    return {
+      id: d,
+      title,
+      description: summary || event.content || '',
+      price: amount,
+      currency: currency.toUpperCase(),
+      images: allImages,
+      category: mediaTypes[0] || 'other',
+      mediaType: mediaTypes[0] || 'other',
+      contentCategory: contentCategories[0] || '',
+      location,
+      continent,
+      country,
+      geoFolder,
+      seller: { pubkey: event.pubkey },
+      status,
+      createdAt: event.created_at,
+      event,
+    };
+  } catch {
+    return null;
   }
-
-  // Combine tag images and content images
-  const allImages = [...images, ...contentImages].filter(Boolean);
-
-  // Debug: Log all tags and content to see what's available
-  console.log('🏷️ All tags for event:', event.tags);
-  console.log('📄 Event content:', event.content);
-  console.log('🖼️ Found tag images:', images);
-  console.log('🖼️ Found content images:', contentImages);
-  console.log('🖼️ All combined images:', allImages);
-
-  const [, amount, currency] = price || ['', '0', 'USD'];
-
-  return {
-    id: d,
-    title,
-    description,
-    price: amount,
-    currency,
-    images: allImages,
-    category,
-    location,
-    seller: {
-      pubkey: event.pubkey,
-    },
-    status: status as 'active' | 'sold' | 'inactive' | 'deleted',
-    createdAt: event.created_at,
-    event,
-  };
 }
 
 export function useAllMediaAssets(filters: MediaManagementFilters = {}) {
@@ -144,62 +154,34 @@ export function useAllMediaAssets(filters: MediaManagementFilters = {}) {
           until = oldest - 1;
         }
 
-        // Deduplicate by event id
-        const seen = new Set<string>();
-        const events = allEvents.filter((e) => {
-          if (seen.has(e.id)) return false;
-          seen.add(e.id);
-          return true;
-        });
-
-        // Debug: Log events to see what we're getting
-        console.log('🔍 Media Management Debug - Total events found:', events.length);
-        console.log('🔍 Current relay:', typeof nostr.relay);
-        if (events.length > 0) {
-          console.log('🔍 Sample event:', events[0]);
-          console.log('🔍 Sample event tags:', events[0].tags);
-          const imageTagsInSample = events[0].tags.filter(([name]) => name === 'image');
-          console.log('🔍 Image tags in sample:', imageTagsInSample);
+        // Deduplicate addressable events by pubkey+d-tag, keeping only the newest version
+        const addrSeen = new Map<string, NostrEvent>();
+        for (const e of allEvents) {
+          const dTag = e.tags.find(([n]) => n === 'd')?.[1] ?? '';
+          const key = `${e.pubkey}:${dTag}`;
+          const existing = addrSeen.get(key);
+          if (!existing || e.created_at > existing.created_at) {
+            addrSeen.set(key, e);
+          }
         }
-
-        // Debug: Log events to see what we're getting
-        console.log('🔍 Media Management Debug - Total events found:', events.length);
-        console.log('🔍 Current relay:', typeof nostr.relay);
-        if (events.length > 0) {
-          console.log('🔍 Sample event:', events[0]);
-          console.log('🔍 Sample event tags:', events[0].tags);
-          const imageTagsInSample = events[0].tags.filter(([name]) => name === 'image');
-          console.log('🔍 Image tags in sample:', imageTagsInSample);
-        }
+        const events = Array.from(addrSeen.values());
 
         const validEvents = events.filter(validateMediaEvent);
-        const products = validEvents.map(parseMediaEvent).filter(product => {
-          // Filter out deleted products with multiple checks
-          const isDeleted =
-            product.status === 'deleted' ||
-            product.description?.startsWith('[DELETED]') ||
-            product.description?.startsWith('[ADMIN DELETED]') ||
-            product.description?.startsWith('[TOMBSTONE]') ||
-            product.event.tags.some(tag => tag[0] === 'deleted' && tag[1] === 'true') ||
-            product.event.tags.some(tag => tag[0] === 'admin_deleted' && tag[1] === 'true') ||
-            product.event.tags.some(tag => tag[0] === 'tombstone' && tag[1] === 'true');
-
-          if (isDeleted) {
-            console.log('🗑️ Admin panel filtering out deleted product:', product.title, 'Status:', product.status);
-            return false;
-          }
-          return true;
-        });
-
-        // Debug: Log parsed products
-        console.log('🔍 Parsed products:', products.length);
-        products.forEach(product => {
-          if (product.images.length > 0) {
-            console.log('🖼️ Product with images:', product.title, 'Images:', product.images);
-          } else {
-            console.log('❌ Product without images:', product.title);
-          }
-        });
+        const products = validEvents
+          .map(parseMediaEvent)
+          .filter((p): p is NonNullable<typeof p> => p !== null)
+          .filter(product => {
+            // Filter out deleted products
+            const isDeleted =
+              product.status === 'deleted' ||
+              product.description?.startsWith('[DELETED]') ||
+              product.description?.startsWith('[ADMIN DELETED]') ||
+              product.description?.startsWith('[TOMBSTONE]') ||
+              product.event.tags.some(tag => tag[0] === 'deleted' && tag[1] === 'true') ||
+              product.event.tags.some(tag => tag[0] === 'admin_deleted' && tag[1] === 'true') ||
+              product.event.tags.some(tag => tag[0] === 'tombstone' && tag[1] === 'true');
+            return !isDeleted;
+          });
 
         // Apply filters
         let filteredProducts = products;
@@ -214,13 +196,12 @@ export function useAllMediaAssets(filters: MediaManagementFilters = {}) {
 
         if (filters.category && filters.category !== 'all') {
           filteredProducts = filteredProducts.filter(product =>
-            product.category === filters.category
+            product.category === filters.category || product.mediaType === filters.category
           );
         }
 
         if (filters.status && filters.status !== 'all') {
           if (filters.status === 'flagged') {
-            // For now, consider inactive as flagged
             filteredProducts = filteredProducts.filter(product =>
               product.status === 'inactive'
             );
@@ -229,6 +210,18 @@ export function useAllMediaAssets(filters: MediaManagementFilters = {}) {
               product.status === filters.status
             );
           }
+        }
+
+        if (filters.continent && filters.continent !== 'all') {
+          filteredProducts = filteredProducts.filter(product =>
+            product.continent === filters.continent
+          );
+        }
+
+        if (filters.country && filters.country !== 'all') {
+          filteredProducts = filteredProducts.filter(product =>
+            product.country === filters.country
+          );
         }
 
         if (filters.seller) {

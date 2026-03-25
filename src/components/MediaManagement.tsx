@@ -890,13 +890,19 @@ export function MediaManagement() {
   const handleContinentChange = (continent: string) => {
     setSelectedContinent(continent);
     setSelectedCountry('all');
-    updateFilter('continent', continent);
-    updateFilter('country', 'all');
+    setFilters(prev => ({
+      ...prev,
+      continent: continent === 'all' ? undefined : continent,
+      country: undefined,
+    }));
   };
 
   const handleCountryChange = (country: string) => {
     setSelectedCountry(country);
-    updateFilter('country', country);
+    setFilters(prev => ({
+      ...prev,
+      country: country === 'all' ? undefined : country,
+    }));
   };
 
   if (error) {
