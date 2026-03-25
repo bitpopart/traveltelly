@@ -43,7 +43,7 @@ import { CONTINENTS, getCountriesByContinent, getContinentLabel, getCountryLabel
 import { AutoGeoTagger } from './AutoGeoTagger';
 
 /* ─── GeoTagGrid — quick-assign continent/country/city ────────── */
-function GeoTagItem({ product }: { product: MarketplaceProduct }) {
+function GeoTagItem({ product, onSaved }: { product: MarketplaceProduct; onSaved: (id: string) => void }) {
   const { mutate: editAsset, isPending } = useEditMediaAsset();
   const [continent, setContinent] = useState(product.continent || '');
   const [country, setCountry] = useState(product.country || '');
@@ -59,7 +59,8 @@ function GeoTagItem({ product }: { product: MarketplaceProduct }) {
       {
         onSuccess: () => {
           setSaved(true);
-          setTimeout(() => setSaved(false), 2000);
+          // After brief confirmation flash, tell the grid to remove this item
+          setTimeout(() => onSaved(product.id), 800);
         },
       }
     );
@@ -71,7 +72,7 @@ function GeoTagItem({ product }: { product: MarketplaceProduct }) {
     city !== (product.location || '');
 
   return (
-    <div className="bg-white dark:bg-gray-900 border rounded-lg overflow-hidden text-xs">
+    <div className={`bg-white dark:bg-gray-900 border rounded-lg overflow-hidden text-xs transition-opacity duration-300 ${saved ? 'opacity-50' : ''}`}>
       {/* Thumbnail */}
       <div className="relative aspect-square overflow-hidden bg-gray-100 dark:bg-gray-800">
         {thumb ? (
@@ -81,9 +82,9 @@ function GeoTagItem({ product }: { product: MarketplaceProduct }) {
             <Camera className="w-6 h-6 text-gray-400" />
           </div>
         )}
-        {(product.continent || product.country) && (
-          <div className="absolute top-1 left-1">
-            <Badge className="text-[9px] h-4 bg-green-500 text-white px-1">tagged</Badge>
+        {saved && (
+          <div className="absolute inset-0 bg-green-500/20 flex items-center justify-center">
+            <CheckCircle className="w-6 h-6 text-green-600 drop-shadow" />
           </div>
         )}
       </div>
@@ -129,8 +130,8 @@ function GeoTagItem({ product }: { product: MarketplaceProduct }) {
         <Button
           size="sm"
           onClick={handleSave}
-          disabled={!isDirty || isPending}
-          className={`w-full h-6 text-[10px] ${saved ? 'bg-green-500 hover:bg-green-500' : ''}`}
+          disabled={!isDirty || isPending || saved}
+          className={`w-full h-6 text-[10px] ${saved ? 'bg-green-500 hover:bg-green-500 text-white' : ''}`}
         >
           {isPending ? '…' : saved ? '✓ Saved' : <><Save className="w-2.5 h-2.5 mr-1" />Save</>}
         </Button>
@@ -141,10 +142,18 @@ function GeoTagItem({ product }: { product: MarketplaceProduct }) {
 
 function GeoTagGrid({ products }: { products: MarketplaceProduct[] }) {
   const [showAll, setShowAll] = useState(false);
-  const untagged = products.filter(p => !p.continent);
-  const tagged = products.filter(p => !!p.continent);
+  // Track IDs that have been saved this session — remove them instantly from the untagged view
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
 
-  const displayed = showAll ? products : (untagged.length > 0 ? untagged : products);
+  const handleSaved = (id: string) => {
+    setSavedIds(prev => new Set([...prev, id]));
+  };
+
+  // Base lists derived from the relay data, excluding items saved this session
+  const untagged = products.filter(p => !p.continent && !savedIds.has(p.id));
+  const tagged = products.filter(p => !!p.continent || savedIds.has(p.id));
+
+  const displayed = showAll ? products.filter(p => !savedIds.has(p.id)) : untagged;
   const visible = displayed.slice(0, showAll ? 200 : 24);
 
   return (
@@ -159,29 +168,49 @@ function GeoTagGrid({ products }: { products: MarketplaceProduct[] }) {
             <Badge variant="outline" className="text-[10px]">
               {untagged.length} untagged · {tagged.length} tagged
             </Badge>
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 text-xs"
-              onClick={() => setShowAll(s => !s)}
-            >
-              {showAll ? 'Untagged only' : 'Show all'}
-              <ChevronDown className={`w-3 h-3 ml-1 transition-transform ${showAll ? 'rotate-180' : ''}`} />
-            </Button>
+            {!showAll && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs"
+                onClick={() => setShowAll(true)}
+              >
+                Show all
+                <ChevronDown className="w-3 h-3 ml-1" />
+              </Button>
+            )}
+            {showAll && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs"
+                onClick={() => setShowAll(false)}
+              >
+                Untagged only
+                <ChevronDown className="w-3 h-3 ml-1 rotate-180" />
+              </Button>
+            )}
           </div>
         </div>
         <p className="text-xs text-muted-foreground">
-          {untagged.length > 0 && !showAll
-            ? `Showing ${Math.min(untagged.length, 24)} untagged items — assign location for marketplace browsing.`
-            : `Showing ${Math.min(displayed.length, 200)} items. Click Save on each to assign geo tags.`}
+          {!showAll
+            ? `Showing ${untagged.length} untagged items — saved items disappear instantly.`
+            : `Showing all ${displayed.length} remaining items.`}
         </p>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
-          {visible.map(product => (
-            <GeoTagItem key={product.id} product={product} />
-          ))}
-        </div>
+        {visible.length === 0 ? (
+          <div className="text-center py-8 text-sm text-muted-foreground">
+            <CheckCircle className="w-8 h-8 mx-auto mb-2 text-green-500" />
+            All items are geo-tagged!
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+            {visible.map(product => (
+              <GeoTagItem key={product.id} product={product} onSaved={handleSaved} />
+            ))}
+          </div>
+        )}
         {displayed.length > 24 && !showAll && (
           <button onClick={() => setShowAll(true)} className="mt-4 text-xs text-blue-600 hover:underline">
             Show all {displayed.length} items…
