@@ -38,6 +38,7 @@ import TripDetail from "./pages/TripDetail";
 import CategoryTest from "./pages/CategoryTest";
 import StockMediaPermissions from "./pages/StockMediaPermissions";
 import MediaManagementPage from "./pages/MediaManagementPage";
+import MediaManagementHub from "./pages/MediaManagementHub";
 import MapMarkerEditor from "./pages/MapMarkerEditor";
 import { Events } from "./pages/Events";
 import { AdminEvents } from "./pages/AdminEvents";
@@ -118,7 +119,8 @@ export function AppRouter() {
         <Route path="/download/:orderId" element={<DownloadPage />} />
         <Route path="/category-test" element={<CategoryTest />} />
         <Route path="/stock-media-permissions" element={<StockMediaPermissions />} />
-        <Route path="/media-management" element={<MediaManagementPage />} />
+        <Route path="/media-management" element={<MediaManagementHub />} />
+        <Route path="/media-management-legacy" element={<MediaManagementPage />} />
         <Route path="/map-marker-editor" element={<MapMarkerEditor />} />
         <Route path="/events" element={<Events />} />
         <Route path="/search-test" element={<SearchTest />} />
