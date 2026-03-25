@@ -454,6 +454,7 @@ function ReviewMarker({ review }: { review: ReviewLocation }) {
   
   const isScenicSpot = review.type === 'stock-media';
   const isStory = review.type === 'story';
+  const isCheckIn = review.type === 'check-in';
 
   const categoryEmojis: Record<string, string> = {
     'grocery-store': '🛒',
@@ -509,7 +510,7 @@ function ReviewMarker({ review }: { review: ReviewLocation }) {
         <div className="p-2">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-lg">
-              {isStory ? '📖' : isScenicSpot ? '📸' : (categoryEmojis[review.category] || '📍')}
+              {isStory ? '📖' : isCheckIn ? '📍' : isScenicSpot ? '📸' : (categoryEmojis[review.category] || '📍')}
             </span>
             <h3 className="font-bold text-sm">{review.title}</h3>
           </div>
@@ -529,7 +530,7 @@ function ReviewMarker({ review }: { review: ReviewLocation }) {
           )}
 
           <p className="text-xs text-gray-600 mb-2">
-            {isStory ? `Travel Story by ${displayName}` : isScenicSpot ? `Scenic Spot by ${displayName}` : `Reviewed by ${displayName} (Traveltelly Admin)`}
+            {isStory ? `Travel Story by ${displayName}` : isCheckIn ? `Check-in by ${displayName}` : isScenicSpot ? `Scenic Spot by ${displayName}` : `Reviewed by ${displayName} (Traveltelly Admin)`}
           </p>
 
           <div className="flex gap-2 mb-3 flex-wrap">
@@ -572,7 +573,17 @@ function ReviewMarker({ review }: { review: ReviewLocation }) {
             <img
               src={review.image}
               alt={review.title}
-              className="w-full h-20 object-cover rounded mb-2"
+              style={{
+                width: '100%',
+                height: '80px',
+                objectFit: 'cover',
+                borderRadius: '6px',
+                marginBottom: '8px',
+                display: 'block',
+              }}
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = 'none';
+              }}
             />
           )}
 
@@ -580,10 +591,13 @@ function ReviewMarker({ review }: { review: ReviewLocation }) {
             size="sm"
             className="w-full text-xs"
             onClick={() => navigate(
-              isStory ? `/stories` : isScenicSpot ? `/media/preview/${review.naddr}` : `/review/${review.naddr}`
+              isStory ? `/story/${review.naddr}` :
+              isCheckIn ? `/reviews` :
+              isScenicSpot ? `/media/preview/${review.naddr}` :
+              `/review/${review.naddr}`
             )}
           >
-            {isStory ? 'Read Story' : isScenicSpot ? 'View Media' : 'View Details'}
+            {isStory ? 'Read Story' : isCheckIn ? 'View Reviews' : isScenicSpot ? 'View Media' : 'View Details'}
           </Button>
         </div>
       </Popup>
