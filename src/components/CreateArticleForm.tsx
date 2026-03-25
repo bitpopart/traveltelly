@@ -355,7 +355,14 @@ export function CreateArticleForm() {
       console.log('Fetching Nostr event:', decoded);
 
       // Build filter based on decoded type
-      let filter: any;
+      type NostrFilter = {
+        kinds?: number[];
+        authors?: string[];
+        ids?: string[];
+        '#d'?: string[];
+        limit?: number;
+      };
+      let filter: NostrFilter;
       if (decoded.type === 'naddr') {
         filter = {
           kinds: [decoded.data.kind],
@@ -370,7 +377,7 @@ export function CreateArticleForm() {
         };
       } else if (decoded.type === 'note') {
         filter = {
-          ids: [decoded.data],
+          ids: [decoded.data as string],
           limit: 1,
         };
       } else {

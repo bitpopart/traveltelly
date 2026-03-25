@@ -286,18 +286,18 @@ function StoryCard({ story }: StoryCardProps) {
   const author = useAuthor(story.pubkey);
   const metadata = author.data?.metadata;
 
-  const displayName = metadata?.name || genUserName(story.pubkey);
+  const displayName = metadata?.name ?? genUserName(story.pubkey);
   const profileImage = metadata?.picture;
 
-  const title = story.tags.find(([name]) => name === 'title')?.[1] || 'Untitled Article';
+  const title = story.tags.find(([name]) => name === 'title')?.[1] ?? 'Untitled Article';
   const location = story.tags.find(([name]) => name === 'location')?.[1];
   const image = story.tags.find(([name]) => name === 'image')?.[1];
   const summary = story.tags.find(([name]) => name === 'summary')?.[1];
 
   const publishedAt = story.tags.find(([name]) => name === 'published_at')?.[1];
-  const displayDate = publishedAt ?
-    new Date(parseInt(publishedAt) * 1000) :
-    new Date(story.created_at * 1000);
+  const displayDate = publishedAt
+    ? new Date(parseInt(publishedAt) * 1000)
+    : new Date(story.created_at * 1000);
 
   const topicTags = story.tags
     .filter(([name]) => name === 't')
@@ -305,13 +305,15 @@ function StoryCard({ story }: StoryCardProps) {
     .filter((tag): tag is string => typeof tag === 'string' && tag.length > 0 && !['travel', 'traveltelly'].includes(tag))
     .slice(0, 2);
 
-  // Create naddr for linking
-  const identifier = story.tags.find(([name]) => name === 'd')?.[1];
-  if (!identifier || typeof identifier !== 'string') {
-    console.error('Invalid story identifier:', identifier);
+  // Build naddr — guard against missing/invalid d-tag without violating hooks rules
+  const identifierRaw = story.tags.find(([name]) => name === 'd')?.[1];
+  const identifier = typeof identifierRaw === 'string' && identifierRaw.length > 0 ? identifierRaw : null;
+
+  if (!identifier) {
+    // Story has no valid d-tag; render nothing (hooks already called above)
     return null;
   }
-  
+
   const naddr = nip19.naddrEncode({
     kind: story.kind,
     pubkey: story.pubkey,
@@ -320,21 +322,21 @@ function StoryCard({ story }: StoryCardProps) {
 
   return (
     <Link to={`/story/${naddr}`}>
-      <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group">
-      {image && (
-        <div className="relative aspect-video overflow-hidden">
-          <OptimizedImage
-            src={image}
-            alt={title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            blurUp={true}
-            priority={false}
-            thumbnail={true}
-          />
-        </div>
-      )}
+      <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group h-full flex flex-col">
+        {image && (
+          <div className="relative aspect-video overflow-hidden flex-shrink-0">
+            <OptimizedImage
+              src={image}
+              alt={title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              blurUp={true}
+              priority={false}
+              thumbnail={true}
+            />
+          </div>
+        )}
 
-        <CardHeader className="pb-2 md:pb-3">
+        <CardHeader className="pb-2 md:pb-3 flex-1">
           <div className="flex items-start justify-between mb-2 md:mb-3">
             <div className="flex items-center space-x-2 md:space-x-3">
               <Avatar className="h-8 w-8 md:h-10 md:w-10">
@@ -354,7 +356,7 @@ function StoryCard({ story }: StoryCardProps) {
           </div>
 
           <div>
-            <h3 className="text-base md:text-lg font-semibold mb-1 md:mb-2">{title}</h3>
+            <h3 className="text-base md:text-lg font-semibold mb-1 md:mb-2 line-clamp-2">{title}</h3>
             {location && (
               <p className="text-xs md:text-sm text-muted-foreground flex items-center gap-1 mb-1 md:mb-2">
                 <MapPin className="w-2.5 h-2.5 md:w-3 md:h-3" />
@@ -362,12 +364,12 @@ function StoryCard({ story }: StoryCardProps) {
               </p>
             )}
             {summary && (
-              <p className="text-xs md:text-sm text-muted-foreground mb-2 md:mb-3 line-clamp-2">{summary}</p>
+              <p className="text-xs md:text-sm text-muted-foreground mb-2 md:mb-3 line-clamp-3">{summary}</p>
             )}
           </div>
 
           {topicTags.length > 0 && (
-            <div className="flex items-center gap-1 md:gap-2 flex-wrap">
+            <div className="flex items-center gap-1 md:gap-2 flex-wrap mt-auto">
               {topicTags.map(tag => (
                 <Badge key={tag} variant="outline" className="bg-green-50 dark:bg-green-900/20 text-[10px] md:text-xs">
                   #{tag}
@@ -376,7 +378,7 @@ function StoryCard({ story }: StoryCardProps) {
             </div>
           )}
         </CardHeader>
-    </Card>
+      </Card>
     </Link>
   );
 }
