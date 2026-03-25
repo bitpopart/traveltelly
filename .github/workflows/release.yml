@@ -188,4 +188,4 @@ jobs:
           sed -i "2i version:\ ${VERSION}" zapstore.yaml
 
       - name: Publish to Zapstore
-        run: zsp publish -y --skip-metadata --skip-preview zapstore.yaml
+        run: zsp publish -y --skip-metadata --skip-preview --skip-certificate-linking zapstore.yaml
