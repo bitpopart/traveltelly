@@ -222,17 +222,17 @@ export default function Community() {
     <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
       <Navigation />
       
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-4 md:py-8">
         <div className="max-w-5xl mx-auto">
           {/* Header */}
-          <div className="text-center mb-12">
-            <div className="p-4 rounded-full w-fit mx-auto mb-6" style={{ backgroundColor: '#9333ea20' }}>
-              <Users className="w-16 h-16 mx-auto" style={{ color: '#9333ea' }} />
+          <div className="text-center mb-6 md:mb-12">
+            <div className="p-3 md:p-4 rounded-full w-fit mx-auto mb-3 md:mb-6" style={{ backgroundColor: '#9333ea20' }}>
+              <Users className="w-10 h-10 md:w-16 md:h-16 mx-auto" style={{ color: '#9333ea' }} />
             </div>
-            <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">
+            <h1 className="text-3xl md:text-5xl font-bold text-gray-900 dark:text-white mb-2 md:mb-4">
               Community
             </h1>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-3">
+            <p className="text-base md:text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-3">
               The Travel, Nostr and Mobile Photo/Videography community.
             </p>
             {location && (

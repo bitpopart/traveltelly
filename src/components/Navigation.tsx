@@ -312,7 +312,7 @@ export function Navigation({ className }: NavigationProps) {
       </div>
     </nav>
     {/* Spacer — pushes content just below the fixed nav bar */}
-    <div className="h-16 -mb-4" />
+    <div className="h-16 -mb-6 md:-mb-4" />
     </>
   );
 }
