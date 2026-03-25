@@ -18,6 +18,11 @@ import type { MarketplaceProduct } from '@/hooks/useMarketplaceProducts';
 import type { NostrEvent, NostrFilter } from '@nostrify/nostrify';
 import { ChevronRight, FolderOpen } from 'lucide-react';
 
+/** Strip leading emoji characters from a title (backward-compat with old saved bins). */
+function stripLeadingEmoji(str: string): string {
+  return str.replace(/^[\p{Emoji}\p{Emoji_Modifier}\p{Emoji_Component}\u200d\ufe0f\s]+/u, '').trim();
+}
+
 // ── parser (lightweight copy to avoid circular imports) ───────────────────────
 
 function parseProduct(event: NostrEvent): MarketplaceProduct | null {
@@ -198,7 +203,7 @@ export function MarketplaceBinSection({ bin }: MarketplaceBinSectionProps) {
           ) : null}
           <div>
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-              {bin.title}
+              {stripLeadingEmoji(bin.title)}
             </h2>
             {bin.description && (
               <p className="text-sm text-muted-foreground">{bin.description}</p>

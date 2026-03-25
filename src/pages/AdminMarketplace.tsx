@@ -93,7 +93,15 @@ const CONTINENTS = [
   { value: 'Antarctica', label: '🧊 Antarctica' },
 ];
 
-const EMOJIS = ['📸', '🎥', '🌍', '🏔️', '🐘', '🏛️', '🌿', '🏙️', '✈️', '🌊', '🦁', '🌸', '🎨', '🍕', '⛵', '🧊', '🌅', '🦋', '🏜️', '🌺', '🗺️', '🏞️', '🎭', '🤿', '🛕'];
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Strip any leading emoji characters (and surrounding whitespace) from a title string.
+ *  Old saved bins had the emoji baked into the title, e.g. "📸 Travel Photos". */
+function stripLeadingEmoji(str: string): string {
+  // Remove sequences of emoji / modifier / ZWJ at the start of the string, plus trailing spaces
+  return str.replace(/^[\p{Emoji}\p{Emoji_Modifier}\p{Emoji_Component}\u200d\ufe0f\s]+/u, '').trim();
+}
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -254,7 +262,7 @@ function BinCard({
           {/* Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-semibold text-gray-900">{bin.title}</h3>
+              <h3 className="font-semibold text-gray-900">{stripLeadingEmoji(bin.title)}</h3>
               <Badge variant="outline" className="text-xs gap-1 flex items-center">
                 {filterTypeIcon(bin.filterType)}
                 {filterTypeLabel(bin.filterType)}: <span className="font-medium ml-0.5">{bin.filterValue || '—'}</span>
@@ -636,7 +644,7 @@ export default function AdminMarketplace() {
     const bin = bins[idx];
     setEditingIndex(idx);
     setFormData({
-      title: bin.title,
+      title: stripLeadingEmoji(bin.title),
       description: bin.description,
       emoji: bin.emoji || '📸',
       coverImage: bin.coverImage || '',
