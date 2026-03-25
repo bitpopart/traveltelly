@@ -67,12 +67,12 @@ export function useStockMediaPermissions() {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
 
       // Check for permission grants
+      // '#p' is a single-letter tag (relay-indexed); '#grant_type' is not, so filter client-side
       const events = await nostr.query([{
         kinds: [30384],
         authors: [ADMIN_HEX],
         '#p': [user.pubkey],
-        '#grant_type': ['stock_media_permission'],
-        limit: 1,
+        limit: 10,
       }], { signal });
 
       const validGrants = events.filter(validateStockMediaPermissionGrant);
@@ -112,34 +112,31 @@ export function useStockMediaPermissionRequests() {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
 
       // Get all stock media permission requests
+      // '#request_type' is a multi-letter tag — not relay-indexed, filter client-side
       const events = await nostr.query([{
         kinds: [31492],
-        '#request_type': ['stock_media_permission'],
-        limit: 20,
+        limit: 50,
       }], { signal });
 
       const validRequests = events.filter(validateStockMediaPermissionRequest);
 
-      // Get existing grants to filter out already granted requests
-      const grants = await nostr.query([{
+      // Get all kind 30384 events from admin in one query and split client-side
+      const adminEvents = await nostr.query([{
         kinds: [30384],
         authors: [ADMIN_HEX],
-        '#grant_type': ['stock_media_permission'],
-        limit: 20,
+        limit: 500,
       }], { signal });
 
-      const validGrants = grants.filter(validateStockMediaPermissionGrant);
+      const validGrants = adminEvents.filter(validateStockMediaPermissionGrant);
       const grantedPubkeys = new Set(
         validGrants.map(grant => grant.tags.find(([name]) => name === 'p')?.[1]).filter((pubkey): pubkey is string => Boolean(pubkey))
       );
 
-      // Get blocked users
-      const blocks = await nostr.query([{
-        kinds: [30384],
-        authors: [ADMIN_HEX],
-        '#grant_type': ['stock_media_permission_blocked'],
-        limit: 20,
-      }], { signal });
+      // Get blocked users — filter from the same adminEvents batch
+      const blocks = adminEvents.filter(e => {
+        const grantType = e.tags.find(([name]) => name === 'grant_type')?.[1];
+        return grantType === 'stock_media_permission_blocked';
+      });
 
       const blockedPubkeys = new Set(
         blocks.map(block => block.tags.find(([name]) => name === 'p')?.[1]).filter((pubkey): pubkey is string => Boolean(pubkey))
@@ -291,14 +288,15 @@ export function useAuthorizedMediaUploaders() {
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
 
-      // Get all media permission grants from admin
+      // Fetch ALL kind 30384 events from admin without multi-letter tag filters
+      // (relays only index single-letter tags, so '#grant_type' is not queryable at relay level)
       const events = await nostr.query([{
         kinds: [30384],
         authors: [ADMIN_HEX],
-        '#grant_type': ['stock_media_permission'],
-        limit: 500, // Increase limit to get all grants
+        limit: 500,
       }], { signal });
 
+      // Filter client-side for actual permission grants
       const validGrants = events.filter(validateStockMediaPermissionGrant);
 
       // Extract granted pubkeys

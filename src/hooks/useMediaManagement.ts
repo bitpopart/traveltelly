@@ -111,18 +111,56 @@ export function useAllMediaAssets(filters: MediaManagementFilters = {}) {
   return useQuery({
     queryKey: ['admin-media-assets', filters, authorizedUploaders],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(10000)]);
 
       try {
         // Query specifically for authorized uploaders' media
         const authorizedAuthors = Array.from(authorizedUploaders || []);
         console.log('🔍 Querying media from authorized authors:', authorizedAuthors);
 
-        const events = await nostr.query([{
-          kinds: [30402],
-          authors: authorizedAuthors, // Only query for authorized authors
-          limit: 20,
-        }], { signal });
+        // Fetch in pages of 500 until we have all events
+        let allEvents: Awaited<ReturnType<typeof nostr.query>> = [];
+        let until: number | undefined = undefined;
+        const PAGE = 500;
+
+        for (let page = 0; page < 20; page++) {
+          const filter: { kinds: number[]; authors: string[]; limit: number; until?: number } = {
+            kinds: [30402],
+            authors: authorizedAuthors,
+            limit: PAGE,
+          };
+          if (until !== undefined) filter.until = until;
+
+          const batch = await nostr.query([filter], { signal });
+          if (batch.length === 0) break;
+
+          allEvents = allEvents.concat(batch);
+
+          // Addressable events (30000–39999) are deduplicated by d-tag on relays,
+          // so if we got a full page there could be more — paginate by oldest timestamp.
+          if (batch.length < PAGE) break;
+          const oldest = Math.min(...batch.map((e) => e.created_at));
+          if (oldest === until) break; // no progress
+          until = oldest - 1;
+        }
+
+        // Deduplicate by event id
+        const seen = new Set<string>();
+        const events = allEvents.filter((e) => {
+          if (seen.has(e.id)) return false;
+          seen.add(e.id);
+          return true;
+        });
+
+        // Debug: Log events to see what we're getting
+        console.log('🔍 Media Management Debug - Total events found:', events.length);
+        console.log('🔍 Current relay:', typeof nostr.relay);
+        if (events.length > 0) {
+          console.log('🔍 Sample event:', events[0]);
+          console.log('🔍 Sample event tags:', events[0].tags);
+          const imageTagsInSample = events[0].tags.filter(([name]) => name === 'image');
+          console.log('🔍 Image tags in sample:', imageTagsInSample);
+        }
 
         // Debug: Log events to see what we're getting
         console.log('🔍 Media Management Debug - Total events found:', events.length);
@@ -229,7 +267,7 @@ export function useAllMediaAssets(filters: MediaManagementFilters = {}) {
         return [];
       }
     },
-    enabled: !!authorizedUploaders && authorizedUploaders.size > 0, // Only run when we have authorized uploaders
+    enabled: true, // Always run; authorizedUploaders has initialData so it is never empty
     staleTime: 10 * 1000, // 10 seconds - shorter for better real-time updates
     gcTime: 5 * 60 * 1000, // 5 minutes
     refetchInterval: 15 * 1000, // Auto-refetch every 15 seconds
