@@ -1,6 +1,5 @@
 import { useSeoMeta } from '@unhead/react';
-import { useState, memo, useEffect } from 'react';
-import { useInView } from 'react-intersection-observer';
+import { useState, memo } from 'react';
 import { Navigation as NavigationComponent } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { LoginArea } from "@/components/auth/LoginArea";
@@ -499,25 +498,22 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
   const { data: latestVideos = [] } = useLatestVideos(12);
   const { data: communityMix = [] } = useCommunityMix();
   
-  // Get images with infinite pagination for faster loading
-  const { 
-    data: infiniteImagesData, 
+  // Get images with pagination for faster loading
+  const {
+    data: infiniteImagesData,
     isLoading: imagesLoading,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteImages();
-  
+
   // Flatten all pages of images into a single array
   const allImages = infiniteImagesData?.pages.flatMap(page => page.images) || [];
 
-  // Sentinel fires 400px before reaching the bottom, triggering next page load
-  const { ref: sentinelRef, inView } = useInView({ threshold: 0, rootMargin: '400px' });
-  useEffect(() => {
-    if (inView && hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
+  // Cap displayed thumbnails for performance — show first 100, manual load-more for rest
+  const THUMBNAIL_BATCH = 100;
+  const [displayCount, setDisplayCount] = useState(THUMBNAIL_BATCH);
+  const displayedImages = allImages.slice(0, displayCount);
 
   // Get TravelTelly Tour photos
   const { data: tourItems = [] } = useTravelTellyTour();
@@ -843,7 +839,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
           {/* View Mode: Images Grid */}
           {viewMode === 'images' && !selectedLocationTag && (
             <div className="mb-8 md:mb-12">
-              {(communityMix.length > 0 || allImages.length > 0) ? (
+              {(communityMix.length > 0 || displayedImages.length > 0) ? (
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-0.5 md:gap-1">
                   {/* Community mix rows — always first, guaranteed variety */}
                   {communityMix.map((item, index) => {
@@ -870,8 +866,8 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                       </Link>
                     );
                   })}
-                  {/* Remaining infinite-scroll images, de-duped against community mix */}
-                  {allImages
+                  {/* Remaining images, de-duped against community mix, capped at displayCount */}
+                  {displayedImages
                     .filter(item => !communityMix.some(c => c.image === item.image))
                     .map((item, index) => {
                       let destinationPath = '/';
@@ -931,13 +927,33 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                   </CardContent>
                 </Card>
               )}
-              
-              {/* Infinite scroll sentinel - desktop only */}
-              {allImages.length > 0 && (
-                <div ref={sentinelRef} className="hidden md:flex mt-4 justify-center py-4">
-                  {isFetchingNextPage && (
-                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
-                  )}
+
+              {/* Manual Load More — show button when more images available locally or from relay */}
+              {(displayedImages.length >= displayCount || hasNextPage) && (
+                <div className="flex justify-center mt-4 py-4">
+                  <Button
+                    variant="outline"
+                    className="rounded-full text-xs md:text-sm px-4 py-2 h-auto"
+                    disabled={isFetchingNextPage}
+                    onClick={() => {
+                      // Fetch next relay page if we've exhausted current buffer
+                      if (displayedImages.length >= allImages.length - 1 && hasNextPage && !isFetchingNextPage) {
+                        fetchNextPage();
+                      }
+                      setDisplayCount(prev => prev + THUMBNAIL_BATCH);
+                    }}
+                  >
+                    {isFetchingNextPage ? (
+                      <>
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent mr-2" />
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        Load more <ArrowRight className="w-3 h-3 ml-1" />
+                      </>
+                    )}
+                  </Button>
                 </div>
               )}
             </div>
