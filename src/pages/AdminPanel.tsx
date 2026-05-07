@@ -16,10 +16,11 @@ import { AdminStoryManager } from '@/components/AdminStoryManager';
 import { CustomerManagement } from '@/components/CustomerManagement';
 import { NewsletterManager } from '@/components/NewsletterManager';
 import { AdminCommunityManager } from '@/components/AdminCommunityManager';
+import { AdminBadgeManager } from '@/components/AdminBadgeManager';
 import { BlossomDashboard } from '@/components/BlossomDashboard';
 import { useInitializeTestCustomer } from '@/hooks/useInitializeTestCustomer';
 import { nip19 } from 'nostr-tools';
-import { Shield, ArrowLeft, Camera, MessageSquare, Settings, Tag, FileImage, Coffee, MapPin, Upload, BookOpen, Smartphone, Clock, BarChart3, Crown, Users, Mail, Sparkles, UsersRound, HardDrive, ScanSearch, Zap } from 'lucide-react';
+import { Shield, ArrowLeft, Camera, MessageSquare, Settings, Tag, FileImage, Coffee, MapPin, Upload, BookOpen, Smartphone, Clock, BarChart3, Crown, Users, Mail, Sparkles, UsersRound, HardDrive, ScanSearch, Zap, Medal } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function AdminPanel() {
@@ -223,7 +224,7 @@ export default function AdminPanel() {
 
           {/* Main Admin Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 lg:grid-cols-11 gap-2">
+            <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 lg:grid-cols-12 gap-2">
               <TabsTrigger value="manage-reviews" className="flex items-center gap-1.5 whitespace-nowrap px-3">
                 <MessageSquare className="w-4 h-4 flex-shrink-0" />
                 <span className="truncate">Reviews</span>
@@ -267,6 +268,10 @@ export default function AdminPanel() {
               <TabsTrigger value="blossom" className="flex items-center gap-1.5 whitespace-nowrap px-3">
                 <HardDrive className="w-4 h-4 flex-shrink-0" />
                 <span className="truncate">Blossom</span>
+              </TabsTrigger>
+              <TabsTrigger value="badges" className="flex items-center gap-1.5 whitespace-nowrap px-3">
+                <Medal className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">Badges</span>
               </TabsTrigger>
             </TabsList>
 
@@ -312,6 +317,10 @@ export default function AdminPanel() {
 
             <TabsContent value="blossom" className="mt-6">
               <BlossomDashboard />
+            </TabsContent>
+
+            <TabsContent value="badges" className="mt-6">
+              <AdminBadgeManager />
             </TabsContent>
           </Tabs>
         </div>
