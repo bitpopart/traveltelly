@@ -131,7 +131,7 @@ export function useLightningZap() {
 
     try {
       const tags: string[][] = [
-        ['relays', 'wss://relay.nostr.band'], // Use current relay
+        ['relays', 'wss://relay.damus.io'],
         ['amount', (zapRequest.amount * 1000).toString()], // Convert sats to millisats
         ['p', zapRequest.recipientPubkey],
       ];

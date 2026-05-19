@@ -25,59 +25,61 @@ function stripLeadingEmoji(str: string): string {
 
 // ── parser (lightweight copy to avoid circular imports) ───────────────────────
 
+const IMAGE_URL_RE = /https?:\/\/[^\s"'<>)]+\.(?:jpg|jpeg|png|gif|webp|svg|tiff|tif|heic|heif|bmp|avif)/gi;
+
+function extractImages(event: NostrEvent): string[] {
+  const urls = new Set<string>();
+  for (const tag of event.tags) {
+    const tn = tag[0];
+    if (['image', 'img', 'photo', 'picture', 'thumb', 'thumbnail'].includes(tn) && tag[1]) {
+      urls.add(tag[1]);
+    }
+    if (tn === 'url' && tag[1] && IMAGE_URL_RE.test(tag[1])) {
+      IMAGE_URL_RE.lastIndex = 0;
+      urls.add(tag[1]);
+    }
+    if (tn === 'imeta') {
+      for (let i = 1; i < tag.length; i++) {
+        const m = typeof tag[i] === 'string' ? tag[i].match(/^url\s+(.+)/) : null;
+        if (m) urls.add(m[1].trim());
+      }
+    }
+  }
+  if (event.content) {
+    try {
+      const j = JSON.parse(event.content);
+      if (Array.isArray(j.images)) j.images.forEach((u: unknown) => typeof u === 'string' && urls.add(u));
+      else if (typeof j.image === 'string') urls.add(j.image);
+    } catch {
+      const matches = event.content.match(IMAGE_URL_RE);
+      if (matches) matches.forEach((u) => urls.add(u));
+    }
+  }
+  return [...urls].filter(Boolean);
+}
+
 function parseProduct(event: NostrEvent): MarketplaceProduct | null {
   try {
     const d = event.tags.find(([n]) => n === 'd')?.[1];
     const title = event.tags.find(([n]) => n === 'title')?.[1];
+    if (!d || !title) return null;
+
     const summary = event.tags.find(([n]) => n === 'summary')?.[1];
-    const price = event.tags.find(([n]) => n === 'price');
+    const priceTag = event.tags.find(([n]) => n === 'price');
     const location = event.tags.find(([n]) => n === 'location')?.[1];
     const status = (event.tags.find(([n]) => n === 'status')?.[1] as MarketplaceProduct['status']) || 'active';
     const continent = event.tags.find(([n]) => n === 'continent')?.[1];
     const country = event.tags.find(([n]) => n === 'country')?.[1];
     const geoFolder = event.tags.find(([n]) => n === 'geo_folder')?.[1];
 
-    if (!d || !title || !price) return null;
-    const [, amount, currency] = price;
-    if (!amount || !currency) return null;
-    const numAmount = parseFloat(amount);
-    if (isNaN(numAmount) || numAmount < 0) return null;
-    // Allow price 0 only for free items
-    if (numAmount === 0 && !event.tags.some(([n, v]) => n === 'free' && v === 'true')) return null;
-
-    // Collect images from various tag names + imeta + content
-    const imageTagNames = ['image', 'img', 'photo', 'picture', 'url'];
-    const tagImages = event.tags
-      .filter(([n]) => imageTagNames.includes(n))
-      .map(([, u]) => u)
-      .filter(Boolean);
-
-    const imetaImages = event.tags
-      .filter(([n]) => n === 'imeta')
-      .map((tag) => {
-        // NIP-92: each element after index 0 is a "key value" string
-        for (let i = 1; i < tag.length; i++) {
-          const m = tag[i]?.match(/^url\s+(.+)/);
-          if (m) return m[1];
-        }
-        return null;
-      })
-      .filter(Boolean) as string[];
-
-    let contentImages: string[] = [];
-    if (event.content) {
-      try {
-        const j = JSON.parse(event.content);
-        if (Array.isArray(j.images)) contentImages = j.images;
-        else if (j.image) contentImages = [j.image];
-      } catch {
-        const urlRegex = /https?:\/\/[^\s)]+\.(jpg|jpeg|png|gif|webp|svg|tiff|bmp)/gi;
-        contentImages = event.content.match(urlRegex) || [];
-      }
+    let amount = '0';
+    let currency = 'SATS';
+    if (priceTag && priceTag[1]) {
+      amount = priceTag[1];
+      currency = (priceTag[2] || 'SATS').toUpperCase();
     }
 
-    const allImages = [...new Set([...tagImages, ...imetaImages, ...contentImages])].filter(Boolean);
-
+    const images = extractImages(event);
     const mediaTypes = event.tags.filter(([n]) => n === 't').map(([, v]) => v).filter(Boolean);
     const contentCategories = event.tags.filter(([n]) => n === 'category').map(([, v]) => v).filter(Boolean);
 
@@ -86,8 +88,8 @@ function parseProduct(event: NostrEvent): MarketplaceProduct | null {
       title,
       description: summary || event.content || '',
       price: amount,
-      currency: currency.toUpperCase(),
-      images: allImages,
+      currency,
+      images,
       category: mediaTypes[0] || 'other',
       mediaType: mediaTypes[0] || 'other',
       contentCategory: contentCategories[0] || '',

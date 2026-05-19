@@ -1,7 +1,6 @@
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
 import type { NostrEvent, NostrFilter } from '@nostrify/nostrify';
-import { nip19 } from 'nostr-tools';
 import { useAuthorizedMediaUploaders } from './useStockMediaPermissions';
 
 export interface MarketplaceProduct {
@@ -11,13 +10,13 @@ export interface MarketplaceProduct {
   price: string;
   currency: string;
   images: string[];
-  category: string; // Keep for backward compatibility (media type)
-  mediaType?: string; // New: photos, videos, audio, etc.
-  contentCategory?: string; // New: Animals, Business, Travel, etc.
+  category: string;
+  mediaType?: string;
+  contentCategory?: string;
   location?: string;
-  continent?: string; // Geographical organization: continent
-  country?: string; // Geographical organization: country
-  geoFolder?: string; // Combined path: continent/country
+  continent?: string;
+  country?: string;
+  geoFolder?: string;
   seller: {
     pubkey: string;
     name?: string;
@@ -33,193 +32,167 @@ interface UseMarketplaceProductsOptions {
   category?: string;
   seller?: string;
   freeOnly?: boolean;
-  continent?: string; // Filter by continent
-  country?: string; // Filter by country
-  city?: string; // Filter by city/location
-  geoFolder?: string; // Filter by combined continent/country path
+  continent?: string;
+  country?: string;
+  city?: string;
+  geoFolder?: string;
 }
 
-function validateMarketplaceProduct(event: NostrEvent): boolean {
-  // Check if it's a classified listing kind
-  if (![30402].includes(event.kind)) return false;
+/** Image URL pattern — loose to catch as many as possible */
+const IMAGE_URL_RE = /https?:\/\/[^\s"'<>)]+\.(?:jpg|jpeg|png|gif|webp|svg|tiff|tif|heic|heif|bmp|avif)/gi;
 
-  // Check for required tags according to NIP-99
-  const d = event.tags.find(([name]) => name === 'd')?.[1];
-  const title = event.tags.find(([name]) => name === 'title')?.[1];
-  const price = event.tags.find(([name]) => name === 'price');
+/**
+ * Extract ALL image URLs from an event, checking every possible location:
+ *   1. `image` tags (most common for traveltelly products)
+ *   2. `imeta` tags (NIP-92)
+ *   3. Other common tag names: img, photo, picture, thumb, url
+ *   4. Content field — JSON with images array, or raw URLs
+ */
+function extractImages(event: NostrEvent): string[] {
+  const urls = new Set<string>();
 
-  // All marketplace products require 'd', 'title', and 'price' tags
-  if (!d || !title || !price || price.length < 3) return false;
+  for (const tag of event.tags) {
+    const tagName = tag[0];
 
-  // Price tag should have at least [price, amount, currency]
-  const [, amount, currency] = price;
-  if (!amount || !currency) return false;
+    // 1. Direct image-like tags
+    if (['image', 'img', 'photo', 'picture', 'thumb', 'thumbnail'].includes(tagName)) {
+      if (tag[1]) urls.add(tag[1]);
+    }
 
-  // Amount should be a valid number (0 allowed for free items)
-  const numAmount = parseFloat(amount);
-  if (isNaN(numAmount) || numAmount < 0) return false;
-  
-  // If price is 0, it must have a "free" tag
-  if (numAmount === 0) {
-    const isFree = event.tags.some(([name, val]) => name === 'free' && val === 'true');
-    if (!isFree) return false;
+    // 2. `url` tag — only if it looks like an image
+    if (tagName === 'url' && tag[1] && IMAGE_URL_RE.test(tag[1])) {
+      IMAGE_URL_RE.lastIndex = 0; // reset regex state
+      urls.add(tag[1]);
+    }
+
+    // 3. imeta tags (NIP-92): ["imeta", "url https://...", "m image/jpeg", ...]
+    if (tagName === 'imeta') {
+      for (let i = 1; i < tag.length; i++) {
+        const el = tag[i];
+        if (typeof el === 'string') {
+          const m = el.match(/^url\s+(.+)/);
+          if (m) urls.add(m[1].trim());
+        }
+      }
+    }
   }
 
-  // Filter out template/placeholder content
-  const lowerContent = event.content.toLowerCase();
-  const lowerTitle = title.toLowerCase();
-  
-  const placeholderKeywords = [
-    'lorem ipsum',
-    'placeholder',
-    'template',
-    'sample product',
-    'example product',
-    'test product',
-    'demo product',
-    'dolor sit amet',
-  ];
-
-  // Check if content or title contains placeholder keywords
-  const hasPlaceholder = placeholderKeywords.some(keyword => 
-    lowerContent.includes(keyword) || lowerTitle.includes(keyword)
-  );
-
-  if (hasPlaceholder) {
-    return false;
+  // 4. Content field fallback
+  if (event.content) {
+    try {
+      const json = JSON.parse(event.content);
+      if (Array.isArray(json.images)) {
+        for (const u of json.images) if (typeof u === 'string') urls.add(u);
+      } else if (typeof json.image === 'string') {
+        urls.add(json.image);
+      }
+    } catch {
+      // Not JSON — scan for image URLs in raw text
+      const matches = event.content.match(IMAGE_URL_RE);
+      if (matches) {
+        for (const u of matches) urls.add(u);
+      }
+    }
   }
+
+  return [...urls].filter(Boolean);
+}
+
+/**
+ * Minimal validation: kind 30402, has d-tag and title.
+ * Price validation is relaxed — many real products may have unusual price formats.
+ */
+function isValidProduct(event: NostrEvent): boolean {
+  if (event.kind !== 30402) return false;
+
+  const d = event.tags.find(([n]) => n === 'd')?.[1];
+  const title = event.tags.find(([n]) => n === 'title')?.[1];
+  if (!d || !title) return false;
+
+  // Filter placeholder/test content
+  const lower = `${title} ${event.content}`.toLowerCase();
+  const junk = ['lorem ipsum', 'placeholder', 'template', 'sample product', 'example product', 'test product', 'demo product', 'dolor sit amet'];
+  if (junk.some((kw) => lower.includes(kw))) return false;
 
   return true;
 }
 
-function parseMarketplaceProduct(event: NostrEvent): MarketplaceProduct | null {
-  try {
-    const d = event.tags.find(([name]) => name === 'd')?.[1];
-    const title = event.tags.find(([name]) => name === 'title')?.[1];
-    const summary = event.tags.find(([name]) => name === 'summary')?.[1];
-    const price = event.tags.find(([name]) => name === 'price');
-    const location = event.tags.find(([name]) => name === 'location')?.[1];
-    const status = event.tags.find(([name]) => name === 'status')?.[1] as 'active' | 'sold' | 'inactive' | 'deleted' || 'active';
+/**
+ * Check whether a product event should be treated as deleted.
+ */
+function isDeleted(event: NostrEvent): boolean {
+  const status = event.tags.find(([n]) => n === 'status')?.[1];
+  if (status === 'deleted') return true;
 
-    // Get all image tags - check multiple possible tag names
-    const imageTagNames = ['image', 'img', 'photo', 'picture', 'url'];
-    const imageTags = event.tags.filter(([name]) => imageTagNames.includes(name));
-    const images = imageTags.map(([, url]) => url).filter(Boolean);
-    
-    // Handle imeta tags separately (NIP-92 format: ["imeta", "url https://...", "m image/jpeg", ...])
-    const imetaTags = event.tags.filter(([name]) => name === 'imeta');
-    const imetaImages = imetaTags
-      .map((tag) => {
-        // NIP-92: each element after index 0 is a "key value" string
-        for (let i = 1; i < tag.length; i++) {
-          const urlMatch = tag[i]?.match(/^url\s+(.+)/);
-          if (urlMatch) return urlMatch[1];
-        }
-        return null;
-      })
-      .filter(Boolean) as string[];
-    
-
-    
-    // Combine regular images with imeta images
-    const allTagImages = [...images, ...imetaImages];
-
-    // Also check content field for URLs or JSON with images
-    let contentImages: string[] = [];
-    if (event.content) {
-      try {
-        // Try to parse as JSON
-        const contentJson = JSON.parse(event.content);
-        if (contentJson.images && Array.isArray(contentJson.images)) {
-          contentImages = contentJson.images;
-        } else if (contentJson.image) {
-          contentImages = [contentJson.image];
-        }
-      } catch {
-        // Check if content contains URLs (more comprehensive regex)
-        const urlRegex = /https?:\/\/[^\s)]+\.(jpg|jpeg|png|gif|webp|svg|tiff|tif|heic|heif|bmp)/gi;
-        const urlMatches = event.content.match(urlRegex);
-        if (urlMatches) {
-          contentImages = urlMatches;
-        }
-      }
-    }
-
-    // Combine tag images (including imeta) and content images, remove duplicates
-    const allImages = [...new Set([...allTagImages, ...contentImages])].filter(Boolean);
-
-
-
-    // Get media types from 't' tags (photos, videos, etc.)
-    const mediaTypes = event.tags
-      .filter(([name]) => name === 't')
-      .map(([, mediaType]) => mediaType)
-      .filter(Boolean);
-
-    // Get content categories from 'category' tags (Animals, Business, etc.)
-    const contentCategories = event.tags
-      .filter(([name]) => name === 'category')
-      .map(([, category]) => category)
-      .filter(Boolean);
-
-    // Get geographical organization tags
-    const continent = event.tags.find(([name]) => name === 'continent')?.[1];
-    const country = event.tags.find(([name]) => name === 'country')?.[1];
-    const geoFolder = event.tags.find(([name]) => name === 'geo_folder')?.[1];
-
-    if (!d || !title || !price) return null;
-
-    const [, amount, currency] = price;
-    if (!amount || !currency) return null;
-
-    return {
-      id: d,
-      title,
-      description: summary || event.content || '',
-      price: amount,
-      currency: currency.toUpperCase(),
-      images: allImages,
-      category: mediaTypes[0] || 'other', // Keep this for backward compatibility
-      mediaType: mediaTypes[0] || 'other',
-      contentCategory: contentCategories[0] || '',
-      location,
-      continent,
-      country,
-      geoFolder,
-      seller: {
-        pubkey: event.pubkey,
-      },
-      status,
-      createdAt: event.created_at,
-      event,
-    };
-  } catch (error) {
-    console.error('Error parsing marketplace product:', error);
-    return null;
+  for (const [name, val] of event.tags) {
+    if ((name === 'deleted' || name === 'admin_deleted' || name === 'tombstone') && val === 'true') return true;
   }
+
+  const content = (event.tags.find(([n]) => n === 'summary')?.[1] ?? event.content ?? '').slice(0, 30);
+  if (content.startsWith('[DELETED]') || content.startsWith('[ADMIN DELETED]') || content.startsWith('[TOMBSTONE]')) return true;
+
+  return false;
+}
+
+function parseProduct(event: NostrEvent): MarketplaceProduct | null {
+  const d = event.tags.find(([n]) => n === 'd')?.[1];
+  const title = event.tags.find(([n]) => n === 'title')?.[1];
+  if (!d || !title) return null;
+
+  const summary = event.tags.find(([n]) => n === 'summary')?.[1];
+  const priceTag = event.tags.find(([n]) => n === 'price');
+  const location = event.tags.find(([n]) => n === 'location')?.[1];
+  const status = (event.tags.find(([n]) => n === 'status')?.[1] as MarketplaceProduct['status']) || 'active';
+  const continent = event.tags.find(([n]) => n === 'continent')?.[1];
+  const country = event.tags.find(([n]) => n === 'country')?.[1];
+  const geoFolder = event.tags.find(([n]) => n === 'geo_folder')?.[1];
+
+  // Price: try to get amount+currency, fall back to "0" / "SATS"
+  let amount = '0';
+  let currency = 'SATS';
+  if (priceTag && priceTag[1]) {
+    amount = priceTag[1];
+    currency = (priceTag[2] || 'SATS').toUpperCase();
+  }
+
+  const images = extractImages(event);
+
+  const mediaTypes = event.tags.filter(([n]) => n === 't').map(([, v]) => v).filter(Boolean);
+  const contentCategories = event.tags.filter(([n]) => n === 'category').map(([, v]) => v).filter(Boolean);
+
+  return {
+    id: d,
+    title,
+    description: summary || event.content || '',
+    price: amount,
+    currency,
+    images,
+    category: mediaTypes[0] || 'other',
+    mediaType: mediaTypes[0] || 'other',
+    contentCategory: contentCategories[0] || '',
+    location,
+    continent,
+    country,
+    geoFolder,
+    seller: { pubkey: event.pubkey },
+    status,
+    createdAt: event.created_at,
+    event,
+  };
 }
 
 export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = {}) {
   const { nostr } = useNostr();
   const { data: authorizedUploaders } = useAuthorizedMediaUploaders();
-  
-
 
   return useQuery({
     queryKey: ['marketplace-products', JSON.stringify(options), Array.from(authorizedUploaders || [])],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(20000)]);
-      
+
       const authorizedAuthors = Array.from(authorizedUploaders || []);
+      if (authorizedAuthors.length === 0) return [];
 
-      if (authorizedAuthors.length === 0) {
-        return [];
-      }
-
-      // Single large-limit query — the NPool fans out to all configured relays and
-      // merges their results. Timestamp-cursor pagination is unreliable with a
-      // multi-relay pool because each relay returns different page boundaries,
-      // causing the cursor to skip events on some relays.
       const authors = options.seller ? [options.seller] : authorizedAuthors;
       const filter: NostrFilter = {
         kinds: [30402],
@@ -230,74 +203,53 @@ export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = 
 
       const allEvents = await nostr.query([filter], { signal });
 
-      // Deduplicate addressable events by pubkey+d-tag, keeping newest version
-      const addrSeen = new Map<string, typeof allEvents[0]>();
+      // Deduplicate addressable events — keep newest per pubkey+d
+      const seen = new Map<string, NostrEvent>();
       for (const e of allEvents) {
         const dTag = e.tags.find(([n]) => n === 'd')?.[1] ?? '';
         const key = `${e.pubkey}:${dTag}`;
-        const existing = addrSeen.get(key);
+        const existing = seen.get(key);
         if (!existing || e.created_at > existing.created_at) {
-          addrSeen.set(key, e);
+          seen.set(key, e);
         }
       }
-      const events = Array.from(addrSeen.values());
+      const events = Array.from(seen.values());
 
-      // Filter and parse events
-      const products = events
-        .filter(validateMarketplaceProduct)
-        .map(parseMarketplaceProduct)
-        .filter((product): product is MarketplaceProduct => product !== null)
-        .filter(product => {
-          // Filter out deleted products with multiple checks
-          const isDeleted =
-            product.status === 'deleted' ||
-            product.description?.startsWith('[DELETED]') ||
-            product.description?.startsWith('[ADMIN DELETED]') ||
-            product.description?.startsWith('[TOMBSTONE]') ||
-            product.event.tags.some(tag => tag[0] === 'deleted' && tag[1] === 'true') ||
-            product.event.tags.some(tag => tag[0] === 'admin_deleted' && tag[1] === 'true') ||
-            product.event.tags.some(tag => tag[0] === 'tombstone' && tag[1] === 'true');
+      // Parse, validate, filter
+      const products: MarketplaceProduct[] = [];
+      for (const event of events) {
+        if (!isValidProduct(event)) continue;
+        if (isDeleted(event)) continue;
 
-          return !isDeleted;
-        })
-        .filter(product => {
-          // Free items filter
-          if (options.freeOnly) {
-            const isFree = product.event.tags.some(tag => tag[0] === 'free' && tag[1] === 'true');
-            return isFree;
-          }
-          
-          // Geographical filtering
-          if (options.continent && product.continent !== options.continent) {
-            return false;
-          }
-          if (options.country && product.country !== options.country) {
-            return false;
-          }
-          if (options.city && product.location !== options.city) {
-            return false;
-          }
-          if (options.geoFolder && product.geoFolder !== options.geoFolder) {
-            return false;
-          }
-          
-          // Client-side search filtering
+        const product = parseProduct(event);
+        if (!product) continue;
+
+        // Free-only mode
+        if (options.freeOnly) {
+          const isFree = event.tags.some(([n, v]) => n === 'free' && v === 'true');
+          if (!isFree) continue;
+        } else {
+          // Geo filters
+          if (options.continent && product.continent !== options.continent) continue;
+          if (options.country && product.country !== options.country) continue;
+          if (options.city && product.location !== options.city) continue;
+          if (options.geoFolder && product.geoFolder !== options.geoFolder) continue;
+
+          // Search
           if (options.search) {
-            const searchLower = options.search.toLowerCase();
-            return (
-              product.title.toLowerCase().includes(searchLower) ||
-              product.description.toLowerCase().includes(searchLower) ||
-              product.category.toLowerCase().includes(searchLower)
-            );
+            const q = options.search.toLowerCase();
+            const haystack = `${product.title} ${product.description} ${product.category}`.toLowerCase();
+            if (!haystack.includes(q)) continue;
           }
-          return true;
-        })
-        .sort((a, b) => b.createdAt - a.createdAt); // Sort by newest first
+        }
 
+        products.push(product);
+      }
+
+      products.sort((a, b) => b.createdAt - a.createdAt);
       return products;
     },
-    // Don't use enabled check - handle empty case inside queryFn instead
-    staleTime: 30000, // 30 seconds
-    refetchInterval: 60000, // Refetch every minute
+    staleTime: 30_000,
+    refetchInterval: 60_000,
   });
 }

@@ -48,43 +48,44 @@ function parseMediaEvent(event: NostrEvent): MarketplaceProduct | null {
     const location = event.tags.find(([name]) => name === 'location')?.[1];
     const status = (event.tags.find(([name]) => name === 'status')?.[1] || 'active') as 'active' | 'sold' | 'inactive' | 'deleted';
 
-    if (!d || !title || !price) return null;
-    const [, amount, currency] = price;
-    if (!amount || !currency) return null;
+    if (!d || !title) return null;
 
-    // ── Images: named tags ────────────────────────────────────────
-    const imageTagNames = ['image', 'img', 'photo', 'picture', 'url'];
-    const tagImages = event.tags
-      .filter(([name]) => imageTagNames.includes(name))
-      .map(([, url]) => url)
-      .filter(Boolean);
+    let amount = '0';
+    let currency = 'SATS';
+    if (price && price[1]) {
+      amount = price[1];
+      currency = (price[2] || 'SATS').toUpperCase();
+    }
 
-    // ── Images: imeta tags (NIP-92 format) ───────────────────────
-    const imetaImages = event.tags
-      .filter(([name]) => name === 'imeta')
-      .map((tag) => {
+    // ── Images: extract from all possible locations ───────────────
+    const imgUrls = new Set<string>();
+
+    for (const tag of event.tags) {
+      const tn = tag[0];
+      if (['image', 'img', 'photo', 'picture', 'thumb', 'thumbnail'].includes(tn) && tag[1]) {
+        imgUrls.add(tag[1]);
+      }
+      if (tn === 'imeta') {
         for (let i = 1; i < tag.length; i++) {
-          const m = tag[i]?.match(/^url\s+(\S+)/);
-          if (m) return m[1];
+          const m = typeof tag[i] === 'string' ? tag[i].match(/^url\s+(.+)/) : null;
+          if (m) imgUrls.add(m[1].trim());
         }
-        return undefined;
-      })
-      .filter((u): u is string => Boolean(u));
-
-    // ── Images: content field fallback ───────────────────────────
-    let contentImages: string[] = [];
-    if (event.content) {
-      try {
-        const json = JSON.parse(event.content);
-        if (Array.isArray(json.images)) contentImages = json.images;
-        else if (json.image) contentImages = [json.image];
-      } catch {
-        const urlRegex = /https?:\/\/\S+\.(?:jpg|jpeg|png|gif|webp|svg|tiff|tif|heic|bmp)/gi;
-        contentImages = event.content.match(urlRegex) ?? [];
       }
     }
 
-    const allImages = [...new Set([...tagImages, ...imetaImages, ...contentImages])].filter(Boolean);
+    if (event.content) {
+      try {
+        const json = JSON.parse(event.content);
+        if (Array.isArray(json.images)) json.images.forEach((u: unknown) => typeof u === 'string' && imgUrls.add(u));
+        else if (typeof json.image === 'string') imgUrls.add(json.image);
+      } catch {
+        const urlRegex = /https?:\/\/[^\s"'<>)]+\.(?:jpg|jpeg|png|gif|webp|svg|tiff|tif|heic|bmp|avif)/gi;
+        const matches = event.content.match(urlRegex);
+        if (matches) matches.forEach((u) => imgUrls.add(u));
+      }
+    }
+
+    const allImages = [...imgUrls].filter(Boolean);
 
     // ── Category / media type (t tags) ───────────────────────────
     const mediaTypes = event.tags.filter(([n]) => n === 't').map(([, v]) => v).filter(Boolean);

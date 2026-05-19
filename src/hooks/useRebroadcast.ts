@@ -7,8 +7,8 @@ import { useAppContext } from './useAppContext';
 // Adding these ensures the event shows up on Primal, Damus, Amethyst, etc.
 const BROADCAST_RELAYS = [
   'wss://relay.primal.net',
-  'wss://relay.nostr.band',
   'wss://relay.damus.io',
+  'wss://relay.ditto.pub',
   'wss://nos.lol',
 ];
 
