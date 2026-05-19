@@ -346,14 +346,8 @@ export default function TravelerProfile() {
                     const location = review.tags.find(([name]) => name === 'location')?.[1];
                     const identifier = review.tags.find(([name]) => name === 'd')?.[1] || '';
 
-                    const naddr = nip19.naddrEncode({
-                      kind: review.kind,
-                      pubkey: review.pubkey,
-                      identifier,
-                    });
-
                     return (
-                      <Link key={review.id} to={`/review/${naddr}`}>
+                      <Link key={review.id} to={`/review/${identifier}`}>
                         <Card className="hover:shadow-lg transition-shadow cursor-pointer">
                           <CardHeader>
                             <div className="flex items-start justify-between">

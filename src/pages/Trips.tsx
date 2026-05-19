@@ -230,7 +230,7 @@ export default function Trips() {
           {/* Section Title for Trips */}
           <div className="mb-6">
             <h2 className="text-2xl font-bold">All Trips</h2>
-            <p className="text-muted-foreground">Browse travel adventures from the community</p>
+            <p className="text-muted-foreground">Browse travel adventures with photos and GPS routes</p>
           </div>
 
           {/* Trips Grid */}

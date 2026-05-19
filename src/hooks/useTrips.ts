@@ -1,6 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { useNostr } from '@nostrify/react';
+import { nip19 } from 'nostr-tools';
 import type { NostrEvent } from '@nostrify/nostrify';
+
+// Admin pubkey — only show trips from this user
+const ADMIN_HEX = nip19.decode('npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642').data as string;
 
 function validateTripEvent(event: NostrEvent): boolean {
   if (event.kind !== 30025) return false;
@@ -48,10 +52,12 @@ export function useTrips() {
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
 
+      // Only fetch trips from admin (traveltelly) account
       const events = await nostr.query([
         {
           kinds: [30025],
-          limit: 20,
+          authors: [ADMIN_HEX],
+          limit: 50,
         }
       ], { signal });
 

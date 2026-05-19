@@ -2,7 +2,6 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-
 import { Icon, LatLngBounds } from 'leaflet';
 import { useEffect } from 'react';
 import { OptimizedImage } from '@/components/OptimizedImage';
-import 'leaflet/dist/leaflet.css';
 
 interface PhotoPoint {
   url: string;

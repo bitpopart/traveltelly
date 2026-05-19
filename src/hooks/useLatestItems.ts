@@ -102,17 +102,11 @@ export function useLatestReview() {
       const image = reviewWithImage.tags.find(([name]) => name === 'image')?.[1];
       const title = reviewWithImage.tags.find(([name]) => name === 'title')?.[1] || 'Unknown Place';
       const identifier = reviewWithImage.tags.find(([name]) => name === 'd')?.[1] || '';
-      
-      const naddr = nip19.naddrEncode({
-        identifier,
-        pubkey: reviewWithImage.pubkey,
-        kind: 34879,
-      });
 
       return {
         image,
         title,
-        naddr,
+        naddr: identifier, // Use d-tag slug for short SEO-friendly URLs
         event: reviewWithImage,
       };
     },
@@ -159,17 +153,11 @@ export function useLatestReviews() {
         const image = event.tags.find(([name]) => name === 'image')?.[1];
         const title = event.tags.find(([name]) => name === 'title')?.[1] || 'Unknown Place';
         const identifier = event.tags.find(([name]) => name === 'd')?.[1] || '';
-        
-        const naddr = nip19.naddrEncode({
-          identifier,
-          pubkey: event.pubkey,
-          kind: 34879,
-        });
 
         return {
           image,
           title,
-          naddr,
+          naddr: identifier, // Use d-tag slug for short SEO-friendly URLs
           event,
         };
       });
@@ -806,7 +794,7 @@ export function useCommunityMix() {
               key: `review-${e.id}`,
               image: img,
               alt: title,
-              link: `/review/${nip19.naddrEncode({ identifier: d, pubkey: e.pubkey, kind: 34879 })}`,
+              link: `/review/${d}`,
               type: 'review',
               color: '#27b0ff',
               created_at: e.created_at,

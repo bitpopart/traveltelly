@@ -59,10 +59,16 @@ function parseMediaEvent(event: NostrEvent): MarketplaceProduct | null {
       .map(([, url]) => url)
       .filter(Boolean);
 
-    // ── Images: imeta tags (NIP-94 format) ───────────────────────
+    // ── Images: imeta tags (NIP-92 format) ───────────────────────
     const imetaImages = event.tags
       .filter(([name]) => name === 'imeta')
-      .map(([, value]) => value?.match(/url\s+(\S+)/)?.[1])
+      .map((tag) => {
+        for (let i = 1; i < tag.length; i++) {
+          const m = tag[i]?.match(/^url\s+(\S+)/);
+          if (m) return m[1];
+        }
+        return undefined;
+      })
       .filter((u): u is string => Boolean(u));
 
     // ── Images: content field fallback ───────────────────────────

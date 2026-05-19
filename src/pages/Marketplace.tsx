@@ -416,119 +416,10 @@ function MarketplaceInner() {
             </CardContent>
           </Card>
 
-          {/* Demo Purchase for Testing */}
-          {process.env.NODE_ENV === 'development' && (
-            <Card className="mb-8 border-purple-200 bg-purple-50 dark:bg-purple-900/20">
-              <CardHeader>
-                <CardTitle className="text-purple-800 dark:text-purple-200">
-                  🧪 Demo Purchase (Development Only)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-purple-700 dark:text-purple-300 mb-4">
-                  Test the complete purchase and download flow without making a real payment.
-                </p>
-                <Button
-                  onClick={() => {
-                    // Create a demo purchase with realistic product data
-                    const demoOrder = {
-                      orderId: `demo_${Date.now()}`,
-                      productId: 'demo_product',
-                      productTitle: 'Sunset Mountain Landscape Collection',
-                      buyerEmail: 'demo@example.com',
-                      buyerName: 'Demo User',
-                      amount: 2500,
-                      currency: 'SATS',
-                      timestamp: Date.now(),
-                      paymentMethod: 'lightning' as const,
-                      status: 'verified' as const,
-                      productData: {
-                        images: [
-                          'https://picsum.photos/4000/3000?random=1',
-                          'https://picsum.photos/1920/1080?random=1',
-                          'https://picsum.photos/1200/800?random=1'
-                        ],
-                        description: 'High-quality landscape photography collection featuring stunning mountain sunsets. Perfect for commercial and personal use.',
-                        category: 'photos',
-                        mediaType: 'photos',
-                        contentCategory: 'Landscape',
-                        seller: {
-                          pubkey: 'demo_seller',
-                          name: 'TravelTelly',
-                          picture: 'https://picsum.photos/100/100?random=99'
-                        }
-                      }
-                    };
-
-                    // Store in localStorage
-                    const purchases = JSON.parse(localStorage.getItem('traveltelly_purchases') || '[]');
-                    purchases.push(demoOrder);
-                    localStorage.setItem('traveltelly_purchases', JSON.stringify(purchases));
-
-                    // Generate download link
-                    const downloadToken = btoa(`${demoOrder.orderId}:${demoOrder.buyerEmail}:${demoOrder.timestamp}`);
-                    const downloadUrl = `/download/${demoOrder.orderId}?token=${downloadToken}&email=${encodeURIComponent(demoOrder.buyerEmail)}`;
-
-                    // Redirect to download page
-                    window.location.href = downloadUrl;
-                  }}
-                  className="bg-purple-600 hover:bg-purple-700"
-                >
-                  Create Demo Purchase & Download
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Debug Info */}
-          {process.env.NODE_ENV === 'development' && (
-            <Card className="mb-8 border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20">
-              <CardHeader>
-                <CardTitle className="text-yellow-800 dark:text-yellow-200">
-                  🔍 Debug Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-yellow-700 dark:text-yellow-300">
-                <p><strong>Total products found:</strong> {products?.length || 0}</p>
-                <p><strong>Filtered products:</strong> {filteredProducts.length}</p>
-                <p><strong>Products with images:</strong> {filteredProducts.filter(p => p.images.length > 0).length}</p>
-                <p><strong>Search query:</strong> {searchQuery || 'None'}</p>
-                <p><strong>Category filter:</strong> {selectedCategory}</p>
-                <p><strong>Price filter:</strong> {priceRange}</p>
-                {filteredProducts.length > 0 && (
-                  <details className="mt-2">
-                    <summary className="cursor-pointer font-semibold">Sample Product Data</summary>
-                    <pre className="mt-2 p-2 bg-yellow-100 dark:bg-yellow-800 rounded text-xs overflow-auto">
-                      {JSON.stringify(filteredProducts[0], null, 2)}
-                    </pre>
-                  </details>
-                )}
-                {filteredProducts.length > 0 && filteredProducts[0].images.length > 0 && (
-                  <details className="mt-2">
-                    <summary className="cursor-pointer font-semibold">Test Image URLs</summary>
-                    <div className="mt-2 space-y-2">
-                      {filteredProducts[0].images.map((url, idx) => (
-                        <div key={idx} className="p-2 bg-yellow-100 dark:bg-yellow-800 rounded text-xs">
-                          <p><strong>Image {idx + 1}:</strong></p>
-                          <p className="break-all">{url}</p>
-                          <img
-                            src={url}
-                            alt={`Test ${idx + 1}`}
-                            className="w-20 h-20 object-cover mt-1 border rounded"
-                            onLoad={() => console.log(`✅ Debug image ${idx + 1} loaded`)}
-                            onError={() => console.error(`❌ Debug image ${idx + 1} failed`)}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </details>
-                )}
-              </CardContent>
-            </Card>
-          )}
+          {/* Dev tools removed for production */}
 
           {/* Free Downloads Section */}
-          {freeProducts && freeProducts.length > 0 && (
+          {freeProducts && freeProducts.filter(p => p.images.length > 0).length > 0 && (
             <div className="mb-12">
               <div className="flex items-center justify-between mb-6">
                 <div>
@@ -541,12 +432,12 @@ function MarketplaceInner() {
                   </p>
                 </div>
                 <Badge variant="secondary" className="text-lg px-3 py-1 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300">
-                  {freeProducts.length} free
+                  {freeProducts.filter(p => p.images.length > 0).length} free
                 </Badge>
               </div>
 
               <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {freeProducts.map((product) => (
+                {freeProducts.filter(p => p.images.length > 0).map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}
               </div>
@@ -560,7 +451,7 @@ function MarketplaceInner() {
                 Premium Stock Media
               </h2>
               <Badge variant="secondary" className="text-lg px-3 py-1">
-                {filteredProducts.length} assets
+                {filteredProducts.filter(p => p.images.length > 0).length} assets
               </Badge>
             </div>
 
@@ -594,7 +485,7 @@ function MarketplaceInner() {
                   </CardContent>
                 </Card>
               </div>
-            ) : filteredProducts.length === 0 ? (
+            ) : filteredProducts.filter(p => p.images.length > 0).length === 0 ? (
               <div className="col-span-full">
                 <Card className="border-dashed">
                   <CardContent className="py-12 px-8 text-center">
@@ -616,7 +507,7 @@ function MarketplaceInner() {
               </div>
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredProducts.map((product) => (
+                {filteredProducts.filter(p => p.images.length > 0).map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}
               </div>

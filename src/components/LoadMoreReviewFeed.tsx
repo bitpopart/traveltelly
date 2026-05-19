@@ -12,7 +12,6 @@ import { MapPin, Star, Calendar, Camera, MessageCircle, Plus, Loader2 } from 'lu
 import { formatDistanceToNow } from 'date-fns';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { Link } from 'react-router-dom';
-import { nip19 } from 'nostr-tools';
 import { ZapButton } from '@/components/ZapButton';
 import { getShortNpub } from '@/lib/nostrUtils';
 import { useReviewComments } from '@/hooks/useReviewComments';
@@ -55,12 +54,8 @@ function ReviewCard({ review }: { review: ReviewEvent }) {
   // Get review comments
   const { data: comments = [] } = useReviewComments(review.id);
 
-  // Create naddr for the review
-  const naddr = nip19.naddrEncode({
-    identifier: review.tags.find(([name]) => name === 'd')?.[1] || '',
-    pubkey: review.pubkey,
-    kind: 34879,
-  });
+  // Use d-tag slug for short, SEO-friendly URLs
+  const reviewSlug = review.tags.find(([name]) => name === 'd')?.[1] || '';
 
   // Don't render if user is blocked
   if (isUserBlocked(review.pubkey)) {
@@ -159,7 +154,7 @@ function ReviewCard({ review }: { review: ReviewEvent }) {
         </div>
 
         {image && (
-          <Link to={`/review/${naddr}`} className="block">
+          <Link to={`/review/${reviewSlug}`} className="block">
             <div className="relative aspect-video rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
               <OptimizedImage
                 src={image}
@@ -197,7 +192,7 @@ function ReviewCard({ review }: { review: ReviewEvent }) {
             <Badge variant="outline" className="capitalize text-xs">
               {category.replace('-', ' ')}
             </Badge>
-            <Link to={`/review/${naddr}`}>
+            <Link to={`/review/${reviewSlug}`}>
               <Button size="sm" variant="outline" className="rounded-full text-xs">
                 View Details
               </Button>

@@ -10,7 +10,6 @@ import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
 import { MapPin, Star, ArrowRight, Navigation } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { nip19 } from 'nostr-tools';
 import * as geohash from 'ngeohash';
 import type { NostrEvent } from '@nostrify/nostrify';
 
@@ -75,15 +74,9 @@ function NearbyReviewCard({ review }: NearbyReviewCardProps) {
   const category = review.tags.find(([name]) => name === 'category')?.[1] || '';
   const location = review.tags.find(([name]) => name === 'location')?.[1];
   const image = review.tags.find(([name]) => name === 'image')?.[1];
-  const identifier = review.tags.find(([name]) => name === 'd')?.[1];
+  const reviewSlug = review.tags.find(([name]) => name === 'd')?.[1];
 
-  if (!identifier) return null;
-
-  const naddr = nip19.naddrEncode({
-    kind: review.kind,
-    pubkey: review.pubkey,
-    identifier,
-  });
+  if (!reviewSlug) return null;
 
   const categoryEmojis: Record<string, string> = {
     'grocery-store': '🛒', 'clothing-store': '👕', 'electronics-store': '📱',
@@ -101,7 +94,7 @@ function NearbyReviewCard({ review }: NearbyReviewCardProps) {
   };
 
   return (
-    <Link to={`/review/${naddr}`}>
+    <Link to={`/review/${reviewSlug}`}>
       <Card className="hover:shadow-md transition-shadow cursor-pointer h-full border-gray-200">
         <CardContent className="p-2 md:p-3">
           <div className="flex gap-2">

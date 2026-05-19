@@ -70,14 +70,8 @@ function ReviewItem({ review }: { review: NostrEvent }) {
   const location = review.tags.find(([name]) => name === 'location')?.[1];
   const identifier = review.tags.find(([name]) => name === 'd')?.[1] || '';
 
-  const naddr = nip19.naddrEncode({
-    kind: review.kind,
-    pubkey: review.pubkey,
-    identifier,
-  });
-
   return (
-    <Link to={`/review/${naddr}`}>
+    <Link to={`/review/${identifier}`}>
       <Card className="hover:shadow-lg transition-shadow cursor-pointer">
         <CardHeader>
           <div className="flex items-start justify-between">

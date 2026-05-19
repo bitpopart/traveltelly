@@ -55,9 +55,15 @@ function validateMarketplaceProduct(event: NostrEvent): boolean {
   const [, amount, currency] = price;
   if (!amount || !currency) return false;
 
-  // Amount should be a valid number
+  // Amount should be a valid number (0 allowed for free items)
   const numAmount = parseFloat(amount);
-  if (isNaN(numAmount) || numAmount <= 0) return false;
+  if (isNaN(numAmount) || numAmount < 0) return false;
+  
+  // If price is 0, it must have a "free" tag
+  if (numAmount === 0) {
+    const isFree = event.tags.some(([name, val]) => name === 'free' && val === 'true');
+    if (!isFree) return false;
+  }
 
   // Filter out template/placeholder content
   const lowerContent = event.content.toLowerCase();
@@ -100,13 +106,16 @@ function parseMarketplaceProduct(event: NostrEvent): MarketplaceProduct | null {
     const imageTags = event.tags.filter(([name]) => imageTagNames.includes(name));
     const images = imageTags.map(([, url]) => url).filter(Boolean);
     
-    // Handle imeta tags separately (NIP-94 format: ["imeta", "url https://..."])
+    // Handle imeta tags separately (NIP-92 format: ["imeta", "url https://...", "m image/jpeg", ...])
     const imetaTags = event.tags.filter(([name]) => name === 'imeta');
     const imetaImages = imetaTags
-      .map(([, value]) => {
-        // Parse "url https://..." format
-        const urlMatch = value?.match(/url\s+(.+)/);
-        return urlMatch ? urlMatch[1] : null;
+      .map((tag) => {
+        // NIP-92: each element after index 0 is a "key value" string
+        for (let i = 1; i < tag.length; i++) {
+          const urlMatch = tag[i]?.match(/^url\s+(.+)/);
+          if (urlMatch) return urlMatch[1];
+        }
+        return null;
       })
       .filter(Boolean) as string[];
     

@@ -12,7 +12,6 @@ import { MapPin, Star, Calendar, Camera, MessageCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { Link } from 'react-router-dom';
-import { nip19 } from 'nostr-tools';
 import { ZapButton } from '@/components/ZapButton';
 import { getShortNpub } from '@/lib/nostrUtils';
 import { useReviewComments } from '@/hooks/useReviewComments';
@@ -91,13 +90,10 @@ function ReviewCard({ review }: { review: ReviewEvent }) {
   const displayName = metadata?.name || genUserName(review.pubkey);
   const profileImage = metadata?.picture;
 
-  const naddr = nip19.naddrEncode({
-    identifier: review.tags.find(([name]) => name === 'd')?.[1] || '',
-    pubkey: review.pubkey,
-    kind: 34879,
-  });
+  // Use d-tag slug for short, SEO-friendly URLs
+  const reviewSlug = review.tags.find(([name]) => name === 'd')?.[1] || '';
 
-  const { data: comments } = useReviewComments(naddr);
+  const { data: comments } = useReviewComments(reviewSlug);
 
   const categoryEmojis: Record<string, string> = {
     'grocery-store': '🛒',
@@ -195,7 +191,7 @@ function ReviewCard({ review }: { review: ReviewEvent }) {
         </div>
 
         {image && (
-          <Link to={`/review/${naddr}`} className="block">
+          <Link to={`/review/${reviewSlug}`} className="block">
             <div className="relative aspect-video rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
               <OptimizedImage
                 src={image}
@@ -227,7 +223,7 @@ function ReviewCard({ review }: { review: ReviewEvent }) {
               authorPubkey={review.pubkey}
               event={review}
             />
-            <Link to={`/review/${naddr}`}>
+            <Link to={`/review/${reviewSlug}`}>
               <Button variant="ghost" size="sm" className="rounded-full h-8 px-3 text-gray-600 hover:text-gray-700">
                 View Details
               </Button>

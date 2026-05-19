@@ -29,6 +29,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import * as geohash from 'ngeohash';
 import { testGeohashAccuracy, getGeohashPrecisionInfo } from '@/lib/geohashTest';
 import { trackCoordinates, analyzeCoordinateDrift } from '@/lib/coordinateVerification';
+import { generateReviewSlug } from '@/lib/nostrUtils';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 const reviewSchema = z.object({
@@ -236,8 +237,8 @@ function CreateReviewFormContent() {
         imageUrl = url;
       }
 
-      // Create review event with unique ID
-      const reviewId = `review-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      // Create review event with SEO-friendly slug as ID
+      const reviewId = generateReviewSlug(data.title);
       const tags: string[][] = [
         ['d', reviewId],
         ['title', data.title],
@@ -361,19 +362,8 @@ function CreateReviewFormContent() {
 
       noteContent += `\n\n${hashtagsText}`;
 
-      // Add TravelTelly review link if user is available
-      if (user) {
-        try {
-          const naddr = nip19.naddrEncode({
-            kind: 34879,
-            pubkey: user.pubkey,
-            identifier: reviewId,
-          });
-          noteContent += `\n\n📖 Read more at TravelTelly.com\nhttps://traveltelly.com/review/${naddr}`;
-        } catch (error) {
-          console.error('Error creating naddr:', error);
-        }
-      }
+      // Add TravelTelly review link using short slug-based URL
+      noteContent += `\n\n📖 Read more at TravelTelly.com\nhttps://traveltelly.com/review/${reviewId}`;
 
       // Create the regular note with relevant tags
       const noteTags: string[][] = [

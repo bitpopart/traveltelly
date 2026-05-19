@@ -231,13 +231,8 @@ export function UnifiedSearchBar({
             navigate('/reviews');
             return;
           }
-          const naddr = nip19.naddrEncode({
-            identifier: dTag,
-            pubkey: result.author,
-            kind: 34879,
-          });
-          console.log('Navigating to review:', `/review/${naddr}`);
-          navigate(`/review/${naddr}`);
+          console.log('Navigating to review:', `/review/${dTag}`);
+          navigate(`/review/${dTag}`);
           break;
         }
         case 'story': {

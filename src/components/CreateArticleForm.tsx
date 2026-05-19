@@ -17,7 +17,6 @@ import { type GPSCoordinates } from '@/lib/exifUtils';
 import { nip19 } from 'nostr-tools';
 import * as geohash from 'ngeohash';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
 import {
   BookOpen,
   Send,

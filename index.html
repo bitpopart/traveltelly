@@ -64,6 +64,8 @@
     <meta property="twitter:site" content="@traveltelly">
     <meta property="twitter:creator" content="@traveltelly">
     <meta http-equiv="content-security-policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://*.google-analytics.com; style-src 'self' 'unsafe-inline'; frame-src 'self' https:; font-src 'self'; base-uri 'self'; manifest-src 'self'; connect-src 'self' blob: https: wss:; img-src 'self' data: blob: https: *; media-src 'self' blob: https: *">
+    <!-- Leaflet CSS from CDN (avoids ESM build issues with relative image paths) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
     <link rel="manifest" href="/manifest.webmanifest">
     
     <!-- Structured Data (JSON-LD) for SEO -->

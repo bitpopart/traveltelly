@@ -47,7 +47,6 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { NostrEvent } from '@nostrify/nostrify';
-import { nip19 } from 'nostr-tools';
 import { Link } from 'react-router-dom';
 
 interface ReviewCardProps {
@@ -70,11 +69,8 @@ function ReviewCard({ review, onEdit, onDelete }: ReviewCardProps) {
   const displayName = metadata?.name || genUserName(review.pubkey);
   const profileImage = metadata?.picture;
 
-  const naddr = nip19.naddrEncode({
-    identifier: review.tags.find(([name]) => name === 'd')?.[1] || '',
-    pubkey: review.pubkey,
-    kind: 34879,
-  });
+  // Use d-tag slug for short URLs
+  const reviewSlug = review.tags.find(([name]) => name === 'd')?.[1] || '';
 
   const categoryEmojis: Record<string, string> = {
     'restaurant': '🍽️',
@@ -91,7 +87,7 @@ function ReviewCard({ review, onEdit, onDelete }: ReviewCardProps) {
   return (
     <Card className="overflow-hidden">
       {image && (
-        <Link to={`/review/${naddr}`} className="block">
+        <Link to={`/review/${reviewSlug}`} className="block">
           <div className="aspect-video overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
             <img
               src={image}

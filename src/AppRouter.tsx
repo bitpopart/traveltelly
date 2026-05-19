@@ -89,7 +89,7 @@ export function AppRouter() {
         <Route path="/zaplytics" element={<Zaplytics />} />
         <Route path="/create-review" element={<CreateReview />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/review/:naddr" element={<ReviewDetail />} />
+        <Route path="/review/:slug" element={<ReviewDetail />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/admin" element={<AdminPanel />} />
         <Route path="/admin/mass-upload" element={<AdminMassUpload />} />

@@ -13,8 +13,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import App from './App.tsx';
 import './index.css';
 
-// Import Leaflet CSS for maps
-import 'leaflet/dist/leaflet.css';
+// Leaflet CSS is loaded from CDN in index.html
 
 // Import Inter Variable font
 import '@fontsource-variable/inter';

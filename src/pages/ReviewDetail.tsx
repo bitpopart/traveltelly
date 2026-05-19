@@ -28,9 +28,12 @@ import { CommentSection } from '@/components/CommentSection';
 import { NearbyReviews } from '@/components/NearbyReviews';
 import { NearbyScenicSpots } from '@/components/NearbyScenicSpots';
 import { ShareLocationButton } from '@/components/ShareLocationButton';
-import { getShortNpub, getFullNpub, getCategoryEmoji, normalizeCategory } from '@/lib/nostrUtils';
+import { getShortNpub, getFullNpub, getCategoryEmoji, normalizeCategory, isNaddr } from '@/lib/nostrUtils';
 import * as geohash from 'ngeohash';
 import { trackCoordinates } from '@/lib/coordinateVerification';
+
+// Admin pubkey for slug-based lookups
+const ADMIN_HEX = nip19.decode('npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642').data as string;
 
 interface ReviewEvent extends NostrEvent {
   kind: 34879;
@@ -95,38 +98,55 @@ function decodeGeohash(geohashStr: string): { lat: number; lng: number } {
 }
 
 const ReviewDetail = () => {
-  const { naddr } = useParams<{ naddr: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const { nostr } = useNostr();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  const { data: review, isLoading, error } = useQuery({
-    queryKey: ['review', naddr],
-    queryFn: async (c) => {
-      if (!naddr) throw new Error('No review identifier provided');
+  // Determine if param is an naddr or a slug
+  const paramIsNaddr = slug ? isNaddr(slug) : false;
 
-      try {
-        const decoded = nip19.decode(naddr);
-        if (decoded.type !== 'naddr') {
+  const { data: review, isLoading, error } = useQuery({
+    queryKey: ['review', slug],
+    queryFn: async (c) => {
+      if (!slug) throw new Error('No review identifier provided');
+
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+
+      if (paramIsNaddr) {
+        // Legacy naddr-based lookup
+        try {
+          const decoded = nip19.decode(slug);
+          if (decoded.type !== 'naddr') {
+            throw new Error('Invalid review identifier');
+          }
+
+          const { kind, pubkey, identifier } = decoded.data;
+
+          const events = await nostr.query([{
+            kinds: [kind],
+            authors: [pubkey],
+            '#d': [identifier],
+          }], { signal });
+
+          const validReviews = events.filter(validateReviewEvent);
+          return validReviews[0] || null;
+        } catch (error) {
+          console.error('Error decoding naddr:', error);
           throw new Error('Invalid review identifier');
         }
-
-        const { kind, pubkey, identifier } = decoded.data;
-
-        const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      } else {
+        // Slug-based lookup: query by d-tag from admin author
         const events = await nostr.query([{
-          kinds: [kind],
-          authors: [pubkey],
-          '#d': [identifier],
+          kinds: [34879],
+          authors: [ADMIN_HEX],
+          '#d': [slug],
         }], { signal });
 
         const validReviews = events.filter(validateReviewEvent);
         return validReviews[0] || null;
-      } catch (error) {
-        console.error('Error decoding naddr:', error);
-        throw new Error('Invalid review identifier');
       }
     },
-    enabled: !!naddr,
+    enabled: !!slug,
   });
 
   const author = useAuthor(review?.pubkey || '');
@@ -215,6 +235,10 @@ const ReviewDetail = () => {
     .map(([, value]) => value)
     .filter(Boolean);
 
+  // Use the d-tag slug for short URLs
+  const reviewDTag = review.tags.find(([name]) => name === 'd')?.[1] || '';
+  const reviewUrl = `/review/${reviewDTag}`;
+
   const displayName = metadata?.name || genUserName(review.pubkey);
   const profileImage = metadata?.picture;
 
@@ -284,11 +308,11 @@ const ReviewDetail = () => {
             </Button>
             <div className="flex flex-wrap gap-2">
               <ShareToNostrButton
-                url={`/review/${naddr}`}
+                url={reviewUrl}
                 title={title}
                 description={review.content || `${rating}/5 stars - ${location || 'Review'}`}
                 image={mainImage}
-                defaultContent={`Check out my review of ${title} on Traveltelly!\n\n⭐ Rating: ${rating}/5\n${location ? `📍 ${location}\n` : ''}\ntraveltelly.com/review/${naddr}`}
+                defaultContent={`Check out my review of ${title} on Traveltelly!\n\n⭐ Rating: ${rating}/5\n${location ? `📍 ${location}\n` : ''}\ntraveltelly.com${reviewUrl}`}
                 variant="default"
                 size="default"
               />
@@ -498,7 +522,7 @@ const ReviewDetail = () => {
                   size="default"
                 />
                 <ShareButton
-                  url={`/review/${naddr}`}
+                  url={reviewUrl}
                   title={title}
                   description={review.content || `${rating}/5 stars - ${location || 'Review'}`}
                   image={mainImage}

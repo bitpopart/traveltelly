@@ -138,7 +138,7 @@ export function useInfiniteImages() {
             images.push({
               image,
               title: title || 'Unknown Place',
-              naddr: nip19.naddrEncode({ identifier: d, pubkey: event.pubkey, kind: 34879 }),
+              naddr: d, // Use d-tag slug for short SEO-friendly review URLs
               type: 'review',
               event,
               created_at: event.created_at,

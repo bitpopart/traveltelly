@@ -203,9 +203,9 @@ export function TravelBot() {
 
         // Generate TravelTelly URL based on event kind
         let traveltellyUrl = '';
-        if (event.kind === 34879 && naddr) {
-          // Review
-          traveltellyUrl = `https://www.traveltelly.com/review/${naddr}`;
+        if (event.kind === 34879 && dTag) {
+          // Review — use short slug-based URL
+          traveltellyUrl = `https://www.traveltelly.com/review/${dTag}`;
         } else if (event.kind === 30023 && naddr) {
           // Story
           traveltellyUrl = `https://www.traveltelly.com/story/${naddr}`;

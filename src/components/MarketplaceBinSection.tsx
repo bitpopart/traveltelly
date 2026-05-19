@@ -40,7 +40,10 @@ function parseProduct(event: NostrEvent): MarketplaceProduct | null {
     if (!d || !title || !price) return null;
     const [, amount, currency] = price;
     if (!amount || !currency) return null;
-    if (isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) return null;
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount) || numAmount < 0) return null;
+    // Allow price 0 only for free items
+    if (numAmount === 0 && !event.tags.some(([n, v]) => n === 'free' && v === 'true')) return null;
 
     // Collect images from various tag names + imeta + content
     const imageTagNames = ['image', 'img', 'photo', 'picture', 'url'];
@@ -51,9 +54,13 @@ function parseProduct(event: NostrEvent): MarketplaceProduct | null {
 
     const imetaImages = event.tags
       .filter(([n]) => n === 'imeta')
-      .map(([, v]) => {
-        const m = v?.match(/url\s+(.+)/);
-        return m ? m[1] : null;
+      .map((tag) => {
+        // NIP-92: each element after index 0 is a "key value" string
+        for (let i = 1; i < tag.length; i++) {
+          const m = tag[i]?.match(/^url\s+(.+)/);
+          if (m) return m[1];
+        }
+        return null;
       })
       .filter(Boolean) as string[];
 

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,16 +10,22 @@ import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useUploadFile } from '@/hooks/useUploadFile';
 import { useToast } from '@/hooks/useToast';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { nip19 } from 'nostr-tools';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   Award, Medal, Globe, Camera, Sparkles, Users, Search,
-  Loader2, Send, CheckCircle2, AlertCircle, Crown, Trash2
+  Loader2, Send, CheckCircle2, AlertCircle, Crown, Trash2,
+  Plus, ImagePlus, X
 } from 'lucide-react';
 
-// --- Badge category data from the uploaded design ---
-export interface BadgeDef {
+// ------------------------------------------------------------------------------
+// PRESET BADGE CATEGORIES (with image placeholders — admin can upload images)
+// ------------------------------------------------------------------------------
+
+export interface PresetBadge {
   id: string;
   name: string;
   description: string;
@@ -27,14 +33,14 @@ export interface BadgeDef {
   tiers: string[];
   category: string;
   categoryColor: string;
+  image?: string;
 }
 
-const BADGE_CATEGORIES = [
+const PRESET_CATEGORIES = [
   {
     id: 'explorer',
     emoji: '🌍',
     color: '#FF6B35',
-    accent: '#FFD23F',
     title: 'Explorer Badges',
     badges: [
       { id: 'country-collector', icon: '🗺️', name: 'Country Collector', tiers: ['Bronze 5+', 'Silver 15+', 'Gold 30+', 'Platinum 50+'], desc: 'Countries visited — the OG badge' },
@@ -48,7 +54,6 @@ const BADGE_CATEGORIES = [
     id: 'culture',
     emoji: '🎭',
     color: '#7B2FBE',
-    accent: '#E040FB',
     title: 'Culture Vulture Badges',
     badges: [
       { id: 'local-feast', icon: '🍜', name: 'Local Feast', tiers: ['10 Local Dishes', '30 Dishes', '100 Dishes'], desc: 'Street food & local eats documented' },
@@ -62,7 +67,6 @@ const BADGE_CATEGORIES = [
     id: 'creator',
     emoji: '📸',
     color: '#00B4D8',
-    accent: '#90E0EF',
     title: 'Creator Badges',
     badges: [
       { id: 'reel-traveller', icon: '🎬', name: 'Reel Traveller', tiers: ['5 Videos', '20 Videos', '50 Videos'], desc: 'Travel videos published' },
@@ -76,7 +80,6 @@ const BADGE_CATEGORIES = [
     id: 'community',
     emoji: '🤙',
     color: '#2D9B5A',
-    accent: '#69F0AE',
     title: 'Community Badges',
     badges: [
       { id: 'zap-magnet', icon: '⚡', name: 'Zap Magnet', tiers: ['100 Zaps', '1K Zaps', '10K Zaps'], desc: 'Zaps received from the community' },
@@ -90,7 +93,6 @@ const BADGE_CATEGORIES = [
     id: 'special',
     emoji: '✨',
     color: '#E63946',
-    accent: '#FFBE0B',
     title: 'Special Edition Badges',
     badges: [
       { id: 'night-owl', icon: '🌙', name: 'Night Owl Tripper', tiers: ['Unique — Seasonal'], desc: 'Awarded during TravelTelly night travel campaigns' },
@@ -102,8 +104,8 @@ const BADGE_CATEGORIES = [
   },
 ];
 
-// Flatten all badge definitions
-const ALL_BADGES: BadgeDef[] = BADGE_CATEGORIES.flatMap(cat =>
+// Flatten preset badges
+const PRESET_BADGES: PresetBadge[] = PRESET_CATEGORIES.flatMap(cat =>
   cat.badges.map(b => ({
     id: b.id,
     name: b.name,
@@ -115,7 +117,17 @@ const ALL_BADGES: BadgeDef[] = BADGE_CATEGORIES.flatMap(cat =>
   }))
 );
 
-// NIP-58 kinds
+export interface CustomBadge {
+  id: string;
+  name: string;
+  description: string;
+  image: string;
+  tiers: string[];
+  category: string;
+  isCustom: true;
+  icon?: string;
+}
+
 const BADGE_DEFINITION_KIND = 30009;
 const BADGE_AWARD_KIND = 8;
 
@@ -123,25 +135,46 @@ function buildBadgeAddr(adminPubkey: string, badgeId: string): string {
   return `${BADGE_DEFINITION_KIND}:${adminPubkey}:${badgeId}`;
 }
 
-/**
- * Admin Badge Manager
- * - Define/publish badges (kind 30009)
- * - Award badges to users (kind 8)
- * - View award history
- */
+function sanitizeId(input: string): string {
+  return input.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+function getCategoryColor(catName: string): string {
+  const found = PRESET_CATEGORIES.find(c => c.title === catName);
+  if (found) return found.color;
+  // Hash to consistent color for custom categories
+  let hash = 0;
+  for (let i = 0; i < catName.length; i++) hash = catName.charCodeAt(i) + ((hash << 5) - hash);
+  const hue = Math.abs(hash % 360);
+  return `hsl(${hue}, 65%, 55%)`;
+}
+
+// ------------------------------------------------------------------------------
+// COMPONENT
+// ------------------------------------------------------------------------------
+
 export function AdminBadgeManager() {
   const { nostr } = useNostr();
   const { mutate: publishEvent, isPending: isPublishing } = useNostrPublish();
   const { toast } = useToast();
   const { user } = useCurrentUser();
+  const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
 
   const [activeCategory, setActiveCategory] = useState('explorer');
   const [recipientNpub, setRecipientNpub] = useState('');
   const [awardingBadgeId, setAwardingBadgeId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Fetch existing badge definitions published by admin
-  const { data: definedBadges = [], isLoading: loadingDefs } = useQuery({
+  // Custom badge creation dialog
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [newBadgeName, setNewBadgeName] = useState('');
+  const [newBadgeDesc, setNewBadgeDesc] = useState('');
+  const [newBadgeCategory, setNewBadgeCategory] = useState('Custom');
+  const [newBadgeTiers, setNewBadgeTiers] = useState('Bronze, Silver, Gold');
+  const [newBadgeImage, setNewBadgeImage] = useState<string | null>(null);
+
+  // Fetch badge definitions from Nostr (both preset + custom)
+  const { data: relayDefs = [], isLoading: loadingDefs } = useQuery({
     queryKey: ['badge-definitions'],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
@@ -155,7 +188,10 @@ export function AdminBadgeManager() {
         const name = e.tags.find(([n]) => n === 'name')?.[1] || d;
         const description = e.tags.find(([n]) => n === 'description')?.[1] || '';
         const image = e.tags.find(([n]) => n === 'image')?.[1] || '';
-        return { id: d, name, description, image, event: e };
+        const cat = e.tags.find(([n]) => n === 't')?.[1] || 'Custom';
+        // Custom badge marker
+        const isCustom = e.tags.some(([n, v]) => n === 'custom' && v === 'true');
+        return { id: d, name, description, image, category: cat, isCustom, event: e };
       });
     },
     staleTime: 2 * 60 * 1000,
@@ -182,24 +218,83 @@ export function AdminBadgeManager() {
     staleTime: 2 * 60 * 1000,
   });
 
-  const definedIds = useMemo(() => new Set(definedBadges.map(b => b.id)), [definedBadges]);
+  // Build ALL badges list: presets (with optional image override from relay) + custom
+  const mergedBadges = useMemo(() => {
+    const defsById = new Map<string, { image: string; category: string; isCustom: boolean }>();
+    relayDefs.forEach(d => defsById.set(d.id, { image: d.image, category: d.category, isCustom: d.isCustom }));
 
-  const activeCat = BADGE_CATEGORIES.find(c => c.id === activeCategory);
+    const all: (PresetBadge | CustomBadge)[] = [
+      ...PRESET_BADGES.map(b => {
+        const def = defsById.get(b.id);
+        return {
+          ...b,
+          image: def?.image || undefined,
+          category: def?.category || b.category,
+        };
+      }),
+      ...relayDefs
+        .filter(d => d.isCustom)
+        .map(d => ({
+          id: d.id,
+          name: d.name,
+          description: d.description,
+          image: d.image,
+          tiers: ['Awarded'],
+          category: d.category,
+          isCustom: true as const,
+        })),
+    ];
+    return all;
+  }, [relayDefs]);
+
+  const definedIds = useMemo(() => new Set(relayDefs.map(b => b.id)), [relayDefs]);
+
+  const activeCat = PRESET_CATEGORIES.find(c => c.id === activeCategory);
 
   const filteredBadges = useMemo(() => {
-    if (!searchQuery.trim()) return ALL_BADGES;
+    if (!searchQuery.trim()) return mergedBadges;
     const q = searchQuery.toLowerCase();
-    return ALL_BADGES.filter(b =>
+    return mergedBadges.filter(b =>
       b.name.toLowerCase().includes(q) ||
       b.description.toLowerCase().includes(q) ||
       b.category.toLowerCase().includes(q)
     );
-  }, [searchQuery]);
+  }, [searchQuery, mergedBadges]);
 
-  // Publish a badge definition (kind 30009)
-  const handleDefineBadge = (badge: BadgeDef) => {
+  // -- IMAGE UPLOAD --
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const tags = await uploadFile(file);
+      // Extract URL from NIP-94 tags returned by Blossom upload
+      const urlTag = tags.find(([n]) => n === 'url');
+      const imageUrl = urlTag?.[1] || '';
+      if (imageUrl) {
+        setNewBadgeImage(imageUrl);
+        toast({ title: 'Image uploaded', description: 'Badge image is ready.' });
+      }
+    } catch (err) {
+      toast({ title: 'Upload failed', description: String(err), variant: 'destructive' });
+    }
+  };
+
+  const resetCreateForm = () => {
+    setNewBadgeName('');
+    setNewBadgeDesc('');
+    setNewBadgeCategory('Custom');
+    setNewBadgeTiers('Bronze, Silver, Gold');
+    setNewBadgeImage(null);
+    setShowCreateDialog(false);
+  };
+
+  // -- DEFINE PRESET BADGE --
+  const handleDefinePreset = useCallback((badge: PresetBadge) => {
     if (definedIds.has(badge.id)) {
-      toast({ title: 'Badge already defined', description: `"${badge.name}" is already published.`, variant: 'destructive' });
+      toast({ title: 'Already defined', description: `"${badge.name}" is published.`, variant: 'destructive' });
       return;
     }
 
@@ -210,28 +305,84 @@ export function AdminBadgeManager() {
         ['d', badge.id],
         ['name', badge.name],
         ['description', badge.description],
-        // Include tiers in description or as custom tags
-        ...badge.tiers.map((t, i) => ['t', t] as [string, string]),
+        ...badge.tiers.map((t): [string, string] => ['t', t]),
+        ['t', badge.category],
       ],
     }, {
-      onSuccess: () => {
-        toast({ title: 'Badge defined!', description: `"${badge.name}" is now published on Nostr.` });
-      },
-      onError: (err: Error) => {
-        toast({ title: 'Failed to define badge', description: err.message, variant: 'destructive' });
-      },
+      onSuccess: () => toast({ title: 'Badge defined!', description: `"${badge.name}" published on Nostr.` }),
+      onError: (err: Error) => toast({ title: 'Failed', description: err.message, variant: 'destructive' }),
     });
-  };
+  }, [definedIds, publishEvent, toast]);
 
-  // Award a badge to a user (kind 8)
-  const handleAwardBadge = (badgeId: string) => {
+  // -- CREATE CUSTOM BADGE --
+  const handleCreateCustom = useCallback(() => {
+    if (!newBadgeName.trim() || !newBadgeDesc.trim()) {
+      toast({ title: 'Fill in name & description', variant: 'destructive' });
+      return;
+    }
+    const id = sanitizeId(newBadgeName);
+    const tiers = newBadgeTiers.split(',').map(t => t.trim()).filter(Boolean);
+
+    const tags: string[][] = [
+      ['d', id],
+      ['name', newBadgeName.trim()],
+      ['description', newBadgeDesc.trim()],
+      ['custom', 'true'],
+      ['t', newBadgeCategory.trim() || 'Custom'],
+      ...tiers.map((t): [string, string] => ['t', t]),
+    ];
+    if (newBadgeImage) {
+      tags.push(['image', newBadgeImage]);
+      // Add thumbnail hint
+      tags.push(['thumb', newBadgeImage]);
+    }
+
+    publishEvent({
+      kind: BADGE_DEFINITION_KIND,
+      content: '',
+      tags,
+    }, {
+      onSuccess: () => {
+        toast({ title: 'Custom badge created!', description: `"${newBadgeName}" is now published.` });
+        resetCreateForm();
+      },
+      onError: (err: Error) => toast({ title: 'Failed', description: err.message, variant: 'destructive' }),
+    });
+  }, [newBadgeName, newBadgeDesc, newBadgeCategory, newBadgeTiers, newBadgeImage, publishEvent, toast]);
+
+  // -- DEFINE ALL PRESET BADGES --
+  const handleDefineAllPresets = useCallback(() => {
+    const unpublished = PRESET_BADGES.filter(b => !definedIds.has(b.id));
+    if (unpublished.length === 0) {
+      toast({ title: 'All preset badges defined' });
+      return;
+    }
+    unpublished.forEach((badge, i) => {
+      setTimeout(() => {
+        publishEvent({
+          kind: BADGE_DEFINITION_KIND,
+          content: '',
+          tags: [
+            ['d', badge.id],
+            ['name', badge.name],
+            ['description', badge.description],
+            ...badge.tiers.map((t): [string, string] => ['t', t]),
+            ['t', badge.category],
+          ],
+        });
+      }, i * 300);
+    });
+    toast({ title: `Defining ${unpublished.length} badges...`, description: 'Publishing to Nostr in batches.' });
+  }, [definedIds, publishEvent, toast]);
+
+  // -- AWARD BADGE --
+  const handleAward = useCallback((badgeId: string) => {
     const npub = recipientNpub.trim();
     if (!npub) {
-      toast({ title: 'Enter recipient npub', description: 'Paste the user\'s npub or pubkey.', variant: 'destructive' });
+      toast({ title: 'Enter recipient npub', variant: 'destructive' });
       return;
     }
 
-    // Decode npub to hex pubkey if needed
     let recipientPubkey: string;
     try {
       if (npub.startsWith('npub1')) {
@@ -244,20 +395,18 @@ export function AdminBadgeManager() {
         throw new Error('Invalid pubkey format');
       }
     } catch {
-      toast({ title: 'Invalid npub', description: 'Please enter a valid npub or 64-char hex pubkey.', variant: 'destructive' });
+      toast({ title: 'Invalid npub', description: 'Enter a valid npub or 64-char hex pubkey.', variant: 'destructive' });
       return;
     }
 
-    // Must have the badge defined first
     if (!definedIds.has(badgeId)) {
-      toast({ title: 'Badge not defined', description: 'Define the badge first before awarding it.', variant: 'destructive' });
+      toast({ title: 'Badge not defined', description: 'Define the badge first before awarding.', variant: 'destructive' });
       return;
     }
 
-    // Use admin's pubkey for the badge definition addr
     const adminPubkey = user?.pubkey || '';
     if (!adminPubkey) {
-      toast({ title: 'Not logged in', description: 'You must be logged in as admin to award badges.', variant: 'destructive' });
+      toast({ title: 'Not logged in', variant: 'destructive' });
       return;
     }
     const addr = buildBadgeAddr(adminPubkey, badgeId);
@@ -271,41 +420,16 @@ export function AdminBadgeManager() {
       ],
     }, {
       onSuccess: () => {
-        toast({ title: 'Badge awarded!', description: `Sent to npub...${recipientPubkey.slice(-8)}` });
+        toast({ title: 'Badge awarded!', description: `Sent to ...${recipientPubkey.slice(-8)}` });
         setAwardingBadgeId(null);
         setRecipientNpub('');
       },
-      onError: (err: Error) => {
-        toast({ title: 'Award failed', description: err.message, variant: 'destructive' });
-      },
+      onError: (err: Error) => toast({ title: 'Award failed', description: err.message, variant: 'destructive' }),
     });
-  };
+  }, [recipientNpub, definedIds, user?.pubkey, publishEvent, toast]);
 
-  // Define ALL badges at once
-  const handleDefineAll = () => {
-    const unpublished = ALL_BADGES.filter(b => !definedIds.has(b.id));
-    if (unpublished.length === 0) {
-      toast({ title: 'All badges defined', description: 'Every badge is already published.' });
-      return;
-    }
-
-    unpublished.forEach((badge, i) => {
-      setTimeout(() => {
-        publishEvent({
-          kind: BADGE_DEFINITION_KIND,
-          content: '',
-          tags: [
-            ['d', badge.id],
-            ['name', badge.name],
-            ['description', badge.description],
-            ...badge.tiers.map((t) => ['t', t] as [string, string]),
-          ],
-        });
-      }, i * 300);
-    });
-
-    toast({ title: `Defining ${unpublished.length} badges...`, description: 'Publishing to Nostr in batches.' });
-  };
+  // Helper: find any badge by id
+  const findBadge = (id: string) => mergedBadges.find(b => b.id === id);
 
   return (
     <div className="space-y-6">
@@ -317,57 +441,145 @@ export function AdminBadgeManager() {
             Badge Manager
           </CardTitle>
           <CardDescription>
-            Define NIP-58 badges and award them to TravelTelly users. Badges are published on Nostr and appear on user profiles.
+            Define NIP-58 badges and award them to TravelTelly users. Create custom badges with your own images.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-3">
-            <Button
-              variant="outline"
-              className="rounded-full"
-              onClick={handleDefineAll}
-              disabled={isPublishing}
-            >
+            <Button variant="outline" className="rounded-full" onClick={handleDefineAllPresets} disabled={isPublishing}>
               {isPublishing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
-              Define All Badges
+              Define All Presets
+            </Button>
+            <Button variant="default" className="rounded-full" style={{ backgroundColor: '#FF6B35' }} onClick={() => setShowCreateDialog(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Create Custom Badge
             </Button>
             <Badge variant="secondary" className="text-sm py-1 px-3">
-              {definedBadges.length} / {ALL_BADGES.length} published
+              {relayDefs.length} / {PRESET_BADGES.length} published
             </Badge>
           </div>
         </CardContent>
       </Card>
 
+      {/* CREATE CUSTOM BADGE DIALOG */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5" style={{ color: '#FF6B35' }} />
+              Create Custom Badge
+            </DialogTitle>
+            <DialogDescription>
+              Design your own badge with a custom image. It will be published on Nostr as a kind 30009 event.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5 py-2">
+            {/* Image upload */}
+            <div className="space-y-2">
+              <Label>Badge Image</Label>
+              <div className="flex items-center gap-4">
+                <div
+                  className="w-24 h-24 rounded-xl border-2 border-dashed flex items-center justify-center cursor-pointer overflow-hidden bg-muted/50 hover:bg-muted transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {newBadgeImage ? (
+                    <img src={newBadgeImage} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <ImagePlus className="w-8 h-8 text-muted-foreground" />
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full"
+                    disabled={isUploading}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {isUploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Camera className="w-4 h-4 mr-2" />}
+                    {isUploading ? 'Uploading...' : 'Upload Image'}
+                  </Button>
+                  {newBadgeImage && (
+                    <Button type="button" variant="ghost" size="sm" className="text-red-500 rounded-full" onClick={() => setNewBadgeImage(null)}>
+                      <X className="w-3 h-3 mr-1" /> Remove
+                    </Button>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageSelect}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">Square images work best. Recommended: 512×512 or 1024×1024.</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Badge Name *</Label>
+              <Input placeholder="e.g. Sunrise Chaser" value={newBadgeName} onChange={e => setNewBadgeName(e.target.value)} />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Description *</Label>
+              <Input placeholder="What does this badge mean?" value={newBadgeDesc} onChange={e => setNewBadgeDesc(e.target.value)} />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Category</Label>
+              <Input
+                placeholder="Custom, Event, Challenge..."
+                value={newBadgeCategory}
+                onChange={e => setNewBadgeCategory(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Tiers (comma-separated)</Label>
+              <Input
+                placeholder="Bronze, Silver, Gold, Platinum"
+                value={newBadgeTiers}
+                onChange={e => setNewBadgeTiers(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">Leave tiers blank if the badge has no levels.</p>
+            </div>
+
+            <Separator />
+
+            <div className="flex gap-2 pt-2">
+              <Button className="flex-1 rounded-full" style={{ backgroundColor: '#FF6B35' }} disabled={isPublishing} onClick={handleCreateCustom}>
+                {isPublishing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                Publish Badge
+              </Button>
+              <Button variant="outline" className="rounded-full" onClick={resetCreateForm}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Tabs defaultValue="catalogue" className="w-full">
         <TabsList className="grid w-full grid-cols-3 md:w-auto md:inline-flex">
-          <TabsTrigger value="catalogue" className="flex items-center gap-1.5">
-            <Globe className="w-4 h-4" /> Catalogue
-          </TabsTrigger>
-          <TabsTrigger value="award" className="flex items-center gap-1.5">
-            <Award className="w-4 h-4" /> Award
-          </TabsTrigger>
-          <TabsTrigger value="history" className="flex items-center gap-1.5">
-            <Crown className="w-4 h-4" /> History
-          </TabsTrigger>
+          <TabsTrigger value="catalogue" className="flex items-center gap-1.5"><Globe className="w-4 h-4" /> Catalogue</TabsTrigger>
+          <TabsTrigger value="award" className="flex items-center gap-1.5"><Award className="w-4 h-4" /> Award</TabsTrigger>
+          <TabsTrigger value="history" className="flex items-center gap-1.5"><Crown className="w-4 h-4" /> History</TabsTrigger>
         </TabsList>
 
-        {/* --- CATALOGUE TAB --- */}
+        {/* === CATALOGUE === */}
         <TabsContent value="catalogue" className="mt-4 space-y-4">
-          {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search badges..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
+            <Input placeholder="Search badges..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9" />
           </div>
 
-          {/* Category pills */}
+          {/* Category pills (hide when searching) */}
           {!searchQuery && (
             <div className="flex flex-wrap gap-2">
-              {BADGE_CATEGORIES.map(cat => (
+              {PRESET_CATEGORIES.map(cat => (
                 <button
                   key={cat.id}
                   onClick={() => setActiveCategory(cat.id)}
@@ -381,70 +593,83 @@ export function AdminBadgeManager() {
                   {cat.emoji} {cat.title}
                 </button>
               ))}
+              {/* Custom category pill if there are custom badges */}
+              {relayDefs.some(d => d.isCustom) && (
+                <button
+                  onClick={() => setActiveCategory('custom')}
+                  className="px-4 py-2 rounded-full text-sm font-medium transition-all border"
+                  style={{
+                    borderColor: activeCategory === 'custom' ? '#FF6B35' : 'rgba(0,0,0,0.1)',
+                    background: activeCategory === 'custom' ? '#FF6B3518' : 'transparent',
+                    color: activeCategory === 'custom' ? '#FF6B35' : '#666',
+                  }}
+                >
+                  ✨ Custom Badges
+                </button>
+              )}
             </div>
           )}
 
           {/* Badge grid */}
           <div className="grid gap-3">
-            {(searchQuery ? filteredBadges : activeCat?.badges || []).map((badge) => {
+            {(searchQuery ? filteredBadges
+              : activeCategory === 'custom'
+                ? mergedBadges.filter(b => 'isCustom' in b && b.isCustom)
+                : (activeCat?.badges.map(pb => mergedBadges.find(b => b.id === pb.id)!).filter(Boolean) as typeof mergedBadges)
+            ).map((badge) => {
               const isDefined = definedIds.has(badge.id);
-              const fullBadge = ALL_BADGES.find(b => b.id === badge.id)!;
+              const color = getCategoryColor(badge.category);
+              const imageUrl = ('image' in badge && badge.image) ? badge.image : undefined;
+              const isCustom = 'isCustom' in badge;
+
               return (
                 <Card key={badge.id} className={`overflow-hidden transition-all ${isDefined ? 'border-green-300 dark:border-green-800' : ''}`}>
                   <CardContent className="p-4">
                     <div className="flex items-start gap-4">
+                      {/* Badge image / icon */}
                       <div
-                        className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
-                        style={{ background: `${fullBadge.categoryColor}18` }}
+                        className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 overflow-hidden"
+                        style={{ background: imageUrl ? 'transparent' : `${color}18` }}
                       >
-                        {badge.icon}
+                        {imageUrl ? (
+                          <img src={imageUrl} alt={badge.name} className="w-full h-full object-cover" />
+                        ) : (
+                          badge.icon
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <h3 className="font-bold">{badge.name}</h3>
                           {isDefined && (
                             <Badge className="bg-green-100 text-green-700 border-green-200 text-xs">
                               <CheckCircle2 className="w-3 h-3 mr-1" /> Published
                             </Badge>
                           )}
+                          {isCustom && (
+                            <Badge variant="outline" className="text-xs border-orange-300 text-orange-600">
+                              Custom
+                            </Badge>
+                          )}
                         </div>
-                        <p className="text-sm text-muted-foreground mb-2">{badge.desc}</p>
-                        <div className="flex flex-wrap gap-1.5 mb-2">
-                          {badge.tiers.map((tier: string, i: number) => (
-                            <span
-                              key={i}
-                              className="px-2 py-0.5 rounded-full text-xs font-medium border"
-                              style={{
-                                background: i === 0 ? '#CD7F3215' : i === 1 ? '#C0C0C015' : i === 2 ? '#FFD70015' : `${fullBadge.categoryColor}15`,
-                                borderColor: i === 0 ? '#CD7F3240' : i === 1 ? '#C0C0C040' : i === 2 ? '#FFD70040' : `${fullBadge.categoryColor}40`,
-                                color: i === 0 ? '#CD7F32' : i === 1 ? '#888' : i === 2 ? '#D4A017' : fullBadge.categoryColor,
-                              }}
-                            >
-                              {tier}
-                            </span>
-                          ))}
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant={isDefined ? 'outline' : 'default'}
-                            className="text-xs rounded-full"
-                            disabled={isDefined || isPublishing}
-                            onClick={() => handleDefineBadge(fullBadge)}
-                          >
-                            {isDefined ? 'Defined' : <><Sparkles className="w-3 h-3 mr-1" /> Define on Nostr</>}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-xs rounded-full"
-                            onClick={() => {
-                              setAwardingBadgeId(badge.id);
-                              // Switch to award tab
-                              const tab = document.querySelector('[data-state="inactive"][value="award"]') as HTMLButtonElement;
-                              tab?.click();
-                            }}
-                          >
+                        <p className="text-sm text-muted-foreground mb-2">{badge.description}</p>
+                        {'tiers' in badge && badge.tiers.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mb-2">
+                            {badge.tiers.map((tier, i) => (
+                              <span key={i} className="px-2 py-0.5 rounded-full text-xs font-medium border" style={{
+                                background: i === 0 ? '#CD7F3215' : i === 1 ? '#C0C0C015' : i === 2 ? '#FFD70015' : `${color}15`,
+                                borderColor: i === 0 ? '#CD7F3240' : i === 1 ? '#C0C0C040' : i === 2 ? '#FFD70040' : `${color}40`,
+                                color: i === 0 ? '#CD7F32' : i === 1 ? '#888' : i === 2 ? '#D4A017' : color,
+                              }}>{tier}</span>
+                            ))}
+                          </div>
+                        )}
+                        <div className="flex gap-2 mt-1">
+                          {!isDefined && !isCustom && (
+                            <Button size="sm" variant="default" className="text-xs rounded-full" disabled={isPublishing} onClick={() => handleDefinePreset(badge as PresetBadge)}>
+                              <Sparkles className="w-3 h-3 mr-1" /> Define on Nostr
+                            </Button>
+                          )}
+                          <Button size="sm" variant="outline" className="text-xs rounded-full" onClick={() => { setAwardingBadgeId(badge.id); }}>
                             <Award className="w-3 h-3 mr-1" /> Award
                           </Button>
                         </div>
@@ -457,7 +682,7 @@ export function AdminBadgeManager() {
           </div>
         </TabsContent>
 
-        {/* --- AWARD TAB --- */}
+        {/* === AWARD === */}
         <TabsContent value="award" className="mt-4 space-y-4">
           <Card>
             <CardHeader>
@@ -466,17 +691,13 @@ export function AdminBadgeManager() {
                 Award a Badge
               </CardTitle>
               <CardDescription>
-                Enter a user's npub and select a badge to award them. The badge must be defined first.
+                Enter a user's npub and select a badge to award them.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Recipient (npub or hex pubkey)</Label>
-                <Input
-                  placeholder="npub1... or 64-char hex"
-                  value={recipientNpub}
-                  onChange={(e) => setRecipientNpub(e.target.value)}
-                />
+                <Input placeholder="npub1... or 64-char hex" value={recipientNpub} onChange={e => setRecipientNpub(e.target.value)} />
               </div>
 
               <Separator />
@@ -484,9 +705,11 @@ export function AdminBadgeManager() {
               <div className="space-y-2">
                 <Label>Select Badge</Label>
                 <div className="grid gap-2 max-h-80 overflow-y-auto">
-                  {ALL_BADGES.map((badge) => {
+                  {mergedBadges.map(badge => {
                     const isDefined = definedIds.has(badge.id);
                     const isSelected = awardingBadgeId === badge.id;
+                    const imageUrl = ('image' in badge && badge.image) ? badge.image : undefined;
+                    const color = getCategoryColor(badge.category);
                     return (
                       <button
                         key={badge.id}
@@ -496,17 +719,15 @@ export function AdminBadgeManager() {
                           isSelected ? 'border-orange-400 bg-orange-50 dark:bg-orange-950/30' : 'border-border hover:border-muted-foreground'
                         } ${!isDefined ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
-                        <span className="text-xl">{badge.icon}</span>
+                        <div className="w-10 h-10 rounded-lg flex items-center justify-center text-lg flex-shrink-0 overflow-hidden" style={{ background: imageUrl ? 'transparent' : `${color}18` }}>
+                          {imageUrl ? <img src={imageUrl} alt="" className="w-full h-full object-cover" /> : badge.icon}
+                        </div>
                         <div className="flex-1 min-w-0">
                           <div className="font-medium text-sm">{badge.name}</div>
                           <div className="text-xs text-muted-foreground">{badge.category}</div>
                         </div>
-                        {!isDefined && (
-                          <Badge variant="outline" className="text-xs">Not defined</Badge>
-                        )}
-                        {isSelected && (
-                          <CheckCircle2 className="w-4 h-4 text-orange-500 flex-shrink-0" />
-                        )}
+                        {!isDefined && <Badge variant="outline" className="text-xs">Not defined</Badge>}
+                        {isSelected && <CheckCircle2 className="w-4 h-4 text-orange-500 flex-shrink-0" />}
                       </button>
                     );
                   })}
@@ -516,7 +737,7 @@ export function AdminBadgeManager() {
               <Button
                 className="w-full rounded-full"
                 disabled={!awardingBadgeId || !recipientNpub.trim() || isPublishing}
-                onClick={() => awardingBadgeId && handleAwardBadge(awardingBadgeId)}
+                onClick={() => awardingBadgeId && handleAward(awardingBadgeId)}
               >
                 {isPublishing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Award className="w-4 h-4 mr-2" />}
                 Award Badge
@@ -525,7 +746,7 @@ export function AdminBadgeManager() {
           </Card>
         </TabsContent>
 
-        {/* --- HISTORY TAB --- */}
+        {/* === HISTORY === */}
         <TabsContent value="history" className="mt-4 space-y-4">
           <Card>
             <CardHeader>
@@ -539,9 +760,7 @@ export function AdminBadgeManager() {
             </CardHeader>
             <CardContent>
               {loadingAwards ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                </div>
+                <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
               ) : recentAwards.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Award className="w-10 h-10 mx-auto mb-3 opacity-30" />
@@ -550,10 +769,14 @@ export function AdminBadgeManager() {
               ) : (
                 <div className="space-y-2">
                   {recentAwards.map((award, i) => {
-                    const badge = ALL_BADGES.find(b => b.id === award.badgeId);
+                    const badge = findBadge(award.badgeId);
+                    const imageUrl = badge && ('image' in badge && badge.image) ? badge.image : undefined;
+                    const color = badge ? getCategoryColor(badge.category) : '#888';
                     return (
                       <div key={i} className="flex items-center gap-3 p-3 rounded-lg border bg-card">
-                        <div className="text-xl">{badge?.icon || '🏅'}</div>
+                        <div className="w-10 h-10 rounded-lg flex items-center justify-center text-lg flex-shrink-0 overflow-hidden" style={{ background: imageUrl ? 'transparent' : `${color}18` }}>
+                          {imageUrl ? <img src={imageUrl} alt="" className="w-full h-full object-cover" /> : (badge?.icon || '🏅')}
+                        </div>
                         <div className="flex-1 min-w-0">
                           <div className="font-medium text-sm">{badge?.name || award.badgeId}</div>
                           <div className="text-xs text-muted-foreground">

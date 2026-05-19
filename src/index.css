@@ -1,5 +1,4 @@
-/* Leaflet CSS */
-@import 'leaflet/dist/leaflet.css';
+/* Leaflet CSS is loaded from CDN in index.html */
 
 @tailwind base;
 @tailwind components;

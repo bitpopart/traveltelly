@@ -3,7 +3,6 @@ import L from 'leaflet';
 import { useMapProvider } from '@/hooks/useMapProvider';
 import { getTileLayerConfig } from '@/lib/mapConfig';
 import { markerIcons } from '@/lib/mapIcons';
-import 'leaflet/dist/leaflet.css';
 
 interface LocationMapProps {
   onLocationSelect: (lat: number, lng: number) => void;

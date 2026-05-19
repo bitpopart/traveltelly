@@ -498,7 +498,7 @@ export default function ShareScheduler() {
                         type="url"
                         value={formData.url}
                         onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                        placeholder="https://traveltelly.com/review/naddr1..."
+                        placeholder="https://traveltelly.com/review/cafe-de-flore-x7k"
                         className="mt-1.5"
                         required
                       />
@@ -1477,7 +1477,7 @@ function SocialMediaScheduler({ platform }: SocialMediaSchedulerProps) {
                   type="url"
                   value={formData.url}
                   onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                  placeholder="https://traveltelly.com/review/naddr1..."
+                  placeholder="https://traveltelly.com/review/cafe-de-flore-x7k"
                   className="mt-1.5"
                   required
                 />
