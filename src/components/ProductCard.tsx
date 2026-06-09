@@ -138,178 +138,143 @@ export function ProductCard({ product }: ProductCardProps) {
   return (
     <>
       <Card
-        className={`group hover:shadow-lg transition-shadow duration-200 overflow-hidden ${
+        className={`group hover:shadow-xl transition-all duration-200 overflow-hidden border-0 shadow-sm ${
           isAdmin && isOwnProduct && isSelected
             ? 'ring-2 ring-amber-500 ring-offset-2'
             : ''
         }`}
       >
         <CardHeader className="p-0">
-          {/* Product Image - Clickable */}
+          {/* Product Image */}
           <div className="relative">
             <Link to={`/media/preview/${generateProductNaddr()}`} className="block">
-              <div className="relative w-full pb-[100%] bg-gray-100 dark:bg-gray-800 overflow-hidden cursor-pointer">
+              <div className="relative w-full pb-[100%] bg-gray-100 dark:bg-gray-800 overflow-hidden">
                 {product.images.length > 0 ? (
                   <>
                     <img
                       src={product.images[0]}
                       alt={product.title}
-                      loading="eager"
-                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                      loading="lazy"
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-300"
                     />
 
-                    {/* Preview Overlay */}
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200 flex items-center justify-center">
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white/90 dark:bg-gray-800/90 rounded-full p-3">
-                        <Eye className="w-6 h-6 text-gray-800 dark:text-gray-200" />
+                    {/* Hover overlay */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-colors duration-200 flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white/90 dark:bg-gray-800/90 rounded-full p-2.5 shadow-lg">
+                        <Eye className="w-5 h-5 text-gray-800 dark:text-gray-200" />
                       </div>
                     </div>
 
-                    {/* Very small TravelTelly watermark on thumbnail */}
-                    <div className="absolute bottom-2 right-2 text-white/15 text-xs font-light select-none">
+                    {/* Watermark */}
+                    <div className="absolute bottom-2 right-2 text-white/20 text-[10px] font-light select-none pointer-events-none">
                       TravelTelly
                     </div>
                   </>
                 ) : null}
 
-                {/* No images fallback */}
+                {/* No image fallback */}
                 {product.images.length === 0 && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center">
-                      <ShoppingCart className="w-16 h-16 mx-auto mb-2 text-gray-400" />
-                      <p className="text-xs text-gray-500">No preview available</p>
-                    </div>
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-50 dark:bg-gray-800">
+                    <ShoppingCart className="w-12 h-12 text-gray-300" />
                   </div>
                 )}
 
-                {/* Free Badge */}
+                {/* Free badge */}
                 {isFree && (
-                  <Badge
-                    className="absolute top-2 right-2 bg-green-600 hover:bg-green-700 text-white font-bold"
-                  >
+                  <span className="absolute top-2 right-2 bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
                     🎁 FREE
-                  </Badge>
+                  </span>
                 )}
-                
-                {/* Status Badge */}
+
+                {/* Status badge */}
                 {!isFree && product.status !== 'active' && (
                   <Badge
                     variant={product.status === 'sold' ? 'destructive' : 'secondary'}
-                    className="absolute top-2 right-2"
+                    className="absolute top-2 right-2 text-[10px] rounded-full"
                   >
                     {product.status}
                   </Badge>
                 )}
 
-                {/* Media Type Badge */}
-                <Badge
-                  variant="secondary"
-                  className="absolute top-2 left-2 capitalize flex items-center gap-1"
-                >
+                {/* Media type badge */}
+                <span className="absolute top-2 left-2 flex items-center gap-1 bg-black/50 text-white text-[10px] font-medium px-2 py-0.5 rounded-full backdrop-blur-sm capitalize">
                   {getCategoryIcon(product.mediaType || product.category)}
                   {product.mediaType || product.category}
-                </Badge>
+                </span>
 
-                {/* Content Category Badge */}
-                {product.contentCategory && (
-                  <Badge
-                    variant="outline"
-                    className="absolute top-12 left-2 text-xs bg-white/90 dark:bg-gray-800/90"
-                  >
-                    🏷️ {product.contentCategory}
-                  </Badge>
-                )}
-
-                {/* Multiple Images Badge */}
+                {/* Multi-image indicator */}
                 {product.images.length > 1 && (
-                  <Badge
-                    variant="default"
-                    className="absolute bottom-2 right-2 text-xs bg-blue-600 hover:bg-blue-700 flex items-center gap-1"
-                  >
+                  <span className="absolute bottom-2 left-2 flex items-center gap-1 bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded-full backdrop-blur-sm">
                     <Images className="w-3 h-3" />
                     {product.images.length}
-                  </Badge>
+                  </span>
                 )}
               </div>
             </Link>
 
-            {/* Admin selection checkbox — floats over the top-right corner of the image */}
+            {/* Admin checkbox */}
             {isAdmin && isOwnProduct && product.images.length > 0 && (
               <button
                 onClick={handleCheckboxClick}
-                className={`absolute top-2 right-2 z-10 rounded p-0.5 transition-colors ${
+                className={`absolute bottom-2 right-2 z-10 w-6 h-6 rounded flex items-center justify-center transition-all ${
                   isSelected
-                    ? 'text-amber-500 bg-white/95 dark:bg-gray-900/95'
-                    : 'text-gray-400 bg-white/80 dark:bg-gray-900/80 opacity-0 group-hover:opacity-100'
+                    ? 'bg-amber-400 text-white shadow-sm'
+                    : 'bg-white/80 dark:bg-gray-900/80 text-gray-400 opacity-0 group-hover:opacity-100'
                 }`}
-                title={isSelected ? 'Deselect' : 'Select for bulk download'}
                 aria-label={isSelected ? 'Deselect photo' : 'Select photo for bulk download'}
               >
-                {isSelected
-                  ? <CheckSquare className="w-5 h-5" />
-                  : <Square className="w-5 h-5" />
-                }
+                {isSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
               </button>
             )}
           </div>
         </CardHeader>
 
-        <CardContent className="p-4">
-          {/* Title and Price */}
-          <div className="space-y-2 mb-3">
-            <h3 className="font-semibold text-lg line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-              {product.title}
-            </h3>
-            <div className="space-y-1">
-              {isFree ? (
-                <div className="space-y-1">
-                  <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                    FREE
-                  </div>
-                  <Badge variant="outline" className="bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700">
-                    No payment required
-                  </Badge>
+        <CardContent className="p-4 pb-3">
+          {/* Title */}
+          <h3 className="font-semibold text-sm line-clamp-2 mb-2 group-hover:text-[#ec1a58] transition-colors leading-snug">
+            {product.title}
+          </h3>
+
+          {/* Price */}
+          {isFree ? (
+            <div className="flex items-center gap-1.5 mb-2">
+              <span className="text-base font-bold text-green-600 dark:text-green-400">FREE</span>
+              <span className="text-[10px] text-green-600 border border-green-200 dark:border-green-800 rounded-full px-1.5 py-0.5">No payment needed</span>
+            </div>
+          ) : (
+            <div className="mb-2">
+              <div className="flex items-center gap-1.5">
+                {getCurrencyIcon(product.currency)}
+                <span className="text-base font-bold text-gray-900 dark:text-white">{priceInfo.primary}</span>
+              </div>
+              {priceInfo.sats && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                  <Zap className="w-3 h-3 text-yellow-500" />
+                  <span>{priceInfo.sats}</span>
                 </div>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2">
-                    {getCurrencyIcon(product.currency)}
-                    <span className="text-xl font-bold text-green-600 dark:text-green-400">
-                      {priceInfo.primary}
-                    </span>
-                  </div>
-                  {priceInfo.sats && (
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Zap className="w-3 h-3 text-yellow-500" />
-                      <span>{priceInfo.sats}</span>
-                    </div>
-                  )}
-                </>
               )}
             </div>
-          </div>
+          )}
 
-          {/* Description */}
+          {/* Description — only 1 line */}
           {product.description && (
-            <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-              {product.description}
-            </p>
+            <p className="text-xs text-muted-foreground line-clamp-1 mb-2">{product.description}</p>
           )}
 
           {/* Location */}
           {product.location && (
-            <div className="flex items-center gap-1 text-sm text-muted-foreground mb-3">
-              <MapPin className="w-3 h-3" />
-              <span>{product.location}</span>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground mb-3">
+              <MapPin className="w-3 h-3 flex-shrink-0" />
+              <span className="truncate">{product.location}</span>
             </div>
           )}
 
-          {/* Seller Info */}
-          <div className="flex items-center gap-2 text-sm">
-            <Avatar className="h-6 w-6">
+          {/* Seller */}
+          <div className="flex items-center gap-2 text-xs">
+            <Avatar className="h-5 w-5">
               <AvatarImage src={profileImage} alt={displayName} />
-              <AvatarFallback className="text-xs">
-                <User className="w-3 h-3" />
+              <AvatarFallback className="text-[9px]">
+                <User className="w-2.5 h-2.5" />
               </AvatarFallback>
             </Avatar>
             <Link
@@ -321,65 +286,59 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
         </CardContent>
 
-        <CardFooter className="p-4 pt-0 flex flex-col gap-2">
+        <CardFooter className="px-4 pb-4 pt-0 flex flex-col gap-2">
           {isOwnProduct ? (
             <>
-              <Button variant="outline" className="w-full" disabled>
+              <Button variant="outline" size="sm" className="w-full rounded-xl text-xs" disabled>
                 Your Media
               </Button>
-              {/* Admin-only: single-item download with embedded metadata */}
               {isAdmin && product.images.length > 0 && (
                 <Button
                   variant="outline"
-                  className="w-full border-amber-500 text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                  size="sm"
+                  className="w-full rounded-xl text-xs border-amber-400 text-amber-700 hover:bg-amber-50"
                   onClick={handleAdminDownload}
                   disabled={isDownloading}
                 >
                   {isDownloading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Embedding metadata…
-                    </>
+                    <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Embedding…</>
                   ) : (
-                    <>
-                      <Download className="w-4 h-4 mr-2" />
-                      Download + Metadata
-                    </>
+                    <><Download className="w-3.5 h-3.5 mr-1.5" />Download + Metadata</>
                   )}
                 </Button>
               )}
             </>
           ) : product.status === 'sold' ? (
-            <Button variant="outline" className="w-full" disabled>
-              Sold Out
-            </Button>
+            <Button variant="outline" size="sm" className="w-full rounded-xl text-xs" disabled>Sold Out</Button>
           ) : product.status === 'inactive' ? (
-            <Button variant="outline" className="w-full" disabled>
-              Unavailable
-            </Button>
+            <Button variant="outline" size="sm" className="w-full rounded-xl text-xs" disabled>Unavailable</Button>
           ) : isFree ? (
             <Button
-              className="w-full bg-green-600 hover:bg-green-700"
+              size="sm"
+              className="w-full rounded-xl text-xs bg-green-600 hover:bg-green-700"
               onClick={() => setShowPaymentDialog(true)}
             >
-              <Download className="w-4 h-4 mr-2" />
+              <Download className="w-3.5 h-3.5 mr-1.5" />
               Download Free
             </Button>
           ) : subscription?.isActive ? (
             <Button
-              className="w-full bg-green-600 hover:bg-green-700"
+              size="sm"
+              className="w-full rounded-xl text-xs bg-green-600 hover:bg-green-700"
               onClick={() => setShowPaymentDialog(true)}
             >
-              <Crown className="w-4 h-4 mr-2" />
+              <Crown className="w-3.5 h-3.5 mr-1.5" />
               Download (Included)
             </Button>
           ) : (
             <Button
-              className="w-full bg-blue-600 hover:bg-blue-700"
+              size="sm"
+              className="w-full rounded-xl text-xs text-white hover:opacity-90 transition-opacity"
+              style={{ backgroundColor: '#ec1a58' }}
               onClick={() => setShowPaymentDialog(true)}
             >
-              <Download className="w-4 h-4 mr-2" />
-              License & Download
+              <Download className="w-3.5 h-3.5 mr-1.5" />
+              License &amp; Download
             </Button>
           )}
         </CardFooter>
