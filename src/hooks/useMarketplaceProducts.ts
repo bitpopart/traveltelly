@@ -1,7 +1,56 @@
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
 import type { NostrEvent, NostrFilter } from '@nostrify/nostrify';
+import { NRelay1 } from '@nostrify/nostrify';
 import { useAuthorizedMediaUploaders } from './useStockMediaPermissions';
+import { ADMIN_HEX } from './useBlossomMedia';
+
+/**
+ * Additional relays to query for marketplace products directly — bypassing
+ * the user-configured relay list. These are well-known public relays that
+ * index content and are unlikely to nuke their data.
+ */
+const MARKETPLACE_FALLBACK_RELAYS = [
+  'wss://nos.lol',
+  'wss://relay.ditto.pub',
+  'wss://relay.dreamith.to',
+  'wss://relay.primal.net',
+];
+
+/**
+ * Query kind 30402 events by the admin pubkey directly from a set of relays,
+ * bypassing the NPool. Returns raw events or [] on failure.
+ */
+async function queryAdminProductsFromRelays(signal: AbortSignal): Promise<NostrEvent[]> {
+  const filter: NostrFilter = {
+    kinds: [30402],
+    authors: [ADMIN_HEX],
+    limit: 2000,
+  };
+
+  const results = await Promise.allSettled(
+    MARKETPLACE_FALLBACK_RELAYS.map(async (url) => {
+      const relay = new NRelay1(url);
+      try {
+        const events = await relay.query([filter], { signal });
+        return events;
+      } finally {
+        relay.close?.();
+      }
+    })
+  );
+
+  // Merge all events, deduplicate by event id
+  const seen = new Map<string, NostrEvent>();
+  for (const r of results) {
+    if (r.status === 'fulfilled') {
+      for (const e of r.value) {
+        if (!seen.has(e.id)) seen.set(e.id, e);
+      }
+    }
+  }
+  return Array.from(seen.values());
+}
 
 export interface MarketplaceProduct {
   id: string;
@@ -188,10 +237,13 @@ export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = 
   return useQuery({
     queryKey: ['marketplace-products', JSON.stringify(options), Array.from(authorizedUploaders || [])],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(20000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(25000)]);
 
       const authorizedAuthors = Array.from(authorizedUploaders || []);
-      if (authorizedAuthors.length === 0) return [];
+      // Always include admin even if permission grants haven't loaded yet
+      if (!authorizedAuthors.includes(ADMIN_HEX)) {
+        authorizedAuthors.push(ADMIN_HEX);
+      }
 
       const authors = options.seller ? [options.seller] : authorizedAuthors;
       const filter: NostrFilter = {
@@ -201,11 +253,21 @@ export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = 
       };
       if (options.category) filter['#t'] = [options.category];
 
-      const allEvents = await nostr.query([filter], { signal });
+      // Query both the configured pool AND dedicated fallback relays in parallel
+      const [poolEvents, fallbackEvents] = await Promise.allSettled([
+        nostr.query([filter], { signal }),
+        // For admin-only queries, also hit the fallback relays directly
+        authors.includes(ADMIN_HEX) ? queryAdminProductsFromRelays(signal) : Promise.resolve([]),
+      ]);
+
+      const rawEvents: NostrEvent[] = [
+        ...(poolEvents.status === 'fulfilled' ? poolEvents.value : []),
+        ...(fallbackEvents.status === 'fulfilled' ? fallbackEvents.value : []),
+      ];
 
       // Deduplicate addressable events — keep newest per pubkey+d
       const seen = new Map<string, NostrEvent>();
-      for (const e of allEvents) {
+      for (const e of rawEvents) {
         const dTag = e.tags.find(([n]) => n === 'd')?.[1] ?? '';
         const key = `${e.pubkey}:${dTag}`;
         const existing = seen.get(key);
