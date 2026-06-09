@@ -12,9 +12,11 @@ import { ADMIN_HEX } from './useBlossomMedia';
  */
 const MARKETPLACE_FALLBACK_RELAYS = [
   'wss://nos.lol',
+  'wss://relay.nos.social',
+  'wss://relay.primal.net',
   'wss://relay.ditto.pub',
   'wss://relay.dreamith.to',
-  'wss://relay.primal.net',
+  'wss://nostr.bitcoiner.social',
 ];
 
 /**

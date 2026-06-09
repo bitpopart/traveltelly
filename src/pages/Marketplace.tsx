@@ -3,40 +3,32 @@ import { useState, useMemo } from 'react';
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useBlossomMedia, ADMIN_HEX, type BlossomMediaItem } from "@/hooks/useBlossomMedia";
+import { ADMIN_HEX } from "@/hooks/useBlossomMedia";
 import { useMarketplaceProducts } from "@/hooks/useMarketplaceProducts";
 import { useMarketplaceSubscription } from "@/hooks/useMarketplaceSubscription";
-import { useMarketplaceBins } from "@/hooks/useMarketplaceBins";
-import { ProductCard } from "@/components/ProductCard";
 import { CreateProductDialog } from "@/components/CreateProductDialog";
 import { MarketplaceSubscriptionDialog } from "@/components/MarketplaceSubscriptionDialog";
-import { MarketplaceBinSection } from "@/components/MarketplaceBinSection";
 import { PaymentDialog } from "@/components/PaymentDialog";
 import { AdminSelectionProvider, useAdminSelection } from "@/contexts/AdminSelectionContext";
 import { adminBulkDownload } from "@/lib/adminBulkDownload";
 import type { BulkDownloadProgress } from "@/lib/adminBulkDownload";
 import type { MarketplaceProduct } from "@/hooks/useMarketplaceProducts";
-import { GeoBrowser } from "@/components/GeoBrowser";
-import { getContinentLabel, getCountryLabel } from "@/lib/geoData";
+import { useAuthor } from "@/hooks/useAuthor";
+import { genUserName } from "@/lib/genUserName";
+import { usePriceConversion } from "@/hooks/usePriceConversion";
 import {
-  ShoppingCart, Search, Plus, Store, Zap, CreditCard, Camera, Video, Crown,
-  Globe, LayoutGrid, Download, CheckSquare, X, Loader2, Eye, MapPin
+  Search, Plus, ShoppingCart, Zap, Crown, Download,
+  CheckSquare, X, Loader2, MapPin, Camera, Video,
+  SlidersHorizontal
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { nip19 } from "nostr-tools";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-}
 
 function generateNaddr(product: MarketplaceProduct): string {
   try {
@@ -44,182 +36,252 @@ function generateNaddr(product: MarketplaceProduct): string {
   } catch { return ''; }
 }
 
-// ─── BlossomAdminGallery — only shown to logged-in admin ─────────────────────
+// ─── ShopCard — matches shosho.live shop card style ──────────────────────────
 
-interface BlossomAdminGalleryProps {
-  blossomItems: BlossomMediaItem[];
-  products: MarketplaceProduct[];
-  isLoading: boolean;
+interface ShopCardProps {
+  product: MarketplaceProduct;
+  isAdmin: boolean;
+  isSelected: boolean;
+  onToggle: () => void;
 }
 
-function BlossomAdminGallery({ blossomItems, products, isLoading }: BlossomAdminGalleryProps) {
+function ShopCard({ product, isAdmin, isSelected, onToggle }: ShopCardProps) {
   const { user } = useCurrentUser();
   const { data: subscription } = useMarketplaceSubscription(user?.pubkey);
-  const { selectedIds, toggle } = useAdminSelection();
+  const [showPayment, setShowPayment] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
-  // Only show blobs that do NOT already appear in the relay products grid
-  // (to avoid showing the same item twice)
-  const blobsWithoutProduct = useMemo(() => {
-    return blossomItems.filter((blob) =>
-      !products.some((p) => p.images.some((img) => img.includes(blob.sha256)))
-    );
-  }, [blossomItems, products]);
+  const isVideo = product.mediaType === 'videos' || product.category === 'videos';
+  const isFree = product.event.tags.some(t => t[0] === 'free' && t[1] === 'true');
+  const isOwn = user?.pubkey === product.seller.pubkey;
+  const naddr = generateNaddr(product);
+  const priceInfo = usePriceConversion(product.price, product.currency);
 
-  if (isLoading) {
-    return (
-      <div className="mb-12">
-        <div className="flex items-center gap-2 mb-4">
-          <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#ec1a58' }} />
-          <span className="text-sm text-gray-500">Loading your Blossom library…</span>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {Array.from({ length: 10 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-xl overflow-hidden shadow-sm">
-              <Skeleton className="aspect-square w-full" />
-              <div className="p-3 space-y-1">
-                <Skeleton className="h-3 w-2/3" />
-                <Skeleton className="h-6 w-full rounded-md" />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (blobsWithoutProduct.length === 0) return null;
+  const img = product.images[0];
 
   return (
-    <div className="mb-12">
-      <div className="flex items-center gap-2 mb-4">
-        <Camera className="w-5 h-5" style={{ color: '#ec1a58' }} />
-        <h2 className="text-xl font-bold text-gray-900">
-          Blossom Library — not yet listed ({blobsWithoutProduct.length})
-        </h2>
-      </div>
-      <p className="text-sm text-gray-500 mb-4">
-        These files are on your Blossom servers but don't have a matching marketplace product yet.
-        Upload a product to make them purchasable.
-      </p>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        {blobsWithoutProduct.map((blob) => {
-          const isVideo = blob.kind === 'video';
-          const productForBlob = products.find((p) => p.images.some((img) => img.includes(blob.sha256)));
-          const isSelected = productForBlob ? selectedIds.has(productForBlob.id) : false;
-          return (
-            <div
-              key={blob.sha256}
-              className={`group relative bg-white rounded-xl overflow-hidden shadow-sm border transition-all ${
-                isSelected ? 'ring-2 ring-amber-500 border-amber-300' : 'border-gray-200 hover:shadow-lg'
-              }`}
-            >
-              <div className="relative aspect-square overflow-hidden bg-gray-100">
-                {isVideo ? (
-                  <video src={blob.url} className="w-full h-full object-cover" muted playsInline preload="metadata" />
-                ) : (
-                  <img
-                    src={blob.url}
-                    alt="Blossom media"
-                    loading="lazy"
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                )}
-                <div className="absolute top-2 left-2">
-                  <Badge className="text-[10px] py-0 px-1.5 bg-black/60 text-white border-0 flex items-center gap-1">
-                    {isVideo ? <Video className="w-3 h-3" /> : <Camera className="w-3 h-3" />}
-                    {isVideo ? 'Video' : 'Photo'}
-                  </Badge>
-                </div>
-                {productForBlob && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); toggle(productForBlob); }}
-                    className={`absolute bottom-2 left-2 z-10 rounded p-0.5 transition-all ${
-                      isSelected ? 'text-amber-500 bg-white/95' : 'text-gray-400 bg-white/80 opacity-0 group-hover:opacity-100'
-                    }`}
-                  >
-                    <CheckSquare className="w-4 h-4" />
-                  </button>
-                )}
+    <>
+      <div
+        className={`group relative bg-white rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-lg ${
+          isSelected ? 'ring-2 ring-amber-400' : ''
+        }`}
+        style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}
+      >
+        {/* Image */}
+        <Link to={naddr ? `/media/preview/${naddr}` : '#'} className="block">
+          <div className="relative w-full aspect-square bg-gray-100 overflow-hidden">
+            {isVideo ? (
+              <video
+                src={img}
+                className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
+                muted playsInline preload="metadata"
+              />
+            ) : imgError || !img ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+                <Camera className="w-10 h-10 text-gray-300" />
               </div>
-              <div className="p-2">
-                <p className="text-xs text-gray-400">{formatSize(blob.size)}</p>
-                <Button size="sm" variant="outline" className="w-full h-6 text-xs mt-1" asChild>
-                  <a href={blob.url} target="_blank" rel="noopener noreferrer">
-                    <Eye className="w-3 h-3 mr-1" />View
-                  </a>
-                </Button>
-              </div>
+            ) : (
+              <img
+                src={img}
+                alt={product.title}
+                loading="lazy"
+                className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
+                onError={() => setImgError(true)}
+              />
+            )}
+
+            {/* Top-left: media type */}
+            <div className="absolute top-2 left-2">
+              <span className="flex items-center gap-1 bg-black/50 text-white text-[10px] font-medium px-2 py-0.5 rounded-full backdrop-blur-sm">
+                {isVideo ? <Video className="w-3 h-3" /> : <Camera className="w-3 h-3" />}
+                {isVideo ? 'Video' : 'Photo'}
+              </span>
             </div>
-          );
-        })}
+
+            {/* Top-right: free badge */}
+            {isFree && (
+              <div className="absolute top-2 right-2">
+                <span className="bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">FREE</span>
+              </div>
+            )}
+
+            {/* Multiple images indicator */}
+            {product.images.length > 1 && (
+              <div className="absolute bottom-2 right-2">
+                <span className="bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded-full backdrop-blur-sm">
+                  +{product.images.length - 1}
+                </span>
+              </div>
+            )}
+
+            {/* Admin checkbox */}
+            {isAdmin && isOwn && (
+              <button
+                onClick={e => { e.preventDefault(); e.stopPropagation(); onToggle(); }}
+                className={`absolute bottom-2 left-2 z-10 w-6 h-6 rounded flex items-center justify-center transition-all ${
+                  isSelected ? 'bg-amber-400 text-white' : 'bg-white/80 text-gray-400 opacity-0 group-hover:opacity-100'
+                }`}
+              >
+                <CheckSquare className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </Link>
+
+        {/* Card body */}
+        <div className="p-3">
+          {/* Title */}
+          <p className="text-sm font-semibold text-gray-900 line-clamp-1 mb-1">{product.title}</p>
+
+          {/* Location */}
+          {product.location && (
+            <p className="flex items-center gap-1 text-xs text-gray-400 mb-2">
+              <MapPin className="w-3 h-3 flex-shrink-0" />
+              <span className="truncate">{product.location}</span>
+            </p>
+          )}
+
+          {/* Price + CTA row */}
+          <div className="flex items-center justify-between gap-2 mt-2">
+            {/* Price */}
+            {isFree ? (
+              <span className="text-sm font-bold text-green-600">Free</span>
+            ) : (
+              <span className="text-sm font-bold text-gray-900 flex items-center gap-1">
+                {product.currency === 'SATS' || product.currency === 'BTC'
+                  ? <Zap className="w-3 h-3 text-yellow-500" />
+                  : null
+                }
+                {priceInfo.primary}
+              </span>
+            )}
+
+            {/* Action */}
+            {isOwn ? (
+              <span className="text-xs text-gray-400">Your item</span>
+            ) : isFree ? (
+              <button
+                onClick={() => setShowPayment(true)}
+                className="flex items-center gap-1 text-xs font-semibold text-white px-3 py-1.5 rounded-full transition-opacity hover:opacity-90"
+                style={{ backgroundColor: '#ec1a58' }}
+              >
+                <Download className="w-3 h-3" />
+                Get
+              </button>
+            ) : subscription?.isActive ? (
+              <button
+                onClick={() => setShowPayment(true)}
+                className="flex items-center gap-1 text-xs font-semibold text-white bg-green-600 px-3 py-1.5 rounded-full hover:bg-green-700 transition-colors"
+              >
+                <Crown className="w-3 h-3" />
+                Download
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowPayment(true)}
+                className="flex items-center gap-1 text-xs font-semibold text-white px-3 py-1.5 rounded-full transition-opacity hover:opacity-90"
+                style={{ backgroundColor: '#ec1a58' }}
+              >
+                <Download className="w-3 h-3" />
+                Buy
+              </button>
+            )}
+          </div>
+        </div>
       </div>
+
+      <PaymentDialog isOpen={showPayment} onClose={() => setShowPayment(false)} product={product} />
+    </>
+  );
+}
+
+// ─── Profile header — mirrors shosho.live top area ───────────────────────────
+
+function ProfileHeader() {
+  const author = useAuthor(ADMIN_HEX);
+  const meta = author.data?.metadata;
+  const name = meta?.name ?? genUserName(ADMIN_HEX);
+  const banner = meta?.banner;
+  const avatar = meta?.picture;
+  const about = meta?.about;
+
+  return (
+    <div className="mb-8">
+      {/* Banner */}
+      <div className="relative w-full h-36 sm:h-48 rounded-2xl overflow-hidden bg-gray-200 mb-0">
+        {banner ? (
+          <img src={banner} alt="Banner" className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full" style={{ background: 'linear-gradient(135deg, #ec1a58 0%, #ff6b35 100%)' }} />
+        )}
+      </div>
+
+      {/* Avatar + name row */}
+      <div className="flex items-end gap-4 -mt-10 px-4">
+        <div className="w-20 h-20 rounded-full border-4 border-white overflow-hidden bg-gray-200 flex-shrink-0 shadow-md">
+          {avatar
+            ? <img src={avatar} alt={name} className="w-full h-full object-cover" />
+            : <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-white" style={{ backgroundColor: '#ec1a58' }}>{name[0]?.toUpperCase()}</div>
+          }
+        </div>
+        <div className="pb-2 min-w-0">
+          <h1 className="text-xl font-bold text-gray-900 truncate">{name}</h1>
+          {meta?.nip05 && <p className="text-xs text-gray-400 truncate">{meta.nip05}</p>}
+        </div>
+      </div>
+
+      {about && (
+        <p className="text-sm text-gray-600 mt-3 px-4 line-clamp-3 leading-relaxed">{about}</p>
+      )}
     </div>
   );
 }
 
-// ─── Inner component ──────────────────────────────────────────────────────────
+// ─── Main inner component ─────────────────────────────────────────────────────
 
 function MarketplaceInner() {
   const { user } = useCurrentUser();
   const { data: subscription } = useMarketplaceSubscription(user?.pubkey);
-  const { data: binsConfig } = useMarketplaceBins();
   const isAdmin = user?.pubkey === ADMIN_HEX;
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedMediaType, setSelectedMediaType] = useState('all');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [priceRange, setPriceRange] = useState('all');
-  const [geoFilter, setGeoFilter] = useState<{ continent?: string; country?: string; city?: string }>({});
+  const [search, setSearch] = useState('');
+  const [mediaType, setMediaType] = useState<'all' | 'photos' | 'videos'>('all');
+  const [showFilters, setShowFilters] = useState(false);
 
-  // Blossom — admin-only (requires NIP-98 auth)
-  const { data: blossomItems = [], isLoading: blossomLoading } = useBlossomMedia();
+  const { data: products = [], isLoading } = useMarketplaceProducts();
 
-  // Nostr products — primary source, now queries multiple relays directly
-  const { data: products, isLoading, error } = useMarketplaceProducts({
-    search: searchQuery,
-    category: selectedMediaType === 'all' ? undefined : selectedMediaType,
-    continent: geoFilter.continent,
-    country: geoFilter.country,
-  });
-
-  const { data: freeProducts } = useMarketplaceProducts({ freeOnly: true });
-
-  const visibleBins = (binsConfig?.bins ?? [])
-    .filter((b) => b.isVisible)
-    .sort((a, b) => a.sortOrder - b.sortOrder);
-
-  const { selectedIds, selectedProducts, selectAll, clearAll } = useAdminSelection();
+  const { selectedIds, selectedProducts, selectAll, clearAll, toggle } = useAdminSelection();
   const [bulkProgress, setBulkProgress] = useState<BulkDownloadProgress | null>(null);
 
   useSeoMeta({
-    title: 'Stock Media Marketplace — TravelTelly',
-    description: 'Premium travel photography & video from 88+ countries. Lightning payments. Decentralised on Nostr.',
+    title: 'TravelTelly — Stock Media Marketplace',
+    description: 'Premium travel photography & video from 88+ countries by Johannes Oppewal. Lightning payments on Nostr.',
   });
 
-  const filteredProducts = products?.filter(product => {
-    if (priceRange !== 'all') {
-      const price = parseFloat(product.price);
-      switch (priceRange) {
-        case 'under-25': if (price >= 25) return false; break;
-        case '25-100': if (price < 25 || price > 100) return false; break;
-        case '100-500': if (price < 100 || price > 500) return false; break;
-        case 'over-500': if (price <= 500) return false; break;
+  // Filtered products — only show those with images
+  const filtered = useMemo(() => {
+    return products.filter(p => {
+      if (p.images.length === 0) return false;
+      const isVideo = p.mediaType === 'videos' || p.category === 'videos';
+      if (mediaType === 'photos' && isVideo) return false;
+      if (mediaType === 'videos' && !isVideo) return false;
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        const hay = `${p.title} ${p.description} ${p.location ?? ''} ${p.category}`.toLowerCase();
+        if (!hay.includes(q)) return false;
       }
-    }
-    if (selectedCategory !== 'all') {
-      if (!product.contentCategory || product.contentCategory !== selectedCategory) return false;
-    }
-    return true;
-  }) ?? [];
+      return true;
+    });
+  }, [products, mediaType, search]);
 
-  const ownFilteredProducts: MarketplaceProduct[] = isAdmin
-    ? filteredProducts.filter(p => p.seller.pubkey === ADMIN_HEX && p.images.length > 0)
-    : [];
+  const ownProducts = isAdmin ? filtered.filter(p => p.seller.pubkey === ADMIN_HEX) : [];
+  const photoCount = products.filter(p => p.images.length > 0 && p.mediaType !== 'videos' && p.category !== 'videos').length;
+  const videoCount = products.filter(p => p.images.length > 0 && (p.mediaType === 'videos' || p.category === 'videos')).length;
 
   const handleBulkDownload = async () => {
     if (selectedIds.size === 0) return;
     try {
-      await adminBulkDownload(Array.from(selectedProducts.values()), (p) => setBulkProgress(p));
+      await adminBulkDownload(Array.from(selectedProducts.values()), p => setBulkProgress(p));
     } finally {
       setBulkProgress(null);
       clearAll();
@@ -227,358 +289,196 @@ function MarketplaceInner() {
   };
 
   return (
-    <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#f4f4f5' }}>
+    <div className="min-h-screen bg-gray-50">
       <Navigation />
 
-      {/* Admin bulk-download toolbar */}
+      {/* Admin bulk bar */}
       {isAdmin && selectedIds.size > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-gray-900 text-white rounded-full px-5 py-3 shadow-2xl border border-amber-500/40">
           <CheckSquare className="w-5 h-5 text-amber-400 shrink-0" />
-          <span className="text-sm font-medium whitespace-nowrap">
-            {selectedIds.size} photo{selectedIds.size !== 1 ? 's' : ''} selected
-          </span>
+          <span className="text-sm font-medium">{selectedIds.size} selected</span>
           <Button
             size="sm"
-            className="rounded-full bg-amber-500 hover:bg-amber-400 text-gray-900 font-semibold ml-1"
+            className="rounded-full bg-amber-500 hover:bg-amber-400 text-gray-900 font-semibold"
             onClick={handleBulkDownload}
             disabled={bulkProgress !== null}
           >
             {bulkProgress
-              ? <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" />{bulkProgress.done}/{bulkProgress.total}</>
-              : <><Download className="w-4 h-4 mr-1.5" />Download ZIP</>
-            }
+              ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" />{bulkProgress.done}/{bulkProgress.total}</>
+              : <><Download className="w-4 h-4 mr-1" />ZIP</>}
           </Button>
-          {isAdmin && ownFilteredProducts.length > 0 && selectedIds.size < ownFilteredProducts.length && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="rounded-full text-gray-300 hover:text-white hover:bg-white/10 text-xs"
-              onClick={() => selectAll(ownFilteredProducts)}
-            >
-              Select all ({ownFilteredProducts.length})
-            </Button>
+          {ownProducts.length > 0 && selectedIds.size < ownProducts.length && (
+            <button onClick={() => selectAll(ownProducts)} className="text-xs text-gray-300 hover:text-white">
+              All ({ownProducts.length})
+            </button>
           )}
-          <button onClick={clearAll} className="ml-1 text-gray-400 hover:text-white">
-            <X className="w-4 h-4" />
-          </button>
+          <button onClick={clearAll} className="text-gray-400 hover:text-white"><X className="w-4 h-4" /></button>
         </div>
       )}
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-7xl mx-auto">
+      <div className="max-w-5xl mx-auto px-4 py-6">
 
-          {/* Header */}
-          <div className="text-center mb-12">
-            <div className="mb-6">
-              <div className="p-4 rounded-full w-fit mx-auto mb-4" style={{ backgroundColor: '#ec1a5820' }}>
-                <Store className="w-16 h-16 mx-auto" style={{ color: '#ec1a58' }} />
-              </div>
-              <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">
-                Stock Media Marketplace
-              </h1>
-              <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
-                Decentralized marketplace for travel photography with Lightning ⚡ payments
-              </p>
-            </div>
+        {/* Profile header — shosho.live style */}
+        <ProfileHeader />
 
-            {user && (
-              <div className="flex flex-wrap justify-center gap-3">
-                <MarketplaceSubscriptionDialog>
-                  <Button
-                    size="lg"
-                    className="rounded-full text-white font-semibold hover:opacity-90"
-                    style={{ backgroundColor: subscription?.isActive ? '#22c55e' : '#ec1a58' }}
-                  >
-                    <Crown className="w-4 h-4 mr-2" />
-                    {subscription?.isActive ? 'Unlimited Access ✓' : 'Subscribe for Unlimited'}
-                  </Button>
-                </MarketplaceSubscriptionDialog>
-                <CreateProductDialog>
-                  <Button size="lg" className="rounded-full text-white font-semibold hover:opacity-90" style={{ backgroundColor: '#ec1a58' }}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Upload Media
-                  </Button>
-                </CreateProductDialog>
-                <Link to="/marketplace/orders">
-                  <Button variant="outline" size="lg" className="rounded-full" style={{ borderColor: '#ec1a58', color: '#ec1a58' }}>
-                    <ShoppingCart className="w-4 h-4 mr-2" />
-                    My Purchases
-                  </Button>
-                </Link>
-                <Link to="/marketplace/portfolio">
-                  <Button variant="outline" size="lg" className="rounded-full" style={{ borderColor: '#ec1a58', color: '#ec1a58' }}>
-                    <Store className="w-4 h-4 mr-2" />
-                    My Portfolio
-                  </Button>
-                </Link>
-                {isAdmin && ownFilteredProducts.length > 0 && (
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="rounded-full border-amber-500 text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/20"
-                    onClick={() =>
-                      selectedIds.size === ownFilteredProducts.length
-                        ? clearAll()
-                        : selectAll(ownFilteredProducts)
-                    }
-                  >
-                    <CheckSquare className="w-4 h-4 mr-2" />
-                    {selectedIds.size === ownFilteredProducts.length
-                      ? 'Deselect all'
-                      : `Select all (${ownFilteredProducts.length})`}
-                  </Button>
-                )}
-              </div>
-            )}
-          </div>
+        {/* Action buttons row */}
+        <div className="flex flex-wrap gap-2 mb-6 px-1">
+          <MarketplaceSubscriptionDialog>
+            <Button
+              size="sm"
+              className="rounded-full text-white text-xs font-semibold"
+              style={{ backgroundColor: subscription?.isActive ? '#22c55e' : '#ec1a58' }}
+            >
+              <Crown className="w-3.5 h-3.5 mr-1.5" />
+              {subscription?.isActive ? 'Unlimited ✓' : 'Subscribe'}
+            </Button>
+          </MarketplaceSubscriptionDialog>
 
-          {/* Media Types */}
-          <div className="grid md:grid-cols-2 gap-6 mb-12 max-w-3xl mx-auto">
-            <Card className="border-pink-200 dark:border-pink-800 bg-gradient-to-r from-pink-50 to-red-50 dark:from-pink-900/20 dark:to-red-900/20">
-              <CardContent className="p-6 text-center">
-                <div className="p-3 rounded-full w-fit mx-auto mb-3" style={{ backgroundColor: '#ec1a58' }}>
-                  <Camera className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">📸 Photos</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-300">High-quality travel photography and stock photos</p>
-              </CardContent>
-            </Card>
-            <Card className="border-pink-200 dark:border-pink-800 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20">
-              <CardContent className="p-6 text-center">
-                <div className="p-3 rounded-full w-fit mx-auto mb-3" style={{ backgroundColor: '#ec1a58' }}>
-                  <Video className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">🎥 Videos</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Travel video footage and cinematic content</p>
-              </CardContent>
-            </Card>
-          </div>
+          {user && (
+            <CreateProductDialog>
+              <Button size="sm" className="rounded-full text-white text-xs font-semibold" style={{ backgroundColor: '#ec1a58' }}>
+                <Plus className="w-3.5 h-3.5 mr-1.5" />
+                Upload
+              </Button>
+            </CreateProductDialog>
+          )}
 
-          {/* Payment Methods */}
-          <div className="grid md:grid-cols-3 gap-6 mb-12">
-            <Card className="border-pink-200 dark:border-pink-800 bg-gradient-to-r from-pink-50 to-red-50 dark:from-pink-900/20 dark:to-red-900/20">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-full" style={{ backgroundColor: '#ffcc00' }}>
-                    <Zap className="w-6 h-6 text-black fill-current" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">⚡ Lightning Payments</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">Instant, low-fee Bitcoin payments</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-pink-200 dark:border-pink-800 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-full" style={{ backgroundColor: '#ec1a58' }}>
-                    <CreditCard className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">💳 Fiat Payments</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">USD, EUR and other currencies</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Link to="/guest-portal" className="block">
-              <Card className="border-yellow-200 dark:border-yellow-800 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 hover:shadow-lg transition-shadow h-full">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-full bg-yellow-500">
-                      <Crown className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">👑 Unlimited Subscription</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">Get unlimited downloads — No Nostr required</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+          <Link to="/marketplace/orders">
+            <Button size="sm" variant="outline" className="rounded-full text-xs" style={{ borderColor: '#ec1a58', color: '#ec1a58' }}>
+              <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
+              My Purchases
+            </Button>
+          </Link>
+
+          {user && (
+            <Link to="/guest-portal">
+              <Button size="sm" variant="outline" className="rounded-full text-xs border-yellow-500 text-yellow-700">
+                <Crown className="w-3.5 h-3.5 mr-1.5" />
+                Guest Checkout
+              </Button>
             </Link>
-          </div>
+          )}
+        </div>
 
-          {/* Admin Blossom Library — only shown when admin is logged in */}
-          {isAdmin && (
-            <BlossomAdminGallery
-              blossomItems={blossomItems}
-              products={products ?? []}
-              isLoading={blossomLoading}
+        {/* Stats pills */}
+        {!isLoading && products.length > 0 && (
+          <div className="flex gap-3 mb-5 px-1">
+            <button
+              onClick={() => setMediaType('all')}
+              className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full transition-all ${
+                mediaType === 'all'
+                  ? 'text-white'
+                  : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
+              }`}
+              style={mediaType === 'all' ? { backgroundColor: '#ec1a58' } : {}}
+            >
+              All · {products.filter(p => p.images.length > 0).length}
+            </button>
+            <button
+              onClick={() => setMediaType('photos')}
+              className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full transition-all ${
+                mediaType === 'photos'
+                  ? 'text-white'
+                  : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
+              }`}
+              style={mediaType === 'photos' ? { backgroundColor: '#ec1a58' } : {}}
+            >
+              <Camera className="w-3 h-3" /> Photos · {photoCount}
+            </button>
+            <button
+              onClick={() => setMediaType('videos')}
+              className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full transition-all ${
+                mediaType === 'videos'
+                  ? 'text-white'
+                  : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
+              }`}
+              style={mediaType === 'videos' ? { backgroundColor: '#ec1a58' } : {}}
+            >
+              <Video className="w-3 h-3" /> Videos · {videoCount}
+            </button>
+          </div>
+        )}
+
+        {/* Search bar */}
+        <div className="flex items-center gap-2 mb-6 px-1">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <Input
+              placeholder="Search photos, videos, locations…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="pl-9 rounded-full bg-white border-gray-200 focus-visible:ring-0 focus-visible:border-gray-300 text-sm h-9"
             />
-          )}
-
-          {/* Photo Bins / Collections */}
-          {visibleBins.length > 0 && (
-            <div className="mb-10">
-              <div className="flex items-center gap-2 mb-6">
-                <LayoutGrid className="w-5 h-5" style={{ color: '#ec1a58' }} />
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Browse Collections</h2>
-              </div>
-              {visibleBins.map((bin) => (
-                <MarketplaceBinSection key={bin.id} bin={bin} />
-              ))}
-              <hr className="my-8 border-gray-200 dark:border-gray-700" />
-            </div>
-          )}
-
-          {/* Geo Browser */}
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <Globe className="w-5 h-5" style={{ color: '#ec1a58' }} />
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white">Browse by Location</h2>
-              {(geoFilter.continent || geoFilter.country || geoFilter.city) && (
-                <Badge variant="outline" className="text-xs ml-2" style={{ borderColor: '#ec1a58', color: '#ec1a58' }}>
-                  {geoFilter.city || (geoFilter.country ? getCountryLabel(geoFilter.country) : getContinentLabel(geoFilter.continent!))}
-                </Badge>
-              )}
-            </div>
-            <GeoBrowser onFilter={setGeoFilter} />
           </div>
-
-          {/* Search and Filters */}
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Search className="w-5 h-5" />
-                Find Digital Media
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-5 gap-4">
-                <div className="md:col-span-2">
-                  <Input
-                    placeholder="Search travel photos and videos..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full"
-                  />
-                </div>
-                <Select value={selectedMediaType} onValueChange={setSelectedMediaType}>
-                  <SelectTrigger><SelectValue placeholder="Media Type" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Media Types</SelectItem>
-                    <SelectItem value="photos">📸 Photos</SelectItem>
-                    <SelectItem value="videos">🎥 Videos</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    <SelectItem value="Animals">🐾 Animals</SelectItem>
-                    <SelectItem value="Buildings and Architecture">🏢 Buildings</SelectItem>
-                    <SelectItem value="Business">💼 Business</SelectItem>
-                    <SelectItem value="The Environment">🌍 The Environment</SelectItem>
-                    <SelectItem value="Food">🍕 Food</SelectItem>
-                    <SelectItem value="Hobbies and Leisure">🎯 Hobbies and Leisure</SelectItem>
-                    <SelectItem value="Landscape">🏔️ Landscape</SelectItem>
-                    <SelectItem value="Lifestyle">✨ Lifestyle</SelectItem>
-                    <SelectItem value="People">👥 People</SelectItem>
-                    <SelectItem value="Plants and Flowers">🌸 Plants and Flowers</SelectItem>
-                    <SelectItem value="Culture and Religion">🕌 Culture and Religion</SelectItem>
-                    <SelectItem value="Sports">⚽ Sports</SelectItem>
-                    <SelectItem value="Technology">💻 Technology</SelectItem>
-                    <SelectItem value="Transport">🚗 Transport</SelectItem>
-                    <SelectItem value="Travel">✈️ Travel</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={priceRange} onValueChange={setPriceRange}>
-                  <SelectTrigger><SelectValue placeholder="Price Range" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Prices</SelectItem>
-                    <SelectItem value="under-25">Under $25</SelectItem>
-                    <SelectItem value="25-100">$25 - $100</SelectItem>
-                    <SelectItem value="100-500">$100 - $500</SelectItem>
-                    <SelectItem value="over-500">Over $500</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Free Downloads Section */}
-          {freeProducts && freeProducts.filter(p => p.images.length > 0).length > 0 && (
-            <div className="mb-12">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                    <span className="text-4xl">🎁</span>Free Downloads
-                  </h2>
-                  <p className="text-muted-foreground mt-1">High-quality travel media — no payment required</p>
-                </div>
-                <Badge variant="secondary" className="text-lg px-3 py-1 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300">
-                  {freeProducts.filter(p => p.images.length > 0).length} free
-                </Badge>
-              </div>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {freeProducts.filter(p => p.images.length > 0).map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
-            </div>
+          {isAdmin && ownProducts.length > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-full text-xs border-amber-400 text-amber-700 hover:bg-amber-50 shrink-0"
+              onClick={() => selectedIds.size === ownProducts.length ? clearAll() : selectAll(ownProducts)}
+            >
+              <CheckSquare className="w-3.5 h-3.5 mr-1" />
+              {selectedIds.size === ownProducts.length ? 'Deselect' : 'Select all'}
+            </Button>
           )}
+        </div>
 
-          {/* Products Grid */}
-          <div className="mb-8">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Premium Stock Media</h2>
-              {!isLoading && (
-                <Badge variant="secondary" className="text-lg px-3 py-1">
-                  {filteredProducts.filter(p => p.images.length > 0).length} assets
-                </Badge>
-              )}
-            </div>
-
-            {isLoading ? (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <Card key={i}>
-                    <CardHeader><Skeleton className="h-48 w-full rounded-lg" /></CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        <Skeleton className="h-4 w-3/4" />
-                        <Skeleton className="h-4 w-1/2" />
-                        <Skeleton className="h-8 w-full" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : error ? (
-              <Card className="border-dashed">
-                <CardContent className="py-12 px-8 text-center">
-                  <p className="text-muted-foreground">Failed to load media. Check your connection.</p>
-                </CardContent>
-              </Card>
-            ) : filteredProducts.filter(p => p.images.length > 0).length === 0 ? (
-              <Card className="border-dashed">
-                <CardContent className="py-12 px-8 text-center">
-                  <div className="max-w-sm mx-auto space-y-4">
-                    <p className="text-muted-foreground">
-                      No media found. The products may still be loading from the relays.
-                    </p>
-                    {user && (
-                      <CreateProductDialog>
-                        <Button><Plus className="w-4 h-4 mr-2" />Upload First Asset</Button>
-                      </CreateProductDialog>
-                    )}
+        {/* Grid */}
+        {isLoading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
+                <Skeleton className="aspect-square w-full rounded-none" />
+                <div className="p-3 space-y-2">
+                  <Skeleton className="h-3 w-3/4 rounded-full" />
+                  <Skeleton className="h-3 w-1/2 rounded-full" />
+                  <div className="flex justify-between items-center pt-1">
+                    <Skeleton className="h-4 w-16 rounded-full" />
+                    <Skeleton className="h-7 w-16 rounded-full" />
                   </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredProducts.filter(p => p.images.length > 0).map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
+                </div>
               </div>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-20">
+            {search ? (
+              <>
+                <Search className="w-10 h-10 mx-auto mb-3 text-gray-300" />
+                <p className="text-gray-500 mb-2">No results for "{search}"</p>
+                <button onClick={() => setSearch('')} className="text-sm underline" style={{ color: '#ec1a58' }}>Clear search</button>
+              </>
+            ) : (
+              <>
+                <Camera className="w-10 h-10 mx-auto mb-3 text-gray-300" />
+                <p className="text-gray-500 mb-1">No media yet</p>
+                <p className="text-xs text-gray-400">Still loading from relays…</p>
+              </>
             )}
           </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {filtered.map(product => (
+              <ShopCard
+                key={product.id}
+                product={product}
+                isAdmin={isAdmin}
+                isSelected={selectedIds.has(product.id)}
+                onToggle={() => toggle(product)}
+              />
+            ))}
+          </div>
+        )}
 
-        </div>
+        {/* Bottom note */}
+        {!isLoading && filtered.length > 0 && (
+          <p className="text-center text-xs text-gray-300 mt-10">
+            {filtered.length} items · Powered by Nostr &amp; Lightning ⚡
+          </p>
+        )}
       </div>
 
-      <Footer showStockMediaPartners={true} />
+      <Footer showStockMediaPartners={false} />
     </div>
   );
 }
