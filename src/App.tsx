@@ -37,8 +37,8 @@ const queryClient = new QueryClient({
 const defaultConfig: AppConfig = {
   theme: "light",
   relayUrls: [
-    "wss://relay.damus.io",
     "wss://relay.ditto.pub",
+    "wss://relay.dreamith.to",
     "wss://relay.primal.net",
   ],
   mapProvider: "openstreetmap",
@@ -46,7 +46,7 @@ const defaultConfig: AppConfig = {
 
 const presetRelays = [
   { url: 'wss://relay.ditto.pub', name: 'Ditto' },
-  { url: 'wss://relay.damus.io', name: 'Damus' },
+  { url: 'wss://relay.dreamith.to', name: 'Dreamith' },
   { url: 'wss://relay.primal.net', name: 'Primal' },
 ];
 
