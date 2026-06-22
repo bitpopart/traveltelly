@@ -25,7 +25,6 @@ import {
   Calendar,
   MapPin,
   Plus,
-  List,
   Video,
   FileText,
   Play,
@@ -546,65 +545,63 @@ export default function Stories() {
     <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
       <Navigation />
 
-      <div className="container mx-auto px-2 md:px-4 py-4 md:py-8">
+      <div className="container mx-auto px-2 md:px-4 py-3 md:py-6">
         <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="mb-6 md:mb-8">
-            <div className="flex items-center gap-2 md:gap-3 mb-4">
-              <div className="p-2 rounded-lg" style={{ backgroundColor: '#b2d23520' }}>
-                <BookOpen className="w-6 h-6 md:w-8 md:h-8" style={{ color: '#b2d235' }} />
-              </div>
+
+          {/* Compact header row */}
+          <div className="flex items-center justify-between gap-3 mb-4">
+            {/* Left: title + type pills */}
+            <div className="flex items-center gap-3 min-w-0">
               <div>
-                <h1 className="text-2xl md:text-4xl font-bold">Stories</h1>
-                <p className="text-sm md:text-base text-muted-foreground">Travel stories from the Nostr community</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-xl md:text-2xl font-bold leading-none">Stories</h1>
+                  {/* Type toggle pills */}
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleStoryTypeChange('video')}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                        storyType === 'video'
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-white dark:bg-gray-800 text-muted-foreground border border-gray-200 dark:border-gray-700 hover:border-purple-300 hover:text-purple-600'
+                      }`}
+                    >
+                      <Video className="w-3 h-3" />
+                      Video
+                    </button>
+                    <button
+                      onClick={() => handleStoryTypeChange('write')}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                        storyType === 'write'
+                          ? 'bg-green-600 text-white'
+                          : 'bg-white dark:bg-gray-800 text-muted-foreground border border-gray-200 dark:border-gray-700 hover:border-green-300 hover:text-green-600'
+                      }`}
+                    >
+                      <FileText className="w-3 h-3" />
+                      Written
+                    </button>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">Travel stories from the Nostr community</p>
               </div>
             </div>
+
+            {/* Right: Create button */}
+            <Button
+              size="sm"
+              variant={activeTab === 'create' ? 'default' : 'outline'}
+              onClick={() => handleTabChange(activeTab === 'create' ? 'browse' : 'create')}
+              className="flex-shrink-0 flex items-center gap-1.5 text-xs"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Create</span>
+            </Button>
           </div>
 
-          {/* Story Type Selection - Mobile Optimized with Rounded Design */}
-          <div className="mb-4 md:mb-6">
-            <div className="flex gap-2 md:gap-4 flex-wrap">
-              <Button
-                variant={storyType === 'video' ? 'default' : 'outline'}
-                onClick={() => handleStoryTypeChange('video')}
-                className={`flex-1 min-w-[140px] md:min-w-[200px] h-auto py-3 md:py-6 rounded-xl ${storyType === 'video' ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-lg' : 'border-2 hover:border-purple-300'}`}
-              >
-                <div className="flex flex-col items-center gap-1 md:gap-2">
-                  <Video className="w-5 h-5 md:w-6 md:h-6" />
-                  <div>
-                    <div className="font-semibold text-sm md:text-base">Video Stories</div>
-                    <div className="text-[10px] md:text-xs opacity-80 hidden sm:block">6-second travel clips</div>
-                  </div>
-                </div>
-              </Button>
-
-              <Button
-                variant={storyType === 'write' ? 'default' : 'outline'}
-                onClick={() => handleStoryTypeChange('write')}
-                className={`flex-1 min-w-[140px] md:min-w-[200px] h-auto py-3 md:py-6 rounded-xl ${storyType === 'write' ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg' : 'border-2 hover:border-green-300'}`}
-              >
-                <div className="flex flex-col items-center gap-1 md:gap-2">
-                  <FileText className="w-5 h-5 md:w-6 md:h-6" />
-                  <div>
-                    <div className="font-semibold text-sm md:text-base">Written Stories</div>
-                    <div className="text-[10px] md:text-xs opacity-80 hidden sm:block">Long-form travel articles</div>
-                  </div>
-                </div>
-              </Button>
-            </div>
-          </div>
-
-          {/* Action Tabs (Browse/Create) */}
+          {/* Action Tabs (Browse/Create) — hidden TabsList, controlled by header buttons */}
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full max-w-md mb-6 md:mb-8" style={{ gridTemplateColumns: '1fr 1fr' }}>
-              <TabsTrigger value="browse" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
-                <List className="w-3 h-3 md:w-4 md:h-4" />
-                <span className="hidden sm:inline">Browse </span>{storyType === 'write' ? 'Stories' : 'Videos'}
-              </TabsTrigger>
-              <TabsTrigger value="create" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
-                <Plus className="w-3 h-3 md:w-4 md:h-4" />
-                <span className="hidden sm:inline">Create </span>{storyType === 'write' ? 'Story' : 'Video'}
-              </TabsTrigger>
+            <TabsList className="sr-only">
+              <TabsTrigger value="browse">Browse</TabsTrigger>
+              <TabsTrigger value="create">Create</TabsTrigger>
             </TabsList>
 
             {/* Browse Tab */}
