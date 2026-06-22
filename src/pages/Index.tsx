@@ -546,7 +546,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
         </>
       )}
 
-      <div className="container mx-auto px-2 md:px-4 pt-0 pb-4 md:py-8">
+      <div className="container mx-auto px-2 md:px-4 pt-2 pb-4 md:pt-3 md:pb-8">
         <div className="max-w-6xl mx-auto">
           {/* User Controls Card - Only show when user is logged in and no location selected */}
           {user && !selectedLocationTag && (

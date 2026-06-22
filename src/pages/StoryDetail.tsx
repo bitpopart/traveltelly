@@ -462,7 +462,7 @@ function ArticleLoadingSkeleton() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
       <Navigation />
-      <div className="container mx-auto px-4 pt-0 pb-4 md:py-8">
+      <div className="container mx-auto px-4 pt-2 pb-4 md:pt-3 md:pb-8">
         <div className="max-w-4xl mx-auto space-y-6">
           <Skeleton className="h-10 w-32" />
           <Skeleton className="h-10 w-3/4" />
@@ -487,7 +487,7 @@ function ArticleNotFound() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
       <Navigation />
-      <div className="container mx-auto px-4 pt-0 pb-4 md:py-8">
+      <div className="container mx-auto px-4 pt-2 pb-4 md:pt-3 md:pb-8">
         <div className="max-w-4xl mx-auto">
           <Card>
             <CardContent className="py-12 text-center space-y-4">
@@ -571,7 +571,7 @@ export default function StoryDetail() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
       <Navigation />
-      <div className="container mx-auto px-4 pt-0 pb-4 md:py-8">
+      <div className="container mx-auto px-4 pt-2 pb-4 md:pt-3 md:pb-8">
         <div className="max-w-4xl mx-auto">
           {/* ArticleBody owns all hooks — called unconditionally inside this component */}
           <ArticleBody article={article} />

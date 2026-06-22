@@ -130,7 +130,7 @@ function MarketplaceInner() {
         </div>
       )}
 
-      <div className="container mx-auto px-2 md:px-4 pt-0 pb-3 md:py-6">
+      <div className="container mx-auto px-2 md:px-4 pt-2 pb-3 md:pt-3 md:pb-6">
         <div className="max-w-7xl mx-auto">
 
           {/* Compact header */}
