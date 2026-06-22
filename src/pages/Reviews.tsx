@@ -32,41 +32,30 @@ export default function Reviews() {
     <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#f4f4f5' }}>
       <Navigation />
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-2 md:px-4 py-3 md:py-6">
         <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Travel Reviews
-            </h1>
-            <p className="text-xl text-gray-600 dark:text-gray-300 mb-6">
-              Discover amazing places through authentic traveler experiences
-            </p>
-
-            <div className="flex justify-center gap-3 mb-6">
-              {user && (
-                <>
-                  <Link to="/create-review">
-                    <Button className="bg-orange-600 hover:bg-orange-700 rounded-full">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Write Review
-                    </Button>
-                  </Link>
-                  <Link to="/marketplace">
-                    <Button variant="outline" className="rounded-full">
-                      <Camera className="w-4 h-4 mr-2" />
-                      Browse Photos
-                    </Button>
-                  </Link>
-                </>
-              )}
-              <Link to="/world-map">
-                <Button variant="outline" className="rounded-full">
-                  <Map className="w-4 h-4 mr-2" />
-                  World Map & Images
+          {/* Compact header */}
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl md:text-2xl font-bold leading-none">Reviews</h1>
+                <Link to="/world-map">
+                  <button className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-white dark:bg-gray-800 text-muted-foreground border border-gray-200 dark:border-gray-700 hover:border-blue-300 hover:text-blue-600 transition-colors">
+                    <Map className="w-3 h-3" />
+                    Map
+                  </button>
+                </Link>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">Authentic traveler experiences</p>
+            </div>
+            {user && (
+              <Link to="/create-review" className="flex-shrink-0">
+                <Button size="sm" className="rounded-full bg-[#27b0ff] hover:bg-[#1a9fe6] text-white flex items-center gap-1.5 text-xs">
+                  <Plus className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Write Review</span>
                 </Button>
               </Link>
-            </div>
+            )}
           </div>
 
           {/* Search and Filters */}

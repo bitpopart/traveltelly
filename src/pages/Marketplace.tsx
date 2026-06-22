@@ -20,7 +20,7 @@ import { MarketplaceBinSection } from "@/components/MarketplaceBinSection";
 import { AdminSelectionProvider, useAdminSelection } from "@/contexts/AdminSelectionContext";
 import { adminBulkDownload } from "@/lib/adminBulkDownload";
 import type { BulkDownloadProgress } from "@/lib/adminBulkDownload";
-import { ShoppingCart, Search, Plus, Store, Zap, CreditCard, Camera, Video, Crown, Globe, LayoutGrid, Download, CheckSquare, X, Loader2 } from "lucide-react";
+import { ShoppingCart, Search, Plus, Store, Crown, Globe, Download, CheckSquare, X, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { GeoBrowser } from "@/components/GeoBrowser";
 import { getContinentLabel, getCountryLabel } from "@/lib/geoData";
@@ -130,72 +130,64 @@ function MarketplaceInner() {
         </div>
       )}
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-2 md:px-4 py-3 md:py-6">
         <div className="max-w-7xl mx-auto">
 
-          {/* ── Header ── */}
-          <div className="text-center mb-12">
-            <div className="mb-6">
-              <div className="p-4 rounded-full w-fit mx-auto mb-4" style={{ backgroundColor: '#ec1a5818' }}>
-                <Store className="w-16 h-16 mx-auto" style={{ color: '#ec1a58' }} />
-              </div>
-              <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 dark:text-white mb-3">
-                Stock Media Marketplace
-              </h1>
-              <p className="text-lg text-gray-500 dark:text-gray-400 max-w-xl mx-auto">
-                Decentralized travel photography &amp; video with Lightning ⚡ payments
-              </p>
-            </div>
-
-            {user && (
-              <div className="flex flex-wrap justify-center gap-3">
-                <MarketplaceSubscriptionDialog>
-                  <Button
-                    size="lg"
-                    className="rounded-full text-white font-semibold hover:opacity-90 transition-opacity"
-                    style={{ backgroundColor: subscription?.isActive ? '#22c55e' : '#ec1a58' }}
-                  >
-                    <Crown className="w-4 h-4 mr-2" />
-                    {subscription?.isActive ? 'Unlimited Access ✓' : 'Subscribe for Unlimited'}
-                  </Button>
-                </MarketplaceSubscriptionDialog>
-                <CreateProductDialog>
-                  <Button size="lg" className="rounded-full text-white font-semibold hover:opacity-90 transition-opacity" style={{ backgroundColor: '#ec1a58' }}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Upload Media
-                  </Button>
-                </CreateProductDialog>
-                <Link to="/marketplace/orders">
-                  <Button variant="outline" size="lg" className="rounded-full hover:bg-pink-50 transition-colors" style={{ borderColor: '#ec1a58', color: '#ec1a58' }}>
-                    <ShoppingCart className="w-4 h-4 mr-2" />
-                    My Purchases
-                  </Button>
-                </Link>
-                <Link to="/marketplace/portfolio">
-                  <Button variant="outline" size="lg" className="rounded-full hover:bg-pink-50 transition-colors" style={{ borderColor: '#ec1a58', color: '#ec1a58' }}>
-                    <Store className="w-4 h-4 mr-2" />
-                    My Portfolio
-                  </Button>
-                </Link>
-                {isAdmin && ownFilteredProducts.length > 0 && (
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="rounded-full border-amber-500 text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/20"
-                    onClick={() =>
-                      selectedIds.size === ownFilteredProducts.length
-                        ? clearAll()
-                        : selectAll(ownFilteredProducts)
-                    }
-                  >
-                    <CheckSquare className="w-4 h-4 mr-2" />
-                    {selectedIds.size === ownFilteredProducts.length
-                      ? 'Deselect all'
-                      : `Select all (${ownFilteredProducts.length})`}
-                  </Button>
+          {/* Compact header */}
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl md:text-2xl font-bold leading-none">Marketplace</h1>
+                {user && (
+                  <>
+                    <Link to="/marketplace/orders">
+                      <button className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-white dark:bg-gray-800 text-muted-foreground border border-gray-200 dark:border-gray-700 hover:border-pink-300 hover:text-pink-600 transition-colors">
+                        <ShoppingCart className="w-3 h-3" />
+                        Purchases
+                      </button>
+                    </Link>
+                    <Link to="/marketplace/portfolio">
+                      <button className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-white dark:bg-gray-800 text-muted-foreground border border-gray-200 dark:border-gray-700 hover:border-pink-300 hover:text-pink-600 transition-colors">
+                        <Store className="w-3 h-3" />
+                        Portfolio
+                      </button>
+                    </Link>
+                    <MarketplaceSubscriptionDialog>
+                      <button className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${subscription?.isActive ? 'bg-green-600 text-white' : 'bg-white dark:bg-gray-800 text-muted-foreground border border-gray-200 dark:border-gray-700 hover:border-pink-300 hover:text-pink-600'}`}>
+                        <Crown className="w-3 h-3" />
+                        {subscription?.isActive ? 'Unlimited ✓' : 'Subscribe'}
+                      </button>
+                    </MarketplaceSubscriptionDialog>
+                  </>
                 )}
               </div>
-            )}
+              <p className="text-xs text-muted-foreground mt-0.5">Travel photography & video · Lightning ⚡</p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {isAdmin && ownFilteredProducts.length > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="rounded-full border-amber-500 text-amber-700 text-xs"
+                  onClick={() =>
+                    selectedIds.size === ownFilteredProducts.length
+                      ? clearAll()
+                      : selectAll(ownFilteredProducts)
+                  }
+                >
+                  <CheckSquare className="w-3.5 h-3.5 mr-1" />
+                  {selectedIds.size === ownFilteredProducts.length ? 'Deselect' : `Select all`}
+                </Button>
+              )}
+              {user && (
+                <CreateProductDialog>
+                  <Button size="sm" className="rounded-full text-white font-semibold text-xs" style={{ backgroundColor: '#ec1a58' }}>
+                    <Plus className="w-3.5 h-3.5 mr-1" />
+                    <span className="hidden sm:inline">Upload</span>
+                  </Button>
+                </CreateProductDialog>
+              )}
+            </div>
           </div>
 
           {/* ── Media type cards ── */}

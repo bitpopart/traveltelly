@@ -15,7 +15,7 @@ import { useTrips } from '@/hooks/useTrips';
 import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { MapPin, Plus, Camera, Calendar, Navigation as NavigationIcon, Globe } from 'lucide-react';
+import { MapPin, Plus, Camera, Calendar, Navigation as NavigationIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
 import { formatDistanceToNow } from 'date-fns';
@@ -168,69 +168,45 @@ export default function Trips() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
       <Navigation />
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-2 md:px-4 py-3 md:py-6">
         <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg" style={{ backgroundColor: '#ffcc0020' }}>
-                  <MapPin className="w-8 h-8" style={{ color: '#ffcc00' }} />
-                </div>
-                <div>
-                  <h1 className="text-4xl font-bold">Trips</h1>
-                  <p className="text-muted-foreground">
-                    Travel adventures with photos and GPS routes
-                  </p>
-                </div>
-              </div>
-              
-              {user && (
-                <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                  <Button
-                    onClick={() => setIsCreateDialogOpen(true)}
-                    size="lg"
-                    className="rounded-full text-black font-semibold"
-                    style={{ backgroundColor: '#ffcc00' }}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create Trip
-                  </Button>
-                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle className="text-2xl">Create New Trip</DialogTitle>
-                    </DialogHeader>
-                    <div className="mt-4">
-                      <CreateTripForm onSuccess={() => setIsCreateDialogOpen(false)} />
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              )}
+          {/* Compact header */}
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold leading-none">Trips</h1>
+              <p className="text-xs text-muted-foreground mt-0.5">Travel adventures with photos and GPS routes</p>
             </div>
+            {user && (
+              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                <Button
+                  onClick={() => setIsCreateDialogOpen(true)}
+                  size="sm"
+                  className="flex-shrink-0 rounded-full text-black font-semibold flex items-center gap-1.5 text-xs"
+                  style={{ backgroundColor: '#ffcc00' }}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Create Trip</span>
+                </Button>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle className="text-2xl">Create New Trip</DialogTitle>
+                  </DialogHeader>
+                  <div className="mt-4">
+                    <CreateTripForm onSuccess={() => setIsCreateDialogOpen(false)} />
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
 
           {/* World Map with Traveler Check-Ins */}
-          <div className="mb-8">
-            <div className="mb-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20">
-                  <Globe className="w-6 h-6 text-blue-600" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold">Travelers Around the World</h2>
-                  <p className="text-muted-foreground text-sm">
-                    See where fellow travelers are checking in
-                  </p>
-                </div>
-              </div>
-            </div>
+          <div className="mb-4">
             <CheckInsMap />
           </div>
 
           {/* Section Title for Trips */}
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold">All Trips</h2>
-            <p className="text-muted-foreground">Browse travel adventures with photos and GPS routes</p>
+          <div className="mb-3">
+            <h2 className="text-base font-semibold text-muted-foreground">All Trips</h2>
           </div>
 
           {/* Trips Grid */}
