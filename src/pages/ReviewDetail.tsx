@@ -161,7 +161,7 @@ const ReviewDetail = () => {
     return (
       <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#f4f4f5' }}>
         <NavigationComponent />
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 pt-0 pb-4 md:py-8">
           <div className="max-w-4xl mx-auto">
             <Card className="border-dashed">
               <CardContent className="py-12 px-8 text-center">
@@ -184,7 +184,7 @@ const ReviewDetail = () => {
     return (
       <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#f4f4f5' }}>
         <NavigationComponent />
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 pt-0 pb-4 md:py-8">
           <div className="max-w-4xl mx-auto">
             <Card className="border-dashed">
               <CardContent className="py-12 px-8 text-center">
@@ -203,7 +203,7 @@ const ReviewDetail = () => {
     return (
       <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#f4f4f5' }}>
         <NavigationComponent />
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 pt-0 pb-4 md:py-8">
           <div className="max-w-4xl mx-auto">
             <Card className="border-dashed">
               <CardContent className="py-12 px-8 text-center">
@@ -298,7 +298,7 @@ const ReviewDetail = () => {
   return (
     <div className="min-h-screen dark:from-gray-900 dark:to-gray-800" style={{ backgroundColor: '#f4f4f5' }}>
       <NavigationComponent />
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 pt-0 pb-4 md:py-8">
         <div className="max-w-4xl mx-auto">
           {/* Back Button and Share Buttons */}
           <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">

@@ -168,7 +168,7 @@ export default function Trips() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
       <Navigation />
-      <div className="container mx-auto px-2 md:px-4 py-3 md:py-6">
+      <div className="container mx-auto px-2 md:px-4 pt-0 pb-3 md:py-6">
         <div className="max-w-6xl mx-auto">
           {/* Compact header */}
           <div className="flex items-center justify-between gap-3 mb-4">
