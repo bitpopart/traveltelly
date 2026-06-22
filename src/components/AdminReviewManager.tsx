@@ -199,7 +199,7 @@ function ReviewCard({ review, onEdit, onDelete }: ReviewCardProps) {
 
         <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t">
           <span>Category: {category}</span>
-          <span>ID: {naddr.slice(-8)}</span>
+          <span>ID: {reviewSlug.slice(-8)}</span>
         </div>
       </CardContent>
     </Card>
