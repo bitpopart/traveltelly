@@ -484,12 +484,14 @@ function useStories(type: 'write' | 'video' = 'write') {
 
         return uniqueEvents.sort((a, b) => b.created_at - a.created_at);
       } else {
-        // Query written stories with traveltelly tag to filter out template/demo stories
+        // Query written stories — admin pubkey only, tagged traveltelly
+        const adminPubkey = '7d33ba57d8a6e8869a1f1d5215254597594ac0dbfeb01b690def8c461b82db35';
         const events = await nostr.query([
           {
             kinds: [30023],
+            authors: [adminPubkey],
             '#t': ['traveltelly'],
-            limit: 20,
+            limit: 50,
           }
         ], { signal });
 
