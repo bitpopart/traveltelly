@@ -719,39 +719,80 @@ export function AdminStoryManager() {
 
             {/* Thumbnail Image */}
             <div>
-              <Label className="mb-2 block">Thumbnail Image (optional)</Label>
-              <p className="text-xs text-muted-foreground mb-2">
-                This image appears as the grid thumbnail. If not provided, a generic icon will be shown.
-              </p>
-              <div className="flex gap-2 items-start">
-                <div className="flex-1">
-                  <Input
-                    value={htmlUploadForm.image}
-                    onChange={(e) => setHtmlUploadForm(prev => ({ ...prev, image: e.target.value }))}
-                    placeholder="https://... (paste URL or upload below)"
-                  />
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
+              <Label className="mb-2 block font-semibold">
+                Thumbnail Image <span className="text-red-500">*</span>
+                <span className="font-normal text-muted-foreground ml-1">(shown in the grid)</span>
+              </Label>
+
+              {/* Upload area */}
+              {!htmlUploadForm.image ? (
+                <div
+                  className="border-2 border-dashed border-orange-300 dark:border-orange-700 rounded-lg p-6 text-center cursor-pointer hover:border-orange-400 hover:bg-orange-50/50 dark:hover:bg-orange-900/10 transition-colors"
                   onClick={() => thumbnailFileInputRef.current?.click()}
-                  disabled={isUploading}
                 >
-                  {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                </Button>
-                <input
-                  ref={thumbnailFileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleHtmlThumbnailUpload}
-                />
-              </div>
-              {htmlUploadForm.image && (
-                <div className="mt-2">
-                  <img src={htmlUploadForm.image} alt="Thumbnail preview" className="w-32 h-32 object-cover rounded-lg border" />
+                  {isUploading ? (
+                    <div className="flex flex-col items-center gap-2 text-orange-500">
+                      <Loader2 className="w-8 h-8 animate-spin" />
+                      <p className="text-sm font-medium">Uploading thumbnail…</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <Upload className="w-8 h-8 mx-auto mb-2 text-orange-400" />
+                      <p className="text-sm font-medium">Click to upload thumbnail image</p>
+                      <p className="text-xs text-muted-foreground mt-1">JPG, PNG, WebP — this is the grid preview image</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="relative inline-block">
+                  <img
+                    src={htmlUploadForm.image}
+                    alt="Thumbnail preview"
+                    className="w-40 h-40 object-cover rounded-lg border-2 border-green-400 shadow"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHtmlUploadForm(prev => ({ ...prev, image: '' }));
+                      if (thumbnailFileInputRef.current) thumbnailFileInputRef.current.value = '';
+                    }}
+                    className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white text-xs flex items-center justify-center hover:bg-red-600 shadow"
+                    title="Remove thumbnail"
+                  >
+                    ✕
+                  </button>
+                  <div className="mt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => thumbnailFileInputRef.current?.click()}
+                      disabled={isUploading}
+                    >
+                      <Upload className="w-3 h-3 mr-1" />
+                      Replace
+                    </Button>
+                  </div>
                 </div>
               )}
+
+              <input
+                ref={thumbnailFileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleHtmlThumbnailUpload}
+              />
+
+              {/* Or paste URL */}
+              <div className="mt-3">
+                <p className="text-xs text-muted-foreground mb-1">Or paste an image URL directly:</p>
+                <Input
+                  value={htmlUploadForm.image}
+                  onChange={(e) => setHtmlUploadForm(prev => ({ ...prev, image: e.target.value }))}
+                  placeholder="https://example.com/thumbnail.jpg"
+                  className="text-sm"
+                />
+              </div>
             </div>
 
             {/* Location */}

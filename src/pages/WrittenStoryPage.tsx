@@ -11,16 +11,11 @@ import { ArrowLeft, BookOpen, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { NostrEvent } from '@nostrify/nostrify';
 
-// Module-level HTML cache — persists across re-renders and same-session navigation
-const htmlCache = new Map<string, string>();
-
 const FILE_RE = /\.(pdf|zip|docx?|xlsx?|pptx?|mp4|mp3|png|jpe?g|gif|svg|webp|exe|dmg|apk)(\?|$)/i;
 
 /**
  * Rewrites download/file links in raw HTML before rendering as srcDoc.
- * Replaces the real href with "#" and stores the URL in data-dl so the browser
- * never navigates away. A small inline script handles the click via postMessage.
- * (Adapted from bitpopart/nostrpop CustomPage.tsx)
+ * Only used when we have the raw HTML content available.
  */
 function injectDownloadScript(html: string): string {
   const rewritten = html.replace(
@@ -53,19 +48,22 @@ document.addEventListener('click',function(e){
 }
 
 /** Branded loading overlay shown while the iframe loads */
-function IframeLoadingOverlay({ visible }: { visible: boolean }) {
+function IframeLoadingOverlay({ visible, title }: { visible: boolean; title: string }) {
   if (!visible) return null;
   return (
     <div
-      className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-gray-50 dark:bg-gray-900 transition-opacity duration-500"
+      className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-gray-50 dark:bg-gray-900"
       aria-label="Loading page…"
     >
       <div className="p-4 rounded-full bg-green-100 dark:bg-green-900/30">
         <BookOpen className="h-10 w-10 text-green-600 dark:text-green-400" />
       </div>
-      <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-        <Loader2 className="h-5 w-5 animate-spin" />
-        <span className="text-sm font-medium">Loading story…</span>
+      <div className="text-center space-y-1">
+        <p className="font-semibold text-foreground">{title}</p>
+        <div className="flex items-center justify-center gap-2 text-green-600 dark:text-green-400">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span className="text-sm">Loading story…</span>
+        </div>
       </div>
     </div>
   );
@@ -79,15 +77,18 @@ function validateArticleEvent(event: NostrEvent): boolean {
   return true;
 }
 
+// Module-level HTML cache for optional srcDoc rendering
+const htmlCache = new Map<string, string>();
+
 export default function WrittenStoryPage() {
   const { naddr } = useParams<{ naddr: string }>();
   const { nostr } = useNostr();
 
   const [iframeLoaded, setIframeLoaded] = useState(false);
+  // Optional: fetched HTML for srcDoc rendering (used when src= fails due to X-Frame-Options)
   const [fetchedHtml, setFetchedHtml] = useState<string | null>(null);
-  const [fetchingHtml, setFetchingHtml] = useState(false);
+  const [useSrcDoc, setUseSrcDoc] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const fetchingUrlRef = useRef<string | null>(null);
 
   // Fetch the Nostr event
   const { data: article, isLoading, error } = useQuery({
@@ -124,32 +125,13 @@ export default function WrittenStoryPage() {
 
   const brandSite = article?.tags.find(([name]) => name === 'brand_site')?.[1] || '';
   const title = article?.tags.find(([name]) => name === 'title')?.[1] || 'Untitled Story';
-  const isRemoteHtml = !!(brandSite && /\.html?(\?|$)/i.test(brandSite));
 
-  // Reset iframe loaded state on brand_site change
+  // Reset on URL change
   useEffect(() => {
     setIframeLoaded(false);
+    setUseSrcDoc(false);
+    setFetchedHtml(null);
   }, [brandSite]);
-
-  // Fetch HTML from Blossom URL when needed
-  useEffect(() => {
-    if (!isRemoteHtml || !brandSite) return;
-    if (htmlCache.has(brandSite)) {
-      setFetchedHtml(htmlCache.get(brandSite)!);
-      return;
-    }
-    if (fetchingUrlRef.current === brandSite) return;
-    fetchingUrlRef.current = brandSite;
-    setFetchingHtml(true);
-    fetch(brandSite)
-      .then(r => r.text())
-      .then(html => {
-        htmlCache.set(brandSite, html);
-        setFetchedHtml(html);
-        setFetchingHtml(false);
-      })
-      .catch(() => setFetchingHtml(false));
-  }, [brandSite, isRemoteHtml]);
 
   // Listen for download requests from within the iframe
   useEffect(() => {
@@ -179,9 +161,32 @@ export default function WrittenStoryPage() {
     setIframeLoaded(true);
   }, []);
 
-  // Build srcDoc string
-  const htmlSrcDoc: string | undefined =
-    isRemoteHtml ? (fetchedHtml ?? undefined) : undefined;
+  /**
+   * If the iframe fails to load via src= (e.g. X-Frame-Options or CSP),
+   * fall back to fetching the HTML and using srcDoc.
+   */
+  const handleIframeError = useCallback(() => {
+    if (!brandSite || useSrcDoc) return;
+    // Try fetching via CORS proxy and render as srcDoc
+    const proxyUrl = `https://proxy.shakespeare.diy/?url=${encodeURIComponent(brandSite)}`;
+    const cached = htmlCache.get(brandSite);
+    if (cached) {
+      setFetchedHtml(cached);
+      setUseSrcDoc(true);
+      return;
+    }
+    fetch(proxyUrl)
+      .then(r => r.text())
+      .then(html => {
+        htmlCache.set(brandSite, html);
+        setFetchedHtml(html);
+        setUseSrcDoc(true);
+        setIframeLoaded(false);
+      })
+      .catch(() => {
+        // Final fallback: just try direct src= again (already attempted)
+      });
+  }, [brandSite, useSrcDoc]);
 
   // ── Loading states ──────────────────────────────────────────────────────────
 
@@ -190,8 +195,8 @@ export default function WrittenStoryPage() {
       <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
         <Navigation />
         <div className="container mx-auto px-4 py-8">
-          <Skeleton className="h-10 w-32 mb-6" />
-          <Skeleton className="h-screen w-full rounded-lg" />
+          <Skeleton className="h-10 w-48 mb-6" />
+          <Skeleton className="h-[80vh] w-full rounded-lg" />
         </div>
       </div>
     );
@@ -251,55 +256,30 @@ export default function WrittenStoryPage() {
     }
   }
 
-  // ── Full-screen HTML page — loads directly below the Navigation header ──────
+  // ── Full-screen HTML page — fills viewport below Navigation ──────────────────
+  const srcDoc = useSrcDoc && fetchedHtml ? injectDownloadScript(fetchedHtml) : undefined;
+
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#f4f4f5' }}>
+    <div className="flex flex-col" style={{ height: '100vh' }}>
       <Navigation />
 
-      {/* Full-height iframe container below the nav */}
-      <div className="flex-1 relative" style={{ height: 'calc(100vh - 64px)' }}>
-        {fetchingHtml && !fetchedHtml ? (
-          // While fetching HTML from Blossom
-          <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-gray-50 dark:bg-gray-900">
-            <div className="p-4 rounded-full bg-green-100 dark:bg-green-900/30">
-              <BookOpen className="h-10 w-10 text-green-600 dark:text-green-400" />
-            </div>
-            <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              <span className="text-sm font-medium">Loading "{title}"…</span>
-            </div>
-          </div>
-        ) : htmlSrcDoc ? (
-          // Render fetched HTML as srcDoc (most secure, most compatible)
-          <div className="w-full h-full relative">
-            <IframeLoadingOverlay visible={!iframeLoaded} />
-            <iframe
-              ref={iframeRef}
-              srcDoc={injectDownloadScript(htmlSrcDoc)}
-              title={title}
-              className={`w-full h-full border-0 transition-opacity duration-500 ${iframeLoaded ? 'opacity-100' : 'opacity-0'}`}
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads"
-              onLoad={handleIframeLoad}
-            />
-          </div>
-        ) : brandSite && !isRemoteHtml ? (
-          // Plain external URL (not .html file) — use src= directly
-          <div className="w-full h-full relative">
-            <IframeLoadingOverlay visible={!iframeLoaded} />
-            <iframe
-              ref={iframeRef}
-              src={brandSite}
-              title={title}
-              className={`w-full h-full border-0 transition-opacity duration-500 ${iframeLoaded ? 'opacity-100' : 'opacity-0'}`}
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads"
-              onLoad={handleIframeLoad}
-            />
-          </div>
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-green-600" />
-          </div>
-        )}
+      {/* Full-height iframe container — takes all remaining space below nav */}
+      <div className="flex-1 relative overflow-hidden">
+        <IframeLoadingOverlay visible={!iframeLoaded} title={title} />
+
+        <iframe
+          ref={iframeRef}
+          key={useSrcDoc ? 'srcdoc' : 'src'}
+          {...(srcDoc
+            ? { srcDoc }
+            : { src: brandSite }
+          )}
+          title={title}
+          className={`w-full h-full border-0 transition-opacity duration-300 ${iframeLoaded ? 'opacity-100' : 'opacity-0'}`}
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads"
+          onLoad={handleIframeLoad}
+          onError={handleIframeError}
+        />
       </div>
     </div>
   );
