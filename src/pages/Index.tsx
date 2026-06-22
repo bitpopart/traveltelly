@@ -216,7 +216,12 @@ const StoryCard = memo(function StoryCard({ story }: StoryCardProps) {
 
   // Determine if this is a video story (kinds 34235/34236)
   const isVideoStory = story.event.kind === 34235 || story.event.kind === 34236;
-  const linkPath = isVideoStory ? `/video/${story.naddr}` : `/story/${story.naddr}`;
+  const isHtmlPage = !!story.event.tags.find(([name]) => name === 'brand_site')?.[1];
+  const linkPath = isVideoStory
+    ? `/video/${story.naddr}`
+    : isHtmlPage
+      ? `/story-page/${story.naddr}`
+      : `/story/${story.naddr}`;
   
   // Check if image is actually a video file (no separate thumbnail was uploaded)
   const isVideoFile = story.image && (story.image.endsWith('.webm') || story.image.endsWith('.mp4') || story.image.endsWith('.mov') || story.image.includes('.webm?') || story.image.includes('.mp4?') || story.image.includes('.mov?'));

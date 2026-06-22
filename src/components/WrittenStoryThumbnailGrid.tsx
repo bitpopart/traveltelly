@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { FileText, Globe, Loader2 } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { nip19 } from 'nostr-tools';
 import { useNavigate } from 'react-router-dom';
 import type { NostrEvent } from '@nostrify/nostrify';
@@ -85,14 +85,6 @@ function WrittenStoryItem({ story }: WrittenStoryItemProps) {
       ) : (
         <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-800/20">
           <FileText className="w-8 h-8 text-green-400 dark:text-green-500 opacity-60" />
-        </div>
-      )}
-
-      {/* HTML page badge */}
-      {isHtmlPage && (
-        <div className="absolute top-1.5 left-1.5 bg-blue-600/90 text-white text-[9px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5 font-medium">
-          <Globe className="w-2.5 h-2.5" />
-          <span>HTML</span>
         </div>
       )}
 
