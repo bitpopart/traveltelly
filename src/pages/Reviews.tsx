@@ -58,8 +58,8 @@ export default function Reviews() {
             )}
           </div>
 
-          {/* Search and Filters */}
-          <Card className="mb-6">
+          {/* Search and Filters - desktop only (mobile uses nav search) */}
+          <Card className="hidden md:block mb-6">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Filter className="w-5 h-5" />
@@ -112,7 +112,7 @@ export default function Reviews() {
 
           {/* View Toggle and Content */}
           <Tabs defaultValue="list" className="w-full">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4">
               <TabsList className="grid w-fit grid-cols-2">
                 <TabsTrigger value="list" className="flex items-center gap-2">
                   <List className="w-4 h-4" />
@@ -124,7 +124,7 @@ export default function Reviews() {
                 </TabsTrigger>
               </TabsList>
 
-              <div className="flex items-center gap-3">
+              <div className="hidden md:flex items-center gap-3">
                 <span className="text-sm text-muted-foreground">Switch relay:</span>
                 <RelaySelector />
               </div>

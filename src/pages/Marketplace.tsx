@@ -190,8 +190,8 @@ function MarketplaceInner() {
             </div>
           </div>
 
-          {/* ── Media type cards ── */}
-          <div className="grid md:grid-cols-2 gap-5 mb-10 max-w-3xl mx-auto">
+          {/* ── Media type cards — desktop only ── */}
+          <div className="hidden md:grid md:grid-cols-2 gap-5 mb-10 max-w-3xl mx-auto">
             <Card className="border-0 shadow-sm bg-gradient-to-br from-pink-50 to-red-50 dark:from-pink-900/20 dark:to-red-900/20">
               <CardContent className="p-6 text-center">
                 <div className="p-3 rounded-2xl w-fit mx-auto mb-3" style={{ backgroundColor: '#ec1a58' }}>
@@ -212,8 +212,8 @@ function MarketplaceInner() {
             </Card>
           </div>
 
-          {/* ── Payment methods strip ── */}
-          <div className="grid md:grid-cols-3 gap-5 mb-10">
+          {/* ── Payment methods strip — desktop only ── */}
+          <div className="hidden md:grid md:grid-cols-3 gap-5 mb-10">
             <Card className="border-0 shadow-sm bg-gradient-to-br from-pink-50 to-red-50 dark:from-pink-900/20 dark:to-red-900/20">
               <CardContent className="p-5">
                 <div className="flex items-center gap-4">
@@ -285,8 +285,8 @@ function MarketplaceInner() {
             <GeoBrowser onFilter={setGeoFilter} />
           </div>
 
-          {/* ── Search & Filters ── */}
-          <Card className="mb-8 border-0 shadow-sm">
+          {/* ── Search & Filters — desktop only (mobile uses nav search) ── */}
+          <Card className="hidden md:block mb-8 border-0 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Search className="w-5 h-5" />
