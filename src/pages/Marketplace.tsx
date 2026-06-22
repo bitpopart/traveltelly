@@ -20,7 +20,7 @@ import { MarketplaceBinSection } from "@/components/MarketplaceBinSection";
 import { AdminSelectionProvider, useAdminSelection } from "@/contexts/AdminSelectionContext";
 import { adminBulkDownload } from "@/lib/adminBulkDownload";
 import type { BulkDownloadProgress } from "@/lib/adminBulkDownload";
-import { ShoppingCart, Search, Plus, Store, Crown, Globe, Download, CheckSquare, X, Loader2 } from "lucide-react";
+import { ShoppingCart, Search, Plus, Store, Crown, Globe, Download, CheckSquare, X, Loader2, Camera, Video, Zap, CreditCard, LayoutGrid } from "lucide-react";
 import { Link } from "react-router-dom";
 import { GeoBrowser } from "@/components/GeoBrowser";
 import { getContinentLabel, getCountryLabel } from "@/lib/geoData";
