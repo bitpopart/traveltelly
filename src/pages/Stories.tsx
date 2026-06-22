@@ -12,6 +12,7 @@ import { CreateArticleForm } from '@/components/CreateArticleForm';
 import { CreateVideoStoryForm } from '@/components/CreateVideoStoryForm';
 import { VideoPlayerDialog } from '@/components/VideoPlayerDialog';
 import { VideoThumbnailGrid } from '@/components/VideoThumbnailGrid';
+import { WrittenStoryThumbnailGrid } from '@/components/WrittenStoryThumbnailGrid';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostr } from '@nostrify/react';
@@ -409,7 +410,16 @@ function validateNIP23Article(event: NostrEvent): boolean {
   const d = event.tags.find(([name]) => name === 'd')?.[1];
   const title = event.tags.find(([name]) => name === 'title')?.[1];
 
-  if (!d || !title || event.content.length < 100) {
+  if (!d || !title) {
+    return false;
+  }
+
+  // HTML page stories (brand_site tag) are always valid — they have a full page attached
+  const hasBrandSite = !!event.tags.find(([name]) => name === 'brand_site')?.[1];
+  if (hasBrandSite) return true;
+
+  // Regular stories need meaningful content
+  if (event.content.length < 100) {
     return false;
   }
 
@@ -612,19 +622,11 @@ export default function Stories() {
                   </CardContent>
                 </Card>
               ) : isLoading ? (
-                storyType === 'video' ? (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-0.5 md:gap-1">
-                    {Array.from({ length: 18 }, (_, i) => (
-                      <Skeleton key={i} className="aspect-square w-full rounded-sm" />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {Array.from({ length: 6 }, (_, i) => (
-                      <StorySkeleton key={i} />
-                    ))}
-                  </div>
-                )
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-0.5 md:gap-1">
+                  {Array.from({ length: 18 }, (_, i) => (
+                    <Skeleton key={i} className="aspect-square w-full rounded-sm" />
+                  ))}
+                </div>
               ) : !stories || stories.length === 0 ? (
                 <Card className="border-dashed">
                   <CardContent className="py-12 px-8 text-center">
@@ -643,14 +645,7 @@ export default function Stories() {
               ) : storyType === 'video' ? (
                 <VideoThumbnailGrid videos={stories} />
               ) : (
-                <div className="grid gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {stories.map((story) => (
-                    <StoryCard
-                      key={story.id}
-                      story={story}
-                    />
-                  ))}
-                </div>
+                <WrittenStoryThumbnailGrid stories={stories} />
               )}
             </TabsContent>
 

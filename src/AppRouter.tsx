@@ -31,6 +31,7 @@ import DownloadPage from "./pages/DownloadPage";
 
 import Stories from "./pages/Stories";
 import StoryDetail from "./pages/StoryDetail";
+import WrittenStoryPage from "./pages/WrittenStoryPage";
 import VideoDetail from "./pages/VideoDetail";
 import Reviews from "./pages/Reviews";
 import Trips from "./pages/Trips";
@@ -81,6 +82,7 @@ export function AppRouter() {
         <Route path="/full" element={<Index />} />
         <Route path="/stories" element={<Stories />} />
         <Route path="/story/:naddr" element={<StoryDetail />} />
+        <Route path="/story-page/:naddr" element={<WrittenStoryPage />} />
         <Route path="/video/:naddr" element={<VideoDetail />} />
         <Route path="/reviews" element={<Reviews />} />
         <Route path="/trips" element={<Trips />} />

@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNostr } from '@nostrify/react';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
+import { useUploadFile } from '@/hooks/useUploadFile';
 import { useToast } from '@/hooks/useToast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,7 @@ import { MarkdownEditor } from '@/components/MarkdownEditor';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { nip19 } from 'nostr-tools';
-import { BookOpen, Trash2, Loader2, Download, ExternalLink, Edit, Save, Video, FileText, Play } from 'lucide-react';
+import { BookOpen, Trash2, Loader2, Download, ExternalLink, Edit, Save, Video, FileText, Play, Upload, Globe, CheckCircle2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642';
@@ -210,6 +211,7 @@ export function AdminStoryManager() {
   const { user } = useCurrentUser();
   const { toast } = useToast();
   const { mutate: publish, isPending } = useNostrPublish();
+  const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
   
   const [storyType, setStoryType] = useState<'write' | 'video'>('write');
   const [primalUrl, setPrimalUrl] = useState('');
@@ -223,6 +225,20 @@ export function AdminStoryManager() {
     location: '',
     tags: '',
   });
+
+  // HTML Page Upload state
+  const [htmlUploadForm, setHtmlUploadForm] = useState({
+    title: '',
+    summary: '',
+    image: '',
+    location: '',
+    tags: '',
+  });
+  const [selectedHtmlFile, setSelectedHtmlFile] = useState<File | null>(null);
+  const [htmlUploadProgress, setHtmlUploadProgress] = useState<'idle' | 'uploading' | 'publishing' | 'done'>('idle');
+  const [uploadedHtmlUrl, setUploadedHtmlUrl] = useState('');
+  const htmlFileInputRef = useRef<HTMLInputElement>(null);
+  const thumbnailFileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: stories = [], isLoading, refetch } = useQuery({
     queryKey: ['admin-stories', ADMIN_HEX, storyType],
@@ -369,6 +385,111 @@ export function AdminStoryManager() {
     setTimeout(() => refetch(), 1000);
   };
 
+  const handleHtmlThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const [[, url]] = await uploadFile(file);
+      setHtmlUploadForm(prev => ({ ...prev, image: url }));
+      toast({ title: 'Thumbnail uploaded!', description: 'Thumbnail image has been uploaded.' });
+    } catch {
+      toast({ title: 'Upload failed', description: 'Could not upload thumbnail.', variant: 'destructive' });
+    }
+  };
+
+  const handleHtmlPageUpload = async () => {
+    if (!selectedHtmlFile) {
+      toast({ title: 'No file selected', description: 'Please select an HTML file to upload.', variant: 'destructive' });
+      return;
+    }
+    if (!htmlUploadForm.title.trim()) {
+      toast({ title: 'Title required', description: 'Please enter a title for this story page.', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      setHtmlUploadProgress('uploading');
+
+      // Upload the HTML file to Blossom
+      const [[, htmlUrl]] = await uploadFile(selectedHtmlFile);
+      setUploadedHtmlUrl(htmlUrl);
+
+      setHtmlUploadProgress('publishing');
+
+      // Build the story tags
+      const dTag = `html-page-${Date.now()}`;
+      const tags: string[][] = [
+        ['d', dTag],
+        ['title', htmlUploadForm.title.trim()],
+        ['published_at', Math.floor(Date.now() / 1000).toString()],
+        ['alt', `Travel Story: ${htmlUploadForm.title.trim()}`],
+        // Custom tag to mark this as an HTML page
+        ['brand_site', htmlUrl],
+        ['brand_site_is_srcdoc', 'false'],
+      ];
+
+      if (htmlUploadForm.summary.trim()) {
+        tags.push(['summary', htmlUploadForm.summary.trim()]);
+      }
+      if (htmlUploadForm.image.trim()) {
+        tags.push(['image', htmlUploadForm.image.trim()]);
+      }
+      if (htmlUploadForm.location.trim()) {
+        tags.push(['location', htmlUploadForm.location.trim()]);
+      }
+
+      // Add topic tags
+      if (htmlUploadForm.tags.trim()) {
+        const topicTags = htmlUploadForm.tags
+          .split(',')
+          .map(tag => tag.trim().toLowerCase())
+          .filter(tag => tag.length > 0);
+        topicTags.forEach(tag => tags.push(['t', tag]));
+      }
+
+      // Always add traveltelly tags
+      tags.push(['t', 'travel']);
+      tags.push(['t', 'traveltelly']);
+      tags.push(['t', 'htmlpage']);
+
+      // Publish as NIP-23 long-form article (kind 30023) with minimal content
+      publish({
+        kind: 30023,
+        content: `# ${htmlUploadForm.title.trim()}\n\n${htmlUploadForm.summary || 'Travel story page'}\n\n[View full page](${htmlUrl})`,
+        tags,
+      }, {
+        onSuccess: () => {
+          setHtmlUploadProgress('done');
+          toast({
+            title: 'HTML Page Published!',
+            description: `"${htmlUploadForm.title}" is now live as a story page.`,
+          });
+          // Reset form
+          setTimeout(() => {
+            setHtmlUploadProgress('idle');
+            setSelectedHtmlFile(null);
+            setUploadedHtmlUrl('');
+            setHtmlUploadForm({ title: '', summary: '', image: '', location: '', tags: '' });
+            if (htmlFileInputRef.current) htmlFileInputRef.current.value = '';
+            if (thumbnailFileInputRef.current) thumbnailFileInputRef.current.value = '';
+            refetch();
+          }, 2000);
+        },
+        onError: () => {
+          setHtmlUploadProgress('idle');
+          toast({ title: 'Publish failed', description: 'Could not publish story page.', variant: 'destructive' });
+        },
+      });
+    } catch (err) {
+      setHtmlUploadProgress('idle');
+      toast({
+        title: 'Upload failed',
+        description: err instanceof Error ? err.message : 'Failed to upload HTML file.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleImportFromPrimal = async () => {
     if (!primalUrl.trim()) {
       toast({
@@ -484,6 +605,7 @@ export function AdminStoryManager() {
       <Tabs defaultValue="manage-stories" className="w-full">
         <TabsList>
           <TabsTrigger value="manage-stories">Manage {storyType === 'write' ? 'Stories' : 'Videos'}</TabsTrigger>
+          {storyType === 'write' && <TabsTrigger value="upload-html-page" className="flex items-center gap-1"><Globe className="w-3 h-3" />Upload HTML Page</TabsTrigger>}
           {storyType === 'write' && <TabsTrigger value="import-story">Import from Primal</TabsTrigger>}
         </TabsList>
 
@@ -515,6 +637,181 @@ export function AdminStoryManager() {
             </div>
           )}
         </div>
+      </TabsContent>
+
+      {/* HTML Page Upload Tab */}
+      <TabsContent value="upload-html-page" className="mt-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="w-5 h-5 text-blue-600" />
+              Upload Full HTML Page
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {/* Info box */}
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 rounded-lg">
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                <strong>How it works:</strong> Upload a complete HTML file (e.g. a full travel story page).
+                It will be stored on Blossom and appear as a thumbnail in the Written Stories grid.
+                When visitors click it, the full page loads directly under the navigation menu — like a mini website.
+              </p>
+            </div>
+
+            {/* HTML File Upload */}
+            <div>
+              <Label className="mb-2 block">HTML File <span className="text-red-500">*</span></Label>
+              <div
+                className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors"
+                onClick={() => htmlFileInputRef.current?.click()}
+              >
+                {selectedHtmlFile ? (
+                  <div className="flex items-center justify-center gap-3">
+                    <FileText className="w-8 h-8 text-blue-600" />
+                    <div className="text-left">
+                      <p className="font-medium text-sm">{selectedHtmlFile.name}</p>
+                      <p className="text-xs text-muted-foreground">{(selectedHtmlFile.size / 1024).toFixed(1)} KB</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                    <p className="text-sm font-medium">Click to select HTML file</p>
+                    <p className="text-xs text-muted-foreground mt-1">Supports .html, .htm files</p>
+                  </div>
+                )}
+              </div>
+              <input
+                ref={htmlFileInputRef}
+                type="file"
+                accept=".html,.htm"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) setSelectedHtmlFile(file);
+                }}
+              />
+            </div>
+
+            {/* Title */}
+            <div>
+              <Label htmlFor="html-title">Title <span className="text-red-500">*</span></Label>
+              <Input
+                id="html-title"
+                value={htmlUploadForm.title}
+                onChange={(e) => setHtmlUploadForm(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Story page title (shown on thumbnail)"
+                className="mt-1"
+              />
+            </div>
+
+            {/* Summary */}
+            <div>
+              <Label htmlFor="html-summary">Summary (optional)</Label>
+              <Textarea
+                id="html-summary"
+                value={htmlUploadForm.summary}
+                onChange={(e) => setHtmlUploadForm(prev => ({ ...prev, summary: e.target.value }))}
+                placeholder="Short description shown on hover..."
+                className="mt-1 min-h-[70px]"
+              />
+            </div>
+
+            {/* Thumbnail Image */}
+            <div>
+              <Label className="mb-2 block">Thumbnail Image (optional)</Label>
+              <p className="text-xs text-muted-foreground mb-2">
+                This image appears as the grid thumbnail. If not provided, a generic icon will be shown.
+              </p>
+              <div className="flex gap-2 items-start">
+                <div className="flex-1">
+                  <Input
+                    value={htmlUploadForm.image}
+                    onChange={(e) => setHtmlUploadForm(prev => ({ ...prev, image: e.target.value }))}
+                    placeholder="https://... (paste URL or upload below)"
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => thumbnailFileInputRef.current?.click()}
+                  disabled={isUploading}
+                >
+                  {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                </Button>
+                <input
+                  ref={thumbnailFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleHtmlThumbnailUpload}
+                />
+              </div>
+              {htmlUploadForm.image && (
+                <div className="mt-2">
+                  <img src={htmlUploadForm.image} alt="Thumbnail preview" className="w-32 h-32 object-cover rounded-lg border" />
+                </div>
+              )}
+            </div>
+
+            {/* Location */}
+            <div>
+              <Label htmlFor="html-location">Location (optional)</Label>
+              <Input
+                id="html-location"
+                value={htmlUploadForm.location}
+                onChange={(e) => setHtmlUploadForm(prev => ({ ...prev, location: e.target.value }))}
+                placeholder="City, Country"
+                className="mt-1"
+              />
+            </div>
+
+            {/* Tags */}
+            <div>
+              <Label htmlFor="html-tags">Topic Tags (optional)</Label>
+              <Input
+                id="html-tags"
+                value={htmlUploadForm.tags}
+                onChange={(e) => setHtmlUploadForm(prev => ({ ...prev, tags: e.target.value }))}
+                placeholder="destination, guide, photography (comma-separated)"
+                className="mt-1"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                "travel", "traveltelly", and "htmlpage" tags are added automatically.
+              </p>
+            </div>
+
+            {/* Upload Button */}
+            <Button
+              onClick={handleHtmlPageUpload}
+              disabled={!selectedHtmlFile || !htmlUploadForm.title.trim() || htmlUploadProgress !== 'idle'}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              size="lg"
+            >
+              {htmlUploadProgress === 'uploading' && (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Uploading HTML to Blossom…</>
+              )}
+              {htmlUploadProgress === 'publishing' && (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Publishing to Nostr…</>
+              )}
+              {htmlUploadProgress === 'done' && (
+                <><CheckCircle2 className="w-4 h-4 mr-2" />Published! 🎉</>
+              )}
+              {htmlUploadProgress === 'idle' && (
+                <><Globe className="w-4 h-4 mr-2" />Upload & Publish HTML Page</>
+              )}
+            </Button>
+
+            {uploadedHtmlUrl && htmlUploadProgress === 'done' && (
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-3 rounded-lg">
+                <p className="text-sm text-green-800 dark:text-green-200 font-medium mb-1">HTML file uploaded to Blossom:</p>
+                <a href={uploadedHtmlUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 underline break-all">
+                  {uploadedHtmlUrl}
+                </a>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </TabsContent>
 
       <TabsContent value="import-story" className="mt-6">
