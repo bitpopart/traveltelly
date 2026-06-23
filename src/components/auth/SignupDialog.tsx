@@ -2,7 +2,7 @@
 // It is important that all functionality in this file is preserved, and should only be modified if explicitly requested.
 
 import React, { useState } from 'react';
-import { Download, Key } from 'lucide-react';
+import { Download, Key, X } from 'lucide-react';
 import { Button } from '@/components/ui/button.tsx';
 import {
   Dialog,
@@ -11,8 +11,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog.tsx';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerClose,
+} from '@/components/ui/drawer.tsx';
 import { toast } from '@/hooks/useToast.ts';
 import { useLoginActions } from '@/hooks/useLoginActions';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { generateSecretKey, nip19 } from 'nostr-tools';
 
 interface SignupDialogProps {
@@ -25,6 +34,7 @@ const SignupDialog: React.FC<SignupDialogProps> = ({ isOpen, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [nsec, setNsec] = useState('');
   const login = useLoginActions();
+  const isMobile = useIsMobile();
 
   // Generate a proper nsec key using nostr-tools
   const generateKey = () => {
@@ -83,81 +93,123 @@ const SignupDialog: React.FC<SignupDialogProps> = ({ isOpen, onClose }) => {
     });
   };
 
+  const title =
+    step === 'generate' ? 'Create Your Account' :
+    step === 'download' ? 'Download Your Key' :
+    'Setting Up Your Account';
+
+  const description =
+    step === 'generate' ? 'Generate a secure key for your account' :
+    step === 'download' ? "Keep your key safe - you'll need it to log in" :
+    'Finalizing your account setup';
+
+  const signupContent = (
+    <div className='space-y-6 py-2'>
+      {step === 'generate' && (
+        <div className='text-center space-y-6'>
+          <div className='p-4 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center'>
+            <Key className='w-16 h-16 text-primary' />
+          </div>
+          <p className='text-sm text-gray-600 dark:text-gray-300'>
+            We'll generate a secure key for your account. You'll need this key to log in later.
+          </p>
+          <Button
+            className='w-full rounded-full py-6'
+            onClick={generateKey}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Generating key...' : 'Generate my key'}
+          </Button>
+        </div>
+      )}
+
+      {step === 'download' && (
+        <div className='space-y-6'>
+          <div className='p-4 rounded-lg border bg-gray-50 dark:bg-gray-800 overflow-auto'>
+            <code className='text-xs break-all'>{nsec}</code>
+          </div>
+
+          <div className='text-sm text-gray-600 dark:text-gray-300 space-y-2'>
+            <p className='font-medium text-red-500'>Important:</p>
+            <ul className='list-disc pl-5 space-y-1'>
+              <li>This is your only way to access your account</li>
+              <li>Store it somewhere safe</li>
+              <li>Never share this key with anyone</li>
+            </ul>
+          </div>
+
+          <div className='flex flex-col space-y-3 pb-2'>
+            <Button
+              variant='outline'
+              className='w-full'
+              onClick={downloadKey}
+            >
+              <Download className='w-4 h-4 mr-2' />
+              Download Key
+            </Button>
+
+            <Button
+              className='w-full rounded-full py-6'
+              onClick={finishSignup}
+            >
+              I've saved my key, continue
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {step === 'done' && (
+        <div className='flex justify-center items-center py-8'>
+          <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-primary'></div>
+        </div>
+      )}
+    </div>
+  );
+
+  // ── Mobile: bottom Drawer ──────────────────────────────────────────────────
+  if (isMobile) {
+    return (
+      <Drawer open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }} shouldScaleBackground={false}>
+        <DrawerContent className='max-h-[92dvh] flex flex-col'>
+          <DrawerHeader className='px-6 pt-2 pb-0 flex-shrink-0 relative'>
+            <DrawerClose
+              className='absolute right-4 top-3 rounded-sm opacity-70 hover:opacity-100 transition-opacity'
+              onClick={onClose}
+            >
+              <X className='h-5 w-5' />
+              <span className='sr-only'>Close</span>
+            </DrawerClose>
+            <DrawerTitle className='text-xl font-semibold text-center pr-8'>
+              {title}
+            </DrawerTitle>
+            <DrawerDescription className='text-center text-muted-foreground mt-2'>
+              {description}
+            </DrawerDescription>
+          </DrawerHeader>
+
+          <div className='flex-1 overflow-y-auto px-6 pt-4 pb-6'>
+            {signupContent}
+          </div>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
+  // ── Desktop: centered Dialog ───────────────────────────────────────────────
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className='sm:max-w-md p-0 overflow-hidden rounded-2xl'>
         <DialogHeader className='px-6 pt-6 pb-0 relative'>
           <DialogTitle className='text-xl font-semibold text-center'>
-            {step === 'generate' && 'Create Your Account'}
-            {step === 'download' && 'Download Your Key'}
-            {step === 'done' && 'Setting Up Your Account'}
+            {title}
           </DialogTitle>
           <DialogDescription className='text-center text-muted-foreground mt-2'>
-            {step === 'generate' && 'Generate a secure key for your account'}
-            {step === 'download' && "Keep your key safe - you'll need it to log in"}
-            {step === 'done' && 'Finalizing your account setup'}
+            {description}
           </DialogDescription>
         </DialogHeader>
 
-        <div className='px-6 py-8 space-y-6'>
-          {step === 'generate' && (
-            <div className='text-center space-y-6'>
-              <div className='p-4 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center'>
-                <Key className='w-16 h-16 text-primary' />
-              </div>
-              <p className='text-sm text-gray-600 dark:text-gray-300'>
-                We'll generate a secure key for your account. You'll need this key to log in later.
-              </p>
-              <Button
-                className='w-full rounded-full py-6'
-                onClick={generateKey}
-                disabled={isLoading}
-              >
-                {isLoading ? 'Generating key...' : 'Generate my key'}
-              </Button>
-            </div>
-          )}
-
-          {step === 'download' && (
-            <div className='space-y-6'>
-              <div className='p-4 rounded-lg border bg-gray-50 dark:bg-gray-800 overflow-auto'>
-                <code className='text-xs break-all'>{nsec}</code>
-              </div>
-
-              <div className='text-sm text-gray-600 dark:text-gray-300 space-y-2'>
-                <p className='font-medium text-red-500'>Important:</p>
-                <ul className='list-disc pl-5 space-y-1'>
-                  <li>This is your only way to access your account</li>
-                  <li>Store it somewhere safe</li>
-                  <li>Never share this key with anyone</li>
-                </ul>
-              </div>
-
-              <div className='flex flex-col space-y-3'>
-                <Button
-                  variant='outline'
-                  className='w-full'
-                  onClick={downloadKey}
-                >
-                  <Download className='w-4 h-4 mr-2' />
-                  Download Key
-                </Button>
-
-                <Button
-                  className='w-full rounded-full py-6'
-                  onClick={finishSignup}
-                >
-                  I've saved my key, continue
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {step === 'done' && (
-            <div className='flex justify-center items-center py-8'>
-              <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-primary'></div>
-            </div>
-          )}
+        <div className='px-6 py-8 max-h-[85vh] overflow-y-auto'>
+          {signupContent}
         </div>
       </DialogContent>
     </Dialog>
