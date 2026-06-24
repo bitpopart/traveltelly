@@ -537,7 +537,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
       {/* Reviews Map - Full width on mobile directly under fixed header - Only show in map mode */}
       {viewMode === 'map' && (
         <>
-          <div className="md:hidden absolute top-16 left-0 right-0 z-10">
+          <div className="md:hidden absolute top-[105px] left-0 right-0 z-10">
             <AllAdminReviewsMap zoomToLocation={selectedLocationTag} showTitle={false} />
           </div>
 
