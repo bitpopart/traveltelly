@@ -71,7 +71,6 @@ export function AppRouter() {
   return (
     <BrowserRouter>
       <ScrollToTop />
-      <BottomNav />
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/debug" element={<IndexDebug />} />
@@ -145,6 +144,7 @@ export function AppRouter() {
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
+      <BottomNav />
     </BrowserRouter>
   );
 }

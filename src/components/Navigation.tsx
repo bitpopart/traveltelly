@@ -92,16 +92,6 @@ export function Navigation({ className }: NavigationProps) {
     </Link>
   );
 
-  // All nav items including community for the mobile tab bar
-  const mobileTabItems = [
-    { path: '/', label: 'Home', icon: Home, color: '#393636' },
-    { path: '/reviews', label: 'Reviews', icon: Star, color: '#27b0ff' },
-    { path: '/stories', label: 'Stories', icon: BookOpen, color: '#b2d235' },
-    { path: '/trips', label: 'Trips', icon: MapPin, color: '#ffcc00' },
-    { path: '/marketplace', label: 'Market', icon: Store, color: '#ec1a58' },
-    { path: '/community', label: 'Community', icon: Users, color: '#9333ea' },
-  ];
-
   return (
     <>
     <nav className={cn("bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 fixed top-0 left-0 right-0 z-50", className)}>
@@ -327,42 +317,8 @@ export function Navigation({ className }: NavigationProps) {
         )}
       </div>
     </nav>
-
-    {/* Mobile Page Navigation Tab Bar — sticky, directly below header */}
-    <div className="md:hidden fixed top-16 left-0 right-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm">
-      <div className="flex overflow-x-auto scrollbar-hide px-2 py-1.5 gap-1">
-        {mobileTabItems.map((item) => {
-          const Icon = item.icon;
-          const active = isActive(item.path);
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="flex-shrink-0"
-            >
-              <div
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap",
-                  active
-                    ? "text-white"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-                )}
-                style={active ? { backgroundColor: item.color } : {}}
-              >
-                <Icon className="w-3.5 h-3.5 flex-shrink-0" />
-                {item.label}
-              </div>
-            </Link>
-          );
-        })}
-      </div>
-    </div>
-
-    {/* Spacer — matches fixed nav height (h-16) + mobile tab bar (h-[41px]) */}
-    <div className="h-16 md:h-16" />
-    {/* Extra spacer for mobile tab bar */}
-    <div className="md:hidden h-[41px]" />
+    {/* Spacer — exactly matches the fixed nav height */}
+    <div className="h-16" />
     </>
   );
 }
