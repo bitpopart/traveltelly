@@ -11,12 +11,9 @@ import { ADMIN_HEX } from './useBlossomMedia';
  * index content and are unlikely to nuke their data.
  */
 const MARKETPLACE_FALLBACK_RELAYS = [
-  'wss://nos.lol',
-  'wss://relay.nos.social',
-  'wss://relay.primal.net',
   'wss://relay.ditto.pub',
   'wss://relay.dreamith.to',
-  'wss://nostr.bitcoiner.social',
+  'wss://relay.primal.net',
 ];
 
 /**

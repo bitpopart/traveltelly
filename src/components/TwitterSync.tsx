@@ -64,10 +64,9 @@ export function TwitterSync() {
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
 
   const DEFAULT_RELAYS = [
-    'wss://relay.damus.io',
     'wss://relay.ditto.pub',
+    'wss://relay.dreamith.to',
     'wss://relay.primal.net',
-    'wss://nos.lol',
   ];
 
   // Load user's Nostr profile

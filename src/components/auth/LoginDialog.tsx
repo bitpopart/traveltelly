@@ -33,9 +33,9 @@ interface LoginDialogProps {
 
 // Relays used for NIP-46 handshake
 const NIP46_RELAYS = [
-  'wss://relay.damus.io',
+  'wss://relay.ditto.pub',
+  'wss://relay.dreamith.to',
   'wss://relay.primal.net',
-  'wss://nos.lol',
 ];
 
 const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onSignup }) => {
@@ -144,7 +144,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
 
             const resolvedBunkerUri =
               `bunker://${event.pubkey}` +
-              `?relay=${encodeURIComponent('wss://relay.damus.io')}` +
+              `?relay=${encodeURIComponent('wss://relay.ditto.pub')}` +
               `&relay=${encodeURIComponent('wss://relay.primal.net')}` +
               `&secret=${secret}`;
 

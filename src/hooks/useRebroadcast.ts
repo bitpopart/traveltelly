@@ -4,12 +4,10 @@ import type { NostrEvent } from '@nostrify/nostrify';
 import { useAppContext } from './useAppContext';
 
 // Well-known relays that index content for major Nostr clients
-// Adding these ensures the event shows up on Primal, Damus, Amethyst, etc.
 const BROADCAST_RELAYS = [
-  'wss://relay.primal.net',
-  'wss://relay.damus.io',
   'wss://relay.ditto.pub',
-  'wss://nos.lol',
+  'wss://relay.dreamith.to',
+  'wss://relay.primal.net',
 ];
 
 /**
