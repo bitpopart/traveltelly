@@ -629,25 +629,25 @@ export function useLatestTrips() {
  * Fetch the latest NIP-71 divine.video videos (kinds 21, 22, 34235, 34236)
  * Returns up to `limit` raw NostrEvent objects — the caller renders them with VideoThumbnailGrid
  */
-export function useLatestVideos(limit = 12) {
+export function useLatestVideos(limit = 50) {
   const { nostr } = useNostr();
 
   return useQuery({
     queryKey: ['latest-videos', limit],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(8000)]);
       const adminPubkey = ADMIN_HEX;
 
       const events = await nostr.query([
         {
           kinds: [34235, 34236, 21, 22],
           '#t': ['traveltelly'],
-          limit: limit + 10,
+          limit: 500,
         },
         {
           kinds: [34235, 34236, 21, 22],
           authors: [adminPubkey],
-          limit: limit + 10,
+          limit: 500,
         },
       ], { signal });
 

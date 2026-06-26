@@ -32,7 +32,7 @@ const NostrProvider: React.FC<NostrProviderProps> = (props) => {
       reqRouter(filters) {
         return new Map(relayUrls.current.map(url => [url, filters]));
       },
-      eoseTimeout: 300,
+      eoseTimeout: 4000,
       eventRouter(_event: NostrEvent) {
         // Publish to all selected relays
         const allRelays = new Set<string>(relayUrls.current);

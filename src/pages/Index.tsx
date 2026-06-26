@@ -500,7 +500,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
   const { data: latestStories = [] } = useLatestStories();
   const { data: latestTrips = [] } = useLatestTrips();
   const { data: latestStockMediaItems = [] } = useLatestStockMediaItems();
-  const { data: latestVideos = [] } = useLatestVideos(12);
+  const { data: latestVideos = [] } = useLatestVideos(50);
   const { data: communityMix = [] } = useCommunityMix();
   
   // Get images with pagination for faster loading

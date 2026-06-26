@@ -455,7 +455,7 @@ function useStories(type: 'write' | 'video' = 'write') {
   return useQuery({
     queryKey: ['traveltelly-stories', type],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(8000)]);
 
       if (type === 'video') {
         // Query video stories:
@@ -468,12 +468,12 @@ function useStories(type: 'write' | 'video' = 'write') {
           {
             kinds: [34235, 34236, 21, 22],
             '#t': ['traveltelly'],
-            limit: 30,
+            limit: 500,
           },
           {
             kinds: [34235, 34236, 21, 22],
             authors: [adminPubkey],
-            limit: 30,
+            limit: 500,
           }
         ], { signal });
 
