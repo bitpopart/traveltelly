@@ -714,9 +714,6 @@ export function AllAdminReviewsMap({ zoomToLocation, onLocationChange, showTitle
 
   const {
     data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
     isLoading,
     error,
     refetch,
@@ -731,18 +728,11 @@ export function AllAdminReviewsMap({ zoomToLocation, onLocationChange, showTitle
   // Fetch check-ins (kind 30026)
   const { data: checkIns } = useCheckIns();
 
-  // Auto-refresh every 30 seconds
+  // Auto-refresh every 2 minutes
   useEffect(() => {
-    const interval = setInterval(() => { refetch(); }, 30000);
+    const interval = setInterval(() => { refetch(); }, 2 * 60 * 1000);
     return () => clearInterval(interval);
   }, [refetch]);
-
-  // Auto-load all pages
-  useEffect(() => {
-    if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // Process all admin reviews and stock media into map locations
   const { reviewLocations, totalReviews, reviewsWithoutLocation } = useMemo(() => {

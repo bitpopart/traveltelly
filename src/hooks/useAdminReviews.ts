@@ -1,7 +1,8 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useNostr } from '@nostrify/react';
+import { NRelay1 } from '@nostrify/nostrify';
 import { nip19 } from 'nostr-tools';
-import type { NostrEvent } from '@nostrify/nostrify';
+import type { NostrEvent, NostrFilter } from '@nostrify/nostrify';
 
 // The Traveltelly admin npub who can grant permissions
 const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642';
@@ -20,6 +21,47 @@ function npubToHex(npub: string): string {
 }
 
 const ADMIN_HEX = npubToHex(ADMIN_NPUB);
+
+// Approved relays — query all three in parallel for best coverage
+const REVIEW_RELAYS = [
+  'wss://relay.ditto.pub',
+  'wss://relay.dreamith.to',
+  'wss://relay.primal.net',
+];
+
+/**
+ * Query ALL admin reviews directly from all 3 relays in parallel,
+ * bypassing the NPool's eoseTimeout. Merges and deduplicates results.
+ */
+async function fetchAllAdminReviewsDirect(signal: AbortSignal): Promise<NostrEvent[]> {
+  const filter: NostrFilter = {
+    kinds: [34879],
+    authors: [ADMIN_HEX],
+    limit: 2000,
+  };
+
+  const results = await Promise.allSettled(
+    REVIEW_RELAYS.map(async (url) => {
+      const relay = new NRelay1(url);
+      try {
+        return await relay.query([filter], { signal });
+      } finally {
+        relay.close?.();
+      }
+    })
+  );
+
+  // Merge all events, deduplicate by event id
+  const seen = new Map<string, NostrEvent>();
+  for (const r of results) {
+    if (r.status === 'fulfilled') {
+      for (const e of r.value) {
+        if (!seen.has(e.id)) seen.set(e.id, e);
+      }
+    }
+  }
+  return Array.from(seen.values());
+}
 
 interface ReviewEvent extends NostrEvent {
   kind: 34879;
@@ -82,49 +124,23 @@ export function useAdminReviews() {
   });
 }
 
-// Hook to automatically load all admin reviews
+// Hook to automatically load all admin reviews — queries all 3 relays directly,
+// bypassing the NPool eoseTimeout for complete results.
 export function useAllAdminReviews() {
-  const { nostr } = useNostr();
-
-  return useInfiniteQuery({
-    queryKey: ['all-admin-reviews', ADMIN_HEX],
-    queryFn: async ({ pageParam, signal }) => {
-      const abortSignal = AbortSignal.any([signal, AbortSignal.timeout(20000)]);
-
-      // Build filter specifically for admin reviews
-      const filter: {
-        kinds: number[];
-        authors: string[];
-        limit: number;
-        until?: number;
-      } = {
-        kinds: [34879],
-        authors: [ADMIN_HEX],
-        limit: 20,
-      };
-
-      // Add until parameter for pagination (older than this timestamp)
-      if (pageParam) {
-        filter.until = pageParam;
-      }
-
-      const events = await nostr.query([filter], { signal: abortSignal });
+  return useQuery({
+    queryKey: ['all-admin-reviews-direct', ADMIN_HEX],
+    queryFn: async ({ signal }) => {
+      const abortSignal = AbortSignal.any([signal, AbortSignal.timeout(15000)]);
+      const events = await fetchAllAdminReviewsDirect(abortSignal);
       const validReviews = events.filter(validateReviewEvent);
-
-      // Sort by creation time (newest first)
-      const sortedReviews = validReviews.sort((a, b) => b.created_at - a.created_at);
-
-      // Get the oldest timestamp for next page
-      const nextPageParam = sortedReviews.length >= 20
-        ? sortedReviews[sortedReviews.length - 1].created_at
-        : undefined;
-
+      const sorted = validReviews.sort((a, b) => b.created_at - a.created_at);
+      // Return in the shape the map component expects (pages[0].reviews)
       return {
-        reviews: sortedReviews,
-        nextPageParam,
+        pages: [{ reviews: sorted, nextPageParam: undefined }],
+        pageParams: [undefined],
       };
     },
-    getNextPageParam: (lastPage) => lastPage.nextPageParam,
-    initialPageParam: undefined as number | undefined,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 }
