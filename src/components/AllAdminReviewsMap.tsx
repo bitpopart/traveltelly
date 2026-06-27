@@ -713,8 +713,9 @@ export function AllAdminReviewsMap({ zoomToLocation, onLocationChange, showTitle
   }, [zoomToLocation, onLocationChange]);
 
   const {
-    data,
+    data: allReviews = [],
     isLoading,
+    isFetching,
     error,
     refetch,
   } = useAllAdminReviews();
@@ -736,9 +737,6 @@ export function AllAdminReviewsMap({ zoomToLocation, onLocationChange, showTitle
 
   // Process all admin reviews and stock media into map locations
   const { reviewLocations, totalReviews, reviewsWithoutLocation } = useMemo(() => {
-    if (!data?.pages) return { reviewLocations: [], totalReviews: 0, reviewsWithoutLocation: [] };
-
-    const allReviews = data.pages.flatMap(page => page.reviews);
     const locations: ReviewLocation[] = [];
     const withoutLocation: Array<{
       id: string;
@@ -1060,41 +1058,12 @@ export function AllAdminReviewsMap({ zoomToLocation, onLocationChange, showTitle
       totalReviews: allReviews.length,
       reviewsWithoutLocation: withoutLocation,
     };
-  }, [data, stockMediaProducts, stories, checkIns]);
+  }, [allReviews, stockMediaProducts, stories, checkIns]);
 
   const handleLocationSelect = (location: MapLocation) => {
     setTargetLocation(location);
     setCurrentLocation(location.name);
   };
-
-  if (error) {
-    return (
-      <Card className="border-dashed">
-        <CardContent className="py-12 px-8 text-center">
-          <div className="max-w-sm mx-auto space-y-6">
-            <MapPin className="w-12 h-12 text-gray-400 mx-auto" />
-            <p className="text-muted-foreground">
-              Failed to load admin review locations. Please try again.
-            </p>
-            <Button onClick={() => refetch()}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Retry
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="p-0">
-          <Skeleton className="w-full h-96 rounded-lg" />
-        </CardContent>
-      </Card>
-    );
-  }
 
   const tileConfig = getTileLayerConfig(mapProvider);
 
@@ -1157,7 +1126,23 @@ export function AllAdminReviewsMap({ zoomToLocation, onLocationChange, showTitle
               </div>
             )}
             <CardContent className="p-0">
-              <div className="h-[60vh] md:h-96 w-full rounded-lg overflow-hidden touch-pan-x touch-pan-y">
+              {/* Error banner — shown above map, doesn't hide it */}
+              {error && (
+                <div className="flex items-center justify-between gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 border-b text-xs text-red-600 dark:text-red-400">
+                  <span>Failed to load some markers</span>
+                  <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => refetch()}>
+                    <RefreshCw className="w-3 h-3 mr-1" /> Retry
+                  </Button>
+                </div>
+              )}
+              <div className="relative h-[60vh] md:h-96 w-full rounded-lg overflow-hidden touch-pan-x touch-pan-y">
+                {/* Loading overlay — spins while fetching, disappears once done */}
+                {(isLoading || isFetching) && (
+                  <div className="absolute top-2 right-2 z-[1000] bg-white/90 dark:bg-gray-900/90 rounded-full px-2 py-1 flex items-center gap-1.5 text-xs shadow pointer-events-none">
+                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-purple-500 border-t-transparent" />
+                    <span className="text-muted-foreground">{allReviews.length > 0 ? `${allReviews.length} markers` : 'Loading…'}</span>
+                  </div>
+                )}
                 <MapContainer
                   center={initialCenter}
                   zoom={initialZoom}
@@ -1214,7 +1199,7 @@ export function AllAdminReviewsMap({ zoomToLocation, onLocationChange, showTitle
                 ))}
               </MarkerClusterGroup>
             </MapContainer>
-          </div>
+              </div>{/* end relative+overflow wrapper */}
         </CardContent>
       </Card>
         </div>

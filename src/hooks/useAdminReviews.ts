@@ -32,6 +32,8 @@ const REVIEW_RELAYS = [
 /**
  * Query ALL admin reviews directly from all 3 relays in parallel,
  * bypassing the NPool's eoseTimeout. Merges and deduplicates results.
+ * Each NRelay1 instance uses a generous eoseTimeout so the relay has
+ * time to stream back all events before the subscription closes.
  */
 async function fetchAllAdminReviewsDirect(signal: AbortSignal): Promise<NostrEvent[]> {
   const filter: NostrFilter = {
@@ -42,7 +44,8 @@ async function fetchAllAdminReviewsDirect(signal: AbortSignal): Promise<NostrEve
 
   const results = await Promise.allSettled(
     REVIEW_RELAYS.map(async (url) => {
-      const relay = new NRelay1(url);
+      // Give each relay up to 10 seconds to stream back all events
+      const relay = new NRelay1(url, { eoseTimeout: 10000 });
       try {
         return await relay.query([filter], { signal });
       } finally {
@@ -86,7 +89,6 @@ export function useAdminReviews() {
     queryFn: async ({ pageParam, signal }) => {
       const abortSignal = AbortSignal.any([signal, AbortSignal.timeout(15000)]);
 
-      // Build filter specifically for admin reviews
       const filter: {
         kinds: number[];
         authors: string[];
@@ -98,49 +100,43 @@ export function useAdminReviews() {
         limit: 20,
       };
 
-      // Add until parameter for pagination (older than this timestamp)
       if (pageParam) {
         filter.until = pageParam;
       }
 
       const events = await nostr.query([filter], { signal: abortSignal });
       const validReviews = events.filter(validateReviewEvent);
-
-      // Sort by creation time (newest first)
       const sortedReviews = validReviews.sort((a, b) => b.created_at - a.created_at);
 
-      // Get the oldest timestamp for next page
       const nextPageParam = sortedReviews.length > 0
         ? sortedReviews[sortedReviews.length - 1].created_at
         : undefined;
 
-      return {
-        reviews: sortedReviews,
-        nextPageParam,
-      };
+      return { reviews: sortedReviews, nextPageParam };
     },
     getNextPageParam: (lastPage) => lastPage.nextPageParam,
     initialPageParam: undefined as number | undefined,
   });
 }
 
-// Hook to automatically load all admin reviews — queries all 3 relays directly,
-// bypassing the NPool eoseTimeout for complete results.
+/**
+ * Fetch ALL admin reviews for the world map — queries all 3 relays directly
+ * in parallel with a generous per-relay eoseTimeout (10s).
+ * Returns a flat sorted array of valid review events.
+ */
 export function useAllAdminReviews() {
   return useQuery({
     queryKey: ['all-admin-reviews-direct', ADMIN_HEX],
     queryFn: async ({ signal }) => {
-      const abortSignal = AbortSignal.any([signal, AbortSignal.timeout(15000)]);
+      // Allow up to 12s total; each NRelay1 uses 10s eoseTimeout internally
+      const abortSignal = AbortSignal.any([signal, AbortSignal.timeout(12000)]);
       const events = await fetchAllAdminReviewsDirect(abortSignal);
       const validReviews = events.filter(validateReviewEvent);
-      const sorted = validReviews.sort((a, b) => b.created_at - a.created_at);
-      // Return in the shape the map component expects (pages[0].reviews)
-      return {
-        pages: [{ reviews: sorted, nextPageParam: undefined }],
-        pageParams: [undefined],
-      };
+      return validReviews.sort((a, b) => b.created_at - a.created_at);
     },
-    staleTime: 2 * 60 * 1000,
+    staleTime: 3 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
+    // Return [] immediately so the map renders while loading
+    placeholderData: [],
   });
 }
