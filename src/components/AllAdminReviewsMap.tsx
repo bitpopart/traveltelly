@@ -815,7 +815,6 @@ export function AllAdminReviewsMap({ zoomToLocation, onLocationChange, showTitle
       totalReviews: allReviews.length,
       withLocation: locations.length,
       withoutLocation: withoutLocation.length,
-      pagesLoaded: data.pages.length,
     });
 
     // Apply precision upgrades to admin reviews
