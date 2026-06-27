@@ -455,7 +455,7 @@ function useStories(type: 'write' | 'video' = 'write') {
   return useQuery({
     queryKey: ['traveltelly-stories', type],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(8000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(6000)]);
 
       if (type === 'video') {
         // Query video stories:

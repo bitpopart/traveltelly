@@ -1,5 +1,5 @@
 import { useSeoMeta } from '@unhead/react';
-import { useState, memo } from 'react';
+import { useState, memo, useEffect, useRef } from 'react';
 import { Navigation as NavigationComponent } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { LoginArea } from "@/components/auth/LoginArea";
@@ -500,7 +500,29 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
   const { data: latestStories = [] } = useLatestStories();
   const { data: latestTrips = [] } = useLatestTrips();
   const { data: latestStockMediaItems = [] } = useLatestStockMediaItems();
-  const { data: latestVideos = [] } = useLatestVideos(50);
+  // Videos: load initial batch fast, fetch all when user scrolls to load-more sentinel
+  const [fetchAllVideos, setFetchAllVideos] = useState(false);
+  const { data: latestVideos = [] } = useLatestVideos(fetchAllVideos);
+  const VIDEOS_INITIAL_ROWS = 4;
+  const VIDEOS_PER_ROW = 6; // lg grid columns
+  const videosInitialCount = VIDEOS_INITIAL_ROWS * VIDEOS_PER_ROW; // 24
+  const [showAllVideos, setShowAllVideos] = useState(false);
+  const displayedVideos = showAllVideos ? latestVideos : latestVideos.slice(0, videosInitialCount);
+  const videoSentinelRef = useRef<HTMLDivElement>(null);
+
+  // Auto-trigger full video fetch when sentinel scrolls into view
+  useEffect(() => {
+    if (showAllVideos || fetchAllVideos) return;
+    const el = videoSentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setFetchAllVideos(true); setShowAllVideos(true); } },
+      { rootMargin: '200px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [showAllVideos, fetchAllVideos]);
+
   const { data: communityMix = [] } = useCommunityMix();
   
   // Get images with pagination for faster loading
@@ -515,10 +537,32 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
   // Flatten all pages of images into a single array
   const allImages = infiniteImagesData?.pages.flatMap(page => page.images) || [];
 
-  // Cap displayed thumbnails for performance — show first 100, manual load-more for rest
-  const THUMBNAIL_BATCH = 100;
+  // Show first page immediately; auto-load more as user scrolls
+  const THUMBNAIL_BATCH = 24;
   const [displayCount, setDisplayCount] = useState(THUMBNAIL_BATCH);
   const displayedImages = allImages.slice(0, displayCount);
+  const imagesSentinelRef = useRef<HTMLDivElement>(null);
+
+  // IntersectionObserver for images grid infinite scroll
+  useEffect(() => {
+    const el = imagesSentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          if (displayCount < allImages.length) {
+            setDisplayCount(prev => prev + THUMBNAIL_BATCH);
+          } else if (hasNextPage && !isFetchingNextPage) {
+            fetchNextPage();
+            setDisplayCount(prev => prev + THUMBNAIL_BATCH);
+          }
+        }
+      },
+      { rootMargin: '300px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [displayCount, allImages.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // Get TravelTelly Tour photos
   const { data: tourItems = [] } = useTravelTellyTour();
@@ -933,32 +977,11 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                 </Card>
               )}
 
-              {/* Manual Load More — show button when more images available locally or from relay */}
-              {(displayedImages.length >= displayCount || hasNextPage) && (
-                <div className="flex justify-center mt-4 py-4">
-                  <Button
-                    variant="outline"
-                    className="rounded-full text-xs md:text-sm px-4 py-2 h-auto"
-                    disabled={isFetchingNextPage}
-                    onClick={() => {
-                      // Fetch next relay page if we've exhausted current buffer
-                      if (displayedImages.length >= allImages.length - 1 && hasNextPage && !isFetchingNextPage) {
-                        fetchNextPage();
-                      }
-                      setDisplayCount(prev => prev + THUMBNAIL_BATCH);
-                    }}
-                  >
-                    {isFetchingNextPage ? (
-                      <>
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent mr-2" />
-                        Loading...
-                      </>
-                    ) : (
-                      <>
-                        Load more <ArrowRight className="w-3 h-3 ml-1" />
-                      </>
-                    )}
-                  </Button>
+              {/* Scroll sentinel — triggers load more automatically */}
+              <div ref={imagesSentinelRef} className="h-4" />
+              {isFetchingNextPage && (
+                <div className="flex justify-center py-4">
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
                 </div>
               )}
             </div>
@@ -1027,7 +1050,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                 )}
 
                 {/* Videos Section */}
-                {latestVideos.length > 0 && (
+                {(latestVideos.length > 0 || fetchAllVideos) && (
                   <div className="mb-6 md:mb-12">
                     <div className="flex justify-between items-center mb-4 md:mb-6">
                       <h2 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -1041,16 +1064,20 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                         </Button>
                       </Link>
                     </div>
-                    <VideoThumbnailGrid videos={latestVideos} />
-                    {/* Mobile View All Button */}
-                    <div className="mt-4 text-center md:hidden">
-                      <Link to="/stories?tab=browse&type=video">
-                        <Button variant="outline" className="rounded-full w-full" style={{ borderColor: '#9333ea', color: '#9333ea' }}>
-                          View All Videos
-                          <ArrowRight className="w-3 h-3 ml-2" />
-                        </Button>
-                      </Link>
-                    </div>
+                    <VideoThumbnailGrid videos={displayedVideos} />
+                    {/* Scroll sentinel — triggers full video fetch */}
+                    <div ref={videoSentinelRef} />
+                    {/* Show load-more button once full list is loaded and there are more */}
+                    {showAllVideos && latestVideos.length > videosInitialCount && (
+                      <div className="mt-3 text-center">
+                        <Link to="/stories?tab=browse&type=video">
+                          <Button variant="outline" className="rounded-full text-xs md:text-sm px-4" style={{ borderColor: '#9333ea', color: '#9333ea' }}>
+                            View All {latestVideos.length} Videos
+                            <ArrowRight className="w-3 h-3 ml-1" />
+                          </Button>
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 )}
 

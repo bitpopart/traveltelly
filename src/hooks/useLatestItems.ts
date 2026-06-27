@@ -629,31 +629,38 @@ export function useLatestTrips() {
  * Fetch the latest NIP-71 divine.video videos (kinds 21, 22, 34235, 34236)
  * Returns up to `limit` raw NostrEvent objects — the caller renders them with VideoThumbnailGrid
  */
-export function useLatestVideos(limit = 50) {
+/**
+ * Fetch videos in two tiers:
+ *  - initial: first 24 events (4 rows of 6) fetched fast with a tight timeout
+ *  - full: all events fetched lazily when `fetchAll` is true
+ */
+export function useLatestVideos(fetchAll = false) {
   const { nostr } = useNostr();
 
   return useQuery({
-    queryKey: ['latest-videos', limit],
+    queryKey: ['latest-videos', fetchAll],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(8000)]);
+      const timeout = fetchAll ? 8000 : 3000;
+      const perFilterLimit = fetchAll ? 500 : 30;
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(timeout)]);
       const adminPubkey = ADMIN_HEX;
 
       const events = await nostr.query([
         {
           kinds: [34235, 34236, 21, 22],
           '#t': ['traveltelly'],
-          limit: 500,
+          limit: perFilterLimit,
         },
         {
           kinds: [34235, 34236, 21, 22],
           authors: [adminPubkey],
-          limit: 500,
+          limit: perFilterLimit,
         },
       ], { signal });
 
-      // De-duplicate by event id, sort newest first, cap to limit
+      // De-duplicate by event id, sort newest first
       const unique = Array.from(new Map(events.map(e => [e.id, e])).values());
-      return unique.sort((a, b) => b.created_at - a.created_at).slice(0, limit);
+      return unique.sort((a, b) => b.created_at - a.created_at);
     },
     staleTime: 2 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
