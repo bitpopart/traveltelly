@@ -536,7 +536,7 @@ export default function Stories() {
   );
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'browse');
 
-  const { data: stories, isLoading, error } = useStories(storyType);
+  const { data: stories, isLoading, isFetching, error } = useStories(storyType);
 
   // Update from URL on mount and when searchParams change
   useEffect(() => {
@@ -626,24 +626,26 @@ export default function Stories() {
             {/* Browse Tab */}
             <TabsContent value="browse" className="mt-0">
 
-              {error ? (
+              {/* Loading skeleton — only on first load with no data yet */}
+              {isLoading && !stories?.length && (
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-0.5 md:gap-1">
+                  {Array.from({ length: 24 }, (_, i) => (
+                    <Skeleton key={i} className="aspect-square w-full rounded-sm" />
+                  ))}
+                </div>
+              )}
+
+              {/* Grid — show immediately if we have any data, even while re-fetching */}
+              {!isLoading && error && !stories?.length ? (
                 <Card className="border-dashed">
                   <CardContent className="py-12 px-8 text-center">
                     <div className="max-w-sm mx-auto space-y-6">
-                      <p className="text-muted-foreground">
-                        Failed to load stories. Try another relay?
-                      </p>
+                      <p className="text-muted-foreground">Failed to load stories. Try another relay?</p>
                       <RelaySelector className="w-full" />
                     </div>
                   </CardContent>
                 </Card>
-              ) : isLoading ? (
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-0.5 md:gap-1">
-                  {Array.from({ length: 18 }, (_, i) => (
-                    <Skeleton key={i} className="aspect-square w-full rounded-sm" />
-                  ))}
-                </div>
-              ) : !stories || stories.length === 0 ? (
+              ) : !isLoading && stories?.length === 0 ? (
                 <Card className="border-dashed">
                   <CardContent className="py-12 px-8 text-center">
                     <div className="max-w-sm mx-auto space-y-6">
@@ -658,11 +660,21 @@ export default function Stories() {
                     </div>
                   </CardContent>
                 </Card>
-              ) : storyType === 'video' ? (
-                <VideoThumbnailGrid videos={stories} />
-              ) : (
-                <WrittenStoryThumbnailGrid stories={stories} />
-              )}
+              ) : stories && stories.length > 0 ? (
+                <div className="relative">
+                  {storyType === 'video'
+                    ? <VideoThumbnailGrid videos={stories} />
+                    : <WrittenStoryThumbnailGrid stories={stories} />
+                  }
+                  {/* Subtle re-fetch indicator — doesn't hide the grid */}
+                  {isFetching && !isLoading && (
+                    <div className="absolute top-2 right-2 z-10 bg-white/80 dark:bg-gray-900/80 rounded-full px-2 py-0.5 flex items-center gap-1 text-xs text-muted-foreground shadow pointer-events-none">
+                      <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                      loading more…
+                    </div>
+                  )}
+                </div>
+              ) : null}
             </TabsContent>
 
             {/* Create Tab */}

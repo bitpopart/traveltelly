@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { Volume2, VolumeX, X, Share2, Radio, Loader2 } from 'lucide-react';
+import { Volume2, VolumeX, X, Share2, Radio, Loader2, Play } from 'lucide-react';
 import { nip19 } from 'nostr-tools';
 import { useToast } from '@/hooks/useToast';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -12,6 +12,7 @@ interface VideoThumbnailGridProps {
 
 interface VideoItemProps {
   video: NostrEvent;
+  priority?: boolean;
 }
 
 function extractVideoMeta(video: NostrEvent) {
@@ -57,10 +58,11 @@ function extractVideoMeta(video: NostrEvent) {
   return { thumb, videoUrl, duration, title, isVideoThumb };
 }
 
-export function VideoItem({ video }: VideoItemProps) {
+export function VideoItem({ video, priority = false }: VideoItemProps) {
   const [previewing, setPreviewing] = useState(false);
   const [muted, setMuted] = useState(true);
   const [fullscreen, setFullscreen] = useState(false);
+  const [thumbLoaded, setThumbLoaded] = useState(false);
   const previewRef = useRef<HTMLVideoElement>(null);
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { toast } = useToast();
@@ -169,7 +171,7 @@ export function VideoItem({ video }: VideoItemProps) {
         onMouseLeave={handleMouseLeave}
         onClick={handleClick}
       >
-        {/* Static thumbnail (always rendered, hidden behind video when previewing) */}
+        {/* Static thumbnail */}
         {isVideoThumb ? (
           <video
             src={videoUrl}
@@ -179,14 +181,30 @@ export function VideoItem({ video }: VideoItemProps) {
             preload="metadata"
           />
         ) : thumb ? (
-          <img
-            src={thumb}
-            alt={title}
-            className="absolute inset-0 w-full h-full object-cover"
-            loading="lazy"
-          />
+          <>
+            {/* Animated placeholder shown until image loads */}
+            {!thumbLoaded && (
+              <div className="absolute inset-0 bg-gray-800 animate-pulse flex items-center justify-center">
+                <Play className="w-6 h-6 text-gray-600" />
+              </div>
+            )}
+            <img
+              src={thumb}
+              alt={title}
+              width={300}
+              height={300}
+              loading={priority ? 'eager' : 'lazy'}
+              decoding="async"
+              fetchPriority={priority ? 'high' : 'low'}
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${thumbLoaded ? 'opacity-100' : 'opacity-0'}`}
+              onLoad={() => setThumbLoaded(true)}
+            />
+          </>
         ) : (
-          <div className="absolute inset-0 w-full h-full bg-gray-800" />
+          /* No thumbnail at all — show a dark placeholder with play icon */
+          <div className="absolute inset-0 w-full h-full bg-gray-900 flex items-center justify-center">
+            <Play className="w-8 h-8 text-gray-600" />
+          </div>
         )}
 
         {/* Muted preview video — overlays thumbnail on hover */}
@@ -254,10 +272,12 @@ export function VideoItem({ video }: VideoItemProps) {
 }
 
 export function VideoThumbnailGrid({ videos }: VideoThumbnailGridProps) {
+  // Eagerly load first 2 rows (12 items at lg breakpoint)
+  const EAGER_COUNT = 12;
   return (
     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-0.5 md:gap-1">
-      {videos.map((video) => (
-        <VideoItem key={video.id} video={video} />
+      {videos.map((video, i) => (
+        <VideoItem key={video.id} video={video} priority={i < EAGER_COUNT} />
       ))}
     </div>
   );
