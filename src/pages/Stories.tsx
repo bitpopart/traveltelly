@@ -10,6 +10,7 @@ import { RelaySelector } from '@/components/RelaySelector';
 import { OptimizedImage } from '@/components/OptimizedImage';
 import { CreateArticleForm } from '@/components/CreateArticleForm';
 import { CreateVideoStoryForm } from '@/components/CreateVideoStoryForm';
+import { UploadHtmlStoryForm } from '@/components/UploadHtmlStoryForm';
 import { VideoPlayerDialog } from '@/components/VideoPlayerDialog';
 import { VideoThumbnailGrid } from '@/components/VideoThumbnailGrid';
 import { WrittenStoryThumbnailGrid } from '@/components/WrittenStoryThumbnailGrid';
@@ -681,7 +682,24 @@ export default function Stories() {
                   </CardContent>
                 </Card>
               ) : storyType === 'write' ? (
-                <CreateArticleForm />
+                <Tabs defaultValue="write" className="w-full">
+                  <TabsList className="mb-4">
+                    <TabsTrigger value="write" className="flex items-center gap-1.5">
+                      <FileText className="w-3.5 h-3.5" />
+                      Write Story
+                    </TabsTrigger>
+                    <TabsTrigger value="html" className="flex items-center gap-1.5">
+                      <BookOpen className="w-3.5 h-3.5" />
+                      Upload HTML Page
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="write" className="mt-0">
+                    <CreateArticleForm />
+                  </TabsContent>
+                  <TabsContent value="html" className="mt-0">
+                    <UploadHtmlStoryForm />
+                  </TabsContent>
+                </Tabs>
               ) : (
                 <CreateVideoStoryForm />
               )}
