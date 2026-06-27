@@ -358,6 +358,34 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
                     </Button>
                   </a>
 
+                  {/* Clave — iOS */}
+                  <a
+                    href={`clave://${nostrConnectUri.replace('nostrconnect://', '')}`}
+                    className='block'
+                    onClick={() => setIsWaitingForConnection(true)}
+                  >
+                    <Button variant="outline" className='w-full rounded-full py-5 justify-start gap-3'>
+                      <span className='text-lg'>🔑</span>
+                      <div className='text-left flex items-center gap-2'>
+                        <div>
+                          <p className='font-semibold text-sm'>Connect with Clave</p>
+                          <p className='text-xs text-muted-foreground font-normal'>
+                            iOS ·{' '}
+                            <a
+                              href='https://clave.casa/'
+                              target='_blank'
+                              rel='noopener noreferrer'
+                              className='underline'
+                              onClick={e => e.stopPropagation()}
+                            >
+                              clave.casa ↗
+                            </a>
+                          </p>
+                        </div>
+                      </div>
+                    </Button>
+                  </a>
+
                   {/* Generic */}
                   <a
                     href={nostrConnectUri}
@@ -421,7 +449,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
                   <QrCode className='w-10 h-10 mx-auto mb-2 text-primary' />
                   <p className='font-semibold text-sm'>Scan with your mobile signer</p>
                   <p className='text-xs text-muted-foreground mt-0.5'>
-                    Use Amber, Nostrum, or any NIP-46 compatible app
+                    Use Amber, Nostrum, Clave, or any NIP-46 compatible app
                   </p>
                 </div>
 
@@ -440,8 +468,8 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
                     <p className='text-xs text-muted-foreground'>Approve the connection in your signer app</p>
                   </div>
                 ) : (
-                  <p className='text-xs text-muted-foreground text-center'>
-                    📱 Scan with Amber, Nostrum, or any NIP-46 signer
+                     <p className='text-xs text-muted-foreground text-center'>
+                    📱 Scan with Amber, Nostrum, Clave, or any NIP-46 signer
                   </p>
                 )}
 
