@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
+import { NRelay1 } from '@nostrify/nostrify';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useRebroadcast } from '@/hooks/useRebroadcast';
 import { genUserName } from '@/lib/genUserName';
@@ -449,65 +450,80 @@ function validateNIP23Article(event: NostrEvent): boolean {
   return true;
 }
 
+const ADMIN_PUBKEY = '7d33ba57d8a6e8869a1f1d5215254597594ac0dbfeb01b690def8c461b82db35';
+
+const VIDEO_RELAYS = [
+  'wss://relay.ditto.pub',
+  'wss://relay.dreamith.to',
+  'wss://relay.primal.net',
+];
+
+/**
+ * Fetch all videos directly from all 3 relays in parallel, bypassing the
+ * NPool's eoseTimeout. Each relay gets 10s to stream back all events.
+ */
+async function fetchVideosDirect(signal: AbortSignal): Promise<NostrEvent[]> {
+  const results = await Promise.allSettled(
+    VIDEO_RELAYS.map(async (url) => {
+      const relay = new NRelay1(url, { eoseTimeout: 10000 });
+      try {
+        const events = await relay.query([
+          { kinds: [34235, 34236, 21, 22], '#t': ['traveltelly'], limit: 500 },
+          { kinds: [34235, 34236, 21, 22], authors: [ADMIN_PUBKEY], limit: 500 },
+        ], { signal });
+        return events;
+      } finally {
+        relay.close?.();
+      }
+    })
+  );
+
+  const seen = new Map<string, NostrEvent>();
+  for (const r of results) {
+    if (r.status === 'fulfilled') {
+      for (const e of r.value) {
+        if (!seen.has(e.id)) seen.set(e.id, e);
+      }
+    }
+  }
+  return Array.from(seen.values());
+}
+
 function useStories(type: 'write' | 'video' = 'write') {
   const { nostr } = useNostr();
 
   return useQuery({
     queryKey: ['traveltelly-stories', type],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(6000)]);
-
       if (type === 'video') {
-        // Query video stories:
-        //   - NIP-71 addressable: kind 34235 (landscape) + 34236 (portrait) from TravelTelly
-        //   - NIP-71 regular: kind 21 (normal) + 22 (short/diVine) from admin account
-        // Fetch both videos with traveltelly tag AND videos from the admin account
-        const adminPubkey = '7d33ba57d8a6e8869a1f1d5215254597594ac0dbfeb01b690def8c461b82db35';
-
-        const events = await nostr.query([
-          {
-            kinds: [34235, 34236, 21, 22],
-            '#t': ['traveltelly'],
-            limit: 500,
-          },
-          {
-            kinds: [34235, 34236, 21, 22],
-            authors: [adminPubkey],
-            limit: 500,
-          }
-        ], { signal });
-
-        // Remove duplicates (same event ID) and sort by creation time
-        const uniqueEvents = Array.from(
-          new Map(events.map(event => [event.id, event])).values()
-        );
-
-        return uniqueEvents.sort((a, b) => b.created_at - a.created_at);
+        // Bypass NPool — query all 3 relays directly so eoseTimeout doesn't cut us off
+        const signal = AbortSignal.any([c.signal, AbortSignal.timeout(12000)]);
+        const events = await fetchVideosDirect(signal);
+        return events.sort((a, b) => b.created_at - a.created_at);
       } else {
-        // Query written stories — admin pubkey only, tagged traveltelly
-        const adminPubkey = '7d33ba57d8a6e8869a1f1d5215254597594ac0dbfeb01b690def8c461b82db35';
+        // Written stories — NPool is fine here (small dataset, quick)
+        const signal = AbortSignal.any([c.signal, AbortSignal.timeout(6000)]);
         const events = await nostr.query([
           {
             kinds: [30023],
-            authors: [adminPubkey],
+            authors: [ADMIN_PUBKEY],
             '#t': ['traveltelly'],
             limit: 50,
           }
         ], { signal });
 
         const validArticles = events.filter(validateNIP23Article);
-
         return validArticles.sort((a, b) => {
           const aPublished = a.tags.find(([name]) => name === 'published_at')?.[1];
           const bPublished = b.tags.find(([name]) => name === 'published_at')?.[1];
-
           const aTime = aPublished ? parseInt(aPublished) : a.created_at;
           const bTime = bPublished ? parseInt(bPublished) : b.created_at;
-
           return bTime - aTime;
         });
       }
     },
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 }
 
