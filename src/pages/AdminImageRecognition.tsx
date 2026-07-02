@@ -14,9 +14,14 @@ import { Card, CardContent } from '@/components/ui/card';
 const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642';
 const ADMIN_HEX  = nip19.decode(ADMIN_NPUB).data as string;
 
-// Proxy config — replace with your Vercel deploy URL
-const PROXY_URL = 'REPLACE_WITH_YOUR_VERCEL_URL/api/tag';
-const API_URL   = PROXY_URL || 'https://api.anthropic.com/v1/messages';
+// Proxy config — set to your Vercel URL to use a proxy, or leave null for direct Anthropic
+const PROXY_URL: string | null = null; // e.g. 'https://your-proxy.vercel.app/api/tag'
+const API_URL = PROXY_URL ?? 'https://api.anthropic.com/v1/messages';
+
+// API key stored in localStorage (direct mode only)
+const STORAGE_KEY = 'traveltelly_anthropic_key';
+const getStoredApiKey = () => localStorage.getItem(STORAGE_KEY) ?? '';
+const setStoredApiKey = (k: string) => localStorage.setItem(STORAGE_KEY, k);
 
 const tellyStyles = [
   "@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');",
@@ -188,14 +193,17 @@ function CopyBtn({ text }: { text: string }) {
 
 // TellyTagger
 function TellyTagger() {
-  const [photos, setPhotos]     = useState<TaggerPhoto[]>([]);
+  const [photos, setPhotos]       = useState<TaggerPhoto[]>([]);
   const [activeIdx, setActiveIdx] = useState(0);
-  const [desc, setDesc]         = useState('');
-  const [rawKw, setRawKw]       = useState('');
-  const [result, setResult]     = useState<TaggerResult | null>(null);
-  const [loading, setLoading]   = useState(false);
-  const [dragOver, setDragOver] = useState(false);
-  const [dlErr, setDlErr]       = useState<string | null>(null);
+  const [desc, setDesc]           = useState('');
+  const [rawKw, setRawKw]         = useState('');
+  const [result, setResult]       = useState<TaggerResult | null>(null);
+  const [loading, setLoading]     = useState(false);
+  const [dragOver, setDragOver]   = useState(false);
+  const [dlErr, setDlErr]         = useState<string | null>(null);
+  const [apiKey, setApiKey]       = useState(getStoredApiKey);
+  const [keySaved, setKeySaved]   = useState(() => !!getStoredApiKey());
+  const [showKey, setShowKey]     = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const addFiles = useCallback((files: FileList | null) => {
@@ -227,6 +235,10 @@ function TellyTagger() {
 
   const generate = async () => {
     if (!desc.trim()) return;
+    if (!PROXY_URL && !apiKey.trim()) {
+      setResult({ error: 'Please enter and save your Anthropic API key first.' } as TaggerResult);
+      return;
+    }
     setLoading(true); setResult(null); setDlErr(null);
     const ap = photos[activeIdx];
 
@@ -278,6 +290,7 @@ function TellyTagger() {
     try {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (!PROXY_URL) {
+        headers['x-api-key'] = apiKey.trim();
         headers['anthropic-version'] = '2023-06-01';
         headers['anthropic-dangerous-direct-browser-access'] = 'true';
       }
@@ -329,6 +342,47 @@ function TellyTagger() {
             <span className="logo">TellyMedia</span>
             <span className="logo-sub">stock tagger</span>
           </div>
+
+          {!PROXY_URL && (
+            <div style={{ marginBottom: 24 }}>
+              <label className="field-label">Anthropic API Key</label>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <div style={{ position: 'relative', flex: 1 }}>
+                  <input
+                    type={showKey ? 'text' : 'password'}
+                    value={apiKey}
+                    onChange={e => { setApiKey(e.target.value); setKeySaved(false); }}
+                    placeholder="sk-ant-..."
+                    style={{
+                      width: '100%', background: '#111916', border: '1px solid #1e2e26',
+                      borderRadius: 8, color: '#e8f0eb', fontFamily: 'monospace',
+                      fontSize: 13, padding: '12px 40px 12px 14px', outline: 'none',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowKey(v => !v)}
+                    style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#4a6657', cursor: 'pointer', fontSize: 14 }}
+                  >{showKey ? '🙈' : '👁'}</button>
+                </div>
+                <button
+                  onClick={() => { setStoredApiKey(apiKey.trim()); setKeySaved(true); }}
+                  style={{
+                    padding: '12px 18px', borderRadius: 8, fontFamily: 'Space Mono, monospace',
+                    fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+                    background: keySaved ? 'transparent' : '#00e5a0',
+                    color: keySaved ? '#00e5a0' : '#0a0f0d',
+                    border: '1.5px solid #00e5a0',
+                  }}
+                >{keySaved ? '✓ Saved' : 'Save Key'}</button>
+              </div>
+              {!apiKey && (
+                <p style={{ fontSize: 11, color: '#e8a050', marginTop: 6 }}>
+                  ⚠ No API key — enter your Anthropic key to enable AI tagging.
+                </p>
+              )}
+            </div>
+          )}
 
           <div
             className={'drop-zone' + (dragOver ? ' drag-over' : '')}
