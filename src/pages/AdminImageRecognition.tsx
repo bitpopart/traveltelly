@@ -173,6 +173,11 @@ function CopyBtn({ text }: { text: string }) {
   );
 }
 
+// ─── API key storage (shared with old recognizer) ────────────────────────────
+const STORAGE_KEY = 'traveltelly_anthropic_key';
+const getStoredApiKey = () => localStorage.getItem(STORAGE_KEY) ?? '';
+const setStoredApiKey = (k: string) => localStorage.setItem(STORAGE_KEY, k);
+
 // ─── TellyTagger core ─────────────────────────────────────────────────────────
 function TellyTagger() {
   const [photos, setPhotos]       = useState<TaggerPhoto[]>([]);
@@ -183,6 +188,9 @@ function TellyTagger() {
   const [loading, setLoading]     = useState(false);
   const [dragOver, setDragOver]   = useState(false);
   const [dlErr, setDlErr]         = useState<string | null>(null);
+  const [apiKey, setApiKey]       = useState(getStoredApiKey);
+  const [keySaved, setKeySaved]   = useState(() => !!getStoredApiKey());
+  const [showKey, setShowKey]     = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const addFiles = useCallback((files: FileList | null) => {
@@ -214,6 +222,10 @@ function TellyTagger() {
 
   const generate = async () => {
     if (!desc.trim()) return;
+    if (!apiKey.trim()) {
+      setResult({ error: 'Please enter and save your Anthropic API key first.' } as TaggerResult);
+      return;
+    }
     setLoading(true); setResult(null); setDlErr(null);
     const ap = photos[activeIdx];
 
@@ -250,6 +262,7 @@ Title must always be shorter than description.`;
     try {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
+        'x-api-key': apiKey.trim(),
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true',
       };
@@ -280,6 +293,35 @@ Title must always be shorter than description.`;
       <div className="tm-header">
         <span className="tm-logo">TellyMedia</span>
         <span className="tm-logo-sub">stock tagger</span>
+      </div>
+
+      {/* API Key */}
+      <div style={{ marginBottom: 24 }}>
+        <label className="tm-field-label">Anthropic API Key</label>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <input
+              className="tm-input"
+              type={showKey ? 'text' : 'password'}
+              value={apiKey}
+              onChange={e => { setApiKey(e.target.value); setKeySaved(false); }}
+              placeholder="sk-ant-..."
+              style={{ marginBottom: 0, paddingRight: 40, fontFamily: 'monospace', fontSize: 13 }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowKey(v => !v)}
+              style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#4a6657', cursor: 'pointer', fontSize: 14 }}
+            >{showKey ? '🙈' : '👁'}</button>
+          </div>
+          <button
+            onClick={() => { setStoredApiKey(apiKey.trim()); setKeySaved(true); }}
+            style={{ padding: '10px 18px', background: keySaved ? 'transparent' : '#00e5a0', color: keySaved ? '#00e5a0' : '#0a0f0d', border: '1.5px solid #00e5a0', borderRadius: 8, fontFamily: "'Space Mono', monospace", fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >{keySaved ? '✓ Saved' : 'Save Key'}</button>
+        </div>
+        {!apiKey && (
+          <p style={{ fontSize: 11, color: '#e8a050', marginTop: 6 }}>⚠ No API key — add your Anthropic key to enable AI tagging.</p>
+        )}
       </div>
 
       <div
