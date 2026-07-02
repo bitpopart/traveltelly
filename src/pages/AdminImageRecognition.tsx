@@ -14,9 +14,9 @@ import { Card, CardContent } from '@/components/ui/card';
 const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642';
 const ADMIN_HEX  = nip19.decode(ADMIN_NPUB).data as string;
 
-// Proxy config — API key lives on Vercel, never in the browser
-const PROXY_URL = 'https://tellymedia-proxy.vercel.app/api/tag';
-const API_URL   = PROXY_URL;
+// Proxy config — routed through CORS proxy so the browser can reach Vercel
+const VERCEL_URL = 'https://tellymedia-proxy.vercel.app/api/tag';
+const API_URL    = 'https://proxy.shakespeare.diy/?url=' + encodeURIComponent(VERCEL_URL);
 
 const tellyStyles = [
   "@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');",
