@@ -287,10 +287,20 @@ function TellyTagger() {
           messages: [{ role: 'user', content }],
         }),
       });
-      const data = await res.json() as {
-        error?: { message: string };
-        content?: Array<{ type: string; text?: string }>;
-      };
+      const responseText = await res.text();
+      if (!res.ok) {
+        setResult({ error: `Proxy error ${res.status}: ${responseText.slice(0, 300)}` } as TaggerResult);
+        setLoading(false);
+        return;
+      }
+      let data: { error?: { message: string }; content?: Array<{ type: string; text?: string }> };
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        setResult({ error: 'Proxy returned non-JSON: ' + responseText.slice(0, 300) } as TaggerResult);
+        setLoading(false);
+        return;
+      }
       if (data.error) {
         setResult({ error: 'API: ' + data.error.message } as TaggerResult);
         setLoading(false);
