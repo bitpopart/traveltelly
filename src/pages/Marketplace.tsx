@@ -1,5 +1,5 @@
 import { useSeoMeta } from '@unhead/react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { RelaySelector } from "@/components/RelaySelector";
@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useMarketplaceProducts } from "@/hooks/useMarketplaceProducts";
+import { useInfiniteMarketplaceProducts } from "@/hooks/useMarketplaceProducts";
 import { useMarketplaceSubscription } from "@/hooks/useMarketplaceSubscription";
 import { useMarketplaceBins } from "@/hooks/useMarketplaceBins";
 import { CreateProductDialog } from "@/components/CreateProductDialog";
@@ -131,31 +131,62 @@ function MarketplaceInner() {
   const { selectedIds, selectedProducts, selectAll, clearAll } = useAdminSelection();
   const [bulkProgress, setBulkProgress] = useState<BulkDownloadProgress | null>(null);
 
+  // Scroll sentinel ref for infinite loading
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
   const visibleBins = (binsConfig?.bins ?? [])
     .filter((b) => b.isVisible)
     .sort((a, b) => a.sortOrder - b.sortOrder);
 
-  const { data: products, isLoading, error } = useMarketplaceProducts({
+  const {
+    data: infiniteData,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteMarketplaceProducts({
     search: searchQuery || undefined,
     category: activeType === 'all' ? undefined : activeType,
   });
+
+  // Flatten all pages into a single products array
+  const allProducts = useMemo(
+    () => infiniteData?.pages.flatMap(p => p.products) ?? [],
+    [infiniteData]
+  );
 
   useSeoMeta({
     title: 'Stock Media Marketplace — TravelTelly',
     description: 'Decentralized marketplace for travel photography with Lightning payments.',
   });
 
-  // Build hashtag cloud from all product tags
+  // IntersectionObserver: auto-load next page when sentinel is visible
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { rootMargin: '400px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // Build hashtag cloud from loaded products
   const tagCloud = useMemo(() => {
-    if (!products) return [];
+    if (!allProducts.length) return [];
     const counts = new Map<string, number>();
-    for (const p of products) {
+    for (const p of allProducts) {
       for (const [name, val] of p.event.tags) {
         if (name === 't' && val) {
           counts.set(val, (counts.get(val) || 0) + 1);
         }
       }
-      // Also count contentCategory
       if (p.contentCategory) {
         const slug = p.contentCategory.toLowerCase().replace(/\s+/g, '-');
         counts.set(slug, (counts.get(slug) || 0) + 1);
@@ -165,12 +196,11 @@ function MarketplaceInner() {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 30)
       .map(([tag, count]) => ({ tag, count }));
-  }, [products]);
+  }, [allProducts]);
 
-  // Filter products by active tag and type
+  // Filter by active tag and type (client-side, within loaded pages)
   const filteredProducts = useMemo(() => {
-    if (!products) return [];
-    return products.filter(p => {
+    return allProducts.filter(p => {
       if (p.images.length === 0) return false;
       if (activeType === 'photos' && (p.mediaType === 'video' || p.images[0]?.match(/\.(mp4|webm|mov)/i))) return false;
       if (activeType === 'videos' && !(p.mediaType === 'video' || p.images[0]?.match(/\.(mp4|webm|mov)/i))) return false;
@@ -181,7 +211,7 @@ function MarketplaceInner() {
       }
       return true;
     });
-  }, [products, activeTag, activeType]);
+  }, [allProducts, activeTag, activeType]);
 
   const ownProducts = isAdmin ? filteredProducts.filter(p => p.seller.pubkey === ADMIN_HEX) : [];
 
@@ -405,7 +435,7 @@ function MarketplaceInner() {
           ) : (
             <>
               <div className="text-xs text-muted-foreground mb-2">
-                {filteredProducts.length} {activeTag ? `#${activeTag}` : activeType === 'all' ? 'media items' : activeType}
+                {filteredProducts.length}{hasNextPage ? '+' : ''} {activeTag ? `#${activeTag}` : activeType === 'all' ? 'media items' : activeType}
                 {activeTag && <button onClick={() => setActiveTag(null)} className="ml-2 text-[#ec1a58]">✕ clear</button>}
               </div>
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-0.5 md:gap-1">
@@ -414,6 +444,14 @@ function MarketplaceInner() {
                 ))}
               </div>
             </>
+          )}
+
+          {/* ── Infinite scroll sentinel ── */}
+          <div ref={sentinelRef} className="h-4" />
+          {isFetchingNextPage && (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
           )}
 
           {/* ── Relay selector bottom ── */}

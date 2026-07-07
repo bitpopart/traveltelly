@@ -119,7 +119,7 @@ export function useLatestReview() {
 /**
  * Fetch the last 3 reviews with images
  */
-export function useLatestReviews() {
+export function useLatestReviews(enabled = true) {
   const { nostr } = useNostr();
   const { data: authorizedReviewers } = useAuthorizedReviewers();
 
@@ -166,6 +166,7 @@ export function useLatestReviews() {
     staleTime: 30 * 1000, // 30 seconds - so new reviews appear quickly
     gcTime: 10 * 60 * 1000,
     refetchInterval: false,
+    enabled,
   });
 }
 
@@ -225,7 +226,7 @@ export function useLatestStory() {
 /**
  * Fetch the last 3 stories with images (includes both written stories and video stories)
  */
-export function useLatestStories() {
+export function useLatestStories(enabled = true) {
   const { nostr } = useNostr();
 
   return useQuery({
@@ -330,6 +331,7 @@ export function useLatestStories() {
     },
       staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
+    enabled,
   });
 }
 
@@ -406,7 +408,7 @@ export function useLatestStockMedia() {
 /**
  * Fetch the last 3 stock media products with images
  */
-export function useLatestStockMediaItems() {
+export function useLatestStockMediaItems(enabled = true) {
   const { nostr } = useNostr();
   const { data: authorizedUploaders } = useAuthorizedMediaUploaders();
 
@@ -478,6 +480,7 @@ export function useLatestStockMediaItems() {
     refetchInterval: false, // Disabled auto-refresh for performance
     refetchOnMount: false, // Don't refetch on mount if cached
     refetchOnWindowFocus: false, // Don't refetch on focus for performance
+    enabled,
   });
 }
 
@@ -573,7 +576,7 @@ export function useLatestTrip() {
 /**
  * Fetch the last 3 trips with images
  */
-export function useLatestTrips() {
+export function useLatestTrips(enabled = true) {
   const { nostr } = useNostr();
 
   return useQuery({
@@ -619,9 +622,10 @@ export function useLatestTrips() {
         };
       });
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+          staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     refetchInterval: false, // Disabled auto-refresh for performance
+    enabled,
   });
 }
 

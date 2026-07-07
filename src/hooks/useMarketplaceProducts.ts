@@ -1,5 +1,5 @@
 import { useNostr } from '@nostrify/react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import type { NostrEvent, NostrFilter } from '@nostrify/nostrify';
 import { NRelay1 } from '@nostrify/nostrify';
 import { useAuthorizedMediaUploaders } from './useStockMediaPermissions';
@@ -312,5 +312,101 @@ export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = 
     },
     staleTime: 30_000,
     refetchInterval: 60_000,
+  });
+}
+
+/** Page size for the infinite marketplace grid */
+export const MARKETPLACE_PAGE_SIZE = 30;
+
+/**
+ * Paginated infinite version of the marketplace products query.
+ * Each page loads PAGE_SIZE products using `until` cursor pagination.
+ * Falls back to slicing the full pool result if the relay doesn't support cursor.
+ */
+export function useInfiniteMarketplaceProducts(options: UseMarketplaceProductsOptions = {}) {
+  const { nostr } = useNostr();
+  const { data: authorizedUploaders } = useAuthorizedMediaUploaders();
+
+  return useInfiniteQuery({
+    queryKey: ['marketplace-products-infinite', JSON.stringify(options), Array.from(authorizedUploaders || [])],
+    queryFn: async ({ pageParam, signal }) => {
+      const abortSignal = AbortSignal.any([signal, AbortSignal.timeout(15000)]);
+
+      const authorizedAuthors = Array.from(authorizedUploaders || []);
+      if (!authorizedAuthors.includes(ADMIN_HEX)) {
+        authorizedAuthors.push(ADMIN_HEX);
+      }
+
+      const authors = options.seller ? [options.seller] : authorizedAuthors;
+      const until = pageParam as number | undefined;
+
+      const filter: NostrFilter = {
+        kinds: [30402],
+        authors,
+        limit: MARKETPLACE_PAGE_SIZE * 3, // fetch 3× to survive filtering
+        ...(until ? { until } : {}),
+      };
+      if (options.category) filter['#t'] = [options.category];
+
+      // For the first page also hit fallback relays (admin products only, no cursor)
+      const [poolResult, fallbackResult] = await Promise.allSettled([
+        nostr.query([filter], { signal: abortSignal }),
+        (!until && authors.includes(ADMIN_HEX))
+          ? queryAdminProductsFromRelays(abortSignal)
+          : Promise.resolve([]),
+      ]);
+
+      const rawEvents: NostrEvent[] = [
+        ...(poolResult.status === 'fulfilled' ? poolResult.value : []),
+        ...(fallbackResult.status === 'fulfilled' ? fallbackResult.value : []),
+      ];
+
+      // Deduplicate addressable events — keep newest per pubkey+d
+      const seen = new Map<string, NostrEvent>();
+      for (const e of rawEvents) {
+        const dTag = e.tags.find(([n]) => n === 'd')?.[1] ?? '';
+        const key = `${e.pubkey}:${dTag}`;
+        const existing = seen.get(key);
+        if (!existing || e.created_at > existing.created_at) seen.set(key, e);
+      }
+
+      // Parse, validate, filter
+      const products: MarketplaceProduct[] = [];
+      for (const event of seen.values()) {
+        if (!isValidProduct(event)) continue;
+        if (isDeleted(event)) continue;
+
+        const product = parseProduct(event);
+        if (!product) continue;
+
+        if (options.freeOnly) {
+          const isFree = event.tags.some(([n, v]) => n === 'free' && v === 'true');
+          if (!isFree) continue;
+        } else {
+          if (options.continent && product.continent !== options.continent) continue;
+          if (options.country && product.country !== options.country) continue;
+          if (options.city && product.location !== options.city) continue;
+          if (options.geoFolder && product.geoFolder !== options.geoFolder) continue;
+          if (options.search) {
+            const q = options.search.toLowerCase();
+            const haystack = `${product.title} ${product.description} ${product.category}`.toLowerCase();
+            if (!haystack.includes(q)) continue;
+          }
+        }
+        products.push(product);
+      }
+
+      products.sort((a, b) => b.createdAt - a.createdAt);
+
+      // Cursor: oldest timestamp minus 1
+      const nextCursor = products.length > 0
+        ? products[products.length - 1].createdAt - 1
+        : undefined;
+
+      return { products, nextCursor };
+    },
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    initialPageParam: undefined as number | undefined,
+    staleTime: 30_000,
   });
 }

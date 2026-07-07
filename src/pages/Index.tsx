@@ -488,27 +488,61 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
   const { data: latestTrip } = useLatestTrip();
   const [isCreateTripDialogOpen, setIsCreateTripDialogOpen] = useState(false);
   const [selectedLocationTag, setSelectedLocationTag] = useState<string>(initialLocation || '');
-  
+
+  // ── Lazy section flags: only fetch when scrolled into view ──────────────────
+  // Reviews, Stories, Trips, Stock Media sections are below the fold in map mode.
+  // We gate their queries behind IntersectionObserver triggers.
+  const [reviewsVisible, setReviewsVisible] = useState(false);
+  const [storiesVisible, setStoriesVisible] = useState(false);
+  const [tripsVisible, setTripsVisible] = useState(false);
+  const [stockVisible, setStockVisible] = useState(false);
+  const [fetchAllVideos, setFetchAllVideos] = useState(false);
+
+  const reviewsSentinel = useRef<HTMLDivElement>(null);
+  const storiesSentinel = useRef<HTMLDivElement>(null);
+  const tripsSentinel = useRef<HTMLDivElement>(null);
+  const stockSentinel = useRef<HTMLDivElement>(null);
+  const videoSentinelRef = useRef<HTMLDivElement>(null);
+
+  // One observer factory for lazy sections
+  useEffect(() => {
+    const createObs = (el: HTMLDivElement | null, setter: (v: true) => void) => {
+      if (!el) return () => {};
+      const obs = new IntersectionObserver(
+        ([entry]) => { if (entry.isIntersecting) { setter(true); obs.disconnect(); } },
+        { rootMargin: '300px' }
+      );
+      obs.observe(el);
+      return () => obs.disconnect();
+    };
+    const cleanups = [
+      createObs(reviewsSentinel.current, () => setReviewsVisible(true)),
+      createObs(storiesSentinel.current, () => setStoriesVisible(true)),
+      createObs(tripsSentinel.current, () => setTripsVisible(true)),
+      createObs(stockSentinel.current, () => setStockVisible(true)),
+    ];
+    return () => cleanups.forEach(fn => fn());
+  }, [viewMode]); // re-run when view mode switches
+
   // Get counts
   const reviewCount = useReviewCount();
   const { data: storyCount = 0 } = useStoryCount();
   const { data: stockMediaCount = 0 } = useStockMediaCount();
   const { data: tripCount = 0 } = useTripCount();
   
-  // Get last 3 items for each category
-  const { data: latestReviews = [] } = useLatestReviews();
-  const { data: latestStories = [] } = useLatestStories();
-  const { data: latestTrips = [] } = useLatestTrips();
-  const { data: latestStockMediaItems = [] } = useLatestStockMediaItems();
+  // Get last 3 items for each category — gated by visibility flags
+  const { data: latestReviews = [] } = useLatestReviews(reviewsVisible);
+  const { data: latestStories = [] } = useLatestStories(storiesVisible);
+  const { data: latestTrips = [] } = useLatestTrips(tripsVisible);
+  const { data: latestStockMediaItems = [] } = useLatestStockMediaItems(stockVisible);
+
   // Videos: load initial batch fast, fetch all when user scrolls to load-more sentinel
-  const [fetchAllVideos, setFetchAllVideos] = useState(false);
-  const { data: latestVideos = [] } = useLatestVideos(fetchAllVideos);
   const VIDEOS_INITIAL_ROWS = 4;
   const VIDEOS_PER_ROW = 6; // lg grid columns
   const videosInitialCount = VIDEOS_INITIAL_ROWS * VIDEOS_PER_ROW; // 24
+  const { data: latestVideos = [] } = useLatestVideos(fetchAllVideos);
   const [showAllVideos, setShowAllVideos] = useState(false);
   const displayedVideos = showAllVideos ? latestVideos : latestVideos.slice(0, videosInitialCount);
-  const videoSentinelRef = useRef<HTMLDivElement>(null);
 
   // Auto-trigger full video fetch when sentinel scrolls into view
   useEffect(() => {
@@ -1081,8 +1115,9 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                   </div>
                 )}
 
-                {/* Reviews Section */}
-                {latestReviews.length > 0 && (
+                {/* Reviews Section — lazy: only fetch once sentinel scrolls into view */}
+                <div ref={reviewsSentinel} />
+                {(reviewsVisible && latestReviews.length > 0) && (
                   <div className="mb-6 md:mb-12">
                     <div className="flex justify-between items-center mb-3">
                       <h2 className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -1115,8 +1150,9 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                   </div>
                 )}
 
-                {/* Stories Section */}
-                {latestStories.length > 0 && (
+                {/* Stories Section — lazy */}
+                <div ref={storiesSentinel} />
+                {(storiesVisible && latestStories.length > 0) && (
                   <div className="mb-6 md:mb-12">
                     <div className="flex justify-between items-center mb-3">
                       <h2 className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -1153,8 +1189,9 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                   </div>
                 )}
 
-                {/* Trips Section */}
-                {latestTrips.length > 0 && (
+                {/* Trips Section — lazy */}
+                <div ref={tripsSentinel} />
+                {(tripsVisible && latestTrips.length > 0) && (
                   <div className="mb-6 md:mb-12">
                     <div className="flex justify-between items-center mb-3">
                       <h2 className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -1187,8 +1224,9 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                   </div>
                 )}
 
-                {/* Stock Media Section */}
-                {latestStockMediaItems.length > 0 && (
+                {/* Stock Media Section — lazy */}
+                <div ref={stockSentinel} />
+                {(stockVisible && latestStockMediaItems.length > 0) && (
                   <div className="mb-6 md:mb-12">
                     <div className="flex justify-between items-center mb-3">
                       <h2 className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
