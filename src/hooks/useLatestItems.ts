@@ -5,65 +5,11 @@ import { useAuthorizedReviewers } from './useAuthorizedReviewers';
 import { useAuthorizedMediaUploaders } from './useStockMediaPermissions';
 import { nip19 } from 'nostr-tools';
 import { useAdminReviews } from './useAdminReviews';
+import { isValidImageUrl } from '@/lib/imageValidation';
 
 // The Traveltelly admin npub
 const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642';
 const ADMIN_HEX = nip19.decode(ADMIN_NPUB).data as string;
-
-/**
- * Check if an image URL is a real uploaded image (not a placeholder or template)
- * ONLY ALLOW REAL IMAGE HOSTING SERVICES - NO TEMPLATE/PLACEHOLDER IMAGES EVER!
- */
-function isValidImageUrl(url: string | undefined): boolean {
-  if (!url || typeof url !== 'string') return false;
-  
-  // Must start with http/https
-  if (!url.startsWith('http://') && !url.startsWith('https://')) {
-    return false;
-  }
-  
-  const lowerUrl = url.toLowerCase();
-  
-  // WHITELIST: Only allow known real image hosting services
-  const allowedDomains = [
-    'nostr.build',
-    'void.cat',
-    'satellite.earth',
-    'nostrcheck.me',
-    'blossom.primal.net',
-    'image.nostr.build',
-    'i.nostr.build',
-    'media.nostr.band',
-  ];
-  
-  const isAllowedDomain = allowedDomains.some(domain => lowerUrl.includes(domain));
-  if (!isAllowedDomain) {
-    return false;
-  }
-  
-  // BLACKLIST: Block known placeholder services  
-  const invalidPatterns = [
-    '/placeholder',
-    'placeholder.com',
-    'via.placeholder',
-    'placehold',
-    'example.com',
-    'localhost',
-    'data:image',
-    'blob:',
-    'picsum.photos',
-    'unsplash.it',
-    'dummyimage.com',
-    'fakeimg.pl',
-    'loremflickr.com',
-  ];
-  
-  if (invalidPatterns.some(pattern => lowerUrl.includes(pattern))) {
-    return false;
-  }
-  
-  return true;
-}
 
 /**
  * Fetch the latest review with an image (for homepage thumbnail)
@@ -75,13 +21,13 @@ export function useLatestReview() {
   return useQuery({
     queryKey: ['latest-review-with-image', authorizedReviewers?.size],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(8000)]);
       
       const authorizedAuthors = Array.from(authorizedReviewers || []);
       const events = await nostr.query([{
         kinds: [34879],
         authors: authorizedAuthors,
-        limit: 5 // Only need 5 events to find 1 with image
+        limit: 10 // Fetch more to ensure we find one with an image
       }], { signal });
 
       // Find the first review with an image
@@ -126,13 +72,13 @@ export function useLatestReviews(enabled = true) {
   return useQuery({
     queryKey: ['latest-reviews-with-images', authorizedReviewers?.size],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(8000)]);
       
       const authorizedAuthors = Array.from(authorizedReviewers || []);
       const events = await nostr.query([{
         kinds: [34879],
         authors: authorizedAuthors,
-        limit: 10
+        limit: 20
       }], { signal });
 
       // Find reviews with images
@@ -179,13 +125,13 @@ export function useLatestStory() {
   return useQuery({
     queryKey: ['latest-story-with-image'],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]); // Reduced to 1s
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(8000)]);
       
       // Query for articles (kind 30023) from admin
       const events = await nostr.query([{
         kinds: [30023],
         authors: [ADMIN_HEX],
-        limit: 5 // Only need 5 to find 1 with image
+        limit: 10 // Fetch more to ensure we find one with an image
       }], { signal });
 
       // Find the first story with an image
@@ -232,19 +178,19 @@ export function useLatestStories(enabled = true) {
   return useQuery({
     queryKey: ['latest-stories-with-images'],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]); // Reduced to 1s
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(8000)]);
       
       // Query for both articles (kind 30023) and video stories (kinds 34235/34236)
       const events = await nostr.query([
         {
           kinds: [30023],
           '#t': ['traveltelly'],
-          limit: 10
+          limit: 20
         },
         {
           kinds: [34235, 34236], // Video stories (landscape and portrait)
           '#t': ['traveltelly'],
-          limit: 10
+          limit: 20
         }
       ], { signal });
 
@@ -345,7 +291,7 @@ export function useLatestStockMedia() {
   return useQuery({
     queryKey: ['latest-stock-media-with-image', authorizedUploaders?.size],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]); // Reduced to 1s
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(8000)]);
       
       const authorizedAuthors = Array.from(authorizedUploaders || []);
       
@@ -356,7 +302,7 @@ export function useLatestStockMedia() {
       const events = await nostr.query([{
         kinds: [30402],
         authors: authorizedAuthors,
-        limit: 10 // Reduced for faster loading
+        limit: 20
       }], { signal });
 
       // Find the first product with an image - use same filter as count
@@ -415,7 +361,7 @@ export function useLatestStockMediaItems(enabled = true) {
   return useQuery({
     queryKey: ['latest-stock-media-items-with-images', authorizedUploaders?.size],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]); // Reduced to 1s
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(8000)]);
       
       const authorizedAuthors = Array.from(authorizedUploaders || []);
       
@@ -426,7 +372,7 @@ export function useLatestStockMediaItems(enabled = true) {
       const events = await nostr.query([{
         kinds: [30402],
         authors: authorizedAuthors,
-        limit: 10 // Reduced for faster loading
+        limit: 20
       }], { signal });
 
 
@@ -529,11 +475,11 @@ export function useLatestTrip() {
   return useQuery({
     queryKey: ['latest-trip-with-image'],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]); // Reduced to 1s
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(8000)]);
       
       const events = await nostr.query([{
         kinds: [30025],
-        limit: 5 // Only need 5 to find 1 with image
+        limit: 10 // Fetch more to ensure we find one with an image
       }], { signal });
 
       // Find the first trip with an image
@@ -582,11 +528,11 @@ export function useLatestTrips(enabled = true) {
   return useQuery({
     queryKey: ['latest-trips-with-images'],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]); // Reduced to 1s
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(8000)]);
       
       const events = await nostr.query([{
         kinds: [30025],
-        limit: 10 // Reduced for faster loading
+        limit: 20
       }], { signal });
 
       // Find trips with images
@@ -705,36 +651,30 @@ export function useCommunityMix() {
   return useQuery({
     queryKey: ['community-mix'],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(8000)]);
 
-      // Fire all 5 queries in parallel — one round-trip to the relay
+      // Fire all 6 queries in parallel — one round-trip to the relay
       const [tourEvents, reviewEvents, storyEvents, tripEvents, stockEvents, videoEvents] =
         await Promise.all([
           // Tour: kind 1 notes with #traveltelly from admin
-          nostr.query([{ kinds: [1], authors: [ADMIN_HEX], '#t': ['traveltelly'], limit: 10 }], { signal }),
+          nostr.query([{ kinds: [1], authors: [ADMIN_HEX], '#t': ['traveltelly'], limit: 20 }], { signal }),
           // Reviews
-          nostr.query([{ kinds: [34879], authors: [ADMIN_HEX], limit: 10 }], { signal }),
+          nostr.query([{ kinds: [34879], authors: [ADMIN_HEX], limit: 20 }], { signal }),
           // Written stories
-          nostr.query([{ kinds: [30023], '#t': ['traveltelly'], limit: 10 }], { signal }),
+          nostr.query([{ kinds: [30023], '#t': ['traveltelly'], limit: 20 }], { signal }),
           // Trips
-          nostr.query([{ kinds: [30025], authors: [ADMIN_HEX], limit: 10 }], { signal }),
+          nostr.query([{ kinds: [30025], authors: [ADMIN_HEX], limit: 20 }], { signal }),
           // Stock media
-          nostr.query([{ kinds: [30402], authors: [ADMIN_HEX], limit: 10 }], { signal }),
+          nostr.query([{ kinds: [30402], authors: [ADMIN_HEX], limit: 20 }], { signal }),
           // Videos (divine.video kinds)
           nostr.query([
-            { kinds: [21, 22, 34235, 34236], authors: [ADMIN_HEX], limit: 10 },
+            { kinds: [21, 22, 34235, 34236], authors: [ADMIN_HEX], limit: 20 },
           ], { signal }),
         ]);
 
-      // Helper: accept any https image (not a video file, not a placeholder)
+      // Helper: accept any valid https image (delegates to shared validator)
       function isOkImage(url: string | undefined): url is string {
-        if (!url || !url.startsWith('https://')) return false;
-        const lo = url.toLowerCase();
-        const badExts = ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.m4v'];
-        if (badExts.some(e => lo.includes(e))) return false;
-        const badWords = ['placeholder', 'example.com', 'localhost', 'data:image', 'blob:'];
-        if (badWords.some(w => lo.includes(w))) return false;
-        return true;
+        return isValidImageUrl(url);
       }
 
       // Helper: extract URL from content or imeta tags (for kind 1 tour posts)
@@ -932,5 +872,7 @@ export function useCommunityMix() {
     },
     staleTime: 3 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
+    retry: 2,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
   });
 }

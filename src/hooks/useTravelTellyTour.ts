@@ -2,6 +2,7 @@ import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { nip19 } from 'nostr-tools';
+import { isValidImageUrlLoose } from '@/lib/imageValidation';
 
 // Admin pubkey from npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642
 const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642';
@@ -16,33 +17,18 @@ export interface TravelTellyTourItem {
   videos: string[];
 }
 
-/**
- * Check if an image/video URL is valid
- */
+/** Allow any http/https media URL — videos included */
 function isValidMediaUrl(url: string): boolean {
   if (!url || typeof url !== 'string') return false;
-  
-  // Must start with http/https
-  if (!url.startsWith('http://') && !url.startsWith('https://')) {
-    return false;
-  }
-  
-  const lowerUrl = url.toLowerCase();
-  
-  // Whitelist for images and videos
-  const allowedDomains = [
-    'nostr.build',
-    'void.cat',
-    'satellite.earth',
-    'nostrcheck.me',
-    'blossom.primal.net',
-    'image.nostr.build',
-    'i.nostr.build',
-    'media.nostr.band',
-  ];
-  
-  return allowedDomains.some(domain => lowerUrl.includes(domain));
+  if (!url.startsWith('http://') && !url.startsWith('https://')) return false;
+
+  const lo = url.toLowerCase();
+  const badWords = ['placeholder', 'example.com', 'localhost', 'data:image', 'blob:'];
+  return !badWords.some(w => lo.includes(w));
 }
+
+// Re-export for use in other modules
+export { isValidImageUrlLoose as isValidTourImageUrl };
 
 /**
  * Extract image and video URLs from event content and imeta tags
@@ -108,14 +94,14 @@ export function useTravelTellyTour() {
   return useQuery({
     queryKey: ['traveltelly-tour'],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(8000)]);
       
       try {
         const events = await nostr.query([{
           kinds: [1],
           authors: [ADMIN_HEX],
           '#t': ['traveltelly'],
-          limit: 20,
+          limit: 50,
         }], { signal });
 
         // Filter to only posts with media and transform

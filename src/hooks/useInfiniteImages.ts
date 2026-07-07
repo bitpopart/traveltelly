@@ -4,6 +4,9 @@ import type { NostrEvent } from '@nostrify/nostrify';
 
 import { nip19 } from 'nostr-tools';
 import { useTravelTellyTour } from './useTravelTellyTour';
+import { useAuthorizedReviewers } from './useAuthorizedReviewers';
+import { useAuthorizedMediaUploaders } from './useStockMediaPermissions';
+import { isValidImageUrl } from '@/lib/imageValidation';
 
 // Admin pubkey for TravelTelly Tour
 const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642';
@@ -20,67 +23,11 @@ export interface ImageItem {
 }
 
 /**
- * Check if an image URL is a real uploaded image (not a placeholder or template).
- * ONLY ALLOW REAL IMAGE HOSTING SERVICES - NO TEMPLATE/PLACEHOLDER IMAGES EVER!
- * Also excludes video files (.mp4, .webm, .mov, etc.)
- */
-function isValidImageUrl(url: string): boolean {
-  if (!url || typeof url !== 'string') return false;
-  if (!url.startsWith('http://') && !url.startsWith('https://')) return false;
-
-  const lowerUrl = url.toLowerCase();
-
-  // EXCLUDE: Video files - these should not be in the image grid
-  const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.m4v', '.ogv'];
-  if (videoExtensions.some(ext => lowerUrl.includes(ext))) return false;
-
-  // WHITELIST: Only allow known real image hosting services
-  const allowedDomains = [
-    'nostr.build',
-    'void.cat',
-    'satellite.earth',
-    'nostrcheck.me',
-    'blossom.primal.net',
-    'image.nostr.build',
-    'i.nostr.build',
-    'media.nostr.band',
-  ];
-  if (!allowedDomains.some(domain => lowerUrl.includes(domain))) return false;
-
-  // BLACKLIST: Block known placeholder services
-  const invalidPatterns = [
-    '/placeholder', 'placeholder.com', 'via.placeholder', 'placehold',
-    'example.com', 'localhost', 'data:image', 'blob:', 'picsum.photos',
-    'unsplash.it', 'dummyimage.com', 'fakeimg.pl', 'loremflickr.com',
-  ];
-  if (invalidPatterns.some(p => lowerUrl.includes(p))) return false;
-
-  return true;
-}
-
-/**
  * Looser validator for video thumbnails extracted from imeta tags.
- * These are real uploaded images but may come from CDNs not on the whitelist.
- * We still block obvious placeholder patterns and require https.
+ * These are real uploaded images but may come from any CDN.
  */
 function isValidVideoThumb(url: string): boolean {
-  if (!url || typeof url !== 'string') return false;
-  if (!url.startsWith('https://')) return false;
-
-  const lowerUrl = url.toLowerCase();
-
-  // Must be an image extension or no extension (CDN URLs)
-  const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.m4v', '.ogv'];
-  if (videoExtensions.some(ext => lowerUrl.includes(ext))) return false;
-
-  // Block placeholder patterns
-  const invalidPatterns = [
-    '/placeholder', 'placeholder.com', 'via.placeholder', 'placehold',
-    'example.com', 'localhost', 'data:image', 'blob:', 'picsum.photos',
-  ];
-  if (invalidPatterns.some(p => lowerUrl.includes(p))) return false;
-
-  return true;
+  return isValidImageUrl(url);
 }
 
 /**
@@ -106,29 +53,55 @@ function extractVideoThumb(event: NostrEvent): string {
 
 /**
  * Fetch images with infinite pagination for faster loading.
- * Single query per page covering all content types — no extra relay requests.
+ * Queries all authorized authors — not just the admin.
  */
 export function useInfiniteImages() {
   const { nostr } = useNostr();
   const { data: tourItems = [] } = useTravelTellyTour();
+  const { data: authorizedReviewers } = useAuthorizedReviewers();
+  const { data: authorizedUploaders } = useAuthorizedMediaUploaders();
+
+  // Collect all relevant authors
+  const reviewAuthors = Array.from(authorizedReviewers || new Set([ADMIN_HEX]));
+  const stockAuthors = Array.from(authorizedUploaders || new Set([ADMIN_HEX]));
 
   return useInfiniteQuery({
-    queryKey: ['infinite-images', tourItems?.length],
+    queryKey: ['infinite-images', tourItems?.length, reviewAuthors.length, stockAuthors.length],
     queryFn: async ({ pageParam, signal }) => {
-      const abortSignal = AbortSignal.any([signal, AbortSignal.timeout(5000)]);
+      // 8 second timeout — enough for slower relays
+      const abortSignal = AbortSignal.any([signal, AbortSignal.timeout(8000)]);
 
       const images: ImageItem[] = [];
       const until = pageParam as number | undefined;
 
-      // ONE query covers all content types — reviews, trips, stories, stock + videos
-      const events = await nostr.query([{
-        kinds: [34879, 30025, 30023, 30402, 21, 22, 34235, 34236],
-        authors: [ADMIN_HEX],
-        limit: 20,
-        ...(until && { until }),
-      }], { signal: abortSignal });
+      // Fire two queries in parallel:
+      //  1. Admin-only kinds (trips, stories, stock, videos) — always from admin
+      //  2. Reviews — from all authorized reviewers
+      const [adminEvents, reviewEvents] = await Promise.all([
+        nostr.query([{
+          kinds: [30025, 30023, 30402, 21, 22, 34235, 34236],
+          authors: [ADMIN_HEX],
+          limit: 50,
+          ...(until && { until }),
+        }], { signal: abortSignal }),
 
-      events.forEach((event: NostrEvent) => {
+        // Only fire review query if we have authors and there's no active `until` cursor
+        // (reviews are only shown on the first page to keep pagination simple)
+        (!until && reviewAuthors.length > 0)
+          ? nostr.query([{
+              kinds: [34879],
+              authors: reviewAuthors,
+              limit: 50,
+            }], { signal: abortSignal })
+          : Promise.resolve([] as NostrEvent[]),
+      ]);
+
+      // Merge & de-duplicate by event ID
+      const allEvents = Array.from(
+        new Map([...adminEvents, ...reviewEvents].map(e => [e.id, e])).values()
+      );
+
+      allEvents.forEach((event: NostrEvent) => {
         // Reviews (kind 34879)
         if (event.kind === 34879) {
           const d = event.tags.find(([name]) => name === 'd')?.[1];
@@ -265,7 +238,9 @@ export function useInfiniteImages() {
     },
     getNextPageParam: (lastPage) => lastPage.nextPageParam,
     initialPageParam: undefined as number | undefined,
-    staleTime: 30 * 1000,
-    gcTime: 5 * 60 * 1000,
+    staleTime: 60 * 1000,        // 1 min — show cached images instantly on revisit
+    gcTime: 10 * 60 * 1000,
+    retry: 2,                    // retry twice on failure (relay timeouts)
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
   });
 }

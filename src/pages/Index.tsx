@@ -563,6 +563,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
   const {
     data: infiniteImagesData,
     isLoading: imagesLoading,
+    isFetching: imagesFetching,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -991,7 +992,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                       );
                     })}
                 </div>
-              ) : imagesLoading ? (
+              ) : (imagesLoading || imagesFetching) ? (
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-0.5 md:gap-1">
                   {Array.from({ length: 18 }).map((_, i) => (
                     <div key={i} className="aspect-square bg-gray-200 dark:bg-gray-700 animate-pulse" />
