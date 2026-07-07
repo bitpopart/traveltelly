@@ -54,6 +54,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { NostrMarketplacePublisher } from '@/components/NostrMarketplacePublisher';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -886,6 +887,9 @@ export default function AdminMarketplace() {
             )}
           </CardContent>
         </Card>
+
+        {/* Nostr Marketplace Publisher */}
+        <NostrMarketplacePublisher />
 
         {/* Help */}
         <Card className="border-blue-200 bg-blue-50">
