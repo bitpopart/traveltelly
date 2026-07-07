@@ -374,7 +374,7 @@ function MarketplaceInner() {
                 }`}
                 style={activeTag === null ? { backgroundColor: '#ec1a58' } : {}}
               >
-                All {products?.filter(p => p.images.length > 0).length ?? ''}
+                All {allProducts.filter(p => p.images.length > 0).length || ''}
               </button>
               {tagCloud.map(({ tag, count }) => (
                 <button
