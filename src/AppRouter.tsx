@@ -65,6 +65,7 @@ import TravelerProfile from "./pages/TravelerProfile";
 import TravelTellyTour from "./pages/TravelTellyTour";
 import TourFeed from "./pages/TourFeed";
 import Community from "./pages/Community";
+import GammaMarketplace from "./pages/GammaMarketplace";
 import NotFound from "./pages/NotFound";
 
 export function AppRouter() {
@@ -115,6 +116,7 @@ export function AppRouter() {
         <Route path="/marketplace" element={<Marketplace />} />
         <Route path="/marketplace/orders" element={<MarketplaceOrders />} />
         <Route path="/marketplace/portfolio" element={<MarketplacePortfolio />} />
+        <Route path="/marketplace/gamma" element={<GammaMarketplace />} />
         <Route path="/guest-portal" element={<GuestPortal />} />
         <Route path="/media/preview/:naddr" element={<MediaPreview />} />
         <Route path="/download/:orderId" element={<DownloadPage />} />

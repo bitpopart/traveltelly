@@ -17,7 +17,7 @@ import { AdminSelectionProvider, useAdminSelection } from "@/contexts/AdminSelec
 import { adminBulkDownload } from "@/lib/adminBulkDownload";
 import type { BulkDownloadProgress } from "@/lib/adminBulkDownload";
 import { PaymentDialog } from "@/components/PaymentDialog";
-import { ShoppingCart, Plus, Store, Crown, Download, CheckSquare, X, Loader2, Camera, Video, Zap, LayoutGrid, Search } from "lucide-react";
+import { ShoppingCart, Plus, Store, Crown, Download, CheckSquare, X, Loader2, Camera, Video, Zap, LayoutGrid, Search, Settings2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { nip19 } from "nostr-tools";
 import type { MarketplaceProduct } from "@/hooks/useMarketplaceProducts";
@@ -268,6 +268,12 @@ function MarketplaceInner() {
                       <button className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-white dark:bg-gray-800 text-muted-foreground border border-gray-200 dark:border-gray-700 hover:border-pink-300 hover:text-[#ec1a58] transition-colors">
                         <Store className="w-3 h-3" />
                         <span className="hidden sm:inline">Portfolio</span>
+                      </button>
+                    </Link>
+                    <Link to="/marketplace/gamma">
+                      <button className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-white dark:bg-gray-800 text-muted-foreground border border-gray-200 dark:border-gray-700 hover:border-pink-300 hover:text-[#ec1a58] transition-colors">
+                        <Settings2 className="w-3 h-3" />
+                        <span className="hidden sm:inline">Seller</span>
                       </button>
                     </Link>
                     <MarketplaceSubscriptionDialog>

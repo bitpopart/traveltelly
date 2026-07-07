@@ -9,11 +9,223 @@ This platform leverages existing Nostr standards with minimal custom event kinds
 - **Custom Review System**: Using kind `34879` for location-based reviews
 - **Custom Trip System**: Using kind `30025` for travel trips with photos and GPS routes
 - **NIP-99 (Classified Listings)**: For digital media marketplace listings using kind `30402`
+- **Gamma Market Spec**: Full e-commerce extension to NIP-99 (kinds 30402, 30403, 30405, 30406, 31555)
 - **NIP-52 (Calendar Events)**: For event management using kinds `31922` and `31923`
 - **NIP-57 (Lightning Zaps)**: For Lightning payments via Bitcoin
 - **NIP-04 (Encrypted Direct Messages)**: For communication between users
-- **NIP-15 (Nostr Marketplace)**: Reference implementation for marketplace message types
+- **NIP-17 (Private Direct Messages)**: For encrypted order messaging (kinds 14, 16, 17)
 - **Custom Permission System**: For managing review and media upload permissions (kinds `31492`, `30384`)
+
+---
+
+## Gamma Market Spec Implementation
+
+This project implements the [Gamma Market Spec](https://github.com/GammaMarkets/market-spec/blob/main/spec.md) — an interoperable e-commerce extension for NIP-99 classified listings.
+
+### Kind 30402 — Product Listing (NIP-99 + Gamma Extensions)
+
+Product listings use the full Gamma Spec tag set:
+
+```json
+{
+  "kind": 30402,
+  "content": "<product description in markdown>",
+  "tags": [
+    ["d", "<unique-product-id>"],
+    ["title", "<product title>"],
+    ["price", "<amount>", "<currency>", "<optional-frequency>"],
+    ["type", "simple|variable|variation", "digital|physical"],
+    ["visibility", "on-sale|hidden|pre-order"],
+    ["stock", "<integer>"],
+    ["summary", "<short description>"],
+    ["published_at", "<unix-timestamp>"],
+    ["status", "active|sold|inactive|deleted"],
+    ["image", "<url>", "<dimensions>", "<sort-order>"],
+    ["spec", "<key>", "<value>"],
+    ["weight", "<value>", "<unit>"],
+    ["dim", "<l>x<w>x<h>", "<unit>"],
+    ["location", "<address>"],
+    ["g", "<geohash>"],
+    ["t", "<category>"],
+    ["shipping_option", "30406:<pubkey>:<d-tag>"],
+    ["a", "30405:<pubkey>:<d-tag>"],
+    ["continent", "<continent-name>"],
+    ["country", "<country-code>"],
+    ["geo_folder", "<continent>/<country>"]
+  ]
+}
+```
+
+### Kind 30403 — Draft / Inactive Listing
+
+Same structure as kind 30402, used for draft products (visibility: hidden).
+
+### Kind 30405 — Product Collection
+
+Groups related products with shared shipping and metadata:
+
+```json
+{
+  "kind": 30405,
+  "content": "<optional collection description>",
+  "tags": [
+    ["d", "<collection-id>"],
+    ["title", "<collection name>"],
+    ["image", "<cover image URL>"],
+    ["summary", "<brief description>"],
+    ["location", "<location string>"],
+    ["g", "<geohash>"],
+    ["a", "30402:<pubkey>:<d-tag>"],
+    ["shipping_option", "30406:<pubkey>:<d-tag>"]
+  ]
+}
+```
+
+### Kind 30406 — Shipping Option
+
+Defines shipping methods, costs, and constraints:
+
+```json
+{
+  "kind": 30406,
+  "content": "<optional description>",
+  "tags": [
+    ["d", "<shipping-option-id>"],
+    ["title", "<display title>"],
+    ["price", "<base_cost>", "<currency>"],
+    ["country", "<ISO-3166-1-alpha-2>", "..."],
+    ["service", "standard|express|overnight|pickup"],
+    ["carrier", "<carrier name>"],
+    ["region", "<ISO-3166-2>", "..."],
+    ["duration", "<min>", "<max>", "H|D|W"],
+    ["location", "<pickup address>"],
+    ["weight-max", "<value>", "<unit>"],
+    ["price-weight", "<price>", "<unit>"]
+  ]
+}
+```
+
+### Kind 31555 — Product Review
+
+Product reviews following Gamma Spec guidelines:
+
+```json
+{
+  "kind": 31555,
+  "content": "<review text>",
+  "tags": [
+    ["d", "a:30402:<merchant-pubkey>:<product-d-tag>"],
+    ["rating", "1", "thumb"],
+    ["rating", "0.8", "value"],
+    ["rating", "1.0", "quality"],
+    ["rating", "0.6", "delivery"],
+    ["rating", "0.9", "communication"]
+  ]
+}
+```
+
+**Rating scale**: 0 (negative) to 1 (positive). Primary "thumb" rating carries 50% weight.
+
+### Kind 16 — Order Processing Messages (NIP-17)
+
+Order lifecycle messages encrypted via NIP-17:
+
+**Type 1 — Order Creation (buyer → merchant):**
+```json
+{
+  "kind": 16,
+  "tags": [
+    ["p", "<merchant-pubkey>"],
+    ["type", "1"],
+    ["order", "<order-id>"],
+    ["amount", "<total-sats>"],
+    ["item", "30402:<pubkey>:<d-tag>", "<quantity>"],
+    ["shipping", "30406:<pubkey>:<d-tag>"],
+    ["address", "<shipping address>"],
+    ["email", "<customer email>"]
+  ]
+}
+```
+
+**Type 2 — Payment Request (merchant → buyer):**
+```json
+{
+  "kind": 16,
+  "tags": [
+    ["p", "<buyer-pubkey>"],
+    ["type", "2"],
+    ["order", "<order-id>"],
+    ["amount", "<total-sats>"],
+    ["payment", "lightning", "<bolt11-invoice>"],
+    ["payment", "bitcoin", "<btc-address>"],
+    ["payment", "ecash", "<cashu-req>"]
+  ]
+}
+```
+
+**Type 3 — Order Status Update:**
+```json
+{
+  "kind": 16,
+  "tags": [
+    ["p", "<buyer-pubkey>"],
+    ["type", "3"],
+    ["order", "<order-id>"],
+    ["status", "pending|confirmed|processing|completed|cancelled"]
+  ]
+}
+```
+
+**Type 4 — Shipping Update:**
+```json
+{
+  "kind": 16,
+  "tags": [
+    ["p", "<buyer-pubkey>"],
+    ["type", "4"],
+    ["order", "<order-id>"],
+    ["status", "processing|shipped|delivered|exception"],
+    ["tracking", "<tracking-number>"],
+    ["carrier", "<carrier name>"],
+    ["eta", "<unix-timestamp>"]
+  ]
+}
+```
+
+### Kind 17 — Payment Receipt (NIP-17)
+
+Buyer confirmation of payment:
+
+```json
+{
+  "kind": 17,
+  "tags": [
+    ["p", "<merchant-pubkey>"],
+    ["order", "<order-id>"],
+    ["amount", "<amount-sats>"],
+    ["payment", "lightning", "<bolt11-invoice>", "<preimage>"],
+    ["payment", "bitcoin", "<address>", "<txid>"],
+    ["payment", "ecash", "<mint-url>", "<proof>"]
+  ]
+}
+```
+
+### Kind 14 — General Order Communication (NIP-17)
+
+Free-form messages within an order context:
+
+```json
+{
+  "kind": 14,
+  "content": "<message>",
+  "tags": [
+    ["p", "<recipient-pubkey>"],
+    ["subject", "<order-id>"]
+  ]
+}
+```
+
+---
 
 ## Visited Countries Tracker (Kind 30078)
 
