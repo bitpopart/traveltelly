@@ -44,7 +44,7 @@ export function Navigation({ className }: NavigationProps) {
 
   const allNavItems = [
     { path: '/', label: 'Home', icon: Home, color: '#393636', hoverColor: '#2a2828' },
-    { path: '/telly-map', label: 'Telly Map', icon: Map, color: '#96ae38', hoverColor: '#7d9230' },
+    { path: '/telly-map', label: 'Map', icon: Map, color: '#96ae38', hoverColor: '#7d9230' },
     { path: '/reviews', label: 'Reviews', icon: Star, color: '#27b0ff', hoverColor: '#1a9fe6' },
     { path: '/stories', label: 'Stories', icon: BookOpen, color: '#b2d235', hoverColor: '#9dbf2e' },
     { path: '/trips', label: 'Trips', icon: MapPin, color: '#ffcc00', hoverColor: '#e6b800' },
