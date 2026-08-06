@@ -481,16 +481,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
   const { user } = useCurrentUser();
   const navigate = useNavigate();
   const { isAdmin, isCheckingPermission } = useReviewPermissions();
-  const { viewMode, setViewMode } = useViewMode();
-
-  // Map toggle on the home page → go to the dedicated /telly-map page
-  useEffect(() => {
-    if (viewMode === 'map') {
-      // Reset back to images so next time Home is visited it shows thumbnails
-      setViewMode('images');
-      navigate('/telly-map', { replace: true });
-    }
-  }, [viewMode, setViewMode, navigate]);
+  const { viewMode } = useViewMode();
   const { data: latestReview } = useLatestReview();
   const { data: latestStory } = useLatestStory();
   const { data: latestStockMedia } = useLatestStockMedia();

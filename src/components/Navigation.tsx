@@ -34,13 +34,15 @@ export function Navigation({ className }: NavigationProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const isActive = (path: string) => {
-    if (path === '/' && location.pathname === '/') return true;
-    if (path !== '/' && location.pathname.startsWith(path)) return true;
+    // /telly-map is also active when on / (the root now renders TellyMap)
+    if (path === '/telly-map' && (location.pathname === '/' || location.pathname === '/telly-map')) return true;
+    if (path === location.pathname) return true;
+    if (path !== '/' && path !== '/home' && location.pathname.startsWith(path)) return true;
     return false;
   };
 
   const allNavItems = [
-    { path: '/', label: 'Home', icon: Home, color: '#393636', hoverColor: '#2a2828' },
+    { path: '/home', label: 'Home', icon: Home, color: '#393636', hoverColor: '#2a2828' },
     { path: '/telly-map', label: 'Map', icon: Map, color: '#96ae38', hoverColor: '#7d9230' },
     { path: '/reviews', label: 'Reviews', icon: Star, color: '#27b0ff', hoverColor: '#1a9fe6' },
     { path: '/stories', label: 'Stories', icon: BookOpen, color: '#b2d235', hoverColor: '#9dbf2e' },
@@ -130,15 +132,15 @@ export function Navigation({ className }: NavigationProps) {
           {/* Desktop Right Side */}
           <div className="hidden md:flex items-center gap-3">
 
-            {/* View Mode Toggle — home (images) ↔ map */}
-            {(location.pathname === '/' || location.pathname === '/telly-map') && (
+            {/* View Mode Toggle — images (/home) ↔ map (/) */}
+            {(location.pathname === '/' || location.pathname === '/telly-map' || location.pathname === '/home') && (
               <div className="inline-flex items-center bg-gray-200 dark:bg-gray-700 rounded-full p-1 gap-1">
-                <Link to="/">
+                <Link to="/home">
                   <Button
                     variant="ghost"
                     size="icon"
                     className={`rounded-full w-9 h-9 transition-all ${
-                      location.pathname === '/'
+                      location.pathname === '/home'
                         ? 'bg-gray-800 hover:bg-gray-900 text-white'
                         : 'hover:bg-gray-300 dark:hover:bg-gray-600'
                     }`}
@@ -147,12 +149,12 @@ export function Navigation({ className }: NavigationProps) {
                     <ImageIcon className="w-4 h-4" />
                   </Button>
                 </Link>
-                <Link to="/telly-map">
+                <Link to="/">
                   <Button
                     variant="ghost"
                     size="icon"
                     className={`rounded-full w-9 h-9 transition-all ${
-                      location.pathname === '/telly-map'
+                      (location.pathname === '/' || location.pathname === '/telly-map')
                         ? 'bg-gray-800 hover:bg-gray-900 text-white'
                         : 'hover:bg-gray-300 dark:hover:bg-gray-600'
                     }`}
@@ -195,15 +197,15 @@ export function Navigation({ className }: NavigationProps) {
 
           {/* Mobile Right Side */}
           <div className="md:hidden flex items-center gap-2">
-            {/* View Mode Toggle — mobile */}
-            {(location.pathname === '/' || location.pathname === '/telly-map') && (
+            {/* View Mode Toggle — mobile — images (/home) ↔ map (/) */}
+            {(location.pathname === '/' || location.pathname === '/telly-map' || location.pathname === '/home') && (
               <div className="inline-flex items-center bg-gray-200 dark:bg-gray-700 rounded-full p-1 gap-1">
-                <Link to="/">
+                <Link to="/home">
                   <Button
                     variant="ghost"
                     size="icon"
                     className={`rounded-full w-8 h-8 transition-all ${
-                      location.pathname === '/'
+                      location.pathname === '/home'
                         ? 'bg-gray-800 hover:bg-gray-900 text-white'
                         : 'hover:bg-gray-300 dark:hover:bg-gray-600'
                     }`}
@@ -212,12 +214,12 @@ export function Navigation({ className }: NavigationProps) {
                     <ImageIcon className="w-4 h-4" />
                   </Button>
                 </Link>
-                <Link to="/telly-map">
+                <Link to="/">
                   <Button
                     variant="ghost"
                     size="icon"
                     className={`rounded-full w-8 h-8 transition-all ${
-                      location.pathname === '/telly-map'
+                      (location.pathname === '/' || location.pathname === '/telly-map')
                         ? 'bg-gray-800 hover:bg-gray-900 text-white'
                         : 'hover:bg-gray-300 dark:hover:bg-gray-600'
                     }`}

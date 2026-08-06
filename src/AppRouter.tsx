@@ -74,7 +74,8 @@ export function AppRouter() {
     <BrowserRouter>
       <ScrollToTop />
       <Routes>
-        <Route path="/" element={<Index />} />
+        <Route path="/" element={<TellyMap />} />
+        <Route path="/home" element={<Index />} />
         <Route path="/debug" element={<IndexDebug />} />
         <Route path="/safe" element={<IndexSafe />} />
         <Route path="/minimal" element={<IndexMinimal />} />
