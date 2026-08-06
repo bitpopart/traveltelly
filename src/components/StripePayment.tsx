@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { Button } from '@/components/ui/button';
@@ -14,8 +14,15 @@ import { useToast } from '@/hooks/useToast';
 import { CreditCard, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import type { MarketplaceProduct } from '@/hooks/useMarketplaceProducts';
 
-// Initialize Stripe (you'll need to set your publishable key)
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_...');
+// Resolve the Stripe publishable key: prefer localStorage (set via Admin → Payments → Stripe),
+// fall back to the build-time env var.
+function getStripeKey(): string {
+  return (
+    localStorage.getItem('traveltelly_stripe_publishable_key') ||
+    import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ||
+    ''
+  );
+}
 
 interface StripePaymentProps {
   product: MarketplaceProduct;
@@ -302,8 +309,17 @@ function PaymentForm({ product, onSuccess }: PaymentFormProps) {
 }
 
 export function StripePayment({ product, onSuccess }: StripePaymentProps) {
+  const stripeKey = getStripeKey();
+  const isConfigured = stripeKey.startsWith('pk_live_') || stripeKey.startsWith('pk_test_');
+
+  // Memoize the Stripe promise so it is only created once per key value
+  const stripePromise = useMemo(
+    () => (isConfigured ? loadStripe(stripeKey) : null),
+    [stripeKey, isConfigured]
+  );
+
   // Check if Stripe is configured
-  if (!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY) {
+  if (!isConfigured) {
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
