@@ -16,7 +16,9 @@ import {
   MapPin,
   User,
   Users,
-  Map
+  Map,
+  Image as ImageIcon,
+  Globe,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -128,6 +130,40 @@ export function Navigation({ className }: NavigationProps) {
           {/* Desktop Right Side */}
           <div className="hidden md:flex items-center gap-3">
 
+            {/* View Mode Toggle — home (images) ↔ map */}
+            {(location.pathname === '/' || location.pathname === '/telly-map') && (
+              <div className="inline-flex items-center bg-gray-200 dark:bg-gray-700 rounded-full p-1 gap-1">
+                <Link to="/">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`rounded-full w-9 h-9 transition-all ${
+                      location.pathname === '/'
+                        ? 'bg-gray-800 hover:bg-gray-900 text-white'
+                        : 'hover:bg-gray-300 dark:hover:bg-gray-600'
+                    }`}
+                    title="Images Grid"
+                  >
+                    <ImageIcon className="w-4 h-4" />
+                  </Button>
+                </Link>
+                <Link to="/telly-map">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`rounded-full w-9 h-9 transition-all ${
+                      location.pathname === '/telly-map'
+                        ? 'bg-gray-800 hover:bg-gray-900 text-white'
+                        : 'hover:bg-gray-300 dark:hover:bg-gray-600'
+                    }`}
+                    title="TellyMap"
+                  >
+                    <Globe className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </div>
+            )}
+
             {/* My Travels Button */}
             {user && (
               <Link to="/my-travels">
@@ -159,6 +195,40 @@ export function Navigation({ className }: NavigationProps) {
 
           {/* Mobile Right Side */}
           <div className="md:hidden flex items-center gap-2">
+            {/* View Mode Toggle — mobile */}
+            {(location.pathname === '/' || location.pathname === '/telly-map') && (
+              <div className="inline-flex items-center bg-gray-200 dark:bg-gray-700 rounded-full p-1 gap-1">
+                <Link to="/">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`rounded-full w-8 h-8 transition-all ${
+                      location.pathname === '/'
+                        ? 'bg-gray-800 hover:bg-gray-900 text-white'
+                        : 'hover:bg-gray-300 dark:hover:bg-gray-600'
+                    }`}
+                    title="Images Grid"
+                  >
+                    <ImageIcon className="w-4 h-4" />
+                  </Button>
+                </Link>
+                <Link to="/telly-map">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`rounded-full w-8 h-8 transition-all ${
+                      location.pathname === '/telly-map'
+                        ? 'bg-gray-800 hover:bg-gray-900 text-white'
+                        : 'hover:bg-gray-300 dark:hover:bg-gray-600'
+                    }`}
+                    title="TellyMap"
+                  >
+                    <Globe className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </div>
+            )}
+
             {/* Mobile Menu Button */}
             <Button
               variant="ghost"
