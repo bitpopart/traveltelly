@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Navigation } from '@/components/Navigation';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useReviewPermissions } from '@/hooks/useReviewPermissions';
 
@@ -51,14 +52,20 @@ export default function TellyMap() {
   }, [iframeReady, user?.pubkey, hasPermission, isAdmin]);
 
   return (
-    <div style={{ position: 'fixed', inset: 0 }}>
-      <iframe
-        ref={iframeRef}
-        src="/telly-map.html"
-        title="TellyMap – your personal travel photo map"
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }}
-        allow="geolocation; camera"
-      />
+    <div className="flex flex-col" style={{ height: '100dvh' }}>
+      {/* Standard Traveltelly nav — keeps the toggle pill and all menu items */}
+      <Navigation />
+
+      {/* Map fills everything below the nav (Navigation already renders its own h-16 spacer) */}
+      <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
+        <iframe
+          ref={iframeRef}
+          src="/telly-map.html"
+          title="TellyMap – your personal travel photo map"
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }}
+          allow="geolocation; camera"
+        />
+      </div>
     </div>
   );
 }
