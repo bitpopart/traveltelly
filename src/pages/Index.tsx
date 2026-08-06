@@ -610,22 +610,23 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
   });
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
+    <div className={viewMode === 'map' ? 'flex flex-col' : 'min-h-screen'} style={viewMode === 'map' ? { height: '100dvh', backgroundColor: '#f4f4f5' } : { backgroundColor: '#f4f4f5' }}>
       <NavigationComponent />
-      
-      {/* Reviews Map - Full width on mobile directly under fixed header - Only show in map mode */}
-      {viewMode === 'map' && (
-        <>
-          <div className="md:hidden absolute top-16 left-0 right-0 z-10">
-            <AllAdminReviewsMap zoomToLocation={selectedLocationTag} showTitle={false} />
-          </div>
 
-          {/* Spacer for mobile to push content below map */}
-          <div className="md:hidden h-96" />
-        </>
+      {/* ── TellyMap fullscreen iframe — map view ── */}
+      {viewMode === 'map' && (
+        <div className="flex-1 relative" style={{ minHeight: 0 }}>
+          <iframe
+            src="/telly-map.html"
+            title="TellyMap – your personal travel photo map"
+            className="absolute inset-0 w-full h-full border-0"
+            allow="geolocation; camera"
+          />
+        </div>
       )}
 
-      <div className="container mx-auto px-2 md:px-4 pt-2 pb-4 md:pt-3 md:pb-8">
+      {/* All thumbnails/content — only rendered in images mode */}
+      {viewMode === 'images' && <div className="container mx-auto px-2 md:px-4 pt-2 pb-4 md:pt-3 md:pb-8">
         <div className="max-w-6xl mx-auto">
           {/* User Controls Card - Only show when user is logged in and no location selected */}
           {user && !selectedLocationTag && (
@@ -1305,21 +1306,23 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
           </Card>
 
         </div>
-      </div>
+      </div>} {/* end images-mode container */}
 
-      {/* Create Trip Dialog */}
-      <Dialog open={isCreateTripDialogOpen} onOpenChange={setIsCreateTripDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-2xl">Create New Trip</DialogTitle>
-          </DialogHeader>
-          <div className="mt-4">
-            <CreateTripForm onSuccess={() => setIsCreateTripDialogOpen(false)} />
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Create Trip Dialog — images mode only */}
+      {viewMode === 'images' && (
+        <Dialog open={isCreateTripDialogOpen} onOpenChange={setIsCreateTripDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-2xl">Create New Trip</DialogTitle>
+            </DialogHeader>
+            <div className="mt-4">
+              <CreateTripForm onSuccess={() => setIsCreateTripDialogOpen(false)} />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
-      <Footer />
+      {viewMode === 'images' && <Footer />}
     </div>
   );
 };

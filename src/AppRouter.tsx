@@ -66,6 +66,7 @@ import TravelTellyTour from "./pages/TravelTellyTour";
 import TourFeed from "./pages/TourFeed";
 import Community from "./pages/Community";
 import GammaMarketplace from "./pages/GammaMarketplace";
+import TellyMap from "./pages/TellyMap";
 import NotFound from "./pages/NotFound";
 
 export function AppRouter() {
@@ -134,6 +135,7 @@ export function AppRouter() {
         <Route path="/traveltelly-tour" element={<TravelTellyTour />} />
         <Route path="/tour-feed/:eventId" element={<TourFeed />} />
         <Route path="/community" element={<Community />} />
+        <Route path="/telly-map" element={<TellyMap />} />
         {/* Traveler Profile Routes */}
         <Route path="/traveler/:username" element={<TravelerProfile />} />
         {/* Explicit admin routes for better debugging */}
