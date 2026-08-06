@@ -1,56 +1,64 @@
-import { useEffect, useRef } from 'react';
-import { Navigation } from '@/components/Navigation';
+import { useEffect, useRef, useState } from 'react';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useReviewPermissions } from '@/hooks/useReviewPermissions';
 
 /**
- * TellyMap — full-screen personal photo-pin map embedded as an iframe.
- * The map is the telly-map.html experience: offline vector world, GPS-extracted
- * photo pins, clip pins, Earthly (earthly.city) Nostr geo-layer integration
- * (kind 37515 datasets), and live OSM street detail.
+ * TellyMap — full-screen personal travel photo-pin map.
  *
- * The iframe gets the full viewport below the fixed nav bar.
+ * The telly-map.html has its own branded header (TellyMap · by traveltelly)
+ * with a home link, so no React nav is shown here. The page takes the full
+ * viewport.
+ *
+ * Permissions: after the iframe loads, we postMessage the user's pubkey and
+ * canAddPins flag so the map gates the "+ Add pins" button behind the same
+ * Nostr permission grants used elsewhere on the site.
  */
 export default function TellyMap() {
   const { user } = useCurrentUser();
+  const { hasPermission, isAdmin } = useReviewPermissions();
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [iframeReady, setIframeReady] = useState(false);
 
-  // Pass the logged-in user's pubkey into the iframe so it can pre-fill
-  // Earthly relay queries with the user's own identity.
+  const sendAuth = () => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    try {
+      iframe.contentWindow?.postMessage(
+        {
+          type: 'tellymap:auth',
+          pubkey: user?.pubkey ?? null,
+          canAddPins: !!(user && (hasPermission || isAdmin)),
+        },
+        window.location.origin
+      );
+    } catch { /* cross-origin sandbox — silently ignored */ }
+  };
+
+  // Send once on iframe load
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
-
-    const onLoad = () => {
-      try {
-        iframe.contentWindow?.postMessage(
-          { type: 'tellymap:init', pubkey: user?.pubkey ?? null },
-          '*'
-        );
-      } catch {
-        // cross-origin – silently ignored
-      }
-    };
-
+    const onLoad = () => { setIframeReady(true); sendAuth(); };
     iframe.addEventListener('load', onLoad);
     return () => iframe.removeEventListener('load', onLoad);
-  }, [user?.pubkey]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Re-send whenever permissions resolve (Nostr query may complete after load)
+  useEffect(() => {
+    if (iframeReady) sendAuth();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [iframeReady, user?.pubkey, hasPermission, isAdmin]);
 
   return (
-    <div className="flex flex-col" style={{ height: '100dvh' }}>
-      {/* Fixed top nav */}
-      <Navigation />
-
-      {/* Full-height map frame — sits directly below the 64px nav */}
-      <div className="flex-1 relative" style={{ marginTop: 0 }}>
-        <iframe
-          ref={iframeRef}
-          src="/telly-map.html"
-          title="TellyMap – your personal travel photo map"
-          className="absolute inset-0 w-full h-full border-0"
-          allow="geolocation; camera"
-          loading="lazy"
-        />
-      </div>
+    <div style={{ position: 'fixed', inset: 0 }}>
+      <iframe
+        ref={iframeRef}
+        src="/telly-map.html"
+        title="TellyMap – your personal travel photo map"
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }}
+        allow="geolocation; camera"
+      />
     </div>
   );
 }

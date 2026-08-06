@@ -480,7 +480,8 @@ interface IndexProps {
 const Index = ({ initialLocation }: IndexProps = {}) => {
   const { user } = useCurrentUser();
   const navigate = useNavigate();
-  const { isAdmin, isCheckingPermission } = useReviewPermissions();
+  const { isAdmin, isCheckingPermission, hasPermission } = useReviewPermissions();
+  const mapIframeRef = useRef<HTMLIFrameElement>(null);
   const { viewMode } = useViewMode();
   const { data: latestReview } = useLatestReview();
   const { data: latestStory } = useLatestStory();
@@ -602,7 +603,24 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
   // Get TravelTelly Tour photos
   const { data: tourItems = [] } = useTravelTellyTour();
 
-
+  // Send permission info to the embedded TellyMap iframe when map mode is active
+  useEffect(() => {
+    if (viewMode !== 'map') return;
+    const iframe = mapIframeRef.current;
+    if (!iframe) return;
+    const send = () => {
+      try {
+        iframe.contentWindow?.postMessage(
+          { type: 'tellymap:auth', pubkey: user?.pubkey ?? null, canAddPins: !!(user && (hasPermission || isAdmin)) },
+          window.location.origin
+        );
+      } catch { /* ignore */ }
+    };
+    iframe.addEventListener('load', send);
+    // also send immediately in case iframe already loaded
+    send();
+    return () => iframe.removeEventListener('load', send);
+  }, [viewMode, user?.pubkey, hasPermission, isAdmin]);
 
   useSeoMeta({
     title: 'Traveltelly - Nostr Powered Travel Community',
@@ -617,6 +635,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
       {viewMode === 'map' && (
         <div className="flex-1 relative" style={{ minHeight: 0 }}>
           <iframe
+            ref={mapIframeRef}
             src="/telly-map.html"
             title="TellyMap – your personal travel photo map"
             className="absolute inset-0 w-full h-full border-0"
