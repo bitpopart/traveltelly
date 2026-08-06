@@ -480,9 +480,17 @@ interface IndexProps {
 const Index = ({ initialLocation }: IndexProps = {}) => {
   const { user } = useCurrentUser();
   const navigate = useNavigate();
-  const { isAdmin, isCheckingPermission, hasPermission } = useReviewPermissions();
-  const mapIframeRef = useRef<HTMLIFrameElement>(null);
-  const { viewMode } = useViewMode();
+  const { isAdmin, isCheckingPermission } = useReviewPermissions();
+  const { viewMode, setViewMode } = useViewMode();
+
+  // Map toggle on the home page → go to the dedicated /telly-map page
+  useEffect(() => {
+    if (viewMode === 'map') {
+      // Reset back to images so next time Home is visited it shows thumbnails
+      setViewMode('images');
+      navigate('/telly-map', { replace: true });
+    }
+  }, [viewMode, setViewMode, navigate]);
   const { data: latestReview } = useLatestReview();
   const { data: latestStory } = useLatestStory();
   const { data: latestStockMedia } = useLatestStockMedia();
@@ -603,24 +611,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
   // Get TravelTelly Tour photos
   const { data: tourItems = [] } = useTravelTellyTour();
 
-  // Send permission info to the embedded TellyMap iframe when map mode is active
-  useEffect(() => {
-    if (viewMode !== 'map') return;
-    const iframe = mapIframeRef.current;
-    if (!iframe) return;
-    const send = () => {
-      try {
-        iframe.contentWindow?.postMessage(
-          { type: 'tellymap:auth', pubkey: user?.pubkey ?? null, canAddPins: !!(user && (hasPermission || isAdmin)) },
-          window.location.origin
-        );
-      } catch { /* ignore */ }
-    };
-    iframe.addEventListener('load', send);
-    // also send immediately in case iframe already loaded
-    send();
-    return () => iframe.removeEventListener('load', send);
-  }, [viewMode, user?.pubkey, hasPermission, isAdmin]);
+
 
   useSeoMeta({
     title: 'Traveltelly - Nostr Powered Travel Community',
@@ -628,24 +619,10 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
   });
 
   return (
-    <div className={viewMode === 'map' ? 'flex flex-col' : 'min-h-screen'} style={viewMode === 'map' ? { height: '100dvh', backgroundColor: '#f4f4f5' } : { backgroundColor: '#f4f4f5' }}>
+    <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
       <NavigationComponent />
 
-      {/* ── TellyMap fullscreen iframe — map view ── */}
-      {viewMode === 'map' && (
-        <div className="flex-1 relative" style={{ minHeight: 0 }}>
-          <iframe
-            ref={mapIframeRef}
-            src="/telly-map.html"
-            title="TellyMap – your personal travel photo map"
-            className="absolute inset-0 w-full h-full border-0"
-            allow="geolocation; camera"
-          />
-        </div>
-      )}
-
-      {/* All thumbnails/content — only rendered in images mode */}
-      {viewMode === 'images' && <div className="container mx-auto px-2 md:px-4 pt-2 pb-4 md:pt-3 md:pb-8">
+      <div className="container mx-auto px-2 md:px-4 pt-2 pb-4 md:pt-3 md:pb-8">
         <div className="max-w-6xl mx-auto">
           {/* User Controls Card - Only show when user is logged in and no location selected */}
           {user && !selectedLocationTag && (
@@ -665,8 +642,8 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
             </Card>
           )}
 
-          {/* Feature Cards - Desktop Only with Images - Show in map mode when no location selected */}
-          {viewMode === 'map' && !selectedLocationTag && (
+          {/* Feature Cards - Desktop Only */}
+          {!selectedLocationTag && (
             <div className="hidden md:block mb-6 md:mb-8">
               <div className="grid md:grid-cols-4 gap-3 md:gap-4 w-full">
                 {/* Share Reviews Card */}
@@ -911,37 +888,8 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
           {/* Admin Debug Info (Development Only) */}
           {!selectedLocationTag && <AdminDebugInfo />}
 
-          {/* View Mode: Map */}
-          {viewMode === 'map' && (
-            <>
-              {/* Reviews Map - Desktop only (mobile is outside container) */}
-              <div className="hidden md:block mb-8 md:mb-12">
-                <AllAdminReviewsMap zoomToLocation={selectedLocationTag} showTitle={false} />
-              </div>
-
-              {/* Location Tag Cloud */}
-              <div className="mb-8 md:mb-12">
-                <LocationTagCloud 
-                  onTagClick={(tag) => {
-                    const newTag = tag === selectedLocationTag ? '' : tag;
-                    setSelectedLocationTag(newTag);
-                    
-                    // Update URL when tag clicked (lowercase)
-                    if (newTag) {
-                      const urlFriendlyTag = newTag.toLowerCase().replace(/\s+/g, '-');
-                      navigate(`/${urlFriendlyTag}`, { replace: true });
-                    } else {
-                      navigate('/', { replace: true });
-                    }
-                  }}
-                  selectedTag={selectedLocationTag}
-                />
-              </div>
-            </>
-          )}
-
-          {/* View Mode: Images Grid */}
-          {viewMode === 'images' && !selectedLocationTag && (
+          {/* Images Grid */}
+          {!selectedLocationTag && (
             <div className="mb-8 md:mb-12">
               {(communityMix.length > 0 || displayedImages.length > 0) ? (
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-0.5 md:gap-1">
@@ -1053,8 +1001,8 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
             </div>
           )}
 
-          {/* Location-Filtered Content - Only in Map Mode */}
-          {viewMode === 'map' && (
+          {/* Content sections */}
+          {true && (
             selectedLocationTag ? (
               <div className="mb-8 md:mb-12">
                 <LocationContentGrid locationTag={selectedLocationTag} />
@@ -1325,23 +1273,21 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
           </Card>
 
         </div>
-      </div>} {/* end images-mode container */}
+      </div>
 
-      {/* Create Trip Dialog — images mode only */}
-      {viewMode === 'images' && (
-        <Dialog open={isCreateTripDialogOpen} onOpenChange={setIsCreateTripDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-2xl">Create New Trip</DialogTitle>
-            </DialogHeader>
-            <div className="mt-4">
-              <CreateTripForm onSuccess={() => setIsCreateTripDialogOpen(false)} />
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
+      {/* Create Trip Dialog */}
+      <Dialog open={isCreateTripDialogOpen} onOpenChange={setIsCreateTripDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">Create New Trip</DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            <CreateTripForm onSuccess={() => setIsCreateTripDialogOpen(false)} />
+          </div>
+        </DialogContent>
+      </Dialog>
 
-      {viewMode === 'images' && <Footer />}
+      <Footer />
     </div>
   );
 };
