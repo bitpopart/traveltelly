@@ -32,7 +32,7 @@ interface InvoiceResponse {
 // CORS proxy & Lightning address — prefer admin-configured value
 const CORS_PROXY = 'https://proxy.shakespeare.diy/?url=';
 const LIGHTNING_ADDRESS =
-  localStorage.getItem('traveltelly_lightning_address') || 'traveltelly@primal.net';
+  localStorage.getItem('traveltelly_lightning_address') || 'bitpopart@rizful.com';
 
 async function fetchWithProxy(url: string): Promise<Response> {
   // Try direct first (works when CORS allows)

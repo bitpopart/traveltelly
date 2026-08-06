@@ -356,7 +356,7 @@ const MarketplaceOrders = () => {
                                 )}
 
                                 <Button size="sm" variant="ghost" asChild>
-                                  <a href={`mailto:traveltelly@primal.net?subject=Order Support&body=Order ID: ${order.orderId}`}>
+                                   <a href={`mailto:support@traveltelly.com?subject=Order Support&body=Order ID: ${order.orderId}`}>
                                     <Mail className="w-4 h-4 mr-2" />
                                     Support
                                   </a>
@@ -393,7 +393,7 @@ const MarketplaceOrders = () => {
                     <div>
                       <h4 className="font-semibold mb-2">Contact Support</h4>
                       <ul className="space-y-1 text-muted-foreground">
-                        <li>• Email: traveltelly@primal.net</li>
+                        <li>• Email: support@traveltelly.com</li>
                         <li>• Include your order ID in messages</li>
                         <li>• Response time: 24 hours</li>
                         <li>• Lightning address for direct contact</li>

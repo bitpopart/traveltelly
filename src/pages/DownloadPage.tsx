@@ -117,7 +117,7 @@ function generateLicenseText(purchase: StoredPurchase): string {
     '',
     'CONTACT',
     '-------',
-    'traveltelly@primal.net | traveltelly.com',
+    'support@traveltelly.com | traveltelly.com',
     '',
     'Thank you for supporting independent travel photography!',
   ].join('\n');
@@ -235,7 +235,7 @@ const DownloadPage = () => {
     const url = `${window.location.origin}/download/${purchase.orderId}?token=${token}&email=${encodeURIComponent(purchase.buyerEmail)}`;
     const subject = encodeURIComponent(`Your TravelTelly Download — Order #${purchase.orderId}`);
     const body = encodeURIComponent(
-      `Hi ${purchase.buyerName || 'there'},\n\nYour download is ready:\n${url}\n\nOrder: ${purchase.orderId}\nProduct: ${purchase.productTitle}\n\nSupport: traveltelly@primal.net`
+      `Hi ${purchase.buyerName || 'there'},\n\nYour download is ready:\n${url}\n\nOrder: ${purchase.orderId}\nProduct: ${purchase.productTitle}\n\nSupport: support@traveltelly.com`
     );
     window.open(`mailto:${purchase.buyerEmail}?subject=${subject}&body=${body}`);
   };
@@ -282,7 +282,7 @@ const DownloadPage = () => {
                     <ArrowLeft className="w-4 h-4 mr-2" /> Back to Marketplace
                   </Button>
                 </Link>
-                <a href="mailto:traveltelly@primal.net?subject=Download Help">
+                <a href="mailto:support@traveltelly.com?subject=Download Help">
                   <Button variant="outline" className="w-full">
                     <Mail className="w-4 h-4 mr-2" /> Contact Support
                   </Button>
@@ -320,7 +320,7 @@ const DownloadPage = () => {
             <Clock className="h-4 w-4 text-amber-600" />
             <AlertDescription className="text-amber-800 dark:text-amber-200">
               <strong>Order pending.</strong> If you paid via card, the admin will confirm and send your download link. Contact{' '}
-              <a href="mailto:traveltelly@primal.net" className="underline font-medium">traveltelly@primal.net</a>{' '}
+              <a href="mailto:support@traveltelly.com" className="underline font-medium">support@traveltelly.com</a>{' '}
               with your order ID: <code className="font-mono text-xs">{purchase.orderId}</code>
             </AlertDescription>
           </Alert>
@@ -465,7 +465,7 @@ const DownloadPage = () => {
             <p>❌ Cannot resell as standalone digital asset</p>
             <p>❌ Cannot claim ownership of original work</p>
             <Separator className="my-2 bg-green-200 dark:bg-green-700" />
-            <p className="text-xs">For licensing questions: <strong>traveltelly@primal.net</strong></p>
+            <p className="text-xs">For licensing questions: <strong>support@traveltelly.com</strong></p>
           </CardContent>
         </Card>
 
@@ -491,7 +491,7 @@ const DownloadPage = () => {
                 <Mail className="w-4 h-4 mr-2" /> Email Myself This Link
               </Button>
               <Button variant="outline" size="sm" asChild>
-                <a href={`mailto:traveltelly@primal.net?subject=Order+Support&body=Order+ID%3A+${purchase.orderId}`}>
+                <a href={`mailto:support@traveltelly.com?subject=Order+Support&body=Order+ID%3A+${purchase.orderId}`}>
                   <Mail className="w-4 h-4 mr-2" /> Contact Support
                 </a>
               </Button>

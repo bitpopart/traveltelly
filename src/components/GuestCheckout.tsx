@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { StripePayment } from '@/components/StripePayment';
 import { useCustomerSession } from '@/hooks/useCustomers';
 import { usePriceConversion } from '@/hooks/usePriceConversion';
 import { useToast } from '@/hooks/useToast';
@@ -13,7 +14,7 @@ import { Mail, User, CreditCard, Zap, CheckCircle, Copy, ExternalLink, Loader2, 
 import type { MarketplaceProduct } from '@/hooks/useMarketplaceProducts';
 
 // Lightning address for TravelTelly — also reads from admin settings
-const LIGHTNING_ADDRESS = localStorage.getItem('traveltelly_lightning_address') || 'traveltelly@primal.net';
+const LIGHTNING_ADDRESS = localStorage.getItem('traveltelly_lightning_address') || 'bitpopart@rizful.com';
 const CORS_PROXY = 'https://proxy.shakespeare.diy/?url=';
 
 interface GuestCheckoutProps {
@@ -244,8 +245,6 @@ function LightningGuestFlow({
 // ─── Stripe Guest Flow ────────────────────────────────────────────────────────
 function StripeGuestFlow({
   product,
-  email,
-  name,
   onSuccess,
 }: {
   product: MarketplaceProduct;
@@ -253,43 +252,7 @@ function StripeGuestFlow({
   name: string;
   onSuccess: () => void;
 }) {
-  const { toast } = useToast();
-  const stripeKey = localStorage.getItem('traveltelly_stripe_publishable_key') || import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
   const stripeEnabled = localStorage.getItem('traveltelly_stripe_enabled') !== 'false';
-  const isConfigured = stripeKey.startsWith('pk_live_') || stripeKey.startsWith('pk_test_');
-
-  const handleManualCardPurchase = async () => {
-    // Since there's no server-side Stripe backend, record the intent and redirect
-    // The admin can see a record and manually fulfill, OR the user pays via the Stripe Payment Link
-    const orderId = `order_stripe_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-    const timestamp = Date.now();
-    const purchase = {
-      orderId,
-      productId: product.id,
-      productTitle: product.title,
-      buyerEmail: email,
-      buyerName: name,
-      amount: parseFloat(product.price) * 100,
-      currency: product.currency,
-      timestamp,
-      paymentMethod: 'stripe' as const,
-      status: 'pending' as const,
-      productData: {
-        images: product.images,
-        description: product.description,
-        category: product.category,
-        mediaType: product.mediaType,
-        contentCategory: product.contentCategory,
-        seller: product.seller,
-      },
-    };
-    savePurchaseToStorage(purchase);
-    toast({
-      title: 'Order recorded',
-      description: 'Contact traveltelly@primal.net with your order ID to complete card payment.',
-    });
-    onSuccess();
-  };
 
   if (!stripeEnabled) {
     return (
@@ -297,85 +260,15 @@ function StripeGuestFlow({
         <Info className="h-4 w-4" />
         <AlertDescription>
           Card payments are currently disabled. Please use Lightning ⚡ or contact{' '}
-          <a href="mailto:traveltelly@primal.net" className="underline">traveltelly@primal.net</a>.
+          <a href="mailto:support@traveltelly.com" className="underline">support@traveltelly.com</a>.
         </AlertDescription>
       </Alert>
     );
   }
 
-  if (!isConfigured) {
-    return (
-      <div className="space-y-4">
-        <Alert className="border-amber-300 bg-amber-50 dark:bg-amber-900/20">
-          <AlertDescription className="text-amber-800 dark:text-amber-200">
-            <strong>Stripe not configured yet.</strong> The admin needs to add a Stripe publishable key in{' '}
-            <strong>Admin → Payments → Stripe</strong>.
-          </AlertDescription>
-        </Alert>
-        <div className="p-4 border rounded-lg space-y-3 bg-blue-50 dark:bg-blue-900/20">
-          <p className="text-sm font-medium">Alternative: Pay by Invoice</p>
-          <p className="text-sm text-muted-foreground">
-            We will send you a payment link to your email after you place the order.
-          </p>
-          <Button
-            onClick={handleManualCardPurchase}
-            disabled={!email.trim()}
-            className="w-full bg-blue-600 hover:bg-blue-700"
-          >
-            <CreditCard className="w-4 h-4 mr-2" /> Request Card Payment Link
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // Stripe IS configured — use embedded Stripe Checkout redirect
-  const handleStripeCheckout = async () => {
-    // In a fully serverless setup, we redirect to a Stripe Payment Link 
-    // configured in the Stripe dashboard, or use Stripe.js + Stripe Elements.
-    // Without a backend, the cleanest option is a Stripe Payment Link.
-    const stripePaymentLinkBase = localStorage.getItem('traveltelly_stripe_payment_link') || '';
-    if (stripePaymentLinkBase) {
-      const url = new URL(stripePaymentLinkBase);
-      url.searchParams.set('prefilled_email', email);
-      url.searchParams.set('client_reference_id', product.id);
-      window.open(url.toString(), '_blank');
-      toast({ title: 'Opening Stripe…', description: 'Complete payment in the new tab.' });
-      onSuccess();
-      return;
-    }
-    // Fallback: record pending order and instruct user
-    await handleManualCardPurchase();
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-        <div className="flex items-center gap-2">
-          <CreditCard className="w-5 h-5 text-blue-600" />
-          <div>
-            <p className="font-medium text-sm">
-              Pay {new Intl.NumberFormat('en-US', { style: 'currency', currency: product.currency }).format(parseFloat(product.price))}
-            </p>
-            <p className="text-xs text-muted-foreground">Stripe secure card payment</p>
-          </div>
-        </div>
-        <Badge className={stripeKey.startsWith('pk_live_') ? 'bg-green-500' : 'bg-yellow-500 text-black'}>
-          {stripeKey.startsWith('pk_live_') ? 'Live' : 'Test'}
-        </Badge>
-      </div>
-      <Button
-        onClick={handleStripeCheckout}
-        disabled={!email.trim()}
-        className="w-full bg-blue-600 hover:bg-blue-700"
-      >
-        <CreditCard className="w-4 h-4 mr-2" /> Pay with Card
-      </Button>
-      <p className="text-xs text-muted-foreground text-center">
-        🔒 Secure payment via Stripe • Credit/debit card • 135+ currencies
-      </p>
-    </div>
-  );
+  // Delegate entirely to the StripePayment component which handles both
+  // the "not configured" error state and the live card form with CardElement.
+  return <StripePayment product={product} onSuccess={onSuccess} />;
 }
 
 // ─── Main GuestCheckout ───────────────────────────────────────────────────────

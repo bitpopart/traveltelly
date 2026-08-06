@@ -237,7 +237,7 @@ export class EmailService {
             <!-- Support -->
             <div style="text-align: center; margin: 30px 0;">
               <p style="color: #6b7280; margin: 0 0 10px 0;">Need help with your download?</p>
-              <a href="mailto:traveltelly@primal.net?subject=Download Support - Order ${data.orderId}"
+              <a href="mailto:support@traveltelly.com?subject=Download Support - Order ${data.orderId}"
                  style="color: #3b82f6; text-decoration: none; font-weight: 500;">
                 📧 Contact Support
               </a>
@@ -251,7 +251,7 @@ export class EmailService {
             </p>
             <p style="color: #6b7280; font-size: 14px; margin: 0;">
               If you didn't make this purchase, please contact us immediately at
-              <a href="mailto:traveltelly@primal.net" style="color: #3b82f6;">traveltelly@primal.net</a>
+              <a href="mailto:support@traveltelly.com" style="color: #3b82f6;">support@traveltelly.com</a>
             </p>
           </div>
         </div>
@@ -293,7 +293,7 @@ LICENSE & USAGE RIGHTS:
 ✗ Cannot resell as standalone digital asset
 ✗ Cannot claim ownership of original work
 
-Need help? Contact us at traveltelly@primal.net
+Need help? Contact us at support@traveltelly.com
 
 This email was sent because you purchased digital media from our Nostr marketplace.
 If you didn't make this purchase, please contact us immediately.

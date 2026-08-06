@@ -256,11 +256,11 @@ export function PaymentDialog({ isOpen, onClose, product }: PaymentDialogProps) 
 
           {/* Info footer */}
           <div className="text-xs text-muted-foreground space-y-1 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-            <p>⚡ <strong>Lightning:</strong> Instant Bitcoin payments to traveltelly@primal.net</p>
-            <p>💳 <strong>Card:</strong> Secure card payments via Stripe (when configured)</p>
+            <p>⚡ <strong>Lightning:</strong> Instant Bitcoin payments via Lightning Network</p>
+            <p>💳 <strong>Card:</strong> Secure card payments via Stripe</p>
             <p>📁 <strong>Delivery:</strong> Downloads available immediately after payment.</p>
             <p>📄 <strong>License:</strong> Royalty-free license included with every purchase.</p>
-            <p>📧 <strong>Support:</strong> traveltelly@primal.net — include your order ID.</p>
+            <p>📧 <strong>Support:</strong> support@traveltelly.com — include your order ID.</p>
           </div>
         </div>
       </DialogContent>
