@@ -2,29 +2,26 @@ import { useSeoMeta } from '@unhead/react';
 import { useState, memo, useEffect, useRef } from 'react';
 import { Navigation as NavigationComponent } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
-import { LoginArea } from "@/components/auth/LoginArea";
+
 import { RelaySelector } from "@/components/RelaySelector";
 import { FastThumbnail } from "@/components/FastThumbnail";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AllAdminReviewsMap } from "@/components/AllAdminReviewsMap";
-import { AdminDebugInfo } from "@/components/AdminDebugInfo";
-import { UnifiedSearchBar } from "@/components/UnifiedSearchBar";
-import { CreateProductDialog } from "@/components/CreateProductDialog";
-import { LocationTagCloud } from "@/components/LocationTagCloud";
+
+
+
 import { LocationContentGrid } from "@/components/LocationContentGrid";
 import { CreateTripForm } from "@/components/CreateTripForm";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useReviewPermissions } from "@/hooks/useReviewPermissions";
-import { useLatestReview, useLatestStory, useLatestStockMedia, useLatestTrip, useReviewCount, useStoryCount, useStockMediaCount, useTripCount, useLatestReviews, useLatestStories, useLatestTrips, useLatestStockMediaItems, useLatestVideos, useCommunityMix } from "@/hooks/useLatestItems";
+import { useReviewCount, useStoryCount, useStockMediaCount, useTripCount, useLatestReviews, useLatestStories, useLatestTrips, useLatestStockMediaItems, useLatestVideos, useCommunityMix } from "@/hooks/useLatestItems";
 import { VideoThumbnailGrid, VideoItem } from "@/components/VideoThumbnailGrid";
 import { useInfiniteImages } from "@/hooks/useInfiniteImages";
-import { useTravelTellyTour } from "@/hooks/useTravelTellyTour";
+
 import { useViewMode } from "@/contexts/ViewModeContext";
-import { MapPin, Star, Camera, Zap, Shield, BookOpen, Search, Navigation, FileImage, ArrowRight, Calendar, MessageCircle, Globe, Video } from "lucide-react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { ZapAuthorButton } from "@/components/ZapAuthorButton";
+import { MapPin, Star, Camera, Zap, BookOpen, ArrowRight, Globe, Video } from "lucide-react";
+import { Link } from "react-router-dom";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useAuthor } from "@/hooks/useAuthor";
@@ -479,13 +476,7 @@ interface IndexProps {
 
 const Index = ({ initialLocation }: IndexProps = {}) => {
   const { user } = useCurrentUser();
-  const navigate = useNavigate();
-  const { isAdmin, isCheckingPermission } = useReviewPermissions();
   const { viewMode } = useViewMode();
-  const { data: latestReview } = useLatestReview();
-  const { data: latestStory } = useLatestStory();
-  const { data: latestStockMedia } = useLatestStockMedia();
-  const { data: latestTrip } = useLatestTrip();
   const [isCreateTripDialogOpen, setIsCreateTripDialogOpen] = useState(false);
   const [selectedLocationTag, setSelectedLocationTag] = useState<string>(initialLocation || '');
 
@@ -599,8 +590,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
     return () => observer.disconnect();
   }, [displayCount, allImages.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  // Get TravelTelly Tour photos
-  const { data: tourItems = [] } = useTravelTellyTour();
+
 
 
 
@@ -615,270 +605,6 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
 
       <div className="container mx-auto px-2 md:px-4 pt-2 pb-4 md:pt-3 md:pb-8">
         <div className="max-w-6xl mx-auto">
-          {/* User Controls Card - Only show when user is logged in and no location selected */}
-          {user && !selectedLocationTag && (
-            <Card className="shadow-lg mb-6 md:mb-8 overflow-visible">
-              <CardContent className="p-4 md:p-8 overflow-visible">
-                {/* Header - Zap button */}
-                <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3 mb-0">
-                  <ZapAuthorButton
-                    authorPubkey="7d33ba57d8a6e8869a1f1d5215254597594ac0dbfeb01b690def8c461b82db35"
-                    showAuthorName={false}
-                    variant="default"
-                    size="lg"
-                    className="rounded-full bg-orange-500 hover:bg-orange-600 text-white font-semibold px-6 md:px-8 py-3 h-auto"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Feature Cards - Desktop Only */}
-          {!selectedLocationTag && (
-            <div className="hidden md:block mb-6 md:mb-8">
-              <div className="grid md:grid-cols-4 gap-3 md:gap-4 w-full">
-                {/* Share Reviews Card */}
-                <Link to="/reviews" className="block">
-                  <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full overflow-hidden">
-                    <div className="relative aspect-[4/3] overflow-hidden group">
-                      {latestReviews[0]?.image ? (
-                        <>
-                          <FastThumbnail
-                            src={latestReviews[0].image}
-                            alt="Latest Review"
-                            className="transition-transform group-hover:scale-105"
-                          />
-                          {/* Overlay gradient */}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-                        </>
-                      ) : (
-                        <div className="w-full h-full" style={{ backgroundColor: '#27b0ff' }} />
-                      )}
-                      {/* Content overlay */}
-                      <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: latestReviews[0]?.image ? '#27b0ff' : 'rgba(255,255,255,0.2)' }}>
-                          <Star className="w-6 h-6 md:w-8 md:h-8 text-white" />
-                        </div>
-                        <h3 className="font-semibold text-lg md:text-xl text-white mb-1 drop-shadow-lg">Reviews</h3>
-                        {reviewCount > 0 && (
-                          <Badge variant="secondary" className="text-xs bg-white/90">
-                            {reviewCount}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </Card>
-                </Link>
-
-                {/* Travel Stories Card */}
-                <Link to="/stories" className="block">
-                  <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full overflow-hidden">
-                    <div className="relative aspect-[4/3] overflow-hidden group">
-                      {latestStories[0]?.image ? (
-                        <>
-                          <FastThumbnail
-                            src={latestStories[0].image}
-                            alt="Latest Story"
-                            className="transition-transform group-hover:scale-105"
-                          />
-                          {/* Overlay gradient */}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-                        </>
-                      ) : (
-                        <div className="w-full h-full" style={{ backgroundColor: '#b2d235' }} />
-                      )}
-                      {/* Content overlay */}
-                      <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: latestStories[0]?.image ? '#b2d235' : 'rgba(255,255,255,0.2)' }}>
-                          <BookOpen className="w-6 h-6 md:w-8 md:h-8 text-white" />
-                        </div>
-                        <h3 className="font-semibold text-lg md:text-xl text-white mb-1 drop-shadow-lg">Stories</h3>
-                        {storyCount > 0 && (
-                          <Badge variant="secondary" className="text-xs bg-white/90">
-                            {storyCount}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </Card>
-                </Link>
-
-                {/* Trips Card */}
-                <Link to="/trips" className="block">
-                  <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full overflow-hidden">
-                    <div className="relative aspect-[4/3] overflow-hidden group">
-                      {latestTrips[0]?.image ? (
-                        <>
-                          <FastThumbnail
-                            src={latestTrips[0].image}
-                            alt="Latest Trip"
-                            className="transition-transform group-hover:scale-105"
-                          />
-                          {/* Overlay gradient */}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-                        </>
-                      ) : (
-                        <div className="w-full h-full" style={{ backgroundColor: '#ffcc00' }} />
-                      )}
-                      {/* Content overlay */}
-                      <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: latestTrips[0]?.image ? '#ffcc00' : 'rgba(255,255,255,0.2)' }}>
-                          <MapPin className="w-6 h-6 md:w-8 md:h-8 text-white" />
-                        </div>
-                        <h3 className="font-semibold text-lg md:text-xl text-white mb-1 drop-shadow-lg">Trips</h3>
-                        {tripCount > 0 && (
-                          <Badge variant="secondary" className="text-xs bg-white/90">
-                            {tripCount}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </Card>
-                </Link>
-
-                {/* Stock Media Card */}
-                <Link to="/marketplace" className="block">
-                  <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full overflow-hidden">
-                    <div className="relative aspect-[4/3] overflow-hidden group">
-                      {latestStockMediaItems[0]?.image ? (
-                        <>
-                          <FastThumbnail
-                            src={latestStockMediaItems[0].image}
-                            alt="Latest Stock Media"
-                            className="transition-transform group-hover:scale-105"
-                          />
-                          {/* Overlay gradient */}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-                        </>
-                      ) : (
-                        <div className="w-full h-full" style={{ backgroundColor: '#ec1a58' }} />
-                      )}
-                      {/* Content overlay */}
-                      <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: latestStockMediaItems[0]?.image ? '#ec1a58' : 'rgba(255,255,255,0.2)' }}>
-                          <Camera className="w-6 h-6 md:w-8 md:h-8 text-white" />
-                        </div>
-                        <h3 className="font-semibold text-lg md:text-xl text-white mb-1 drop-shadow-lg">Stock Media</h3>
-                        {stockMediaCount > 0 && (
-                          <Badge variant="secondary" className="text-xs bg-white/90">
-                            {stockMediaCount}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </Card>
-                </Link>
-              </div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          {user && !selectedLocationTag && (
-            <Card className="shadow-lg mb-6 md:mb-8 overflow-visible">
-              <CardContent className="p-4 md:p-8 overflow-visible">(
-                <div className="flex flex-wrap justify-center gap-2">
-                  <Link to="/create-review">
-                    <Button className="rounded-full text-white text-xs md:text-sm px-3 md:px-4 py-2" style={{ backgroundColor: '#393636' }}>
-                      <Camera className="w-4 h-4 mr-1 md:mr-2" />
-                      <span className="hidden sm:inline">Create </span>Review
-                    </Button>
-                  </Link>
-                  <Button 
-                    className="rounded-full text-white text-xs md:text-sm px-3 md:px-4 py-2" 
-                    style={{ backgroundColor: '#b2d235' }}
-                    onClick={() => navigate('/stories?tab=create')}
-                  >
-                    <BookOpen className="w-4 h-4 mr-1 md:mr-2" />
-                    <span className="hidden sm:inline">Create </span>Story
-                  </Button>
-                  <Button 
-                    size="lg" 
-                    className="rounded-full text-black font-semibold text-sm md:text-base" 
-                    style={{ backgroundColor: '#ffcc00' }}
-                    onClick={() => setIsCreateTripDialogOpen(true)}
-                  >
-                    <MapPin className="w-4 h-4 mr-2" />
-                    Create Trip
-                  </Button>
-                  <CreateProductDialog>
-                    <Button size="lg" className="rounded-full text-white text-sm md:text-base" style={{ backgroundColor: '#ec1a58' }}>
-                      <FileImage className="w-4 h-4 mr-2" />
-                      <span className="hidden sm:inline">Upload Stock Media</span>
-                      <span className="sm:hidden">Upload Media</span>
-                    </Button>
-                  </CreateProductDialog>
-                  <Link to="/stock-media-permissions">
-                    <Button variant="outline" size="lg" className="rounded-full text-sm md:text-base">
-                      <Camera className="w-4 h-4 mr-2" />
-                      <span className="hidden sm:inline">Upload Permissions</span>
-                      <span className="sm:hidden">Permissions</span>
-                    </Button>
-                  </Link>
-
-                  {/* Debug info for admin detection */}
-                  {import.meta.env.DEV && (
-                    <div className="w-full text-center text-xs text-muted-foreground bg-gray-100 dark:bg-gray-800 p-2 rounded">
-                      Debug: isAdmin={String(isAdmin)}, isChecking={String(isCheckingPermission)}, userPubkey={user.pubkey?.slice(0, 8)}...
-                    </div>
-                  )}
-
-                  {isAdmin && (
-                    <Link to="/admin">
-                      <Button variant="outline" size="lg" className="rounded-full text-sm md:text-base" style={{ borderColor: '#393636', color: '#393636' }}>
-                        <Shield className="w-4 h-4 mr-2" />
-                        Admin Panel
-                      </Button>
-                    </Link>
-                  )}
-
-                  {/* Always show admin test link for debugging */}
-                  {import.meta.env.DEV && (
-                    <Link to="/admin-test">
-                      <Button variant="outline" size="lg" className="rounded-full border-blue-300 text-blue-700 hover:bg-blue-50 text-sm md:text-base">
-                        <Shield className="w-4 h-4 mr-2" />
-                        <span className="hidden sm:inline">Admin Test Page</span>
-                        <span className="sm:hidden">Admin Test</span>
-                      </Button>
-                    </Link>
-                  )}
-                  <Link to="/photo-upload-demo">
-                    <Button variant="outline" size="lg" className="rounded-full text-sm md:text-base">
-                      <Camera className="w-4 h-4 mr-2" />
-                      Photo Demo
-                    </Button>
-                  </Link>
-                  <Link to="/gps-correction-demo">
-                    <Button variant="outline" size="lg" className="rounded-full text-sm md:text-base">
-                      <MapPin className="w-4 h-4 mr-2" />
-                      <span className="hidden sm:inline">GPS Correction</span>
-                      <span className="sm:hidden">GPS Fix</span>
-                    </Button>
-                  </Link>
-                  <Link to="/search-test">
-                    <Button variant="outline" size="lg" className="rounded-full text-sm md:text-base">
-                      <Search className="w-4 h-4 mr-2" />
-                      Search Test
-                    </Button>
-                   </Link>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Desktop Search Bar - Show outside Card when user not logged in */}
-          {!user && !selectedLocationTag && (
-            <div className="hidden md:block mb-6 md:mb-8">
-              <Card className="shadow-lg">
-                <CardContent className="p-4 md:p-8">
-                  <UnifiedSearchBar />
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* Admin Debug Info (Development Only) */}
-          {!selectedLocationTag && <AdminDebugInfo />}
-
           {/* Images Grid */}
           {!selectedLocationTag && (
             <div className="mb-8 md:mb-12">
@@ -978,17 +704,6 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                   <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
                 </div>
               )}
-            </div>
-          )}
-
-          {/* Search Bar - Mobile Only (after content grid) - Both View Modes */}
-          {!selectedLocationTag && (
-            <div className="md:hidden mb-8">
-              <Card className="shadow-lg">
-                <CardContent className="p-4">
-                  <UnifiedSearchBar />
-                </CardContent>
-              </Card>
             </div>
           )}
 

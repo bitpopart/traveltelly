@@ -6,7 +6,6 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useReviewPermissions } from '@/hooks/useReviewPermissions';
 import { UnifiedSearchBar } from '@/components/UnifiedSearchBar';
 import {
-  Home,
   BookOpen,
   Star,
   Store,
@@ -42,7 +41,6 @@ export function Navigation({ className }: NavigationProps) {
   };
 
   const allNavItems = [
-    { path: '/home', label: 'Home', icon: Home, color: '#393636', hoverColor: '#2a2828' },
     { path: '/telly-map', label: 'Map', icon: Map, color: '#96ae38', hoverColor: '#7d9230' },
     { path: '/reviews', label: 'Reviews', icon: Star, color: '#27b0ff', hoverColor: '#1a9fe6' },
     { path: '/stories', label: 'Stories', icon: BookOpen, color: '#b2d235', hoverColor: '#9dbf2e' },
@@ -50,7 +48,6 @@ export function Navigation({ className }: NavigationProps) {
     { path: '/marketplace', label: 'Marketplace', icon: Store, color: '#ec1a58', hoverColor: '#d3164d' },
   ];
 
-  // No filtering needed - Map button removed
   const navItems = allNavItems;
 
   const NavButton = ({ path, label, icon: Icon, color, hoverColor, mobile = false }: {
