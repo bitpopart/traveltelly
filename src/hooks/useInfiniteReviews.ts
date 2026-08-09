@@ -14,7 +14,13 @@ function validateReviewEvent(event: NostrEvent): event is ReviewEvent {
   const rating = event.tags.find(([name]) => name === 'rating')?.[1];
   const category = event.tags.find(([name]) => name === 'category')?.[1];
 
-  return !!(d && title && rating && category);
+  if (!(d && title && rating && category)) return false;
+
+  // Exclude plain map photo/video pins (tagged type=pin by TellyMap)
+  const type = event.tags.find(([name]) => name === 'type')?.[1];
+  if (type === 'pin') return false;
+
+  return true;
 }
 
 export function useInfiniteReviews() {
