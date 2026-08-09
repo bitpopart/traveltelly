@@ -461,16 +461,17 @@ const VIDEO_RELAYS = [
 
 /**
  * Fetch all videos directly from all 3 relays in parallel, bypassing the
- * NPool's eoseTimeout. Each relay gets 10s to stream back all events.
+ * NPool's eoseTimeout. Each relay streams events; we keep limits modest so
+ * the grid renders fast.
  */
 async function fetchVideosDirect(signal: AbortSignal): Promise<NostrEvent[]> {
   const results = await Promise.allSettled(
     VIDEO_RELAYS.map(async (url) => {
-      const relay = new NRelay1(url, { eoseTimeout: 10000 });
+      const relay = new NRelay1(url, { eoseTimeout: 6000 });
       try {
         const events = await relay.query([
-          { kinds: [34235, 34236, 21, 22], '#t': ['traveltelly'], limit: 500 },
-          { kinds: [34235, 34236, 21, 22], authors: [ADMIN_PUBKEY], limit: 500 },
+          { kinds: [34235, 34236, 21, 22], '#t': ['traveltelly'], limit: 120 },
+          { kinds: [34235, 34236, 21, 22], authors: [ADMIN_PUBKEY], limit: 120 },
         ], { signal });
         return events;
       } finally {
@@ -498,18 +499,18 @@ function useStories(type: 'write' | 'video' = 'write') {
     queryFn: async (c) => {
       if (type === 'video') {
         // Bypass NPool — query all 3 relays directly so eoseTimeout doesn't cut us off
-        const signal = AbortSignal.any([c.signal, AbortSignal.timeout(12000)]);
+        const signal = AbortSignal.any([c.signal, AbortSignal.timeout(8000)]);
         const events = await fetchVideosDirect(signal);
         return events.sort((a, b) => b.created_at - a.created_at);
       } else {
         // Written stories — NPool is fine here (small dataset, quick)
-        const signal = AbortSignal.any([c.signal, AbortSignal.timeout(6000)]);
+        const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
         const events = await nostr.query([
           {
             kinds: [30023],
             authors: [ADMIN_PUBKEY],
             '#t': ['traveltelly'],
-            limit: 50,
+            limit: 40,
           }
         ], { signal });
 
@@ -523,8 +524,8 @@ function useStories(type: 'write' | 'video' = 'write') {
         });
       }
     },
-    staleTime: 2 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
   });
 }
 

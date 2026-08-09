@@ -1,9 +1,11 @@
-import { useState, useRef, useCallback } from 'react';
+import { memo, useState, useRef, useCallback } from 'react';
 import { Volume2, VolumeX, X, Share2, Radio, Loader2, Play } from 'lucide-react';
 import { nip19 } from 'nostr-tools';
 import { useToast } from '@/hooks/useToast';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useRebroadcast } from '@/hooks/useRebroadcast';
+import { useLazyThumb } from '@/hooks/useLazyThumb';
+import { getThumbnailUrl } from '@/lib/imageUtils';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 interface VideoThumbnailGridProps {
@@ -58,7 +60,7 @@ function extractVideoMeta(video: NostrEvent) {
   return { thumb, videoUrl, duration, title, isVideoThumb };
 }
 
-export function VideoItem({ video, priority = false }: VideoItemProps) {
+export const VideoItem = memo(function VideoItem({ video, priority = false }: VideoItemProps) {
   const [previewing, setPreviewing] = useState(false);
   const [muted, setMuted] = useState(true);
   const [fullscreen, setFullscreen] = useState(false);
@@ -70,6 +72,12 @@ export function VideoItem({ video, priority = false }: VideoItemProps) {
   const { mutate: rebroadcast, isPending: isRebroadcasting } = useRebroadcast();
 
   const { thumb, videoUrl, duration, title, isVideoThumb } = extractVideoMeta(video);
+
+  // Only load media when scrolled near viewport (or immediately for priority)
+  const { ref: cellRef, shouldLoad } = useLazyThumb(priority);
+
+  // Serve a small resized thumbnail instead of the full-size original
+  const thumbUrl = getThumbnailUrl(thumb || '', 300);
 
   const isDivineVideo = video.kind === 21 || video.kind === 22;
   const isOwnPost = user?.pubkey === video.pubkey;
@@ -166,21 +174,22 @@ export function VideoItem({ video, priority = false }: VideoItemProps) {
 
       {/* Square cell — always aspect-square */}
       <div
+        ref={cellRef}
         className="relative aspect-square overflow-hidden rounded-sm bg-black cursor-pointer group"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onClick={handleClick}
       >
-        {/* Static thumbnail */}
-        {isVideoThumb ? (
+        {/* Static thumbnail — only mounted once the cell is near the viewport */}
+        {shouldLoad && isVideoThumb ? (
           <video
             src={videoUrl}
             className="absolute inset-0 w-full h-full object-cover"
             muted
             playsInline
-            preload="metadata"
+            preload={priority ? 'metadata' : 'none'}
           />
-        ) : thumb ? (
+        ) : shouldLoad && thumb ? (
           <>
             {/* Animated placeholder shown until image loads */}
             {!thumbLoaded && (
@@ -189,7 +198,7 @@ export function VideoItem({ video, priority = false }: VideoItemProps) {
               </div>
             )}
             <img
-              src={thumb}
+              src={thumbUrl}
               alt={title}
               width={300}
               height={300}
@@ -201,14 +210,14 @@ export function VideoItem({ video, priority = false }: VideoItemProps) {
             />
           </>
         ) : (
-          /* No thumbnail at all — show a dark placeholder with play icon */
+          /* No thumbnail (or not yet in viewport) — dark placeholder with play icon */
           <div className="absolute inset-0 w-full h-full bg-gray-900 flex items-center justify-center">
             <Play className="w-8 h-8 text-gray-600" />
           </div>
         )}
 
-        {/* Muted preview video — overlays thumbnail on hover */}
-        {videoUrl && !isVideoThumb && (
+        {/* Muted preview video — overlays thumbnail on hover (only if thumb an image) */}
+        {shouldLoad && videoUrl && !isVideoThumb && (
           <video
             ref={previewRef}
             src={videoUrl}
@@ -269,11 +278,11 @@ export function VideoItem({ video, priority = false }: VideoItemProps) {
       </div>
     </>
   );
-}
+});
 
 export function VideoThumbnailGrid({ videos }: VideoThumbnailGridProps) {
-  // Eagerly load first 2 rows (12 items at lg breakpoint)
-  const EAGER_COUNT = 12;
+  // Eagerly load first row (6 items at lg breakpoint) — rest lazy/on-scroll
+  const EAGER_COUNT = 6;
   return (
     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-0.5 md:gap-1">
       {videos.map((video, i) => (

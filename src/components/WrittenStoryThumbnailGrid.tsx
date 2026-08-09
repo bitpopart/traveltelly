@@ -1,7 +1,9 @@
-import { useState, useCallback, useRef } from 'react';
+import { memo, useState, useCallback, useRef } from 'react';
 import { FileText } from 'lucide-react';
 import { nip19 } from 'nostr-tools';
 import { useNavigate } from 'react-router-dom';
+import { useLazyThumb } from '@/hooks/useLazyThumb';
+import { getThumbnailUrl } from '@/lib/imageUtils';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 interface WrittenStoryThumbnailGridProps {
@@ -13,18 +15,24 @@ interface WrittenStoryItemProps {
   priority?: boolean;
 }
 
-function WrittenStoryItem({ story, priority = false }: WrittenStoryItemProps) {
+const WrittenStoryItem = memo(function WrittenStoryItem({ story, priority = false }: WrittenStoryItemProps) {
   const navigate = useNavigate();
   const [loaded, setLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
   const [hovered, setHovered] = useState(false);
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Only load image when scrolled near viewport (or immediately for priority)
+  const { ref: cellRef, shouldLoad } = useLazyThumb(priority);
+
   const title = story.tags.find(([name]) => name === 'title')?.[1] || 'Untitled Story';
   const image = story.tags.find(([name]) => name === 'image')?.[1] || '';
   const summary = story.tags.find(([name]) => name === 'summary')?.[1] || '';
   const htmlPageUrl = story.tags.find(([name]) => name === 'brand_site')?.[1] || '';
   const isHtmlPage = !!htmlPageUrl;
+
+  // Serve a resized thumbnail instead of the full-size original
+  const thumbUrl = getThumbnailUrl(image, 300);
 
   const identifierRaw = story.tags.find(([name]) => name === 'd')?.[1];
   const identifier = typeof identifierRaw === 'string' && identifierRaw.length > 0 ? identifierRaw : null;
@@ -50,19 +58,20 @@ function WrittenStoryItem({ story, priority = false }: WrittenStoryItemProps) {
 
   return (
     <div
+      ref={cellRef}
       className="relative aspect-square overflow-hidden rounded-sm bg-gray-100 dark:bg-gray-800 cursor-pointer group"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}
     >
-      {hasImage ? (
+      {shouldLoad && hasImage ? (
         <>
           {/* Low-res placeholder shown until image loads */}
           {!loaded && (
             <div className="absolute inset-0 bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-800/20 animate-pulse" />
           )}
           <img
-            src={image}
+            src={thumbUrl}
             alt={title}
             width={300}
             height={300}
@@ -92,12 +101,11 @@ function WrittenStoryItem({ story, priority = false }: WrittenStoryItemProps) {
       </div>
     </div>
   );
-}
+});
 
 export function WrittenStoryThumbnailGrid({ stories }: WrittenStoryThumbnailGridProps) {
-  // Calculate columns per row based on breakpoints (lg=6, md=5, sm=4, base=3)
-  // Eagerly load first 2 rows (12 items covers lg breakpoint's first 2 rows)
-  const EAGER_COUNT = 12;
+  // Eagerly load first row (6 items at lg breakpoint) — rest lazy/on-scroll
+  const EAGER_COUNT = 6;
 
   return (
     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-0.5 md:gap-1">
