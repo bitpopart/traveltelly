@@ -62,7 +62,7 @@
       "name": "View Map",
       "short_name": "Map",
       "description": "Explore the world map",
-      "url": "/world-map",
+      "url": "/",
       "icons": [
         {
           "src": "/icon-512.png",

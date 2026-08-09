@@ -702,7 +702,7 @@ export default function AppBuilder() {
         },
         {
           name: "View Map",
-          url: "/world-map",
+          url: "/",
           description: "Explore the world map"
         }
       ]

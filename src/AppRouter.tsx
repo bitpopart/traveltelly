@@ -60,7 +60,6 @@ import AdminMarketplace from "./pages/AdminMarketplace";
 import BinMediaWorkspace from "./pages/BinMediaWorkspace";
 import MyTravels from "./pages/MyTravels";
 import Zaplytics from "./pages/Zaplytics";
-import WorldMap from "./pages/WorldMap";
 import TravelerProfile from "./pages/TravelerProfile";
 import TravelTellyTour from "./pages/TravelTellyTour";
 import TourFeed from "./pages/TourFeed";
@@ -132,7 +131,7 @@ export function AppRouter() {
         <Route path="/simple-map-demo" element={<SimpleMapDemoPage />} />
         <Route path="/what-is-nostr" element={<WhatIsNostr />} />
         <Route path="/category-migration" element={<CategoryMigrationPage />} />
-        <Route path="/world-map" element={<WorldMap />} />
+        <Route path="/world-map" element={<TellyMap />} />
         <Route path="/traveltelly-tour" element={<TravelTellyTour />} />
         <Route path="/tour-feed/:eventId" element={<TourFeed />} />
         <Route path="/community" element={<Community />} />

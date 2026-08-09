@@ -5,9 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LoadMoreReviewFeed } from '@/components/LoadMoreReviewFeed';
-import { AllAdminReviewsMap } from '@/components/AllAdminReviewsMap';
 import { RelaySelector } from '@/components/RelaySelector';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import {
@@ -17,7 +15,6 @@ import {
   Filter,
   Plus,
   Map,
-  List,
   Camera
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -39,7 +36,7 @@ export default function Reviews() {
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-xl md:text-2xl font-bold leading-none">Reviews</h1>
-                <Link to="/world-map">
+                <Link to="/">
                   <button className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-white dark:bg-gray-800 text-muted-foreground border border-gray-200 dark:border-gray-700 hover:border-blue-300 hover:text-blue-600 transition-colors">
                     <Map className="w-3 h-3" />
                     Map
@@ -110,72 +107,14 @@ export default function Reviews() {
             </CardContent>
           </Card>
 
-          {/* View Toggle and Content */}
-          <Tabs defaultValue="list" className="w-full">
-            <div className="flex items-center justify-between mb-4">
-              <TabsList className="grid w-fit grid-cols-2">
-                <TabsTrigger value="list" className="flex items-center gap-2">
-                  <List className="w-4 h-4" />
-                  List View
-                </TabsTrigger>
-                <TabsTrigger value="map" className="flex items-center gap-2">
-                  <Map className="w-4 h-4" />
-                  Map View
-                </TabsTrigger>
-              </TabsList>
-
-              <div className="hidden md:flex items-center gap-3">
-                <span className="text-sm text-muted-foreground">Switch relay:</span>
-                <RelaySelector />
-              </div>
+          {/* Reviews feed */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="hidden md:flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">Switch relay:</span>
+              <RelaySelector />
             </div>
-
-            <TabsContent value="list" className="space-y-6">
-              <LoadMoreReviewFeed />
-            </TabsContent>
-
-            <TabsContent value="map" className="space-y-6">
-              <AllAdminReviewsMap />
-
-              {/* Map Legend */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPin className="w-5 h-5" />
-                    Map Legend
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-green-500 rounded-full"></div>
-                      <span className="text-sm">⭐⭐⭐⭐⭐ Excellent (5 stars)</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
-                      <span className="text-sm">⭐⭐⭐⭐ Very Good (4 stars)</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-yellow-500 rounded-full"></div>
-                      <span className="text-sm">⭐⭐⭐ Good (3 stars)</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-orange-500 rounded-full"></div>
-                      <span className="text-sm">⭐⭐ Fair (2 stars)</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-red-500 rounded-full"></div>
-                      <span className="text-sm">⭐ Poor (1 star)</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-gray-400 rounded-full"></div>
-                      <span className="text-sm">📍 No rating</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+          </div>
+          <LoadMoreReviewFeed />
 
           {/* Quick Stats */}
           <div className="grid gap-4 md:grid-cols-4 mt-8">
