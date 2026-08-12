@@ -29,7 +29,7 @@ import {
   Video as VideoIcon
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import type { NostrEvent } from '@nostrify/nostrify';
+import type { NostrEvent, NostrFilter } from '@nostrify/nostrify';
 
 interface CommentItemProps {
   comment: NostrEvent;
@@ -93,7 +93,7 @@ export default function VideoDetail() {
       } else if (decoded.type === 'nevent') {
         // Regular event (kind 21/22 from divine.video)
         const { id, author } = decoded.data;
-        const filter: Record<string, unknown> = { ids: [id], kinds: [21, 22] };
+        const filter: NostrFilter = { ids: [id], kinds: [21, 22] };
         if (author) filter['authors'] = [author];
         events = await nostr.query([filter], { signal });
       } else {
@@ -107,6 +107,17 @@ export default function VideoDetail() {
     retry: 2,
     retryDelay: 1000,
   });
+
+  // Hooks must be called unconditionally (before the early returns below) — rules-of-hooks
+  const identifier = video?.tags.find(([name]) => name === 'd')?.[1] ?? '';
+  const author = useAuthor(video?.pubkey);
+  const authorMetadata = author.data?.metadata;
+  const authorName = authorMetadata?.name || genUserName(video?.pubkey ?? '');
+  const authorImage = authorMetadata?.picture;
+  const { data: reactions, isLoading: reactionsLoading } = useArticleReactions(video?.id ?? '', video?.pubkey ?? '');
+  const { data: comments, isLoading: commentsLoading } = useArticleComments(video?.id ?? '', video?.pubkey ?? '', identifier);
+  const { mutate: reactToArticle, isPending: isReacting } = useReactToArticle();
+  const { mutate: commentOnArticle, isPending: isCommenting } = useCommentOnArticle();
 
   if (isLoading) {
     return (
@@ -156,14 +167,12 @@ export default function VideoDetail() {
   // Extract video metadata
   const title = video.tags.find(([name]) => name === 'title')?.[1] || 'Untitled Video';
   const summary = video.tags.find(([name]) => name === 'summary')?.[1] || video.content;
-  const identifier = video.tags.find(([name]) => name === 'd')?.[1] || '';
   
   // Parse imeta tag for video URL and metadata (NIP-71)
   const imetaTag = video.tags.find(([name]) => name === 'imeta');
   let videoUrl = '';
   let thumb = '';
   let duration = '';
-  let dimensions = '';
   
   if (imetaTag) {
     // Parse imeta properties
@@ -178,8 +187,6 @@ export default function VideoDetail() {
         const minutes = Math.floor(durationSec / 60);
         const seconds = Math.floor(durationSec % 60);
         duration = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-      } else if (part.startsWith('dim ')) {
-        dimensions = part.substring(4);
       }
     }
   }
@@ -199,16 +206,6 @@ export default function VideoDetail() {
     .filter(([name]) => name === 't')
     .map(([, value]) => value)
     .filter((tag): tag is string => typeof tag === 'string' && tag.length > 0 && !['travel', 'traveltelly'].includes(tag));
-
-  const author = useAuthor(video.pubkey);
-  const authorMetadata = author.data?.metadata;
-  const authorName = authorMetadata?.name || genUserName(video.pubkey);
-  const authorImage = authorMetadata?.picture;
-
-  const { data: reactions, isLoading: reactionsLoading } = useArticleReactions(video.id, video.pubkey);
-  const { data: comments, isLoading: commentsLoading } = useArticleComments(video.id, video.pubkey, identifier);
-  const { mutate: reactToArticle, isPending: isReacting } = useReactToArticle();
-  const { mutate: commentOnArticle, isPending: isCommenting } = useCommentOnArticle();
 
   const handleReaction = (reaction: '+' | '-') => {
     if (!user) {

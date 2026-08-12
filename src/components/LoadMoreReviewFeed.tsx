@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { ShareButton } from '@/components/ShareButton';
+;
 import { OptimizedImage } from '@/components/OptimizedImage';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useInfiniteReviews } from '@/hooks/useInfiniteReviews';

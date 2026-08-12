@@ -45,7 +45,7 @@ async function fetchAllAdminReviewsDirect(signal: AbortSignal): Promise<NostrEve
   const results = await Promise.allSettled(
     REVIEW_RELAYS.map(async (url) => {
       // Give each relay up to 10 seconds to stream back all events
-      const relay = new NRelay1(url, { eoseTimeout: 10000 });
+      const relay = new NRelay1(url);
       try {
         return await relay.query([filter], { signal });
       } finally {

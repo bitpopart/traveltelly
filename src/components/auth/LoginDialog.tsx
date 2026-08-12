@@ -106,7 +106,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
         };
 
         const sub = relay.req([filter]);
-        subs.push(sub as { close?: () => void; return?: () => void });
+        subs.push(sub as unknown as { close?: () => void; return?: () => void });
 
         for await (const msg of sub) {
           if (!isActive) break;
@@ -222,7 +222,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
     startNip46Listener();
 
     return () => stopNip46Listener();
-  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const handleExtensionLogin = () => {
     setIsLoading(true);

@@ -61,7 +61,7 @@ export function GuestLogin({ onLoginSuccess }: GuestLoginProps) {
         description: 'You are now logged in',
       });
       onLoginSuccess?.(email);
-    } catch (error) {
+    } catch {
       toast({
         title: 'Login failed',
         description: 'Please check your email and try again',

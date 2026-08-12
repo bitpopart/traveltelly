@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+;
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,27 +13,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useLoggedInAccounts, type Account } from '@/hooks/useLoggedInAccounts';
 import { useToast } from '@/hooks/useToast';
 import { genUserName } from '@/lib/genUserName';
-import { 
-  Bot, 
-  Send, 
-  Sparkles, 
-  Zap, 
-  User, 
-  Loader2, 
-  CheckCircle2,
-  AlertCircle,
-  Info,
-  ChevronDown,
-  Settings,
-  Coins,
-  Brain,
-  Rocket,
-  ExternalLink,
-  Clock,
-  Users,
-  UserPlus,
-  LogOut
-} from 'lucide-react';
+import { Bot, Send, Sparkles, Zap, User, Loader2, CheckCircle2, AlertCircle, Info, ChevronDown, Settings, Coins, Brain, Rocket, ExternalLink, Clock, Users, UserPlus } from 'lucide-react';;
 
 /**
  * ClawChat - NowClaw-style AI Chat Interface
@@ -108,7 +88,7 @@ const SAMPLE_PROMPTS = [
 
 export function ClawChat() {
   const { user } = useCurrentUser();
-  const { authors, currentUser, otherUsers, setLogin, removeLogin } = useLoggedInAccounts();
+  const { authors, currentUser, otherUsers, setLogin } = useLoggedInAccounts();
   const { toast } = useToast();
   
   const [messages, setMessages] = useState<Message[]>([
@@ -306,7 +286,7 @@ What would you like to explore?`;
   /**
    * Use sample prompt
    */
-  const useSamplePrompt = (prompt: string) => {
+  const handleSamplePrompt = (prompt: string) => {
     setInputMessage(prompt);
   };
 
@@ -332,7 +312,7 @@ What would you like to explore?`;
     setSelectedNpub(account.pubkey);
     
     // Move this account to the front (make it current)
-    setLogin({ id: account.id, pubkey: account.pubkey });
+    setLogin(account.id);
     
     toast({
       title: 'Account Switched',
@@ -855,7 +835,7 @@ What would you like to explore?`;
                   key={index}
                   variant="outline"
                   size="sm"
-                  onClick={() => useSamplePrompt(prompt)}
+                  onClick={() => handleSamplePrompt(prompt)}
                   className="text-xs h-auto py-2"
                 >
                   {prompt}

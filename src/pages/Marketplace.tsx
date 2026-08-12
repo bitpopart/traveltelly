@@ -4,7 +4,7 @@ import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { RelaySelector } from "@/components/RelaySelector";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+;
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useInfiniteMarketplaceProducts } from "@/hooks/useMarketplaceProducts";
@@ -18,8 +18,7 @@ import { adminBulkDownload } from "@/lib/adminBulkDownload";
 import type { BulkDownloadProgress } from "@/lib/adminBulkDownload";
 import { PaymentDialog } from "@/components/PaymentDialog";
 import { ShoppingCart, Plus, Store, Crown, Download, CheckSquare, X, Loader2, Camera, Video, Zap, LayoutGrid, Search, Settings2 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-import { nip19 } from "nostr-tools";
+import { Link } from "react-router-dom";;
 import type { MarketplaceProduct } from "@/hooks/useMarketplaceProducts";
 import { ADMIN_HEX } from "@/hooks/useBlossomMedia";
 
@@ -34,11 +33,6 @@ function MediaThumb({ product }: { product: MarketplaceProduct }) {
   const isFree = !product.price || product.price === '0' || parseFloat(product.price) === 0;
   const isVideo = product.mediaType === 'video' || product.images[0]?.match(/\.(mp4|webm|mov)/i);
 
-  const naddr = nip19.naddrEncode({
-    identifier: product.id,
-    pubkey: product.seller.pubkey,
-    kind: 30402,
-  });
 
   const thumb = product.images[0];
 

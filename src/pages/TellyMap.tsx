@@ -42,13 +42,11 @@ export default function TellyMap() {
     const onLoad = () => { setIframeReady(true); sendAuth(); };
     iframe.addEventListener('load', onLoad);
     return () => iframe.removeEventListener('load', onLoad);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Re-send whenever permissions resolve (Nostr query may complete after load)
   useEffect(() => {
     if (iframeReady) sendAuth();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [iframeReady, user?.pubkey, hasPermission, isAdmin]);
 
   return (

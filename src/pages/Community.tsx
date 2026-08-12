@@ -52,23 +52,27 @@ const COMMUNITY_KIND = 30079;
 function FeaturedTravelerAvatar({ traveler }: { traveler: FeaturedTraveler }) {
   console.log('🎨 Rendering FeaturedTravelerAvatar for:', traveler.npub.substring(0, 20));
   
-  let pubkeyHex: string;
+  let pubkeyHex: string | undefined;
   try {
     const decoded = nip19.decode(traveler.npub);
     if (decoded.type !== 'npub') {
       console.error('❌ Invalid npub type:', decoded.type);
-      return null;
+    } else {
+      pubkeyHex = decoded.data as string;
+      console.log('✅ Decoded pubkey:', pubkeyHex.substring(0, 8));
     }
-    pubkeyHex = decoded.data as string;
-    console.log('✅ Decoded pubkey:', pubkeyHex.substring(0, 8));
   } catch (error) {
     console.error('❌ Failed to decode npub:', traveler.npub, error);
-    return null;
   }
 
+  // Hook must be called unconditionally (rules-of-hooks)
   const author = useAuthor(pubkeyHex);
   const metadata = author.data?.metadata;
-  const displayName = metadata?.name || genUserName(pubkeyHex);
+  const displayName = metadata?.name || genUserName(pubkeyHex ?? '');
+
+  if (!pubkeyHex) {
+    return null;
+  }
 
   console.log('👤 Author data:', { displayName, picture: metadata?.picture });
 

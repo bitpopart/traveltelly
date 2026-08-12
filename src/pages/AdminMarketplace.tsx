@@ -101,7 +101,7 @@ const CONTINENTS = [
  *  Old saved bins had the emoji baked into the title, e.g. "📸 Travel Photos". */
 function stripLeadingEmoji(str: string): string {
   // Remove sequences of emoji / modifier / ZWJ at the start of the string, plus trailing spaces
-  return str.replace(/^[\p{Emoji}\p{Emoji_Modifier}\p{Emoji_Component}\u200d\ufe0f\s]+/u, '').trim();
+  return str.replace(/^(?:\p{Emoji}|\p{Emoji_Modifier}|\p{Emoji_Component}|\s|\u200d|\uFE0F)+/u, '').trim();
 }
 
 // ── Types ────────────────────────────────────────────────────────────────────

@@ -61,7 +61,7 @@ export function generateSlug(title: string): string {
   return title
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '') // Remove accents
-    .replace(/[\p{Emoji}\p{Emoji_Modifier}\p{Emoji_Component}\u200d\ufe0f]/gu, '') // Remove emoji
+    .replace(/(?:\p{Emoji}|\p{Emoji_Modifier}|\p{Emoji_Component}|\u200d|\uFE0F)/gu, '') // Remove emoji
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, '') // Keep only alphanumeric, spaces, hyphens
     .trim()

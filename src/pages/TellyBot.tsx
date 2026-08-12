@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Sparkles, MessageCircleQuestion, BarChart3, Share2, Plus, Trash2, Upload, Image as ImageIcon, Search, Loader2, ArrowLeft, Bot } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
 import { createClawstrPost } from '@/lib/clawstr';
-import type { NostrEvent } from '@nostrify/nostrify';
+;
 import { Link } from 'react-router-dom';
 import { TravelBot } from '@/components/TravelBot';
 import { ClawChat } from '@/components/ClawChat';

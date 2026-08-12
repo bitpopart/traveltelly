@@ -48,7 +48,6 @@ export function useLocalStorage<T>(
 
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
   return [state, setValue] as const;

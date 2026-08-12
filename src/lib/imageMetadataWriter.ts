@@ -158,7 +158,6 @@ function buildMinimalExifSegment(meta: MetadataToEmbed): Uint8Array {
   // Heap start:   26
   // String:       strLen bytes
 
-  const TIFF_START = 0;
   const IFD0_START = 8;
   const HEAP_START = IFD0_START + 2 + 1 * 12 + 4; // = 26
   const TOTAL      = HEAP_START + strLen;

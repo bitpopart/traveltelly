@@ -212,7 +212,7 @@ export function PaymentDialog({ isOpen, onClose, product }: PaymentDialogProps) 
                   <TabsContent value="guest" className={`${isFree ? 'px-6 pb-6' : 'px-6 pb-6 pt-4'}`}>
                     <GuestCheckout
                       product={product}
-                      onPurchaseComplete={(email, method) => {
+                      onPurchaseComplete={(email, _method) => {
                         setGuestEmail(email);
                         onClose();
                       }}
@@ -241,7 +241,7 @@ export function PaymentDialog({ isOpen, onClose, product }: PaymentDialogProps) 
                       /* Stripe IS configured — use Guest checkout card flow */
                       <GuestCheckout
                         product={product}
-                        onPurchaseComplete={(email, method) => {
+                        onPurchaseComplete={(email, _method) => {
                           setGuestEmail(email);
                           onClose();
                         }}

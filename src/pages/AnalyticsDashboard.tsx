@@ -3,7 +3,7 @@ import { Navigation } from '@/components/Navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+;
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useReviewPermissions } from '@/hooks/useReviewPermissions';
 import { nip19 } from 'nostr-tools';
@@ -28,17 +28,6 @@ import {
 import { Link } from 'react-router-dom';
 import { useReviewCount, useStoryCount, useTripCount, useStockMediaCount } from '@/hooks/useLatestItems';
 
-interface AnalyticsData {
-  pageViews: number;
-  uniqueVisitors: number;
-  avgSessionDuration: string;
-  bounceRate: string;
-  topPages: { page: string; views: number }[];
-  topCountries: { country: string; visitors: number }[];
-  deviceBreakdown: { device: string; percentage: number }[];
-  dailyStats: { date: string; views: number; visitors: number }[];
-}
-
 export default function AnalyticsDashboard() {
   const { user } = useCurrentUser();
   const { isAdmin, isCheckingPermission } = useReviewPermissions();
@@ -55,21 +44,9 @@ export default function AnalyticsDashboard() {
 
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('7d');
 
-  // Mock analytics data - in production, this would come from Google Analytics API
-  const [analytics, setAnalytics] = useState<AnalyticsData>({
-    pageViews: 0,
-    uniqueVisitors: 0,
-    avgSessionDuration: '0:00',
-    bounceRate: '0%',
-    topPages: [],
-    topCountries: [],
-    deviceBreakdown: [],
-    dailyStats: [],
-  });
-
   useEffect(() => {
     // Check if Google Analytics is available
-    if (typeof window !== 'undefined' && (window as any).gtag) {
+    if (typeof window !== 'undefined' && (window as Window & { gtag?: (...args: unknown[]) => void }).gtag) {
       console.log('📊 Google Analytics is active (GA4: G-ZCR363T6JN)');
     }
   }, []);

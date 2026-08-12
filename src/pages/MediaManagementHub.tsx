@@ -22,13 +22,7 @@ import type { MarketplaceBin } from '@/hooks/useMarketplaceBins';
 import type { MarketplaceProduct } from '@/hooks/useMarketplaceProducts';
 import { MediaManagement } from '@/components/MediaManagement';
 import { nip19 } from 'nostr-tools';
-import {
-  Shield, ArrowLeft, Loader2, Camera, Store, Layers, LayoutGrid,
-  ExternalLink, CheckCircle, XCircle, Calendar, Plus, Trash2, Edit2,
-  Save, Eye, EyeOff, GripVertical, FolderOpen, Tag, Globe, Star,
-  ChevronUp, ChevronDown, Search, Filter, CheckCircle2, CircleDot,
-  ImageOff, X, Info, ChevronRight,
-} from 'lucide-react';
+import { Shield, ArrowLeft, Loader2, Camera, Store, Layers, LayoutGrid, ExternalLink, CheckCircle, XCircle, Calendar, Plus, Trash2, Edit2, Save, Eye, EyeOff, GripVertical, FolderOpen, Tag, Globe, Star, ChevronUp, ChevronDown, Search, CheckCircle2, CircleDot, ImageOff, X, Info, ChevronRight } from 'lucide-react';;
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -115,7 +109,7 @@ function productMatchesBin(product: MarketplaceProduct, bin: MarketplaceBin): bo
   }
 }
 
-function buildAssignUpdates(bin: MarketplaceBin, product: MarketplaceProduct): Partial<MarketplaceProduct> | null {
+function buildAssignUpdates(bin: MarketplaceBin, _product: MarketplaceProduct): Partial<MarketplaceProduct> | null {
   switch (bin.filterType) {
     case 'category': return { contentCategory: bin.filterValue };
     case 'geo': {

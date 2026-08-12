@@ -113,7 +113,7 @@ export function OptimizedImage({
 }: OptimizedImageProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isError, setIsError] = useState(false);
-  const [blurLoaded, setBlurLoaded] = useState(false);
+  const [, setBlurLoaded] = useState(false);
   // On mobile, ALWAYS load immediately for thumbnails and priority images
   const isMobileDevice = typeof window !== 'undefined' && window.innerWidth < 768;
   const [shouldLoad, setShouldLoad] = useState(priority || thumbnail || isMobileDevice); 

@@ -1,4 +1,4 @@
-import { Check, ChevronsUpDown, Wifi, Plus } from "lucide-react";
+import { ChevronsUpDown, Wifi, Plus } from "lucide-react";;
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {

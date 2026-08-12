@@ -12,38 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { nip19 } from 'nostr-tools';
-import { 
-  Smartphone, 
-  CheckCircle2, 
-  AlertCircle, 
-  ArrowLeft,
-  Download,
-  Package,
-  Play,
-  Apple,
-  Code,
-  ExternalLink,
-  Info,
-  FileCode2,
-  Wrench,
-  Zap,
-  Palette,
-  Globe,
-  Settings,
-  Store,
-  Send,
-  Copy,
-  ChevronRight,
-  RefreshCw,
-  Upload,
-  FileUp,
-  Rocket,
-  ChevronLeft,
-  Star,
-  MapPin,
-  Camera,
-  Image,
-} from 'lucide-react';
+import { Smartphone, CheckCircle2, AlertCircle, ArrowLeft, Download, Package, Play, Apple, Code, ExternalLink, Info, FileCode2, Wrench, Zap, Palette, Globe, Settings, Store, Send, Copy, RefreshCw, Upload, FileUp, Rocket, ChevronLeft, Star, MapPin, Camera, Image } from 'lucide-react';;
 import { Link } from 'react-router-dom';
 import { useToast } from '@/hooks/useToast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -355,6 +324,11 @@ function ZapstoreShowcasePreview({ zapApp }: ZapstoreShowcasePreviewProps) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Steps 2 & 3 (Software Asset / Software Release) are handled automatically by
+// the APK upload flow above, so their manual UI steps are kept hidden. Flip to
+// true to surface them.
+const HIDDEN_STEP = false;
+
 export default function AppBuilder() {
   const { user } = useCurrentUser();
   const { toast } = useToast();
@@ -425,7 +399,7 @@ export default function AppBuilder() {
   const [apkDragOver, setApkDragOver] = useState(false);
   const [apkVersion, setApkVersion] = useState('1.0.0');
   const [apkVersionCode, setApkVersionCode] = useState('1');
-  const [apkChannel, setApkChannel] = useState('main');
+  const [apkChannel] = useState('main');
   const [apkReleaseNotes, setApkReleaseNotes] = useState('');
   const [apkCertHash, setApkCertHash] = useState('');
   const [apkResult, setApkResult] = useState<{ url: string; sha256: string; certFingerprint: string; assetEventId: string; releaseEventId: string } | null>(null);
@@ -475,7 +449,7 @@ export default function AppBuilder() {
   });
 
   const [publishedAssetId, setPublishedAssetId] = useState<string>('');
-  const [publishStep, setPublishStep] = useState<'app' | 'asset' | 'release'>('app');
+  const [, setPublishStep] = useState<'app' | 'asset' | 'release'>('app');
   const [hashingUrl, setHashingUrl] = useState(false);
 
   const updateZapApp = (key: keyof ZapstoreAppConfig, value: string | string[]) => {
@@ -2131,7 +2105,7 @@ export default function AppBuilder() {
               </Card>
 
               {/* STEP 2 — Asset (hidden — handled automatically by APK upload above) */}
-              {false && <Card>
+              {HIDDEN_STEP && <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Badge style={{ backgroundColor: '#f7931a', color: 'white' }}>Step 2</Badge>
@@ -2320,7 +2294,7 @@ export default function AppBuilder() {
               </Card>}
 
               {/* STEP 3 — Release (hidden — handled automatically by APK upload above) */}
-              {false && <Card>
+              {HIDDEN_STEP && <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Badge style={{ backgroundColor: '#f7931a', color: 'white' }}>Step 3</Badge>

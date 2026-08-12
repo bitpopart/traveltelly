@@ -12,7 +12,7 @@ import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
 import { useQueryClient } from '@tanstack/react-query';
 import { CONTINENTS, getCountriesByContinent, getAllCountries, getContinentLabel, getCountryLabel } from '@/lib/geoData';
-import { FolderTree, Wand2, CheckCircle2, AlertCircle, Loader2, Globe2, FolderPlus } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Loader2, Globe2, FolderPlus } from 'lucide-react';;
 import type { MarketplaceProduct } from '@/hooks/useMarketplaceProducts';
 
 interface GeoSuggestion {
@@ -209,7 +209,6 @@ export function AutoGeoTagger() {
 
   const highConfidence = suggestions.filter(s => s.confidence === 'high');
   const mediumConfidence = suggestions.filter(s => s.confidence === 'medium');
-  const lowConfidence = suggestions.filter(s => s.confidence === 'low');
 
   const progress = processedCount > 0 
     ? (processedCount / selectedItems.size) * 100 

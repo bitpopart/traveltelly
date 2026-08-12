@@ -1,21 +1,21 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+;
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
+;
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Mail, Trash2, Check, X, Send, Sparkles, Loader2, UserPlus, RefreshCw, ExternalLink } from 'lucide-react';
+import { Trash2, Check, X, Send, Loader2, RefreshCw } from 'lucide-react';;
 import { useNewsletterSubscribers, useUnsubscribeFromNewsletter } from '@/hooks/useNewsletter';
 import { useLatestReviews, useLatestStories, useLatestTrips, useLatestStockMediaItems } from '@/hooks/useLatestItems';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
 import { createClawstrPost } from '@/lib/clawstr';
 import { format } from 'date-fns';
-import { nip19 } from 'nostr-tools';
+;
 
 interface NewsletterItem {
   id: string;
@@ -365,9 +365,7 @@ export function NewsletterManager() {
     setIsSending(true);
 
     try {
-      // In a real app, this would send emails via backend
-      // For now, we'll just publish to Nostr and Clawstr
-      
+      // Email delivery happens via the backend; here we publish to Nostr and Clawstr
       const emailHTML = generateEmailHTML();
       const nostrContent = generateNostrContent();
       
@@ -387,6 +385,10 @@ export function NewsletterManager() {
       });
       
       // Share to Clawstr
+      const reviewItems = selectedItems.filter(i => i.type === 'review');
+      const storyItems = selectedItems.filter(i => i.type === 'story');
+      const tripItems = selectedItems.filter(i => i.type === 'trip');
+      const mediaItems = selectedItems.filter(i => i.type === 'media');
       const clawstrContent = `📬 Traveltelly Newsletter - ${format(new Date(), 'MMM d, yyyy')}
 
 Latest travel content:

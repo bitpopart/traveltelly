@@ -6,7 +6,7 @@ import { Icon } from 'leaflet';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
+;
 import { useAuthor } from '@/hooks/useAuthor';
 import { useMapProvider } from '@/hooks/useMapProvider';
 import { useAllAdminReviews } from '@/hooks/useAdminReviews';
@@ -16,11 +16,11 @@ import { useQuery } from '@tanstack/react-query';
 import { genUserName } from '@/lib/genUserName';
 import { MapNavigationControls, type MapLocation } from '@/components/MapNavigationControls';
 import { getTileLayerConfig } from '@/lib/mapConfig';
-import { Star, RefreshCw, Layers, Maximize2, Minimize2, Camera, BookOpen, Globe } from 'lucide-react';
+import { Star, RefreshCw, Layers, Globe } from 'lucide-react';;
 import { nip19 } from 'nostr-tools';
 import * as geohash from 'ngeohash';
 import { upgradeMultipleReviews, applyPrecisionUpgrades, getUpgradeStats } from '@/lib/precisionMigration';
-import type { NostrEvent } from '@nostrify/nostrify';
+;
 
 // The Traveltelly admin npub for stories
 const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642';
@@ -89,7 +89,7 @@ function decodeGeohash(geohashStr: string): { lat: number; lng: number; precisio
 }
 
 // Custom marker icon with precision indicator
-const createCustomIcon = (rating: number, precision?: number, upgraded?: boolean, gpsCorreected?: boolean, type?: 'review' | 'stock-media' | 'story', category?: string) => {
+const createCustomIcon = (rating: number, precision?: number, upgraded?: boolean, gpsCorreected?: boolean, type?: 'review' | 'stock-media' | 'story' | 'check-in', category?: string) => {
   // For cafe category, use special cafe marker with coffee cup icon (handles both 'cafe' and 'café')
   const normalizedCategory = category?.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const isCafe = normalizedCategory === 'cafe' && type === 'review';
@@ -147,8 +147,6 @@ const createCustomIcon = (rating: number, precision?: number, upgraded?: boolean
     }
   }
   
-  // Use blue color for review/story marker base (matching other map components)
-  const mainColor = '#27b0ff';
   
   // Different colors for rating text based on type
   const ratingColor = type === 'story' ? '#8b5cf6' 
@@ -653,7 +651,7 @@ interface AllAdminReviewsMapProps {
 export function AllAdminReviewsMap({ zoomToLocation, onLocationChange, showTitle = true }: AllAdminReviewsMapProps = {}) {
   const { mapProvider } = useMapProvider();
   const [targetLocation, setTargetLocation] = useState<MapLocation | null>(null);
-  const [showControls, setShowControls] = useState(false);
+  const [showControls] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<string>('World View');
   const [initialCenter, setInitialCenter] = useState<[number, number]>([20, 0]);
   const [initialZoom, setInitialZoom] = useState(2);
@@ -691,9 +689,9 @@ export function AllAdminReviewsMap({ zoomToLocation, onLocationChange, showTitle
             const lng = parseFloat(result.lon);
             
             setTargetLocation({
+              name: zoomToLocation,
               coordinates: [lat, lng],
               zoom: 6, // Country/city level zoom
-              label: zoomToLocation,
             });
             setCurrentLocation(zoomToLocation);
             
@@ -736,7 +734,7 @@ export function AllAdminReviewsMap({ zoomToLocation, onLocationChange, showTitle
   }, [refetch]);
 
   // Process all admin reviews and stock media into map locations
-  const { reviewLocations, totalReviews, reviewsWithoutLocation } = useMemo(() => {
+  const { reviewLocations } = useMemo(() => {
     const locations: ReviewLocation[] = [];
     const withoutLocation: Array<{
       id: string;

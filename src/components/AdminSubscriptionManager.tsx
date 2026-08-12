@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useAllSubscriptions, formatExpiryDate } from '@/hooks/useMarketplaceSubscription';
+import { useAllSubscriptions, type Subscription } from '@/hooks/useMarketplaceSubscription';;
 import { useAuthor } from '@/hooks/useAuthor';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
@@ -18,7 +18,7 @@ import { Crown, Calendar, Users, Plus, Check, X, AlertCircle } from 'lucide-reac
 import { formatDistanceToNow } from 'date-fns';
 import { nip19 } from 'nostr-tools';
 
-function SubscriptionRow({ userPubkey, subscription }: { userPubkey: string; subscription: any }) {
+function SubscriptionRow({ userPubkey, subscription }: { userPubkey: string; subscription: Subscription }) {
   const author = useAuthor(userPubkey);
   const metadata = author.data?.metadata;
   const displayName = metadata?.name || genUserName(userPubkey);
@@ -27,7 +27,7 @@ function SubscriptionRow({ userPubkey, subscription }: { userPubkey: string; sub
   try {
     const npub = nip19.npubEncode(userPubkey);
     shortNpub = `${npub.slice(0, 8)}...${npub.slice(-4)}`;
-  } catch (e) {
+  } catch {
     shortNpub = `${userPubkey.slice(0, 8)}...`;
   }
 
@@ -154,7 +154,7 @@ export function AdminSubscriptionManager() {
           });
         },
       });
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Invalid npub format',

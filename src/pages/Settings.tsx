@@ -10,7 +10,7 @@ import { StockMediaPermissionRequest } from '@/components/StockMediaPermissionRe
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Settings as SettingsIcon, User, Zap, Map, Camera } from 'lucide-react';
+import { User, Zap, Map, Camera } from 'lucide-react';;
 
 const Settings = () => {
   const { user } = useCurrentUser();

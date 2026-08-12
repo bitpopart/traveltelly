@@ -25,7 +25,7 @@ const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a
 const ADMIN_HEX = nip19.decode(ADMIN_NPUB).data as string;
 
 interface StoryEvent extends NostrEvent {
-  kind: 30023;
+  kind: 30023 | 34235 | 34236;
 }
 
 function validateStoryEvent(event: NostrEvent): event is StoryEvent {
@@ -629,7 +629,7 @@ export function AdminStoryManager() {
               {stories.map((story) => (
                 <StoryCard
                   key={story.id}
-                  story={story}
+                  story={story as StoryEvent}
                   onDelete={handleDelete}
                   onEdit={handleEdit}
                 />

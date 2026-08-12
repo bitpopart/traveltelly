@@ -10,14 +10,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';;
 import { Separator } from '@/components/ui/separator';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useGammaShipping } from '@/hooks/useGammaShipping';
 import { useToast } from '@/hooks/useToast';
 import { buildShippingOptionTags, type GammaShippingOption, type ShippingService } from '@/lib/gammaSpec';
-import { Truck, Plus, Edit3, Trash2, Loader2, Package, MapPin, Clock, DollarSign, ChevronDown, ChevronUp } from 'lucide-react';
+import { Truck, Plus, Edit3, Trash2, Loader2, Package, MapPin, Clock, ChevronDown, ChevronUp } from 'lucide-react';;
 
 const ISO_COUNTRIES = [
   { code: 'NL', name: 'Netherlands' }, { code: 'US', name: 'United States' }, { code: 'GB', name: 'United Kingdom' },

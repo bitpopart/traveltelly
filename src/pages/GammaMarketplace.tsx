@@ -8,7 +8,7 @@ import { Navigation } from '@/components/Navigation';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';;
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LoginArea } from '@/components/auth/LoginArea';
 import { GammaProductForm } from '@/components/GammaProductForm';
@@ -25,11 +25,7 @@ import { useToast } from '@/hooks/useToast';
 import { Link } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
 import type { MarketplaceProduct } from '@/hooks/useMarketplaceProducts';
-import {
-  ShoppingBag, Truck, FolderOpen, MessageSquare, Plus, Package,
-  Eye, EyeOff, Edit3, Trash2, ArrowLeft, BarChart3, Zap, Store,
-  CheckCircle, Loader2, RefreshCw
-} from 'lucide-react';
+import { ShoppingBag, Truck, FolderOpen, MessageSquare, Plus, Package, Eye, EyeOff, Edit3, Trash2, ArrowLeft, Zap, Store, CheckCircle, RefreshCw } from 'lucide-react';;
 
 // ─── Product Row ──────────────────────────────────────────────────────────────
 

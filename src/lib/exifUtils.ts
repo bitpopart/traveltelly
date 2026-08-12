@@ -259,7 +259,7 @@ export async function extractPhotoMetadata(file: File): Promise<PhotoMetadata> {
     let exifData = await parseExif(file, {
       gps: true,
       iptc: true,
-      ifd0: true,
+      // ifd0 is always parsed by exifr and cannot be disabled (type: FormatOptions, not boolean)
       ifd1: true,
       exif: true,
       xmp: true,
@@ -291,7 +291,7 @@ export async function extractPhotoMetadata(file: File): Promise<PhotoMetadata> {
     const metadata: PhotoMetadata = {};
 
     // Helper function to safely extract and decode string values with proper encoding support
-    const safeExtractString = (value: any): string | null => {
+    const safeExtractString = (value: unknown): string | null => {
       if (!value) return null;
       
       // If already a string, ensure it's properly normalized
@@ -320,7 +320,7 @@ export async function extractPhotoMetadata(file: File): Promise<PhotoMetadata> {
                 decoded = latin1Result;
                 console.log('✅ Successfully decoded with ISO-8859-1');
               }
-            } catch (e) {
+            } catch {
               console.log('ISO-8859-1 decode failed, keeping UTF-8 result');
             }
             
@@ -332,7 +332,7 @@ export async function extractPhotoMetadata(file: File): Promise<PhotoMetadata> {
                 decoded = win1252Result;
                 console.log('✅ Successfully decoded with Windows-1252');
               }
-            } catch (e) {
+            } catch {
               console.log('Windows-1252 decode failed, keeping current result');
             }
           }
@@ -437,7 +437,7 @@ export async function extractPhotoMetadata(file: File): Promise<PhotoMetadata> {
         metadata.gps = gps;
         console.log('✅ GPS found:', metadata.gps);
       }
-    } catch (e) {
+    } catch {
       console.log('ℹ️ No GPS data in image');
     }
 
