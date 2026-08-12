@@ -15,6 +15,7 @@ import { useMarketplaceSubscription } from '@/hooks/useMarketplaceSubscription';
 import { useCustomerAccess } from '@/hooks/useCustomers';
 import { usePriceConversion } from '@/hooks/usePriceConversion';
 import { genUserName } from '@/lib/genUserName';
+import { getGridThumbUrl } from '@/lib/imageUtils';
 import {
   Zap, CreditCard, ShoppingCart, User, MapPin, Package, Crown, Download, Info
 } from 'lucide-react';
@@ -96,7 +97,7 @@ export function PaymentDialog({ isOpen, onClose, product }: PaymentDialogProps) 
               <div className="flex gap-4">
                 <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
                   {product.images.length > 0 ? (
-                    <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover" />
+                    <img src={getGridThumbUrl(product.images[0])} alt={product.title} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <Package className="w-8 h-8 text-gray-400" />

@@ -11,6 +11,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useMarketplaceSubscription } from '@/hooks/useMarketplaceSubscription';
 import { usePriceConversion } from '@/hooks/usePriceConversion';
 import { genUserName } from '@/lib/genUserName';
+import { getGridThumbUrl } from '@/lib/imageUtils';
 import { embedMetadataIntoJpeg } from '@/lib/imageMetadataWriter';
 import { useAdminSelection } from '@/contexts/AdminSelectionContext';
 import { MapPin, User, ShoppingCart, Zap, CreditCard, Download, Eye, Camera, Video, Music, Palette, Images, Crown, Loader2, CheckSquare, Square } from 'lucide-react';
@@ -28,6 +29,8 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  // Resized thumbnail with fallback to the original URL if the proxy fails.
+  const [thumbSrc, setThumbSrc] = useState(() => getGridThumbUrl(product.images[0]));
   const { user } = useCurrentUser();
   const { data: subscription } = useMarketplaceSubscription(user?.pubkey);
   const author = useAuthor(product.seller.pubkey);
@@ -152,9 +155,11 @@ export function ProductCard({ product }: ProductCardProps) {
                 {product.images.length > 0 ? (
                   <>
                     <img
-                      src={product.images[0]}
+                      src={thumbSrc}
                       alt={product.title}
                       loading="lazy"
+                      decoding="async"
+                      onError={() => { if (thumbSrc !== product.images[0]) setThumbSrc(product.images[0]); }}
                       className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-300"
                     />
 
