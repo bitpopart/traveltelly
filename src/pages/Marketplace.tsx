@@ -22,6 +22,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { nip19 } from "nostr-tools";
 import type { MarketplaceProduct } from "@/hooks/useMarketplaceProducts";
 import { ADMIN_HEX } from "@/hooks/useBlossomMedia";
+import { getGridThumbUrl } from "@/lib/imageUtils";
 
 // ─── Compact thumbnail card ───────────────────────────────────────────────────
 function MediaThumb({ product }: { product: MarketplaceProduct }) {
@@ -41,6 +42,9 @@ function MediaThumb({ product }: { product: MarketplaceProduct }) {
   });
 
   const thumb = product.images[0];
+  // Resized thumbnail (multi-MB originals → ~10–40 KB WebP). Falls back to the
+  // original URL on error so a proxy hiccup never blanks a grid cell.
+  const [thumbSrc, setThumbSrc] = useState(() => getGridThumbUrl(thumb));
 
   return (
     <>
@@ -56,10 +60,12 @@ function MediaThumb({ product }: { product: MarketplaceProduct }) {
         {/* Thumbnail */}
         {thumb ? (
           <img
-            src={thumb}
+            src={thumbSrc}
             alt={product.title}
             className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
+            decoding="async"
+            onError={() => { if (thumbSrc !== thumb) setThumbSrc(thumb); }}
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-800">

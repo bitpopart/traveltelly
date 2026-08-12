@@ -42,6 +42,17 @@ export interface StripePaymentIntent {
   id: string;
 }
 
+/**
+ * URL of the serverless endpoint that creates Stripe Payment Intents.
+ * Configure at build time (VITE_STRIPE_PAYMENT_INTENT_URL) or default to the
+ * same-origin `/api/create-payment-intent` (Netlify function — see
+ * netlify/functions/create-payment-intent.mjs). Creating a Payment Intent
+ * requires the Stripe *secret* key, which must never live in the client.
+ */
+function getPaymentIntentUrl(): string {
+  return import.meta.env.VITE_STRIPE_PAYMENT_INTENT_URL || '/api/create-payment-intent';
+}
+
 export function useMarketplacePurchase() {
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const { user } = useCurrentUser();
@@ -144,18 +155,20 @@ export function useMarketplacePurchase() {
   };
 
   /**
-   * Create Stripe payment intent
-   * Note: In a real implementation, this would call your backend API
+   * Create a Stripe Payment Intent on the server.
+   *
+   * The client only ever holds the publishable key; the *secret* key lives on
+   * the serverless endpoint that creates the intent. If no endpoint is
+   * reachable/configured this throws with a clear message — it never
+   * fabricates a fake client secret (a Stripe.js call with a fake secret can
+   * never succeed, so a fake intent would only mislead the buyer).
    */
-  const createStripePaymentIntent = async (request: StripePaymentIntentRequest): Promise<StripePaymentIntent | null> => {
+  const createStripePaymentIntent = async (request: StripePaymentIntentRequest): Promise<StripePaymentIntent> => {
+    let response: Response;
     try {
-      // This is a mock implementation
-      // In production, you would call your backend API that creates the payment intent
-      const response = await fetch('/api/create-payment-intent', {
+      response = await fetch(getPaymentIntentUrl(), {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amount: request.amount,
           currency: request.currency,
@@ -166,29 +179,24 @@ export function useMarketplacePurchase() {
           },
         }),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to create payment intent');
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Error creating Stripe payment intent:', error);
-
-      // For demo purposes, return a mock payment intent
-      // In production, remove this and handle the error properly
-      toast({
-        title: 'Demo Mode',
-        description: 'Stripe payments are in demo mode. Use test card: 4242 4242 4242 4242',
-        variant: 'default',
-      });
-
-      return {
-        client_secret: 'pi_demo_client_secret_' + Math.random().toString(36),
-        id: 'pi_demo_' + Math.random().toString(36),
-      };
+    } catch (err) {
+      console.error('Stripe payment intent request failed:', err);
+      throw new Error('Card checkout is not reachable right now. Please use Lightning ⚡ instead.');
     }
+
+    if (!response.ok) {
+      let detail = '';
+      try {
+        const body = await response.json();
+        detail = body?.error?.message || body?.message || '';
+      } catch { /* ignore */ }
+      console.error('Stripe payment intent error', response.status, detail);
+      throw new Error(
+        detail || 'Card checkout is not configured yet. Please use Lightning ⚡ instead.'
+      );
+    }
+
+    return await response.json() as StripePaymentIntent;
   };
 
   /**

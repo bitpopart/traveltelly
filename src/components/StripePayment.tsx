@@ -77,7 +77,7 @@ function PaymentForm({ product, onSuccess }: PaymentFormProps) {
         throw new Error('Failed to create purchase order');
       }
 
-      // Create Stripe payment intent
+      // Create Stripe payment intent (server-side; secret key never touches the client)
       const paymentIntent = await createStripePaymentIntent({
         amount: amount * 100, // Stripe expects cents
         currency: currency.toLowerCase(),
@@ -85,10 +85,6 @@ function PaymentForm({ product, onSuccess }: PaymentFormProps) {
         productTitle: product.title,
         sellerPubkey: product.seller.pubkey,
       });
-
-      if (!paymentIntent?.client_secret) {
-        throw new Error('Failed to create payment intent');
-      }
 
       // Confirm payment with Stripe
       const cardElement = elements.getElement(CardElement);
