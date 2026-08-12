@@ -104,7 +104,7 @@ async function inflate(compressed: Uint8Array): Promise<Uint8Array> {
       chunks.push(value);
     }
   })();
-  await writer.write(compressed);
+  await writer.write(compressed as Uint8Array<ArrayBuffer>);
   await writer.close();
   await done;
   const total = chunks.reduce((n, c) => n + c.length, 0);
@@ -321,7 +321,7 @@ export async function extractApkCertFingerprint(file: File): Promise<ApkCertResu
   // A v2-signed APK also has a v1 block, but those certs can differ.
   const certDerV2 = extractCertFromSigningBlockV2(b, cdOffset);
   if (certDerV2 && certDerV2.length > 0) {
-    const hash = await crypto.subtle.digest('SHA-256', certDerV2);
+    const hash = await crypto.subtle.digest('SHA-256', certDerV2 as Uint8Array<ArrayBuffer>);
     return { fingerprint: hexOf(new Uint8Array(hash)), source: 'v2' };
   }
 
@@ -334,7 +334,7 @@ export async function extractApkCertFingerprint(file: File): Promise<ApkCertResu
   for (const sf of certFiles) {
     const certDer = extractCertFromPKCS7(sf.data);
     if (certDer && certDer.length > 0) {
-      const hash = await crypto.subtle.digest('SHA-256', certDer);
+      const hash = await crypto.subtle.digest('SHA-256', certDer as Uint8Array<ArrayBuffer>);
       return { fingerprint: hexOf(new Uint8Array(hash)), source: 'v1' };
     }
   }

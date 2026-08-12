@@ -160,7 +160,7 @@ function triggerDownload(
     const xmp    = buildXMP(result.title, result.description, result.keywords);
     const tagged = injectXMP(photo.buffer, xmp);
     if (!tagged) { onError('Could not embed metadata.'); return; }
-    const blob = new Blob([tagged], { type: photo.type });
+    const blob = new Blob([tagged as Uint8Array<ArrayBuffer>], { type: photo.type });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href = url; a.download = photo.name;

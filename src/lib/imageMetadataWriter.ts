@@ -56,7 +56,7 @@ export async function embedMetadataIntoJpeg(
   ]);
 
   console.log('[META] output size:', out.length, '— done!');
-  return new Blob([out], { type: 'image/jpeg' });
+  return new Blob([out as Uint8Array<ArrayBuffer>], { type: 'image/jpeg' });
 }
 
 // ─── Strip JPEG segments by marker ───────────────────────────────────────────
