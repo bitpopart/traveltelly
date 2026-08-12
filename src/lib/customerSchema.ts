@@ -60,8 +60,8 @@ export function parseCustomerEvent(event: NostrEvent): CustomerData | null {
 
     const data: CustomerData = JSON.parse(event.content);
     return {
-      email,
       ...data,
+      email,
     };
   } catch (error) {
     console.error('Failed to parse customer event:', error);

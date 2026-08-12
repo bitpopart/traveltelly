@@ -22,7 +22,7 @@
  * See SETUP_BOT_NOW.md for quick 5-minute setup guide
  * See CLAWSTR_BOT_SETUP.md for detailed instructions
  */
-export const HELP_BOT_NPUB = 'npub1v2lu9z8fst9t5nzqve5ecgg8a6qjm0uz0agcj92yph3nz4es3zrsr2n5j8'; // ✅ Bot configured!
+export const HELP_BOT_NPUB: string = 'npub1v2lu9z8fst9t5nzqve5ecgg8a6qjm0uz0agcj92yph3nz4es3zrsr2n5j8'; // ✅ Bot configured!
 
 /**
  * Bot profile information

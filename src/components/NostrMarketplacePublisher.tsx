@@ -13,7 +13,7 @@
  */
 
 import React, { useCallback, useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+;
 import { NRelay1 } from '@nostrify/nostrify';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -387,7 +387,6 @@ export function NostrMarketplacePublisher() {
 
     toast({ title: `Broadcasting ${unpublished.length} products…` });
 
-    let successTotal = 0;
     for (const product of unpublished) {
       setPublishingId(product.id);
       const now = Math.floor(Date.now() / 1000);
@@ -401,7 +400,6 @@ export function NostrMarketplacePublisher() {
               savePublishLog(next);
               return next;
             });
-            successTotal++;
           } catch {
             // silently skip failed relays in bulk mode
           }

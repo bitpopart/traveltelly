@@ -8,7 +8,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { AdminPermissionManager } from '@/components/AdminPermissionManager';
 import { StockMediaPermissionManager } from '@/components/StockMediaPermissionManager';
 import { AdminSubscriptionManager } from '@/components/AdminSubscriptionManager';
-import { CategoryManager } from '@/components/CategoryManager';
+;
 import { MediaManagement } from '@/components/MediaManagement';
 import { AdminReviewManager } from '@/components/AdminReviewManager';
 import { AdminTripManager } from '@/components/AdminTripManager';

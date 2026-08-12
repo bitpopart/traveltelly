@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';;
 import { Navigation } from '@/components/Navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,38 +13,12 @@ import { Separator } from '@/components/ui/separator';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useReviewPermissions } from '@/hooks/useReviewPermissions';
 import { useScheduledPosts } from '@/hooks/useScheduledPosts';
-import { useSocialScheduledPosts } from '@/hooks/useSocialScheduledPosts';
+import { useSocialScheduledPosts, type SocialPlatform, type SocialScheduledPost } from '@/hooks/useSocialScheduledPosts';
 import { useNostr } from '@nostrify/react';
 import { nip19 } from 'nostr-tools';
-import type { NostrEvent } from '@nostrify/nostrify';
-import {
-  Calendar,
-  Clock,
-  Plus,
-  Trash2,
-  ArrowLeft,
-  Shield,
-  CheckCircle2,
-  AlertCircle,
-  Image as ImageIcon,
-  Link2,
-  Hash,
-  Star,
-  BookOpen,
-  MapPin,
-  Camera,
-  Edit,
-  Play,
-  Loader2,
-  Wand2,
-  Twitter,
-  Instagram,
-  Facebook,
-  Zap,
-  Info,
-  ExternalLink
-} from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+;
+import { Calendar, Clock, Plus, Trash2, ArrowLeft, Shield, CheckCircle2, AlertCircle, Image as ImageIcon, Link2, Hash, Star, BookOpen, MapPin, Camera, Edit, Loader2, Wand2, Twitter, Instagram, Facebook, Zap, Info, ExternalLink } from 'lucide-react';;
+import { Link } from 'react-router-dom';
 import { useToast } from '@/hooks/useToast';
 import { formatDistanceToNow, format } from 'date-fns';
 import { TwitterSync } from '@/components/TwitterSync';
@@ -83,13 +57,12 @@ export default function ShareScheduler() {
   const { isAdmin, isCheckingPermission } = useReviewPermissions();
   const { nostr } = useNostr();
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642';
   const ADMIN_HEX = nip19.decode(ADMIN_NPUB).data as string;
   const isTraveltellyAdmin = user?.pubkey === ADMIN_HEX;
 
-  const { scheduledPosts, addScheduledPost, removeScheduledPost, updatePostStatus } = useScheduledPosts();
+  const { scheduledPosts, addScheduledPost, removeScheduledPost } = useScheduledPosts();
 
   const [formData, setFormData] = useState({
     type: 'review' as ScheduledPost['type'],
@@ -129,7 +102,7 @@ export default function ShareScheduler() {
         return;
       }
 
-      const [, contentType, naddr] = urlMatch;
+      const [, , naddr] = urlMatch;
       
       // Decode naddr
       const decoded = nip19.decode(naddr);
@@ -925,10 +898,9 @@ interface SocialMediaSchedulerProps {
 }
 
 function SocialMediaScheduler({ platform }: SocialMediaSchedulerProps) {
-  const { user } = useCurrentUser();
   const { nostr } = useNostr();
   const { toast } = useToast();
-  const { socialScheduledPosts, addSocialScheduledPost, removeSocialScheduledPost, updateSocialPostStatus, markAsReady, markAsPosted } = useSocialScheduledPosts();
+  const { socialScheduledPosts, addSocialScheduledPost, removeSocialScheduledPost, markAsReady, markAsPosted } = useSocialScheduledPosts();
 
   const [formData, setFormData] = useState({
     type: 'review' as ScheduledPost['type'],
@@ -1005,7 +977,7 @@ function SocialMediaScheduler({ platform }: SocialMediaSchedulerProps) {
         return;
       }
 
-      const [, contentType, naddr] = urlMatch;
+      const [, , naddr] = urlMatch;
       const decoded = nip19.decode(naddr);
       if (decoded.type !== 'naddr') throw new Error('Invalid naddr');
 

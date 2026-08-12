@@ -50,8 +50,8 @@ export function CheckInForm({ onSuccess }: CheckInFormProps = {}) {
       if (!gpsCoords && i === 0) {
         try {
           const gpsData = await extractGPSFromImage(originalFile);
-          if (gpsData?.lat && gpsData?.lon) {
-            setGpsCoords({ lat: gpsData.lat, lon: gpsData.lon });
+          if (gpsData?.latitude && gpsData?.longitude) {
+            setGpsCoords({ lat: gpsData.latitude, lon: gpsData.longitude });
           }
         } catch (error) {
           console.error('Error extracting GPS from', originalFile.name, error);

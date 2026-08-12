@@ -23,7 +23,6 @@ export function ShareButton({
   url,
   title,
   description,
-  image,
   variant = 'ghost',
   size = 'sm',
   className = '',
@@ -42,7 +41,7 @@ export function ShareButton({
         description: 'Share link has been copied to clipboard.',
       });
       setIsOpen(false);
-    } catch (error) {
+    } catch {
       toast({
         title: 'Failed to copy',
         description: 'Could not copy link to clipboard.',

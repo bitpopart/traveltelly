@@ -9,11 +9,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+;
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
+;
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useGammaOrders, useGammaOrderThread, useGammaOrderActions, type OrderThread, type OrderMessage } from '@/hooks/useGammaOrders';
@@ -128,7 +128,7 @@ function MessageBubble({ msg, currentPubkey }: { msg: OrderMessage; currentPubke
 function OrderThreadView({ thread }: { thread: OrderThread }) {
   const { user } = useCurrentUser();
   const { data: messages, isLoading, refetch } = useGammaOrderThread(thread.orderId);
-  const { sendMessage, updateOrderStatus, sendShippingUpdate } = useGammaOrderActions();
+  const { sendMessage, updateOrderStatus } = useGammaOrderActions();
   const { toast } = useToast();
   const [messageText, setMessageText] = useState('');
   const [isSending, setIsSending] = useState(false);

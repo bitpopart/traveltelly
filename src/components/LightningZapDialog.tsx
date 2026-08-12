@@ -17,14 +17,16 @@ import type { NostrEvent } from '@nostrify/nostrify';
 interface LightningZapDialogProps {
   recipientPubkey: string;
   event?: NostrEvent;
+  amount?: number;
+  onSuccess?: () => void;
   children: React.ReactNode;
 }
 
 const PRESET_AMOUNTS = [21, 100, 500, 1000, 5000];
 
-export function LightningZapDialog({ recipientPubkey, event, children }: LightningZapDialogProps) {
+export function LightningZapDialog({ recipientPubkey, event, amount: defaultAmount, onSuccess, children }: LightningZapDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [amount, setAmount] = useState(21);
+  const [amount, setAmount] = useState(defaultAmount || 21);
   const [comment, setComment] = useState('');
   const [customAmount, setCustomAmount] = useState('');
 
@@ -72,7 +74,8 @@ export function LightningZapDialog({ recipientPubkey, event, children }: Lightni
       setIsOpen(false);
       setComment('');
       setCustomAmount('');
-      setAmount(21);
+      setAmount(defaultAmount || 21);
+      onSuccess?.();
     }
   };
 

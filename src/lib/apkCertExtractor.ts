@@ -14,7 +14,6 @@
 
 function u16le(b: Uint8Array, o: number): number { return b[o] | (b[o+1] << 8); }
 function u32le(b: Uint8Array, o: number): number { return (b[o] | (b[o+1]<<8) | (b[o+2]<<16) | (b[o+3]<<24)) >>> 0; }
-function u64leHi(b: Uint8Array, o: number): number { return u32le(b, o+4); }  // high 32-bits (enough for size checks)
 function hexOf(buf: Uint8Array): string {
   return Array.from(buf).map(x => x.toString(16).padStart(2,'0')).join('');
 }
@@ -105,7 +104,7 @@ async function inflate(compressed: Uint8Array): Promise<Uint8Array> {
       chunks.push(value);
     }
   })();
-  await writer.write(compressed);
+  await writer.write(compressed as Uint8Array<ArrayBuffer>);
   await writer.close();
   await done;
   const total = chunks.reduce((n, c) => n + c.length, 0);
@@ -122,7 +121,7 @@ interface TLV { tag: number; vStart: number; vLen: number; end: number; }
 function readTLV(b: Uint8Array, pos: number): TLV {
   if (pos >= b.length) throw new Error(`DER read out of bounds at ${pos}`);
   const tag = b[pos];
-  let lenByte = b[pos + 1];
+  const lenByte = b[pos + 1];
   let vLen: number;
   let vStart: number;
   if ((lenByte & 0x80) === 0) {
@@ -165,7 +164,7 @@ function extractCertFromPKCS7(der: Uint8Array): Uint8Array | null {
     if (oid.tag !== 0x06) return null;
 
     // Level 1: [0] EXPLICIT content wrapper  (tag = 0xa0)
-    let pos1 = oid.end;
+    const pos1 = oid.end;
     const wrapper = readTLV(der, pos1);
     if (wrapper.tag !== 0xa0) return null;
 
@@ -250,7 +249,6 @@ function extractCertFromSigningBlockV2(b: Uint8Array, cdOffset: number): Uint8Ar
 
       const id = u32le(b, pos + 8);
       const valueStart = pos + 12;
-      const valueEnd   = pos + 8 + pairSize; // pairSize includes the 4-byte ID
 
       if (id === 0x7109871a) {
         // APK Signature Scheme v2 block
@@ -323,7 +321,7 @@ export async function extractApkCertFingerprint(file: File): Promise<ApkCertResu
   // A v2-signed APK also has a v1 block, but those certs can differ.
   const certDerV2 = extractCertFromSigningBlockV2(b, cdOffset);
   if (certDerV2 && certDerV2.length > 0) {
-    const hash = await crypto.subtle.digest('SHA-256', certDerV2);
+    const hash = await crypto.subtle.digest('SHA-256', certDerV2 as Uint8Array<ArrayBuffer>);
     return { fingerprint: hexOf(new Uint8Array(hash)), source: 'v2' };
   }
 
@@ -336,7 +334,7 @@ export async function extractApkCertFingerprint(file: File): Promise<ApkCertResu
   for (const sf of certFiles) {
     const certDer = extractCertFromPKCS7(sf.data);
     if (certDer && certDer.length > 0) {
-      const hash = await crypto.subtle.digest('SHA-256', certDer);
+      const hash = await crypto.subtle.digest('SHA-256', certDer as Uint8Array<ArrayBuffer>);
       return { fingerprint: hexOf(new Uint8Array(hash)), source: 'v1' };
     }
   }

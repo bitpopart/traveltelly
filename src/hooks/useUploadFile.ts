@@ -51,7 +51,7 @@ export function useUploadFile() {
 
       // Separate successes from failures
       const successes = uploadResults
-        .filter((r): r is PromiseFulfilledResult<{ server: string; tags: string[][] }> => r.status === 'fulfilled')
+        .filter((r): r is PromiseFulfilledResult<{ server: string; tags: [["url", string], ...string[][]] }> => r.status === 'fulfilled')
         .map(r => r.value);
 
       const failures = uploadResults

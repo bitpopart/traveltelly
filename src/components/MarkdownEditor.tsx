@@ -2,24 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Bold,
-  Italic,
-  Strikethrough,
-  Code,
-  Heading1,
-  Heading2,
-  Heading3,
-  Quote,
-  List,
-  ListOrdered,
-  Link,
-  Image,
-  Eye,
-  FileText,
-  Maximize2,
-  Minimize2,
-} from 'lucide-react';
+import { Bold, Italic, Heading1, Heading2, Heading3, Quote, List, ListOrdered, Link, Image, Eye, FileText, Maximize2, Minimize2 } from 'lucide-react';;
 
 interface MarkdownEditorProps {
   value: string;

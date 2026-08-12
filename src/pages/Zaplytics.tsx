@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { Link, Navigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
-import { nip19 } from 'nostr-tools';
+;
 
 function StatCard({ title, value, icon: Icon, color, subtitle }: { 
   title: string; 
@@ -232,7 +232,7 @@ export default function Zaplytics() {
                 <CardDescription>Your most generous zappers</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {analytics.topZappers.map((zapper, index) => (
+                {analytics.topZappers.map((zapper, _index) => (
                   <TopZapperCard
                     key={zapper.pubkey}
                     pubkey={zapper.pubkey}

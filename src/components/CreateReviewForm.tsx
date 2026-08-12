@@ -24,8 +24,8 @@ import { extractGPSFromImage, canContainEXIF } from '@/lib/exifUtils';
 import { compressImage, COMPRESSION_PRESETS } from '@/lib/imageCompression';
 import { useNavigate } from 'react-router-dom';
 import { GPSDebugger } from '@/components/GPSDebugger';
-import { nip19 } from 'nostr-tools';
-import { useCurrentUser } from '@/hooks/useCurrentUser';
+;
+;
 import * as geohash from 'ngeohash';
 import { testGeohashAccuracy, getGeohashPrecisionInfo } from '@/lib/geohashTest';
 import { trackCoordinates, analyzeCoordinateDrift } from '@/lib/coordinateVerification';
@@ -74,9 +74,7 @@ function CreateReviewFormContent() {
   const [extractingLocation, setExtractingLocation] = useState(false);
   const [showVideoSelector, setShowVideoSelector] = useState(false);
 
-  // Get current user for naddr creation
-  const { user } = useCurrentUser();
-
+  // Load dynamic categories
   // Load dynamic categories
   const { data: categories = [], isLoading: categoriesLoading } = useReviewCategories();
   
@@ -577,7 +575,7 @@ ${data.content || data.description || ''}
                     const lat = parseFloat(e.target.value);
                     if (!isNaN(lat) && lat >= -90 && lat <= 90) {
                       setLocation(prev => prev ? { ...prev, lat } : { lat, lng: 0 });
-                      trackCoordinates('MANUAL_INPUT', lat, prev?.lng || 0, 'Manual latitude input');
+                      trackCoordinates('MANUAL_INPUT', lat, location?.lng || 0, 'Manual latitude input');
                     }
                   }}
                   className="text-sm"
@@ -595,7 +593,7 @@ ${data.content || data.description || ''}
                     const lng = parseFloat(e.target.value);
                     if (!isNaN(lng) && lng >= -180 && lng <= 180) {
                       setLocation(prev => prev ? { ...prev, lng } : { lat: 0, lng });
-                      trackCoordinates('MANUAL_INPUT', prev?.lat || 0, lng, 'Manual longitude input');
+                      trackCoordinates('MANUAL_INPUT', location?.lat || 0, lng, 'Manual longitude input');
                     }
                   }}
                   className="text-sm"

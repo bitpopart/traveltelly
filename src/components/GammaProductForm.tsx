@@ -22,10 +22,7 @@ import { useToast } from '@/hooks/useToast';
 import { buildProductTags, type ProductType, type ProductFormat, type ProductVisibility, type ProductSpec } from '@/lib/gammaSpec';
 import { type GPSCoordinates } from '@/lib/exifUtils';
 import * as geohash from 'ngeohash';
-import {
-  Package, DollarSign, MapPin, Plus, Trash2, Loader2, FileText,
-  Truck, Eye, EyeOff, ShoppingBag, Globe2, Weight, Ruler, Settings, Tag
-} from 'lucide-react';
+import { MapPin, Plus, Trash2, Loader2, FileText, Truck, Eye, EyeOff, ShoppingBag, Weight, Settings } from 'lucide-react';;
 import { CONTINENTS, getCountriesByContinent } from '@/lib/geoData';
 
 const MEDIA_CATEGORIES = [

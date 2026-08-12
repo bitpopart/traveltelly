@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+;
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -26,7 +26,7 @@ function ContentCard({ item }: { item: ContentItem }) {
 
   const getIcon = () => {
     switch (item.type) {
-      case 'review':
+      case 'review': {
         const rating = parseInt(item.event.tags.find(([name]) => name === 'rating')?.[1] || '0');
         return (
           <div className="flex items-center gap-1">
@@ -34,6 +34,7 @@ function ContentCard({ item }: { item: ContentItem }) {
             <span className="text-sm font-medium">{rating}/5</span>
           </div>
         );
+      }
       case 'trip':
         return <MapPin className="w-4 h-4 text-blue-600" />;
       case 'story':

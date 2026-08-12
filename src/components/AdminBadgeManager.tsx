@@ -15,11 +15,7 @@ import { useToast } from '@/hooks/useToast';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { nip19 } from 'nostr-tools';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import {
-  Award, Medal, Globe, Camera, Sparkles, Users, Search,
-  Loader2, Send, CheckCircle2, AlertCircle, Crown, Trash2,
-  Plus, ImagePlus, X
-} from 'lucide-react';
+import { Award, Medal, Globe, Camera, Sparkles, Search, Loader2, Send, CheckCircle2, Crown, Plus, ImagePlus, X } from 'lucide-react';;
 
 // ------------------------------------------------------------------------------
 // PRESET BADGE CATEGORIES (with image placeholders — admin can upload images)
@@ -174,7 +170,7 @@ export function AdminBadgeManager() {
   const [newBadgeImage, setNewBadgeImage] = useState<string | null>(null);
 
   // Fetch badge definitions from Nostr (both preset + custom)
-  const { data: relayDefs = [], isLoading: loadingDefs } = useQuery({
+  const { data: relayDefs = [] } = useQuery({
     queryKey: ['badge-definitions'],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);

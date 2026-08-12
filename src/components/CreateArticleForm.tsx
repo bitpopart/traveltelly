@@ -17,17 +17,7 @@ import { type GPSCoordinates } from '@/lib/exifUtils';
 import { nip19 } from 'nostr-tools';
 import * as geohash from 'ngeohash';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import {
-  BookOpen,
-  Send,
-  Calendar,
-  AlertCircle,
-  MapPin,
-  Download,
-  Loader2,
-  Link as LinkIcon,
-  Zap
-} from 'lucide-react';
+import { BookOpen, Send, Calendar, MapPin, Download, Loader2, Link as LinkIcon, Zap } from 'lucide-react';;
 
 interface ArticleFormData {
   title: string;
@@ -44,9 +34,7 @@ export function CreateArticleForm() {
   const { mutate: createEvent, isPending } = useNostrPublish();
   const { toast } = useToast();
   const [gpsCoordinates, setGpsCoordinates] = useState<GPSCoordinates | null>(null);
-  const [uploadedPhotos, setUploadedPhotos] = useState<UploadedPhoto[]>([]);
-  const [manualLat, setManualLat] = useState('');
-  const [manualLng, setManualLng] = useState('');
+  const [, setUploadedPhotos] = useState<UploadedPhoto[]>([]);
   const [importUrl, setImportUrl] = useState('');
   const [nostrEventId, setNostrEventId] = useState('');
   const [isImporting, setIsImporting] = useState(false);
@@ -90,9 +78,9 @@ export function CreateArticleForm() {
       
       // Check if this is a Nostr client URL (Primal, etc.)
       const nostrClientPatterns = [
-        /primal\.net\/([^\/]+)\/([^\/]+)/,  // primal.net/npub/eventid
-        /highlighter\.com\/([^\/]+)\/([^\/]+)/, // highlighter.com
-        /nostrudel\.ninja\/([^\/]+)\/([^\/]+)/, // nostrudel
+        /primal\.net\/([^/]+)\/([^/]+)/,  // primal.net/npub/eventid
+        /highlighter\.com\/([^/]+)\/([^/]+)/, // highlighter.com
+        /nostrudel\.ninja\/([^/]+)\/([^/]+)/, // nostrudel
       ];
       
       let isNostrUrl = false;
@@ -218,7 +206,7 @@ export function CreateArticleForm() {
             case 'em':
             case 'i':
               return `*${children}*`;
-            case 'a':
+            case 'a': {
               let href = element.getAttribute('href') || '';
               // Convert relative URLs to absolute
               if (href && !href.startsWith('http') && !href.startsWith('mailto:')) {
@@ -229,6 +217,7 @@ export function CreateArticleForm() {
                 }
               }
               return href ? `[${children}](${href})` : children;
+            }
             case 'ul':
             case 'ol':
               return `\n${children}\n`;
@@ -240,7 +229,7 @@ export function CreateArticleForm() {
               return `\`${children}\``;
             case 'pre':
               return `\n\`\`\`\n${children}\n\`\`\`\n`;
-            case 'img':
+            case 'img': {
               let src = element.getAttribute('src') || '';
               const alt = element.getAttribute('alt') || '';
               // Convert relative URLs to absolute
@@ -252,6 +241,7 @@ export function CreateArticleForm() {
                 }
               }
               return src ? `\n![${alt}](${src})\n` : '';
+            }
             default:
               return children;
           }
@@ -341,7 +331,7 @@ export function CreateArticleForm() {
       let decoded;
       try {
         decoded = nip19.decode(eventId);
-      } catch (error) {
+      } catch {
         toast({
           title: 'Invalid event ID',
           description: 'Please enter a valid Nostr event ID (note1..., naddr1..., or nevent1...).',

@@ -36,6 +36,8 @@ export async function getServiceWorkerVersion(): Promise<string | null> {
     return null;
   }
   
+  const active = registration.active;
+  
   return new Promise((resolve) => {
     const messageChannel = new MessageChannel();
     
@@ -43,7 +45,7 @@ export async function getServiceWorkerVersion(): Promise<string | null> {
       resolve(event.data.version || null);
     };
     
-    registration.active.postMessage(
+    active.postMessage(
       { type: 'GET_VERSION' },
       [messageChannel.port2]
     );
@@ -85,7 +87,10 @@ export async function queuePostForSync(postData: unknown): Promise<void> {
   // Register sync event
   const registration = await getServiceWorkerRegistration();
   if (registration && 'sync' in registration) {
-    await registration.sync.register('sync-posts');
+    const sync = (registration as ServiceWorkerRegistration & {
+      sync: { register: (tag: string) => Promise<void> };
+    }).sync;
+    await sync.register('sync-posts');
   }
 }
 
@@ -162,10 +167,10 @@ export async function unsubscribeFromPushNotifications(): Promise<boolean> {
 /**
  * Convert VAPID key to Uint8Array
  */
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
+function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding)
-    .replace(/\-/g, '+')
+    .replace(/-/g, '+')
     .replace(/_/g, '/');
   
   const rawData = window.atob(base64);
@@ -188,7 +193,7 @@ export function isStandalone(): boolean {
   }
   
   // Check iOS standalone mode
-  if ((window.navigator as any).standalone === true) {
+  if ((window.navigator as Navigator & { standalone?: boolean }).standalone === true) {
     return true;
   }
   

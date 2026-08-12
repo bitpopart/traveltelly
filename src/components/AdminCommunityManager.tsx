@@ -60,7 +60,7 @@ export function AdminCommunityManager() {
   const [newHashtag, setNewHashtag] = useState('');
 
   const [usefulLinks, setUsefulLinks] = useState<UsefulLink[]>([]);
-  const [newLink, setNewLink] = useState({ title: '', url: '', description: '', category: 'travel' as const });
+  const [newLink, setNewLink] = useState<{ title: string; url: string; description: string; category: 'travel' | 'nostr' | 'phoneography' }>({ title: '', url: '', description: '', category: 'travel' });
 
   const [ctaTitle, setCtaTitle] = useState('');
   const [ctaDescription, setCtaDescription] = useState('');
@@ -792,7 +792,7 @@ export function AdminCommunityManager() {
                 <Label>Category</Label>
                 <select
                   value={newLink.category}
-                  onChange={(e) => setNewLink(prev => ({ ...prev, category: e.target.value as any }))}
+                  onChange={(e) => setNewLink(prev => ({ ...prev, category: e.target.value as 'travel' | 'nostr' | 'phoneography' }))}
                   className="w-full px-3 py-2 border rounded-md text-sm"
                 >
                   <option value="travel">🧭 Travel</option>

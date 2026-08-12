@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
+;
 import { Separator } from '@/components/ui/separator';
 import { Bot, Play, Pause, Settings, Info, MapPin, Camera, BookOpen, Zap, ArrowLeft, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
@@ -175,7 +175,6 @@ export function TravelBot() {
 
       // Extract images and create enhanced references
       const imageUrls: string[] = [];
-      const allTags: string[][] = [];
 
       const neventLinks = selectedPosts.map((event) => {
         const nevent = nip19.neventEncode({

@@ -23,8 +23,6 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
 
   if (!currentUser) return null;
 
-  // The Traveltelly admin npub
-  const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642';
   const ADMIN_HEX = '7d33ba57d8a6e8869a1f1d5215254597594ac0dbfeb01b690def8c461b82db35';
 
   const getDisplayName = (account: Account): string => {

@@ -114,7 +114,7 @@ function productMatchesBin(product: MarketplaceProduct, bin: MarketplaceBin): bo
 /** Derive what update to apply to make a product match a bin */
 function buildAssignUpdates(
   bin: MarketplaceBin,
-  product: MarketplaceProduct,
+  _product: MarketplaceProduct,
 ): Partial<MarketplaceProduct & { isFree?: boolean }> | null {
   switch (bin.filterType) {
     case 'category':

@@ -20,7 +20,7 @@ import { ChevronRight, FolderOpen } from 'lucide-react';
 
 /** Strip leading emoji characters from a title (backward-compat with old saved bins). */
 function stripLeadingEmoji(str: string): string {
-  return str.replace(/^[\p{Emoji}\p{Emoji_Modifier}\p{Emoji_Component}\u200d\ufe0f\s]+/u, '').trim();
+  return str.replace(/^(?:\p{Emoji}|\p{Emoji_Modifier}|\p{Emoji_Component}|\s|\u200d|\uFE0F)+/u, '').trim();
 }
 
 // ── parser (lightweight copy to avoid circular imports) ───────────────────────

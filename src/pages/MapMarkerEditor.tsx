@@ -14,25 +14,7 @@ import { useReviewPermissions } from '@/hooks/useReviewPermissions';
 import { useReviewCategories } from '@/hooks/useReviewCategories';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { nip19 } from 'nostr-tools';
-import { 
-  Shield, 
-  ArrowLeft, 
-  Upload, 
-  Download, 
-  MapPin, 
-  Camera, 
-  Star,
-  Coffee,
-  Utensils,
-  FileImage,
-  Eye,
-  Info,
-  CheckCircle2,
-  XCircle,
-  Plus,
-  Trash2,
-  Edit
-} from 'lucide-react';
+import { Shield, ArrowLeft, Upload, Download, MapPin, Camera, Star, Coffee, Utensils, FileImage, Eye, Info, CheckCircle2, XCircle, Plus, Trash2 } from 'lucide-react';;
 import { Link } from 'react-router-dom';
 
 interface MarkerConfig {
@@ -113,7 +95,6 @@ export default function MapMarkerEditor() {
     category: ''
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const newMarkerFileRef = useRef<HTMLInputElement>(null);
 
   const allMarkers = [...defaultMarkers, ...customMarkers];
 

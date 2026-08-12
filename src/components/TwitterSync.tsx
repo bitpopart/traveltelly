@@ -6,24 +6,12 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Separator } from '@/components/ui/separator';
+;
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useToast } from '@/hooks/useToast';
 import { useNostr } from '@nostrify/react';
 import { nip19 } from 'nostr-tools';
-import { 
-  Twitter, 
-  CheckCircle2,
-  AlertCircle,
-  Info,
-  ExternalLink,
-  Settings,
-  List,
-  Loader2,
-  Zap,
-  Radio as RadioIcon,
-  Link2
-} from 'lucide-react';
+import { Twitter, CheckCircle2, AlertCircle, Info, ExternalLink, Settings, List, Loader2, Zap, Link2 } from 'lucide-react';;
 
 /**
  * TwitterSync - Nostr.Band Twitter Bot Integration
@@ -61,7 +49,7 @@ export function TwitterSync() {
   const [verifyMode, setVerifyMode] = useState(false);
   const [verifyTweetLink, setVerifyTweetLink] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
-  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [, setIsLoadingProfile] = useState(false);
 
   const DEFAULT_RELAYS = [
     'wss://relay.ditto.pub',
@@ -165,8 +153,6 @@ export function TwitterSync() {
 
         throw new Error(error.message || 'Failed to connect account');
       }
-
-      const data = await response.json();
 
       toast({
         title: 'Success!',
@@ -350,7 +336,7 @@ export function TwitterSync() {
             {/* Broadcast Type Selection */}
             <div className="space-y-3">
               <Label>Publishing Mode</Label>
-              <RadioGroup value={broadcastType} onValueChange={(value: any) => setBroadcastType(value)}>
+              <RadioGroup value={broadcastType} onValueChange={(value: 'public' | 'specific') => setBroadcastType(value)}>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="public" id="public" />
                   <Label htmlFor="public" className="font-normal cursor-pointer">

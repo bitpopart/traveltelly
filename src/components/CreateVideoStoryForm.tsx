@@ -42,7 +42,6 @@ export function CreateVideoStoryForm() {
   const { user } = useCurrentUser();
   const { mutate: createEvent, isPending } = useNostrPublish();
   const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
-  const [currentUploadProgress, setCurrentUploadProgress] = useState<number>(0);
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -64,7 +63,7 @@ export function CreateVideoStoryForm() {
   const [videoDimensions, setVideoDimensions] = useState<{ width: number; height: number } | null>(null);
   const [trimStart, setTrimStart] = useState<number>(0);
   const [trimEnd, setTrimEnd] = useState<number>(6);
-  const [showTrimEditor, setShowTrimEditor] = useState<boolean>(false);
+  const [, setShowTrimEditor] = useState<boolean>(false);
   const [isPreviewing, setIsPreviewing] = useState<boolean>(false);
   const previewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const previewIntervalRef = useRef<NodeJS.Timeout | null>(null);

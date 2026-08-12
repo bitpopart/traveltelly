@@ -2,6 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useCurrentUser } from './useCurrentUser';
 import { useToast } from './useToast';
 import { extractApkCertFingerprint } from '@/lib/apkCertExtractor';
+import type { NostrEvent } from '@nostrify/nostrify';
 
 const ZAPSTORE_RELAY = 'wss://relay.zapstore.dev';
 const ZAPSTORE_BLOSSOM = 'https://cdn.zapstore.dev';
@@ -86,7 +87,9 @@ async function blossomExists(sha256: string): Promise<boolean> {
 async function blossomUpload(
   file: File,
   sha256: string,
-  signer: { signEvent: (e: object) => Promise<Record<string, unknown>> },
+  signer: {
+    signEvent: (e: Omit<NostrEvent, 'id' | 'pubkey' | 'sig'>) => Promise<NostrEvent>;
+  },
   onProgress?: (pct: number) => void,
 ): Promise<string> {
   const url = `${ZAPSTORE_BLOSSOM}/${sha256}`;
@@ -146,7 +149,7 @@ async function blossomUpload(
 }
 
 /** Send a signed Nostr event to a relay via WebSocket. */
-async function publishToRelay(event: Record<string, unknown>, relayUrl: string): Promise<void> {
+async function publishToRelay(event: NostrEvent, relayUrl: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(relayUrl);
     let settled = false;

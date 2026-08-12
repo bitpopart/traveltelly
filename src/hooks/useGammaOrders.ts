@@ -10,7 +10,7 @@ import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
-import { generateOrderId, type GammaOrderMessage, type OrderItem, type PaymentDetail, type OrderStatus, type ShippingStatus } from '@/lib/gammaSpec';
+import { generateOrderId, type OrderItem, type PaymentDetail, type OrderStatus, type ShippingStatus } from '@/lib/gammaSpec';
 
 export interface OrderThread {
   orderId: string;

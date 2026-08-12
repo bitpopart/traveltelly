@@ -17,7 +17,6 @@ import {
   formatTripForClawstr,
   formatMediaForClawstr,
   createCustomClawstrPost,
-  type ClawstrSubclaw,
 } from '@/lib/clawstr';
 
 interface ClawstrShareProps {

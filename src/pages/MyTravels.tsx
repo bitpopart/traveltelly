@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { Navigation } from '@/components/Navigation';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';;
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+;
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -24,25 +24,7 @@ import { CheckInForm } from '@/components/CheckInForm';
 import { MyWorldMap } from '@/components/MyWorldMap';
 import { OptimizedImage } from '@/components/OptimizedImage';
 import { Switch } from '@/components/ui/switch';
-import { 
-  MapPin, 
-  Star, 
-  BookOpen, 
-  Camera, 
-  Image as ImageIcon,
-  Edit,
-  Save,
-  X,
-  Loader2,
-  Navigation as NavigationIcon,
-  Calendar,
-  Zap,
-  Map,
-  User,
-  Eye,
-  EyeOff,
-  Video
-} from 'lucide-react';
+import { MapPin, Star, BookOpen, Camera, Image as ImageIcon, Edit, Save, X, Loader2, Navigation as NavigationIcon, Zap, Map, User, Eye, EyeOff, Video } from 'lucide-react';;
 import { Link, Navigate } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
 import { formatDistanceToNow } from 'date-fns';
@@ -251,11 +233,11 @@ export default function MyTravels() {
   const [isMyMapDialogOpen, setIsMyMapDialogOpen] = useState(false);
   const [isVlogDialogOpen, setIsVlogDialogOpen] = useState(false);
 
-  const { data: reviews, isLoading: loadingReviews } = useUserReviews(user?.pubkey);
-  const { data: stories, isLoading: loadingStories } = useUserStories(user?.pubkey);
-  const { data: trips, isLoading: loadingTrips } = useUserTrips(user?.pubkey);
+  const { data: reviews, isLoading: loadingReviews } = useUserReviews(user?.pubkey ?? '');
+  const { data: stories, isLoading: loadingStories } = useUserStories(user?.pubkey ?? '');
+  const { data: trips, isLoading: loadingTrips } = useUserTrips(user?.pubkey ?? '');
   const { data: media, isLoading: loadingMedia } = useUserMedia(user?.pubkey);
-  const { data: checkIns, isLoading: loadingCheckIns } = useUserCheckIns(user?.pubkey);
+  const { data: checkIns } = useUserCheckIns(user?.pubkey);
   const { data: visitedCountriesEvent } = useVisitedCountries(user?.pubkey);
   const privacySettings = usePrivacySettingsData(user?.pubkey);
 

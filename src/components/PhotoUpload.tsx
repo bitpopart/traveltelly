@@ -128,7 +128,7 @@ export function PhotoUpload({
       }
 
       // Extract metadata from first photo (before compression)
-      let shouldExtractMetadata = photos.length === 0 && newPhotos.length === 0;
+      const shouldExtractMetadata = photos.length === 0 && newPhotos.length === 0;
       if (shouldExtractMetadata) {
         try {
           console.log('🔍 Extracting full metadata from first photo...');

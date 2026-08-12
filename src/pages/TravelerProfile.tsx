@@ -16,21 +16,12 @@ import { useUserCheckIns } from '@/hooks/useCheckIns';
 import { useVisitedCountries } from '@/hooks/useVisitedCountries';
 import { usePrivacySettingsData } from '@/hooks/usePrivacySettings';
 import { genUserName } from '@/lib/genUserName';
-import { COUNTRIES } from '@/lib/countries';
-import { 
-  MapPin, 
-  Star, 
-  BookOpen, 
-  Camera, 
-  Image as ImageIcon,
-  Globe,
-  Calendar,
-  ExternalLink
-} from 'lucide-react';
+;
+import { MapPin, Star, BookOpen, Camera, Image as ImageIcon, Globe, ExternalLink } from 'lucide-react';;
 import { ZapButton } from '@/components/ZapButton';
 import { nip19 } from 'nostr-tools';
 import { formatDistanceToNow } from 'date-fns';
-import type { NostrEvent } from '@nostrify/nostrify';
+;
 
 // Admin npub
 const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642';
@@ -96,7 +87,7 @@ export default function TravelerProfile() {
         if (decoded.type === 'npub') {
           return decoded.data;
         }
-      } catch (e) {
+      } catch {
         // Not a valid npub, will try as name
       }
     }
@@ -113,13 +104,21 @@ export default function TravelerProfile() {
 
   const author = useAuthor(pubkey || '');
   const metadata = author.data?.metadata;
-  const { data: reviews, isLoading: loadingReviews } = useUserReviews(pubkey);
-  const { data: stories, isLoading: loadingStories } = useUserStories(pubkey);
-  const { data: trips, isLoading: loadingTrips } = useUserTrips(pubkey);
-  const { data: media, isLoading: loadingMedia } = useUserMedia(pubkey);
-  const { data: checkIns, isLoading: loadingCheckIns } = useUserCheckIns(pubkey);
-  const { data: visitedCountriesEvent } = useVisitedCountries(pubkey);
-  const privacySettings = usePrivacySettingsData(pubkey);
+  const { data: reviews, isLoading: loadingReviews } = useUserReviews(pubkey ?? '');
+  const { data: stories, isLoading: loadingStories } = useUserStories(pubkey ?? '');
+  const { data: trips } = useUserTrips(pubkey ?? '');
+  const { data: media } = useUserMedia(pubkey ?? '');
+  const { data: checkIns } = useUserCheckIns(pubkey ?? '');
+  const { data: visitedCountriesEvent } = useVisitedCountries(pubkey ?? '');
+  const privacySettings = usePrivacySettingsData(pubkey ?? '');
+
+  // Parse visited countries (hoisted above early returns — rules-of-hooks)
+  const visitedCountries = useMemo(() => {
+    if (!visitedCountriesEvent) return [];
+    return visitedCountriesEvent.tags
+      .filter(([name]) => name === 'country')
+      .map(([, code]) => code);
+  }, [visitedCountriesEvent]);
 
   if (!username) {
     return <Navigate to="/" replace />;
@@ -154,14 +153,6 @@ export default function TravelerProfile() {
   const website = metadata?.website;
   const lightningAddress = metadata?.lud16 || metadata?.lud06;
   const latestCheckIn = checkIns?.[0];
-
-  // Parse visited countries
-  const visitedCountries = useMemo(() => {
-    if (!visitedCountriesEvent) return [];
-    return visitedCountriesEvent.tags
-      .filter(([name]) => name === 'country')
-      .map(([, code]) => code);
-  }, [visitedCountriesEvent]);
 
   const isLoading = author.isLoading;
 

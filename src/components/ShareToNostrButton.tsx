@@ -6,7 +6,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
 import { usePriceConversion } from '@/hooks/usePriceConversion';
-import { Zap, Share2 } from 'lucide-react';
+import { Zap } from 'lucide-react';;
 
 interface ShareToNostrButtonProps {
   url: string;
@@ -24,7 +24,6 @@ interface ShareToNostrButtonProps {
 export function ShareToNostrButton({
   url,
   title,
-  description,
   defaultContent,
   image,
   price,

@@ -129,7 +129,7 @@ function CheckInMarker({ checkIn, userPubkey }: { checkIn: CheckInLocation; user
 }
 
 export function MyWorldMap({ userPubkey, checkIns, visitedCountriesEvent }: MyWorldMapProps) {
-  const { currentProvider } = useMapProvider();
+  const { mapProvider: currentProvider } = useMapProvider();
   const tileConfig = getTileLayerConfig(currentProvider);
 
   // Parse check-ins into locations

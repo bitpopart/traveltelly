@@ -1,4 +1,4 @@
-import { useNostr } from '@nostrify/react';
+;
 import { useMutation } from '@tanstack/react-query';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { useAppContext } from './useAppContext';
@@ -19,7 +19,6 @@ const BROADCAST_RELAYS = [
  * (like divine.video) into the broader relay network.
  */
 export function useRebroadcast() {
-  const { nostr } = useNostr();
   const { config } = useAppContext();
 
   return useMutation({

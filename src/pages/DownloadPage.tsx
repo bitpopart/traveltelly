@@ -9,10 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/useToast';
-import {
-  Download, CheckCircle, AlertCircle, FileText, Image as ImageIcon,
-  Video, Music, Palette, Clock, Shield, Mail, ExternalLink, ArrowLeft, Zap, CreditCard,
-} from 'lucide-react';
+import { Download, CheckCircle, AlertCircle, FileText, Image as ImageIcon, Video, Music, Clock, Shield, Mail, ExternalLink, ArrowLeft, Zap, CreditCard } from 'lucide-react';;
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface DownloadItem {
@@ -217,7 +214,7 @@ const DownloadPage = () => {
       setDownloadProgress(prev => ({ ...prev, [item.id]: 100 }));
       setDownloaded(prev => new Set([...prev, item.id]));
       toast({ title: 'Download started', description: `${item.name} — check your downloads folder.` });
-    } catch (err) {
+    } catch {
       setDownloadProgress(prev => { const n = { ...prev }; delete n[item.id]; return n; });
       toast({ title: 'Download failed', description: 'Try right-clicking → Save as.', variant: 'destructive' });
     }

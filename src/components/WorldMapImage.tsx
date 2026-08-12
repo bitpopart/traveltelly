@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';;
 
 interface WorldMapImageProps {
   visitedCountries: string[];
@@ -10,7 +10,6 @@ interface WorldMapImageProps {
 export function WorldMapImage({ visitedCountries, className = '' }: WorldMapImageProps) {
   const [svgContent, setSvgContent] = useState<string>('');
   const [loadError, setLoadError] = useState<boolean>(false);
-  const visitedSet = useMemo(() => new Set(visitedCountries.map(c => c.toLowerCase())), [visitedCountries]);
 
   useEffect(() => {
     // Load the marked-up SVG file - use absolute path from document origin

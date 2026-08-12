@@ -11,9 +11,9 @@ import { PhotoUpload, type UploadedPhoto } from '@/components/PhotoUpload';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
-import { type GPSCoordinates, extractPhotoMetadata } from '@/lib/exifUtils';
+import { type GPSCoordinates, type PhotoMetadata } from '@/lib/exifUtils';;
 import * as geohash from 'ngeohash';
-import { CONTINENTS, getCountriesByContinent, getContinentForCountry } from '@/lib/geoData';
+import { CONTINENTS, getCountriesByContinent } from '@/lib/geoData';;
 import { Plus, Loader2, Package, DollarSign, MapPin, Globe2, FolderTree } from 'lucide-react';
 
 interface CreateProductDialogProps {
@@ -337,13 +337,13 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
                         type="number"
                         step="0.000001"
                         placeholder="e.g., 13.736717"
-                        value={gpsCoordinates?.latitude || ''}
+                        value={(gpsCoordinates as GPSCoordinates | null)?.latitude ?? ''}
                         onChange={(e) => {
                           const lat = parseFloat(e.target.value);
                           if (!isNaN(lat) && lat >= -90 && lat <= 90) {
                             setGpsCoordinates(prev => ({ 
                               latitude: lat, 
-                              longitude: prev?.longitude || 0 
+                              longitude: prev?.longitude ?? 0 
                             }));
                           }
                         }}
@@ -357,12 +357,12 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
                         type="number"
                         step="0.000001"
                         placeholder="e.g., 100.523186"
-                        value={gpsCoordinates?.longitude || ''}
+                        value={(gpsCoordinates as GPSCoordinates | null)?.longitude ?? ''}
                         onChange={(e) => {
                           const lng = parseFloat(e.target.value);
                           if (!isNaN(lng) && lng >= -180 && lng <= 180) {
                             setGpsCoordinates(prev => ({ 
-                              latitude: prev?.latitude || 0, 
+                              latitude: prev?.latitude ?? 0, 
                               longitude: lng 
                             }));
                           }

@@ -1,5 +1,5 @@
 import { useParams, Navigate } from 'react-router-dom';
-import { useEffect } from 'react';
+;
 import Index from './Index';
 
 // List of known routes that should NOT be treated as locations

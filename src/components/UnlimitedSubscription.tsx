@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
+;
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useCustomerSession, useCustomer } from '@/hooks/useCustomers';
 import { useToast } from '@/hooks/useToast';
@@ -12,11 +12,12 @@ import { hasActiveSubscription } from '@/lib/customerSchema';
 
 interface UnlimitedSubscriptionProps {
   onSubscriptionComplete?: (customerEmail: string) => void;
+  onCancel?: () => void;
 }
 
 const SUBSCRIPTION_PRICE = 99; // USD or equivalent in sats
 
-export function UnlimitedSubscription({ onSubscriptionComplete }: UnlimitedSubscriptionProps) {
+export function UnlimitedSubscription({ onSubscriptionComplete, onCancel }: UnlimitedSubscriptionProps) {
   const { session, setSession } = useCustomerSession();
   const { toast } = useToast();
   const { data: existingCustomer } = useCustomer(session?.email || null);
@@ -69,7 +70,7 @@ export function UnlimitedSubscription({ onSubscriptionComplete }: UnlimitedSubsc
       });
 
       onSubscriptionComplete?.(email);
-    } catch (error) {
+    } catch {
       toast({
         title: 'Subscription failed',
         description: 'Please try again',

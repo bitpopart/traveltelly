@@ -52,7 +52,7 @@ export function useGeoWorld() {
   return useQuery({
     queryKey: ['geo-world', Array.from(uploaders || []).join(',')],
     queryFn: async (c) => {
-      if (!uploaders?.size) return [];
+      if (!uploaders?.size) return { nodes: [], total: 0, untaggedCount: 0, untaggedThumb: '' };
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(8000)]);
       const events = await nostr.query([{
         kinds: [30402],

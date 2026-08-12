@@ -1,10 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+;
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   AlertDialog,
@@ -17,28 +17,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/useToast';
-import {
-  Image,
-  Video,
-  Music,
-  FileText,
-  File,
-  Trash2,
-  Copy,
-  ExternalLink,
-  Search,
-  RefreshCw,
-  HardDrive,
-  Filter,
-  X,
-  Download,
-  ChevronLeft,
-  ChevronRight,
-  CheckCircle2,
-  AlertCircle,
-  Loader2,
-  Globe,
-} from 'lucide-react';
+import { Image, Video, Music, FileText, File, Trash2, Copy, ExternalLink, Search, RefreshCw, HardDrive, X, Download, ChevronLeft, ChevronRight, CheckCircle2, AlertCircle, Loader2, Globe } from 'lucide-react';;
 
 // ── Server definitions ────────────────────────────────────────────────────────
 
@@ -324,24 +303,6 @@ function FileCard({ blob, onDelete }: FileCardProps) {
   );
 }
 
-// ── Server status badge ───────────────────────────────────────────────────────
-
-interface ServerStatusBadgeProps {
-  isLoading: boolean;
-  isError: boolean;
-  count: number;
-  hasNextPage: boolean;
-}
-function ServerStatusBadge({ isLoading, isError, count, hasNextPage }: ServerStatusBadgeProps) {
-  if (isLoading) return <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />;
-  if (isError) return <AlertCircle className="w-3.5 h-3.5 text-red-500" title="Failed to load" />;
-  return (
-    <span className="text-[10px] font-medium bg-gray-200 dark:bg-gray-700 rounded-full px-1.5 py-0.5 leading-none">
-      {count}{hasNextPage ? '+' : ''}
-    </span>
-  );
-}
-
 // ── Per-server panel ──────────────────────────────────────────────────────────
 
 interface ServerPanelProps {
@@ -580,16 +541,97 @@ function ServerPanel({ server, pubkey }: ServerPanelProps) {
 
 // ── Overview tab: show counts across all servers ──────────────────────────────
 
-function OverviewPanel({ pubkey }: { pubkey: string }) {
-  // Fetch counts from all servers simultaneously
-  const results = BLOSSOM_SERVERS.map(server => {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const { data, isLoading, isError } = useBlossomFiles(server, pubkey, undefined, true);
-    return { server, data: data ?? [], isLoading, isError };
-  });
+interface OverviewServerStats {
+  files: number;
+  size: number;
+  loading: boolean;
+  error: boolean;
+}
 
-  const totalFiles = results.reduce((s, r) => s + r.data.length, 0);
-  const totalSize = results.reduce((s, r) => s + r.data.reduce((ss, b) => ss + b.size, 0), 0);
+// ── Single server card for the Overview tab (calls useBlossomFiles once) ─────
+
+function OverviewServerCard({ server, pubkey, onStats }: {
+  server: BlossomServer;
+  pubkey: string;
+  onStats: (serverId: string, stats: OverviewServerStats) => void;
+}) {
+  const { data = [], isLoading, isError } = useBlossomFiles(server, pubkey, undefined, true);
+
+  const stats = useMemo<OverviewServerStats>(() => ({
+    files: data.length,
+    size: data.reduce((s, b) => s + b.size, 0),
+    loading: isLoading,
+    error: isError,
+  }), [data, isLoading, isError]);
+
+  useEffect(() => {
+    onStats(server.id, stats);
+  }, [onStats, server.id, stats]);
+
+  const colors = SERVER_COLOR_CLASSES[server.color];
+  const imgCount = data.filter(b => b.type.startsWith('image/')).length;
+  const vidCount = data.filter(b => b.type.startsWith('video/')).length;
+  const audCount = data.filter(b => b.type.startsWith('audio/')).length;
+  const size = stats.size;
+
+  return (
+    <Card className="overflow-hidden">
+      <div className={`h-1 ${server.color === 'purple' ? 'bg-purple-500' : server.color === 'orange' ? 'bg-orange-500' : server.color === 'blue' ? 'bg-blue-500' : 'bg-green-500'}`} />
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <HardDrive className={`w-4 h-4 ${colors.accent}`} />
+            <span className="font-semibold text-sm">{server.name}</span>
+            <span className="text-xs text-muted-foreground">{server.url.replace('https://', '')}</span>
+          </div>
+          {isLoading ? (
+            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+          ) : isError ? (
+            <div className="flex items-center gap-1 text-xs text-red-500">
+              <AlertCircle className="w-3.5 h-3.5" /> Error
+            </div>
+          ) : (
+            <div className="flex items-center gap-1 text-xs text-green-600">
+              <CheckCircle2 className="w-3.5 h-3.5" /> {data.length}{data.length === PAGE_SIZE ? '+' : ''} files
+            </div>
+          )}
+        </div>
+
+        {!isLoading && !isError && (
+          <div className="grid grid-cols-4 gap-2 text-center">
+            {[
+              { label: 'Size', value: formatBytes(size) },
+              { label: 'Images', value: String(imgCount) },
+              { label: 'Videos', value: String(vidCount) },
+              { label: 'Audio', value: String(audCount) },
+            ].map(s => (
+              <div key={s.label} className="bg-gray-50 dark:bg-gray-800 rounded-lg py-2 px-1">
+                <p className="text-[10px] text-muted-foreground">{s.label}</p>
+                <p className="text-sm font-semibold">{s.value}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        {isError && (
+          <p className="text-xs text-muted-foreground">Could not connect — server may require auth or your account has no files here.</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Overview tab: show counts across all servers ──────────────────────────────
+
+function OverviewPanel({ pubkey }: { pubkey: string }) {
+  const [stats, setStats] = useState<Record<string, OverviewServerStats>>({});
+
+  const onStats = useCallback((serverId: string, s: OverviewServerStats) => {
+    setStats(prev => ({ ...prev, [serverId]: s }));
+  }, []);
+
+  const anyLoading = BLOSSOM_SERVERS.some(server => !stats[server.id] || stats[server.id].loading);
+  const totalFiles = BLOSSOM_SERVERS.reduce((s, server) => s + (stats[server.id]?.files ?? 0), 0);
+  const totalSize = BLOSSOM_SERVERS.reduce((s, server) => s + (stats[server.id]?.size ?? 0), 0);
 
   return (
     <div className="space-y-4 pt-2">
@@ -598,71 +640,22 @@ function OverviewPanel({ pubkey }: { pubkey: string }) {
           <Globe className="w-6 h-6 text-gray-500" />
           <div>
             <p className="text-xs text-muted-foreground">Total files (all servers)</p>
-            <p className="text-2xl font-bold">{results.some(r => r.isLoading) ? '…' : totalFiles + '+'}</p>
+            <p className="text-2xl font-bold">{anyLoading ? '…' : totalFiles + '+'}</p>
           </div>
         </div>
         <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 flex items-center gap-3">
           <HardDrive className="w-6 h-6 text-blue-500" />
           <div>
             <p className="text-xs text-muted-foreground">Total size (all servers)</p>
-            <p className="text-2xl font-bold">{results.some(r => r.isLoading) ? '…' : formatBytes(totalSize)}</p>
+            <p className="text-2xl font-bold">{anyLoading ? '…' : formatBytes(totalSize)}</p>
           </div>
         </div>
       </div>
 
       <div className="space-y-3">
-        {results.map(({ server, data, isLoading, isError }) => {
-          const colors = SERVER_COLOR_CLASSES[server.color];
-          const imgCount = data.filter(b => b.type.startsWith('image/')).length;
-          const vidCount = data.filter(b => b.type.startsWith('video/')).length;
-          const audCount = data.filter(b => b.type.startsWith('audio/')).length;
-          const size = data.reduce((s, b) => s + b.size, 0);
-
-          return (
-            <Card key={server.id} className="overflow-hidden">
-              <div className={`h-1 ${server.color === 'purple' ? 'bg-purple-500' : server.color === 'orange' ? 'bg-orange-500' : server.color === 'blue' ? 'bg-blue-500' : 'bg-green-500'}`} />
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <HardDrive className={`w-4 h-4 ${colors.accent}`} />
-                    <span className="font-semibold text-sm">{server.name}</span>
-                    <span className="text-xs text-muted-foreground">{server.url.replace('https://', '')}</span>
-                  </div>
-                  {isLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                  ) : isError ? (
-                    <div className="flex items-center gap-1 text-xs text-red-500">
-                      <AlertCircle className="w-3.5 h-3.5" /> Error
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1 text-xs text-green-600">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> {data.length}{data.length === PAGE_SIZE ? '+' : ''} files
-                    </div>
-                  )}
-                </div>
-
-                {!isLoading && !isError && (
-                  <div className="grid grid-cols-4 gap-2 text-center">
-                    {[
-                      { label: 'Size', value: formatBytes(size) },
-                      { label: 'Images', value: String(imgCount) },
-                      { label: 'Videos', value: String(vidCount) },
-                      { label: 'Audio', value: String(audCount) },
-                    ].map(s => (
-                      <div key={s.label} className="bg-gray-50 dark:bg-gray-800 rounded-lg py-2 px-1">
-                        <p className="text-[10px] text-muted-foreground">{s.label}</p>
-                        <p className="text-sm font-semibold">{s.value}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {isError && (
-                  <p className="text-xs text-muted-foreground">Could not connect — server may require auth or your account has no files here.</p>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
+        {BLOSSOM_SERVERS.map(server => (
+          <OverviewServerCard key={server.id} server={server} pubkey={pubkey} onStats={onStats} />
+        ))}
       </div>
     </div>
   );

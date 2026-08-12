@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,10 +14,11 @@ import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useUploadFile } from '@/hooks/useUploadFile';
 import { useToast } from '@/hooks/useToast';
 import { useNostr } from '@nostrify/react';
+import type { NostrEvent } from '@nostrify/nostrify';
 import { extractPhotoMetadata, type PhotoMetadata } from '@/lib/exifUtils';
 import { CONTINENTS, getCountriesByContinent } from '@/lib/geoData';
 import { nip19 } from 'nostr-tools';
-import { Upload, FileText, CheckCircle2, XCircle, Loader2, Download, AlertCircle, Image as ImageIcon, X, FileUp, Edit2, Save, CheckSquare, Square, Repeat, Globe2, FolderTree } from 'lucide-react';
+import { Upload, CheckCircle2, XCircle, Loader2, Download, AlertCircle, Image as ImageIcon, X, FileUp, Edit2, Save, CheckSquare, Square, Repeat, Globe2, FolderTree } from 'lucide-react';;
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import * as geohash from 'ngeohash';
@@ -158,7 +159,6 @@ export function AdminMassUpload() {
 
   const extractMetadataFromFiles = async (files: File[]) => {
     setIsExtracting(true);
-    const newItems: UploadItem[] = [];
 
     for (const file of files) {
       const itemId = `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -265,23 +265,23 @@ export function AdminMassUpload() {
     await extractMetadataFromFiles(validFiles);
   };
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(true);
-  }, []);
+  };
 
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
+  const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-  }, []);
+  };
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     
     const files = Array.from(e.dataTransfer.files);
     handleFiles(files);
-  }, []);
+  };
 
   const parseCSV = (text: string): Record<string, string>[] => {
     const lines = text.split('\n').filter(line => line.trim());
@@ -471,77 +471,6 @@ export function AdminMassUpload() {
     return null;
   };
 
-  const uploadSingleItem = async (item: UploadItem): Promise<void> => {
-    // Validate
-    const validationError = validateItem(item);
-    if (validationError) {
-      throw new Error(validationError);
-    }
-
-    // Upload file to Blossom
-    const result = await uploadFile(item.file);
-    const imageUrl = result[0][1];
-
-    // Build tags for NIP-99 classified listing
-    const productId = `mass_upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const tags: string[][] = [
-      ['d', productId],
-      ['title', item.title],
-      ['summary', item.description.slice(0, 200)],
-      ['price', item.price, item.currency.toUpperCase()],
-      ['t', item.mediaType],
-      ['category', item.category],
-      ['status', 'active'],
-      ['published_at', Math.floor(Date.now() / 1000).toString()],
-      ['image', imageUrl],
-    ];
-
-    // Add geographical organization tags
-    if (item.continent?.trim()) {
-      tags.push(['continent', item.continent.trim()]);
-    }
-    if (item.country?.trim()) {
-      tags.push(['country', item.country.trim()]);
-    }
-    if (item.continent?.trim() && item.country?.trim()) {
-      tags.push(['geo_folder', `${item.continent.trim()}/${item.country.trim()}`]);
-    }
-
-    // Add location if provided
-    if (item.location?.trim()) {
-      tags.push(['location', item.location.trim()]);
-    }
-
-    // Add keywords as tags
-    if (item.keywords?.trim()) {
-      const keywordList = item.keywords
-        .split(',')
-        .map(k => k.trim())
-        .filter(Boolean);
-      
-      keywordList.forEach(keyword => {
-        tags.push(['t', keyword.toLowerCase()]);
-      });
-    }
-
-    // Add geohash if coordinates provided
-    if (item.latitude?.trim() && item.longitude?.trim()) {
-      const lat = parseFloat(item.latitude);
-      const lng = parseFloat(item.longitude);
-      
-      if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-        const hash = geohash.encode(lat, lng, 8);
-        tags.push(['g', hash]);
-      }
-    }
-
-    // Publish event
-    await publishEvent({
-      kind: 30402,
-      content: item.description,
-      tags,
-    });
-  };
 
   // Batch upload and sign all events at once
   const uploadAndSignBatch = async (items: UploadItem[]) => {
@@ -637,7 +566,7 @@ export function AdminMassUpload() {
       duration: 5000,
     });
 
-    const signedEvents: Array<{ item: UploadItem; event: any }> = [];
+    const signedEvents: Array<{ item: UploadItem; event: NostrEvent }> = [];
     
     for (let i = 0; i < uploadResults.length; i++) {
       const { item, tags } = uploadResults[i];

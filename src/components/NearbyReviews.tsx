@@ -2,13 +2,12 @@ import { useQuery } from '@tanstack/react-query';
 import { useNostr } from '@nostrify/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+;
+;
 import { Skeleton } from '@/components/ui/skeleton';
 import { OptimizedImage } from '@/components/OptimizedImage';
-import { useAuthor } from '@/hooks/useAuthor';
-import { genUserName } from '@/lib/genUserName';
-import { MapPin, Star, ArrowRight, Navigation } from 'lucide-react';
+;
+import { Star, ArrowRight, Navigation } from 'lucide-react';;
 import { Link } from 'react-router-dom';
 import * as geohash from 'ngeohash';
 import type { NostrEvent } from '@nostrify/nostrify';
@@ -65,14 +64,10 @@ interface NearbyReviewCardProps {
 }
 
 function NearbyReviewCard({ review }: NearbyReviewCardProps) {
-  const author = useAuthor(review.pubkey);
-  const metadata = author.data?.metadata;
-  const displayName = metadata?.name || genUserName(review.pubkey);
-
+  
   const title = review.tags.find(([name]) => name === 'title')?.[1] || 'Untitled';
   const rating = parseInt(review.tags.find(([name]) => name === 'rating')?.[1] || '0');
   const category = review.tags.find(([name]) => name === 'category')?.[1] || '';
-  const location = review.tags.find(([name]) => name === 'location')?.[1];
   const image = review.tags.find(([name]) => name === 'image')?.[1];
   const reviewSlug = review.tags.find(([name]) => name === 'd')?.[1];
 

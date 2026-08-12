@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNostr } from '@nostrify/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
+;
 import { OptimizedImage } from '@/components/OptimizedImage';
 import { Camera, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';

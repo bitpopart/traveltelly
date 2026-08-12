@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Navigation } from '@/components/Navigation';
 import { Footer } from '@/components/Footer';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';;
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+;
+;
 import { Skeleton } from '@/components/ui/skeleton';
 import { RelaySelector } from '@/components/RelaySelector';
-import { OptimizedImage } from '@/components/OptimizedImage';
+;
 import { CreateArticleForm } from '@/components/CreateArticleForm';
 import { CreateVideoStoryForm } from '@/components/CreateVideoStoryForm';
 import { UploadHtmlStoryForm } from '@/components/UploadHtmlStoryForm';
-import { VideoPlayerDialog } from '@/components/VideoPlayerDialog';
+;
 import { VideoThumbnailGrid } from '@/components/VideoThumbnailGrid';
 import { WrittenStoryThumbnailGrid } from '@/components/WrittenStoryThumbnailGrid';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -19,391 +19,15 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
 import { NRelay1 } from '@nostrify/nostrify';
-import { useAuthor } from '@/hooks/useAuthor';
-import { useRebroadcast } from '@/hooks/useRebroadcast';
-import { genUserName } from '@/lib/genUserName';
-import {
-  BookOpen,
-  Calendar,
-  MapPin,
-  Plus,
-  Video,
-  FileText,
-  Play,
-  Share2,
-  Loader2,
-  Radio
-} from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import { nip19 } from 'nostr-tools';
-import { Link, useSearchParams } from 'react-router-dom';
-import { useToast } from '@/hooks/useToast';
+;
+;
+;
+import { BookOpen, Plus, Video, FileText } from 'lucide-react';;
+;
+;
+import { useSearchParams } from 'react-router-dom';;
+;
 import type { NostrEvent } from '@nostrify/nostrify';
-
-interface VideoStoryCardProps {
-  story: NostrEvent;
-}
-
-function VideoStoryCard({ story }: VideoStoryCardProps) {
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const author = useAuthor(story.pubkey);
-  const metadata = author.data?.metadata;
-  const { user } = useCurrentUser();
-  const { toast } = useToast();
-  const { mutate: rebroadcast, isPending: isRebroadcasting } = useRebroadcast();
-
-  // divine.video posts are kind 21 or 22 (regular, non-addressable NIP-71)
-  const isDivineVideo = story.kind === 21 || story.kind === 22;
-  // Only show boost button for the logged-in user's own divine.video posts
-  const isOwnPost = user?.pubkey === story.pubkey;
-
-  const handleBoostToNostr = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    rebroadcast(story, {
-      onSuccess: ({ succeeded, total }) => {
-        toast({
-          title: '⚡ Boosted to Nostr!',
-          description: `Sent to ${succeeded.length} of ${total} relays. It will now appear on Primal and other Nostr clients.`,
-        });
-      },
-      onError: () => {
-        toast({
-          title: 'Boost failed',
-          description: 'Could not rebroadcast the event. Please try again.',
-          variant: 'destructive',
-        });
-      },
-    });
-  };
-
-  const displayName = metadata?.name || genUserName(story.pubkey);
-  const profileImage = metadata?.picture;
-
-  const title = story.tags.find(([name]) => name === 'title')?.[1] || 'Untitled Video';
-  const summary = story.tags.find(([name]) => name === 'summary')?.[1];
-  
-  // Parse imeta tag for video metadata (NIP-71)
-  const imetaTag = story.tags.find(([name]) => name === 'imeta');
-  let thumb = '';
-  let duration = '';
-  let videoUrl = '';
-  let dimensions = '';
-  
-  if (imetaTag) {
-    for (let i = 1; i < imetaTag.length; i++) {
-      const part = imetaTag[i];
-      if (part.startsWith('url ')) {
-        videoUrl = part.substring(4);
-      } else if (part.startsWith('image ')) {
-        thumb = part.substring(6);
-      } else if (part.startsWith('duration ')) {
-        const durationSec = parseFloat(part.substring(9));
-        const minutes = Math.floor(durationSec / 60);
-        const seconds = Math.floor(durationSec % 60);
-        duration = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-      } else if (part.startsWith('dim ')) {
-        dimensions = part.substring(4);
-      }
-    }
-  }
-  
-  // Fallback to legacy tags if imeta not present
-  if (!videoUrl) {
-    videoUrl = story.tags.find(([name]) => name === 'url')?.[1] || '';
-  }
-  if (!thumb) {
-    thumb = story.tags.find(([name]) => name === 'thumb')?.[1] || '';
-  }
-  if (!duration) {
-    duration = story.tags.find(([name]) => name === 'duration')?.[1] || '';
-  }
-
-  // Detect video orientation from dimensions
-  let isPortrait = false;
-  if (dimensions) {
-    const [width, height] = dimensions.split('x').map(Number);
-    isPortrait = height > width;
-  }
-  
-  // Determine aspect ratio class based on orientation
-  const aspectRatioClass = isPortrait ? 'aspect-[9/16]' : 'aspect-video';
-
-  const handleShareToDevine = (e: React.MouseEvent) => {
-    e.stopPropagation();
-
-    // divine.video URL format: https://www.divine.video/{nip19}
-    // naddr for addressable kinds (34235/34236), nevent for regular kinds (21/22)
-    const dTag = story.tags.find(([name]) => name === 'd')?.[1];
-    const nostrRef = dTag
-      ? nip19.naddrEncode({ kind: story.kind, pubkey: story.pubkey, identifier: dTag })
-      : nip19.neventEncode({ id: story.id, author: story.pubkey });
-
-    const divineUrl = `https://www.divine.video/${nostrRef}`;
-    window.open(divineUrl, '_blank', 'noopener,noreferrer');
-
-    toast({
-      title: 'Opening divine.video',
-      description: 'Viewing your video on divine.video',
-    });
-  };
-
-  const topicTags = story.tags
-    .filter(([name]) => name === 't')
-    .map(([, value]) => value)
-    .filter((tag): tag is string => typeof tag === 'string' && tag.length > 0 && !['travel', 'traveltelly'].includes(tag))
-    .slice(0, 2);
-
-  // Create naddr for addressable events (kind 34235/34236) or nevent for regular events (kind 21/22)
-  const identifier = story.tags.find(([name]) => name === 'd')?.[1];
-  const isAddressable = identifier && (story.kind === 34235 || story.kind === 34236);
-  const videoLink = isAddressable
-    ? `/video/${nip19.naddrEncode({ kind: story.kind, pubkey: story.pubkey, identifier })}`
-    : `/video/${nip19.neventEncode({ id: story.id, author: story.pubkey })}`;
-
-  // Check if thumb is a video file (fallback when no separate thumbnail was uploaded)
-  const isVideoThumb = thumb && (thumb.endsWith('.webm') || thumb.endsWith('.mp4') || thumb.endsWith('.mov') || thumb.includes('.webm?') || thumb.includes('.mp4?') || thumb.includes('.mov?'));
-
-  return (
-    <>
-      <Card 
-        className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group"
-        onClick={() => setDialogOpen(true)}
-      >
-        {thumb && (
-          <div className={`relative ${aspectRatioClass} overflow-hidden bg-black`}>
-            {isVideoThumb ? (
-              // Use video element as thumbnail if no separate image thumbnail
-              <video
-                src={videoUrl || thumb}
-                className="w-full h-full object-cover"
-                muted
-                playsInline
-                preload="metadata"
-              />
-            ) : (
-              // Use OptimizedImage for actual image thumbnails
-              <OptimizedImage
-                src={thumb}
-                alt={title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                blurUp={true}
-                priority={false}
-                thumbnail={true}
-              />
-            )}
-            <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/20 transition-colors">
-              <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center">
-                <Play className="w-8 h-8 text-gray-900 ml-1" fill="currentColor" />
-              </div>
-            </div>
-            {duration && (
-              <div className="absolute bottom-2 left-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
-                {duration}
-              </div>
-            )}
-          </div>
-        )}
-
-      <CardHeader className="pb-2 md:pb-3">
-        <div className="flex items-start justify-between mb-2 md:mb-3">
-          <div className="flex items-center space-x-2 md:space-x-3">
-            <Avatar className="h-8 w-8 md:h-10 md:w-10">
-              <AvatarImage src={profileImage} alt={displayName} />
-              <AvatarFallback className="text-xs md:text-sm">
-                {displayName[0]?.toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="font-semibold text-sm md:text-base">{displayName}</p>
-              <p className="text-[10px] md:text-xs text-muted-foreground flex items-center gap-1">
-                <Calendar className="w-2.5 h-2.5 md:w-3 md:h-3" />
-                {formatDistanceToNow(new Date(story.created_at * 1000), { addSuffix: true })}
-              </p>
-            </div>
-          </div>
-
-          {/* Action buttons — always visible, work on mobile too */}
-          <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-            {/* Boost to Nostr — only for own divine.video posts (kind 21/22) */}
-            {isDivineVideo && isOwnPost && (
-              <button
-                onClick={handleBoostToNostr}
-                disabled={isRebroadcasting}
-                className="bg-orange-500 hover:bg-orange-600 disabled:opacity-70 text-white text-xs px-2 py-1 rounded flex items-center gap-1"
-                title="Boost to Nostr (Primal, Damus, etc.)"
-              >
-                {isRebroadcasting ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Radio className="w-3 h-3" />
-                )}
-                <span>{isRebroadcasting ? 'Boosting…' : 'Boost'}</span>
-              </button>
-            )}
-            {/* Open on divine.video */}
-            <button
-              onClick={handleShareToDevine}
-              className="bg-purple-600 hover:bg-purple-700 text-white text-xs px-2 py-1 rounded flex items-center gap-1"
-              title="Open on divine.video"
-            >
-              <Share2 className="w-3 h-3" />
-              <span>divine</span>
-            </button>
-          </div>
-        </div>
-
-        <div>
-          <h3 className="text-base md:text-lg font-semibold mb-1 md:mb-2">{title}</h3>
-          {summary && (
-            <p className="text-xs md:text-sm text-muted-foreground mb-2 md:mb-3 line-clamp-2">{summary}</p>
-          )}
-        </div>
-
-          {topicTags.length > 0 && (
-            <div className="flex items-center gap-1 md:gap-2 flex-wrap">
-              {topicTags.map(tag => (
-                <Badge key={tag} variant="outline" className="bg-purple-50 dark:bg-purple-900/20 text-[10px] md:text-xs">
-                  #{tag}
-                </Badge>
-              ))}
-            </div>
-          )}
-        </CardHeader>
-      </Card>
-
-      <VideoPlayerDialog 
-        video={story} 
-        open={dialogOpen} 
-        onOpenChange={setDialogOpen} 
-      />
-    </>
-  );
-}
-
-interface StoryCardProps {
-  story: NostrEvent;
-}
-
-function StoryCard({ story }: StoryCardProps) {
-  const author = useAuthor(story.pubkey);
-  const metadata = author.data?.metadata;
-
-  const displayName = metadata?.name ?? genUserName(story.pubkey);
-  const profileImage = metadata?.picture;
-
-  const title = story.tags.find(([name]) => name === 'title')?.[1] ?? 'Untitled Article';
-  const location = story.tags.find(([name]) => name === 'location')?.[1];
-  const image = story.tags.find(([name]) => name === 'image')?.[1];
-  const summary = story.tags.find(([name]) => name === 'summary')?.[1];
-
-  const publishedAt = story.tags.find(([name]) => name === 'published_at')?.[1];
-  const displayDate = publishedAt
-    ? new Date(parseInt(publishedAt) * 1000)
-    : new Date(story.created_at * 1000);
-
-  const topicTags = story.tags
-    .filter(([name]) => name === 't')
-    .map(([, value]) => value)
-    .filter((tag): tag is string => typeof tag === 'string' && tag.length > 0 && !['travel', 'traveltelly'].includes(tag))
-    .slice(0, 2);
-
-  // Build naddr — guard against missing/invalid d-tag without violating hooks rules
-  const identifierRaw = story.tags.find(([name]) => name === 'd')?.[1];
-  const identifier = typeof identifierRaw === 'string' && identifierRaw.length > 0 ? identifierRaw : null;
-
-  if (!identifier) {
-    // Story has no valid d-tag; render nothing (hooks already called above)
-    return null;
-  }
-
-  const naddr = nip19.naddrEncode({
-    kind: story.kind,
-    pubkey: story.pubkey,
-    identifier,
-  });
-
-  return (
-    <Link to={`/story/${naddr}`}>
-      <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group h-full flex flex-col">
-        {image && (
-          <div className="relative aspect-video overflow-hidden flex-shrink-0">
-            <OptimizedImage
-              src={image}
-              alt={title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              blurUp={true}
-              priority={false}
-              thumbnail={true}
-            />
-          </div>
-        )}
-
-        <CardHeader className="pb-2 md:pb-3 flex-1">
-          <div className="flex items-start justify-between mb-2 md:mb-3">
-            <div className="flex items-center space-x-2 md:space-x-3">
-              <Avatar className="h-8 w-8 md:h-10 md:w-10">
-                <AvatarImage src={profileImage} alt={displayName} />
-                <AvatarFallback className="text-xs md:text-sm">
-                  {displayName[0]?.toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="font-semibold text-sm md:text-base">{displayName}</p>
-                <p className="text-[10px] md:text-xs text-muted-foreground flex items-center gap-1">
-                  <Calendar className="w-2.5 h-2.5 md:w-3 md:h-3" />
-                  {formatDistanceToNow(displayDate, { addSuffix: true })}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-base md:text-lg font-semibold mb-1 md:mb-2 line-clamp-2">{title}</h3>
-            {location && (
-              <p className="text-xs md:text-sm text-muted-foreground flex items-center gap-1 mb-1 md:mb-2">
-                <MapPin className="w-2.5 h-2.5 md:w-3 md:h-3" />
-                {location}
-              </p>
-            )}
-            {summary && (
-              <p className="text-xs md:text-sm text-muted-foreground mb-2 md:mb-3 line-clamp-3">{summary}</p>
-            )}
-          </div>
-
-          {topicTags.length > 0 && (
-            <div className="flex items-center gap-1 md:gap-2 flex-wrap mt-auto">
-              {topicTags.map(tag => (
-                <Badge key={tag} variant="outline" className="bg-green-50 dark:bg-green-900/20 text-[10px] md:text-xs">
-                  #{tag}
-                </Badge>
-              ))}
-            </div>
-          )}
-        </CardHeader>
-      </Card>
-    </Link>
-  );
-}
-
-function StorySkeleton() {
-  return (
-    <Card className="overflow-hidden">
-      <Skeleton className="aspect-video w-full" />
-      <CardHeader className="pb-3">
-        <div className="flex items-center space-x-3 mb-3">
-          <Skeleton className="h-10 w-10 rounded-full" />
-          <div className="space-y-1">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-3 w-16" />
-          </div>
-        </div>
-        <Skeleton className="h-5 w-3/4 mb-2" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-2/3" />
-      </CardHeader>
-    </Card>
-  );
-}
 
 function validateNIP23Article(event: NostrEvent): boolean {
   if (event.kind !== 30023) return false;
@@ -467,7 +91,7 @@ const VIDEO_RELAYS = [
 async function fetchVideosDirect(signal: AbortSignal): Promise<NostrEvent[]> {
   const results = await Promise.allSettled(
     VIDEO_RELAYS.map(async (url) => {
-      const relay = new NRelay1(url, { eoseTimeout: 6000 });
+      const relay = new NRelay1(url);
       try {
         const events = await relay.query([
           { kinds: [34235, 34236, 21, 22], '#t': ['traveltelly'], limit: 120 },
@@ -494,7 +118,7 @@ async function fetchVideosDirect(signal: AbortSignal): Promise<NostrEvent[]> {
 function useStories(type: 'write' | 'video' = 'write') {
   const { nostr } = useNostr();
 
-  return useQuery({
+  return useQuery<NostrEvent[]>({
     queryKey: ['traveltelly-stories', type],
     queryFn: async (c) => {
       if (type === 'video') {
@@ -537,7 +161,7 @@ export default function Stories() {
   );
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'browse');
 
-  const { data: stories, isLoading, isFetching, error } = useStories(storyType);
+  const { data: stories = [], isLoading, isFetching, error } = useStories(storyType);
 
   // Update from URL on mount and when searchParams change
   useEffect(() => {

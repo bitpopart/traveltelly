@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+;
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,7 @@ import { useCheckIns } from '@/hooks/useCheckIns';
 import { genUserName } from '@/lib/genUserName';
 import { getTileLayerConfig } from '@/lib/mapConfig';
 import { MapPin } from 'lucide-react';
-import { nip19 } from 'nostr-tools';
+;
 import * as geohash from 'ngeohash';
 import { formatDistanceToNow } from 'date-fns';
 import type { NostrEvent } from '@nostrify/nostrify';
@@ -156,7 +156,7 @@ function CheckInMarker({ checkIn }: { checkIn: CheckInLocation }) {
 
 export function CheckInsMap() {
   const { data: checkIns, isLoading, error } = useCheckIns();
-  const { currentProvider } = useMapProvider();
+  const { mapProvider: currentProvider } = useMapProvider();
   const tileConfig = getTileLayerConfig(currentProvider);
 
   const checkInLocations = useMemo((): CheckInLocation[] => {

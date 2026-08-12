@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getExchangeRates, type ExchangeRates } from '@/lib/exchangeRates';
+import { getExchangeRates } from '@/lib/exchangeRates';
 
 /**
  * Hook to get current BTC exchange rates with automatic caching and updates

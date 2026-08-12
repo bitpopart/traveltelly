@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useNostr } from '@nostrify/react';
-import type { NostrEvent } from '@nostrify/nostrify';
+;
 import { useAuthorizedReviewers } from './useAuthorizedReviewers';
 import { useAuthorizedMediaUploaders } from './useStockMediaPermissions';
 import { nip19 } from 'nostr-tools';

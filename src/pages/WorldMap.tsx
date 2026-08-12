@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Navigation } from "@/components/Navigation";
-import { WorldReviewsMap } from "@/components/WorldReviewsMap";
+;
 import { AllAdminReviewsMap } from "@/components/AllAdminReviewsMap";
 import { RelaySelector } from "@/components/RelaySelector";
 import { OptimizedImage } from "@/components/OptimizedImage";
