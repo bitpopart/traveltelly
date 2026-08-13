@@ -55,6 +55,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { NostrMarketplacePublisher } from '@/components/NostrMarketplacePublisher';
+import { AdminMapPinBackfill } from '@/components/AdminMapPinBackfill';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -890,6 +891,9 @@ export default function AdminMarketplace() {
 
         {/* Nostr Marketplace Publisher */}
         <NostrMarketplacePublisher />
+
+        {/* Backfill map pins → marketplace */}
+        <AdminMapPinBackfill />
 
         {/* Help */}
         <Card className="border-blue-200 bg-blue-50">
