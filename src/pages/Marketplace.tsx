@@ -17,7 +17,7 @@ import { AdminSelectionProvider, useAdminSelection } from "@/contexts/AdminSelec
 import { adminBulkDownload } from "@/lib/adminBulkDownload";
 import type { BulkDownloadProgress } from "@/lib/adminBulkDownload";
 import { PaymentDialog } from "@/components/PaymentDialog";
-import { ShoppingCart, Plus, Store, Crown, Download, CheckSquare, X, Loader2, Camera, Video, Zap, LayoutGrid, Search, Settings2 } from "lucide-react";
+import { ShoppingCart, Plus, Store, Crown, Download, CheckSquare, X, Loader2, Camera, Video, Zap, LayoutGrid, Search, Settings2, Clock } from "lucide-react";
 import { Link } from "react-router-dom";;
 import type { MarketplaceProduct } from "@/hooks/useMarketplaceProducts";
 import { ADMIN_HEX } from "@/hooks/useBlossomMedia";
@@ -118,6 +118,29 @@ function MediaThumb({ product }: { product: MarketplaceProduct }) {
   );
 }
 
+// ─── "Latest Photos" front-page strip ────────────────────────────────────────
+// Shows the newest products at the very top of /marketplace so freshly added
+// pin photos are immediately visible (the collections/grid push them down).
+function LatestPhotosSection({ products }: { products: MarketplaceProduct[] }) {
+  if (!products.length) return null;
+  return (
+    <div className="mb-5">
+      <div className="flex items-center gap-2 mb-2">
+        <Clock className="w-4 h-4" style={{ color: '#ec1a58' }} />
+        <h2 className="text-base font-bold text-gray-900 dark:text-white">Latest photos</h2>
+        <span className="text-xs text-muted-foreground">newest pin photos first</span>
+      </div>
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+        {products.map((product) => (
+          <div key={product.id} className="w-28 sm:w-32 md:w-36 flex-shrink-0">
+            <MediaThumb product={product} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Inner component so it can access AdminSelectionContext ───────────────────
 function MarketplaceInner() {
   const { user } = useCurrentUser();
@@ -154,6 +177,12 @@ function MarketplaceInner() {
   const allProducts = useMemo(
     () => infiniteData?.pages.flatMap(p => p.products) ?? [],
     [infiniteData]
+  );
+
+  // Newest products with a photo, for the front-page "Latest photos" strip.
+  const latestProducts = useMemo(
+    () => allProducts.filter(p => p.images.length > 0).slice(0, 10),
+    [allProducts]
   );
 
   useSeoMeta({
@@ -361,6 +390,11 @@ function MarketplaceInner() {
               </button>
             )}
           </div>
+
+          {/* ── Latest photos (front page) ── */}
+          {!isLoading && latestProducts.length > 0 && (
+            <LatestPhotosSection products={latestProducts} />
+          )}
 
           {/* ── Hashtag cloud ── */}
           {tagCloud.length > 0 && (

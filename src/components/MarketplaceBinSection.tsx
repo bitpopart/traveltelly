@@ -134,7 +134,7 @@ function useBinProducts(bin: MarketplaceBin, authorizedUploaders: string[]) {
       const filter: NostrFilter = {
         kinds: [30402],
         authors: authorizedUploaders,
-        limit: 12,
+        limit: 40,
       };
 
       // Apply relay-side filter where possible
@@ -164,6 +164,19 @@ function useBinProducts(bin: MarketplaceBin, authorizedUploaders: string[]) {
               p.geoFolder?.startsWith(bin.filterValue),
           );
           break;
+        case 'place': {
+          // Case-insensitive keyword matched against the sale listing's place
+          // name / GPS-driven location text (e.g. "Hong Kong", "Barcelona").
+          const kw = bin.filterValue.trim().toLowerCase();
+          products = products.filter(
+            (p) =>
+              (p.location?.toLowerCase() ?? '').includes(kw) ||
+              (p.geoFolder?.toLowerCase() ?? '').includes(kw) ||
+              (p.description?.toLowerCase() ?? '').includes(kw) ||
+              (p.title?.toLowerCase() ?? '').includes(kw),
+          );
+          break;
+        }
         case 'featured': {
           const ids = bin.filterValue.split(',').map((s) => s.trim()).filter(Boolean);
           products = products.filter((p) => ids.includes(p.id));

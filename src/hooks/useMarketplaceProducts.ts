@@ -17,6 +17,15 @@ const MARKETPLACE_FALLBACK_RELAYS = [
 ];
 
 /**
+ * The admin-product fallback fetch is expensive (fans out to 3 public relays
+ * and can transfer ~1000 events each). Deduplicate it across ALL marketplace
+ * hooks and repeat visits with a short TTL cache, so /marketplace only pays the
+ * cost once every few minutes instead of on every mount/refetch.
+ */
+const FALLBACK_CACHE_TTL_MS = 5 * 60 * 1000;
+let fallbackCache: { at: number; events: NostrEvent[] } | null = null;
+
+/**
  * Query kind 30402 events by the admin pubkey directly from a set of relays,
  * bypassing the NPool. Returns raw events or [] on failure.
  */
@@ -24,7 +33,7 @@ async function queryAdminProductsFromRelays(signal: AbortSignal): Promise<NostrE
   const filter: NostrFilter = {
     kinds: [30402],
     authors: [ADMIN_HEX],
-    limit: 2000,
+    limit: 500,
   };
 
   const results = await Promise.allSettled(
@@ -49,6 +58,19 @@ async function queryAdminProductsFromRelays(signal: AbortSignal): Promise<NostrE
     }
   }
   return Array.from(seen.values());
+}
+
+/** Cached wrapper around queryAdminProductsFromRelays. */
+async function getAdminProductsCached(signal: AbortSignal): Promise<NostrEvent[]> {
+  const now = Date.now();
+  if (fallbackCache && now - fallbackCache.at < FALLBACK_CACHE_TTL_MS) {
+    return fallbackCache.events;
+  }
+  const events = await queryAdminProductsFromRelays(signal);
+  if (events.length > 0) {
+    fallbackCache = { at: now, events };
+  }
+  return events;
 }
 
 export interface MarketplaceProduct {
@@ -236,7 +258,7 @@ export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = 
   return useQuery({
     queryKey: ['marketplace-products', JSON.stringify(options), Array.from(authorizedUploaders || [])],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(25000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(10000)]);
 
       const authorizedAuthors = Array.from(authorizedUploaders || []);
       // Always include admin even if permission grants haven't loaded yet
@@ -256,7 +278,7 @@ export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = 
       const [poolEvents, fallbackEvents] = await Promise.allSettled([
         nostr.query([filter], { signal }),
         // For admin-only queries, also hit the fallback relays directly
-        authors.includes(ADMIN_HEX) ? queryAdminProductsFromRelays(signal) : Promise.resolve([]),
+        authors.includes(ADMIN_HEX) ? getAdminProductsCached(signal) : Promise.resolve([]),
       ]);
 
       const rawEvents: NostrEvent[] = [
@@ -311,7 +333,6 @@ export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = 
       return products;
     },
     staleTime: 30_000,
-    refetchInterval: 60_000,
   });
 }
 
@@ -330,7 +351,7 @@ export function useInfiniteMarketplaceProducts(options: UseMarketplaceProductsOp
   return useInfiniteQuery({
     queryKey: ['marketplace-products-infinite', JSON.stringify(options), Array.from(authorizedUploaders || [])],
     queryFn: async ({ pageParam, signal }) => {
-      const abortSignal = AbortSignal.any([signal, AbortSignal.timeout(15000)]);
+      const abortSignal = AbortSignal.any([signal, AbortSignal.timeout(10000)]);
 
       const authorizedAuthors = Array.from(authorizedUploaders || []);
       if (!authorizedAuthors.includes(ADMIN_HEX)) {
@@ -352,7 +373,7 @@ export function useInfiniteMarketplaceProducts(options: UseMarketplaceProductsOp
       const [poolResult, fallbackResult] = await Promise.allSettled([
         nostr.query([filter], { signal: abortSignal }),
         (!until && authors.includes(ADMIN_HEX))
-          ? queryAdminProductsFromRelays(abortSignal)
+          ? getAdminProductsCached(abortSignal)
           : Promise.resolve([]),
       ]);
 

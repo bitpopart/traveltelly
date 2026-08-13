@@ -24,12 +24,13 @@ export interface MarketplaceBin {
   emoji: string;         // e.g. "🐘" (kept for backward compat, no longer used in UI)
   coverImage?: string;  // optional cover photo URL (legacy)
   thumbnailImage?: string; // image URL picked from collection media items
-  /** Filter mode: category = content category tag, tag = t-tag, geo = continent/country, featured = hand-picked ids */
-  filterType: 'category' | 'tag' | 'geo' | 'featured';
+  /** Filter mode: category = content category tag, tag = t-tag, geo = continent/country, place = location keyword, featured = hand-picked ids */
+  filterType: 'category' | 'tag' | 'geo' | 'place' | 'featured';
   /** Value that drives the filter:
    *  - category → e.g. "Animals"
    *  - tag       → e.g. "wildlife"
    *  - geo       → e.g. "Europe/Netherlands" or just "Europe"
+   *  - place     → case-insensitive keyword matched against the location/GPS place name, e.g. "Hong Kong"
    *  - featured  → comma-separated product d-tag ids
    */
   filterValue: string;

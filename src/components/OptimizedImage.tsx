@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
+import { getGridThumbUrl } from '@/lib/imageUtils';
 
 interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string;
@@ -13,54 +14,6 @@ interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> 
   aspectRatio?: string;
   /** Use thumbnail optimization (smaller size, lower quality for cards/feeds) */
   thumbnail?: boolean;
-}
-
-/**
- * Generates a thumbnail URL from a Blossom server image URL
- * Blossom supports automatic resizing via query parameters
- */
-function getThumbnailUrl(url: string, width: number = 600, quality: number = 75): string {
-  try {
-    // Check if it's a Blossom server URL (nostr.build, satellite.earth, etc.)
-    const urlObj = new URL(url);
-    
-    // For nostr.build and image.nostr.build, use their specific thumbnail format
-    if (urlObj.hostname.includes('nostr.build')) {
-      // For image.nostr.build or nostr.build, just add width parameter
-      if (!urlObj.searchParams.has('w')) {
-        urlObj.searchParams.set('w', width.toString());
-      }
-      // Don't add quality param for nostr.build - they handle it automatically
-      return urlObj.toString();
-    }
-    
-    // For blossom.primal.net, DON'T add resize params - they don't support it reliably
-    // Just return the original URL
-    if (urlObj.hostname.includes('blossom.primal.net') || urlObj.hostname.includes('primal.net')) {
-      return url;
-    }
-    
-    // For other Blossom servers that support resizing
-    const blossomDomains = [
-      'satellite.earth', 
-      'void.cat', 
-      'nostrcheck.me',
-    ];
-    const isBlossomServer = blossomDomains.some(domain => urlObj.hostname.includes(domain));
-    
-    if (isBlossomServer) {
-      urlObj.search = '';
-      urlObj.searchParams.set('w', width.toString());
-      urlObj.searchParams.set('q', quality.toString());
-      return urlObj.toString();
-    }
-    
-    // For non-Blossom URLs, return original
-    return url;
-  } catch {
-    // If URL parsing fails, return original
-    return url;
-  }
 }
 
 /**
@@ -78,9 +31,15 @@ function getBlurPlaceholderUrl(url: string): string {
       return urlObj.toString();
     }
     
-    // For primal.net, skip blur - just return original
+    // For primal.net, build a tiny Weserv-proxied WebP so the blur placeholder
+    // is a small fast stub instead of a full-size original.
     if (urlObj.hostname.includes('primal.net')) {
-      return url;
+      const u = new URL('https://images.weserv.nl/');
+      u.searchParams.set('url', url);
+      u.searchParams.set('w', '24');
+      u.searchParams.set('q', '20');
+      u.searchParams.set('output', 'webp');
+      return u.toString();
     }
     
     // For other Blossom servers that support resizing
@@ -128,7 +87,7 @@ export function OptimizedImage({
   const width = thumbnail ? (isMobile ? 150 : 400) : 800;
   // Mobile: 50% quality (smallest files), Desktop: 75%
   const quality = thumbnail ? (isMobile ? 50 : 75) : 80;
-  const thumbnailUrl = getThumbnailUrl(src, width, quality);
+  const thumbnailUrl = getGridThumbUrl(src, width, quality);
   const blurUrl = blurUp ? getBlurPlaceholderUrl(src) : null;
 
   // Debug logging for first few images
