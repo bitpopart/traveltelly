@@ -48,6 +48,7 @@ import {
   Image as ImageIcon,
   Tag,
   Globe,
+  MapPin,
   Star,
   LayoutGrid,
   ExternalLink,
@@ -177,6 +178,15 @@ function FilterValueInput({
       />
     );
   }
+  if (filterType === 'place') {
+    return (
+      <Input
+        placeholder="e.g. Hong Kong, Barcelona, Paris"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    );
+  }
   // featured
   return (
     <Textarea
@@ -193,6 +203,7 @@ function filterTypeIcon(ft: MarketplaceBin['filterType']) {
     case 'category': return <Tag className="w-3.5 h-3.5" />;
     case 'tag': return <Tag className="w-3.5 h-3.5" />;
     case 'geo': return <Globe className="w-3.5 h-3.5" />;
+    case 'place': return <MapPin className="w-3.5 h-3.5" />;
     case 'featured': return <Star className="w-3.5 h-3.5" />;
   }
 }
@@ -202,6 +213,7 @@ function filterTypeLabel(ft: MarketplaceBin['filterType']) {
     case 'category': return 'Category';
     case 'tag': return 'Tag';
     case 'geo': return 'Geography';
+    case 'place': return 'Place';
     case 'featured': return 'Featured';
   }
 }
@@ -363,6 +375,13 @@ function useBinMediaImages(filterType: MarketplaceBin['filterType'], filterValue
           const geoFolder = event.tags.find(([n]) => n === 'geo_folder')?.[1];
           if (continent !== filterValue && country !== filterValue && !geoFolder?.startsWith(filterValue)) continue;
         }
+        if (filterType === 'place') {
+          const kw = filterValue.trim().toLowerCase();
+          const loc = event.tags.find(([n]) => n === 'location')?.[1]?.toLowerCase() ?? '';
+          const geoFolder = event.tags.find(([n]) => n === 'geo_folder')?.[1]?.toLowerCase() ?? '';
+          const text = `${loc} ${geoFolder} ${event.content}`.toLowerCase();
+          if (!text.includes(kw)) continue;
+        }
         if (filterType === 'featured') {
           const ids = filterValue.split(',').map((s) => s.trim());
           const d = event.tags.find(([n]) => n === 'd')?.[1];
@@ -465,7 +484,7 @@ function BinEditDialog({
               How should the marketplace pick photos for this bin?
             </p>
             <div className="grid grid-cols-2 gap-2 mt-1">
-              {(['category', 'tag', 'geo', 'featured'] as const).map((ft) => (
+              {(['category', 'tag', 'geo', 'place', 'featured'] as const).map((ft) => (
                 <button
                   key={ft}
                   type="button"
@@ -489,6 +508,7 @@ function BinEditDialog({
               {form.filterType === 'category' && 'Content category'}
               {form.filterType === 'tag' && 'Tag (t-tag value)'}
               {form.filterType === 'geo' && 'Continent / Region'}
+              {form.filterType === 'place' && 'Place keyword (e.g. Hong Kong)'}
               {form.filterType === 'featured' && 'Featured product IDs'}
               <span className="text-red-500"> *</span>
             </Label>
@@ -503,6 +523,7 @@ function BinEditDialog({
               {form.filterType === 'category' && 'Products tagged with this content category will appear in the bin.'}
               {form.filterType === 'tag' && 'Products with this Nostr t-tag will appear in the bin.'}
               {form.filterType === 'geo' && 'Products from this geographic region will appear in the bin.'}
+              {form.filterType === 'place' && "Products whose location/GPS place name contains this keyword (e.g. Hong Kong) will appear in the bin."}
               {form.filterType === 'featured' && 'Enter the d-tag IDs of specific products to feature, comma-separated.'}
             </p>
           </div>
@@ -906,6 +927,7 @@ export default function AdminMarketplace() {
               <li><strong>Category bins</strong> – show all marketplace products tagged with a specific content category (Animals, Landscape, etc.)</li>
               <li><strong>Tag bins</strong> – show products that have a specific Nostr <code>t</code>-tag value</li>
               <li><strong>Geography bins</strong> – show products from a specific continent or region</li>
+              <li><strong>Place bins</strong> – show products whose location/GPS place name matches a keyword (e.g. Hong Kong, Barcelona)</li>
               <li><strong>Featured bins</strong> – hand-pick specific product IDs to highlight</li>
               <li>Reorder bins using the ▲ ▼ arrows; toggle the eye icon to hide/show on the public page</li>
               <li>Click <strong>Save &amp; Publish</strong> to push changes live — the public marketplace page updates immediately</li>

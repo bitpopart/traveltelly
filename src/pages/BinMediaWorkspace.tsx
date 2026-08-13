@@ -46,6 +46,7 @@ import {
   Loader2,
   X,
   Info,
+  MapPin,
 } from 'lucide-react';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -78,6 +79,7 @@ function filterTypeIcon(ft: MarketplaceBin['filterType']) {
     case 'category': return <Tag className="w-3 h-3" />;
     case 'tag': return <Tag className="w-3 h-3" />;
     case 'geo': return <Globe className="w-3 h-3" />;
+    case 'place': return <MapPin className="w-3 h-3" />;
     case 'featured': return <Star className="w-3 h-3" />;
   }
 }
@@ -102,6 +104,14 @@ function productMatchesBin(product: MarketplaceProduct, bin: MarketplaceBin): bo
         product.country === bin.filterValue ||
         (product.geoFolder?.startsWith(bin.filterValue) ?? false)
       );
+    case 'place': {
+      const kw = bin.filterValue.trim().toLowerCase();
+      if (!kw) return false;
+      return (product.location?.toLowerCase() ?? '').includes(kw)
+        || (product.geoFolder?.toLowerCase() ?? '').includes(kw)
+        || (product.description?.toLowerCase() ?? '').includes(kw)
+        || (product.title?.toLowerCase() ?? '').includes(kw);
+    }
     case 'featured': {
       const ids = bin.filterValue.split(',').map((s) => s.trim()).filter(Boolean);
       return ids.includes(product.id);

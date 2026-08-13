@@ -22,7 +22,7 @@ import type { MarketplaceBin } from '@/hooks/useMarketplaceBins';
 import type { MarketplaceProduct } from '@/hooks/useMarketplaceProducts';
 import { MediaManagement } from '@/components/MediaManagement';
 import { nip19 } from 'nostr-tools';
-import { Shield, ArrowLeft, Loader2, Camera, Store, Layers, LayoutGrid, ExternalLink, CheckCircle, XCircle, Calendar, Plus, Trash2, Edit2, Save, Eye, EyeOff, GripVertical, FolderOpen, Tag, Globe, Star, ChevronUp, ChevronDown, Search, CheckCircle2, CircleDot, ImageOff, X, Info, ChevronRight } from 'lucide-react';;
+import { Shield, ArrowLeft, Loader2, Camera, Store, Layers, LayoutGrid, ExternalLink, CheckCircle, XCircle, Calendar, Plus, Trash2, Edit2, Save, Eye, EyeOff, GripVertical, FolderOpen, Tag, Globe, MapPin, Star, ChevronUp, ChevronDown, Search, CheckCircle2, CircleDot, ImageOff, X, Info, ChevronRight } from 'lucide-react';;
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -78,6 +78,7 @@ function filterTypeIcon(ft: MarketplaceBin['filterType']) {
     case 'category': return <Tag className="w-3.5 h-3.5" />;
     case 'tag': return <Tag className="w-3.5 h-3.5" />;
     case 'geo': return <Globe className="w-3.5 h-3.5" />;
+    case 'place': return <MapPin className="w-3.5 h-3.5" />;
     case 'featured': return <Star className="w-3.5 h-3.5" />;
   }
 }
@@ -87,6 +88,7 @@ function filterTypeLabel(ft: MarketplaceBin['filterType']) {
     case 'category': return 'Category';
     case 'tag': return 'Tag';
     case 'geo': return 'Geography';
+    case 'place': return 'Place';
     case 'featured': return 'Featured';
   }
 }
@@ -101,6 +103,14 @@ function productMatchesBin(product: MarketplaceProduct, bin: MarketplaceBin): bo
     }
     case 'geo':
       return product.continent === bin.filterValue || product.country === bin.filterValue;
+    case 'place': {
+      const kw = bin.filterValue.trim().toLowerCase();
+      if (!kw) return false;
+      return (product.location?.toLowerCase() ?? '').includes(kw)
+        || (product.geoFolder?.toLowerCase() ?? '').includes(kw)
+        || (product.description?.toLowerCase() ?? '').includes(kw)
+        || (product.title?.toLowerCase() ?? '').includes(kw);
+    }
     case 'featured': {
       const ids = bin.filterValue.split(',').map((s) => s.trim()).filter(Boolean);
       return ids.includes(product.id);
