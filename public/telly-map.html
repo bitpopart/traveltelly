@@ -1642,6 +1642,35 @@ $('pubbtn').onclick = async () => {
      nostrId = signed.id;
      if(acks > 0) toast('✅ Published to ' + acks + ' relay' + (acks>1?'s':'') + '!', 4000);
      else         toast('⚠️ Signed but no relay accepted it — pin saved locally.', 5000);
+
+     /* 2b ── auto-list the pin photo on /marketplace (kind 30402, $0.99) so every pin is also for sale */
+     if(imageUrl){
+      try{
+       const mktTags = [
+        ['d',        'product_' + Date.now().toString(36) + Math.random().toString(36).slice(2,9)],
+        ['title',    title],
+        ['summary',  (place || title).slice(0,200)],
+        ['price',    '0.99', 'USD'],
+        ['t',        'photos'],
+        ['category', 'landmarks'],
+        ['status',   'active'],
+        ['published_at', String(Math.floor(Date.now()/1000))],
+        ['image',    imageUrl],
+       ];
+       if(place) mktTags.push(['location', place]);
+       mktTags.push(['g', gh]);
+       const mktEv = {
+        kind: 30402,
+        created_at: Math.floor(Date.now()/1000),
+        content: place || title,
+        tags: mktTags,
+       };
+       const mktSigned = await nostrSign(mktEv);
+       await nostrPublishEvent(mktSigned);
+      }catch(mktErr){
+       console.warn('Marketplace auto-list failed for pin:', mktErr.message || mktErr);
+      }
+     }
     }catch(e){
      toast('⚠️ Nostr publish failed: ' + (e.message||e) + '. Pin saved locally.', 6000);
     }
