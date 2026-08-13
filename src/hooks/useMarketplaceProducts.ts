@@ -188,8 +188,30 @@ function isValidProduct(event: NostrEvent): boolean {
 }
 
 /**
- * Check whether a product event should be treated as deleted.
+ * Identify review-photo auto-listings.
+ *
+ * The CreateReview flow auto-publishes a companion marketplace listing
+ * (`d=product_…`, price 0.99) for every review photo. These are NOT real
+ * products and should not appear on /marketplace — the user asked to keep
+ * review photos out of the marketplace feed (they were popping up between
+ * the map-pin listings).
+ *
+ * They are distinguishable from legitimate products because:
+ *  - Real products created via the Marketplace editor always carry
+ *    `continent`/`country`/`geo_folder` (required by form validation) and/or a
+ *    `review` tag (map pins). Review-photo auto-lists have NONE of these.
+ *  - Their `d` value starts with `product_`.
  */
+function isReviewPhotoListing(event: NostrEvent): boolean {
+  const d = event.tags.find(([n]) => n === 'd')?.[1] ?? '';
+  if (!d.startsWith('product_')) return false;
+
+  const hasReview = event.tags.some(([n]) => n === 'review');
+  const hasContinent = event.tags.some(([n]) => n === 'continent');
+  const hasGeoFolder = event.tags.some(([n]) => n === 'geo_folder');
+  return !hasReview && !hasContinent && !hasGeoFolder;
+}
+
 function isDeleted(event: NostrEvent): boolean {
   const status = event.tags.find(([n]) => n === 'status')?.[1];
   if (status === 'deleted') return true;
@@ -303,6 +325,7 @@ export function useMarketplaceProducts(options: UseMarketplaceProductsOptions = 
       for (const event of events) {
         if (!isValidProduct(event)) continue;
         if (isDeleted(event)) continue;
+        if (isReviewPhotoListing(event)) continue;
 
         const product = parseProduct(event);
         if (!product) continue;
@@ -396,6 +419,7 @@ export function useInfiniteMarketplaceProducts(options: UseMarketplaceProductsOp
       for (const event of seen.values()) {
         if (!isValidProduct(event)) continue;
         if (isDeleted(event)) continue;
+        if (isReviewPhotoListing(event)) continue;
 
         const product = parseProduct(event);
         if (!product) continue;
