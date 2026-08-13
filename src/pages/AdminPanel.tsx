@@ -20,7 +20,7 @@ import { AdminBadgeManager } from '@/components/AdminBadgeManager';
 import { BlossomDashboard } from '@/components/BlossomDashboard';
 import { useInitializeTestCustomer } from '@/hooks/useInitializeTestCustomer';
 import { nip19 } from 'nostr-tools';
-import { Shield, ArrowLeft, Camera, MessageSquare, Settings, Tag, FileImage, Coffee, MapPin, Upload, BookOpen, Smartphone, Clock, BarChart3, Crown, Users, Mail, Sparkles, UsersRound, HardDrive, ScanSearch, Zap, Medal } from 'lucide-react';
+import { Shield, ArrowLeft, Camera, MessageSquare, Settings, Tag, FileImage, Coffee, MapPin, Upload, BookOpen, Smartphone, Clock, BarChart3, Crown, Users, Mail, Sparkles, UsersRound, HardDrive, ScanSearch, Zap, Medal, Store } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function AdminPanel() {
@@ -186,6 +186,12 @@ export default function AdminPanel() {
                   <Button variant="default" className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600">
                     <Zap className="w-4 h-4 mr-2" />
                     Payments
+                  </Button>
+                </Link>
+                <Link to="/admin/marketplace">
+                  <Button variant="default" className="bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700">
+                    <Store className="w-4 h-4 mr-2" />
+                    Marketplace Editor
                   </Button>
                 </Link>
                 <Link to="/admin#review-permissions">
