@@ -430,39 +430,6 @@ ${data.content || data.description || ''}
 
       createEvent(clawstrEvent);
 
-      // Automatically publish companion marketplace listing (kind 30402) so every pin photo/video is for sale
-      if (imageUrl) {
-        const DEFAULT_SALE_PRICE = '0.99';
-        const DEFAULT_SALE_CURRENCY = 'USD';
-        const productId = `product_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        const marketplaceTags: string[][] = [
-          ['d', productId],
-          ['title', data.title],
-          ['summary', (data.description || data.content || '').slice(0, 200)],
-          ['price', DEFAULT_SALE_PRICE, DEFAULT_SALE_CURRENCY],
-          ['t', 'photos'], // media type tag for filtering
-          ['category', data.category], // content category
-          ['status', 'active'],
-          ['published_at', Math.floor(Date.now() / 1000).toString()],
-          ['image', imageUrl],
-        ];
-
-        if (data.location) marketplaceTags.push(['location', data.location]);
-        if (location) {
-          marketplaceTags.push(['g', encodeGeohash(location.lat, location.lng)]);
-        }
-        // Additional photos / video thumbnails
-        additionalPhotos.forEach((photoUrl) => {
-          marketplaceTags.push(['image', photoUrl]);
-        });
-
-        createEvent({
-          kind: 30402, // NIP-99 classified listing
-          content: data.description || data.content || '',
-          tags: marketplaceTags,
-        });
-      }
-
       toast({
         title: 'Review published!',
         description: 'Your review has been shared on Nostr, Clawstr, and is visible on all clients.',
