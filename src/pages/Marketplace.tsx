@@ -206,19 +206,15 @@ function MarketplaceInner() {
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  // Build hashtag cloud from loaded products
+  // Build the location tag cloud from loaded products. Only geographic
+  // classification tags are shown — the product's continent, country and
+  // city (location) — never generic content hashtags (sunset, nature, …).
   const tagCloud = useMemo(() => {
     if (!allProducts.length) return [];
     const counts = new Map<string, number>();
     for (const p of allProducts) {
-      for (const [name, val] of p.event.tags) {
-        if (name === 't' && val) {
-          counts.set(val, (counts.get(val) || 0) + 1);
-        }
-      }
-      if (p.contentCategory) {
-        const slug = p.contentCategory.toLowerCase().replace(/\s+/g, '-');
-        counts.set(slug, (counts.get(slug) || 0) + 1);
+      for (const v of [p.continent, p.country, p.location]) {
+        if (v) counts.set(v, (counts.get(v) || 0) + 1);
       }
     }
     return Array.from(counts.entries())
@@ -234,9 +230,11 @@ function MarketplaceInner() {
       if (activeType === 'photos' && (p.mediaType === 'video' || p.images[0]?.match(/\.(mp4|webm|mov)/i))) return false;
       if (activeType === 'videos' && !(p.mediaType === 'video' || p.images[0]?.match(/\.(mp4|webm|mov)/i))) return false;
       if (activeTag) {
-        const tags = p.event.tags.filter(([n]) => n === 't').map(([, v]) => v);
-        const catSlug = p.contentCategory?.toLowerCase().replace(/\s+/g, '-');
-        if (!tags.includes(activeTag) && catSlug !== activeTag) return false;
+        const matches =
+          p.continent === activeTag ||
+          p.country === activeTag ||
+          p.location === activeTag;
+        if (!matches) return false;
       }
       return true;
     });

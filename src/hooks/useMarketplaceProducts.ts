@@ -19,11 +19,43 @@ const MARKETPLACE_FALLBACK_RELAYS = [
 /**
  * The admin-product fallback fetch is expensive (fans out to 3 public relays
  * and can transfer ~1000 events each). Deduplicate it across ALL marketplace
- * hooks and repeat visits with a short TTL cache, so /marketplace only pays the
- * cost once every few minutes instead of on every mount/refetch.
+ * hooks and repeat visits with a cached result, so /marketplace only pays the
+ * cost on a genuinely cold load instead of on every mount/refetch.
+ *
+ * The in-memory cache lives for the module's lifetime (the SPA session); on top
+ * of that we persist to localStorage so a fresh page load / repeat visit within
+ * the TTL reuses the prior fan-out instead of blocking on 3 relays again — this
+ * is the biggest remaining "page is slow" win for /marketplace.
  */
-const FALLBACK_CACHE_TTL_MS = 5 * 60 * 1000;
+const FALLBACK_CACHE_TTL_MS = 30 * 60 * 1000;
+const FALLBACK_CACHE_KEY = 'traveltelly_admin_products_cache_v1';
 let fallbackCache: { at: number; events: NostrEvent[] } | null = null;
+
+function loadFallbackCacheFromStorage(): { at: number; events: NostrEvent[] } | null {
+  try {
+    const raw = localStorage.getItem(FALLBACK_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.at === 'number' && Array.isArray(parsed.events)) {
+      return { at: parsed.at, events: parsed.events };
+    }
+  } catch {
+    // Unreadable/corrupt/private-mode storage — fall through to in-memory.
+  }
+  return null;
+}
+
+function saveFallbackCacheToStorage(cache: { at: number; events: NostrEvent[] } | null) {
+  try {
+    if (cache) {
+      localStorage.setItem(FALLBACK_CACHE_KEY, JSON.stringify(cache));
+    } else {
+      localStorage.removeItem(FALLBACK_CACHE_KEY);
+    }
+  } catch {
+    // Quota exceeded / storage disabled — in-memory cache still works.
+  }
+}
 
 /**
  * Query kind 30402 events by the admin pubkey directly from a set of relays,
@@ -60,15 +92,24 @@ async function queryAdminProductsFromRelays(signal: AbortSignal): Promise<NostrE
   return Array.from(seen.values());
 }
 
-/** Cached wrapper around queryAdminProductsFromRelays. */
+/** Cached wrapper around queryAdminProductsFromRelays, memory + localStorage. */
 async function getAdminProductsCached(signal: AbortSignal): Promise<NostrEvent[]> {
   const now = Date.now();
   if (fallbackCache && now - fallbackCache.at < FALLBACK_CACHE_TTL_MS) {
     return fallbackCache.events;
   }
+  // Rehydrate the persisted fan-out instead of re-fetching on a fresh load.
+  if (!fallbackCache) {
+    const stored = loadFallbackCacheFromStorage();
+    if (stored && now - stored.at < FALLBACK_CACHE_TTL_MS) {
+      fallbackCache = stored;
+      return stored.events;
+    }
+  }
   const events = await queryAdminProductsFromRelays(signal);
   if (events.length > 0) {
     fallbackCache = { at: now, events };
+    saveFallbackCacheToStorage(fallbackCache);
   }
   return events;
 }
