@@ -45,12 +45,20 @@ export interface StripePaymentIntent {
 /**
  * URL of the serverless endpoint that creates Stripe Payment Intents.
  * Configure at build time (VITE_STRIPE_PAYMENT_INTENT_URL) or default to the
- * same-origin `/api/create-payment-intent` (Netlify function — see
- * netlify/functions/create-payment-intent.mjs). Creating a Payment Intent
- * requires the Stripe *secret* key, which must never live in the client.
+ * live Netlify function (see netlify/functions/create-payment-intent.mjs).
+ *
+ * Important: the live site is deployed to GitHub Pages, which serves only
+ * static files and CANNOT run serverless functions. So the default must point
+ * at the Netlify-hosted function (fully-qualified URL), not the same-origin
+ * `/api/create-payment-intent` (which 404s on GitHub Pages). Creating a
+ * Payment Intent requires the Stripe *secret* key, which must never live in
+ * the client — it stays on the serverless endpoint.
  */
 function getPaymentIntentUrl(): string {
-  return import.meta.env.VITE_STRIPE_PAYMENT_INTENT_URL || '/api/create-payment-intent';
+  return (
+    import.meta.env.VITE_STRIPE_PAYMENT_INTENT_URL ||
+    'https://traveltelly.netlify.app/api/create-payment-intent'
+  );
 }
 
 export function useMarketplacePurchase() {

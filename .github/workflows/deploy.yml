@@ -47,6 +47,14 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          # Bake the Stripe publishable key into the GitHub Pages bundle at build
+          # time so card checkout works for every visitor (not just one browser).
+          # Set "VITE_STRIPE_PUBLISHABLE_KEY" as a repository VARIABLE (Settings →
+          # Secrets and variables → Actions → Variables). Publishable keys (pk_…)
+          # are public client keys — safe to store as a plain variable, not a secret.
+          # Leave unset to fall back to the per-browser value in Admin → Payments.
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ vars.VITE_STRIPE_PUBLISHABLE_KEY }}
 
       - name: Prepare deployment files
         run: |
