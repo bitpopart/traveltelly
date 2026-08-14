@@ -188,28 +188,31 @@ function isValidProduct(event: NostrEvent): boolean {
 }
 
 /**
- * Identify review-photo auto-listings.
+ * Identify review-photo listings — listings on /marketplace that were derived
+ * from a travel REVIEW rather than a world-map PIN, and are therefore not for
+ * sale (they belong to the /reviews page).
  *
- * The CreateReview flow auto-publishes a companion marketplace listing
- * (`d=product_…`, price 0.99) for every review photo. These are NOT real
- * products and should not appear on /marketplace — the user asked to keep
- * review photos out of the marketplace feed (they were popping up between
- * the map-pin listings).
+ * The site's own "pin vs review" semantic is the `type` tag on the source
+ * review event (kind 34879): photo PINs carry `type=pin`; REVIEWS carry no
+ * `type` tag. The marketplace feed should carry listings only for PIN photos.
  *
- * They are distinguishable from legitimate products because:
- *  - Real products created via the Marketplace editor always carry
- *    `continent`/`country`/`geo_folder` (required by form validation) and/or a
- *    `review` tag (map pins). Review-photo auto-lists have NONE of these.
- *  - Their `d` value starts with `product_`.
+ * Distinguishing them on the listing (kind 30402):
+ *  - Listings created by the admin pin-backfill copy the source review's slug
+ *    into a `review` tag (and into `d` as `map_pin_<slug>`). Review-derived
+ *    listings reference the review-flow slug pattern `review-<ts>-<rand>`;
+ *    photo-pin listings reference a human-readable pin slug.
+ *  - Going forward listings are stamped with a `type` tag so they self-describe.
+ *  - A `d = product_…` prefix alone is NOT a review marker: the telly-map pin
+ *    tool and real Marketplace uploads also use it, so we must not exclude on
+ *    that basis (doing so hid real pins/products while missing review photos).
  */
 function isReviewPhotoListing(event: NostrEvent): boolean {
-  const d = event.tags.find(([n]) => n === 'd')?.[1] ?? '';
-  if (!d.startsWith('product_')) return false;
+  const type = event.tags.find(([n]) => n === 'type')?.[1];
+  if (type) return type === 'review';
 
-  const hasReview = event.tags.some(([n]) => n === 'review');
-  const hasContinent = event.tags.some(([n]) => n === 'continent');
-  const hasGeoFolder = event.tags.some(([n]) => n === 'geo_folder');
-  return !hasReview && !hasContinent && !hasGeoFolder;
+  const d = event.tags.find(([n]) => n === 'd')?.[1] ?? '';
+  const reviewRef = event.tags.find(([n]) => n === 'review')?.[1] ?? '';
+  return d.startsWith('map_pin_review-') || reviewRef.startsWith('review-');
 }
 
 function isDeleted(event: NostrEvent): boolean {

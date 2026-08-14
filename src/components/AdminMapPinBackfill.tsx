@@ -1,10 +1,10 @@
 /**
  * AdminMapPinBackfill
  * ────────────────────
- * Scans existing kind 34879 travel reviews that became world-map pins
- * (have an `image` + `g` geohash tag) and publishes a companion NIP-99
- * marketplace listing (kind 30402) at the default $0.99 USD price for any
- * that aren't already listed.
+ * Scans existing kind 34879 photo pins that became world-map pins
+ * (have a `type=pin` tag, an `image` and a `g` geohash) and publishes a
+ * companion NIP-99 marketplace listing (kind 30402) at the default $0.99 USD
+ * price for any that aren't already listed.
  *
  * Why an admin action: a backfill must be signed by an authorized uploader,
  * and the server/agent key is not an authorized uploader for /marketplace.
@@ -144,6 +144,10 @@ export function AdminMapPinBackfill() {
       const pins: PinReview[] = [];
       let skipCount = 0;
       for (const ev of validReviews) {
+        // Only backfill actual world-map PIN photos. Travel REVIEWS (kind 34879
+        // without `type=pin`) belong to /reviews and are not for sale, so they
+        // must never be listed on /marketplace.
+        if (ev.tags.find(([n]) => n === 'type')?.[1] !== 'pin') continue;
         const pin = reviewToPin(ev);
         if (!pin) continue;
         const expectedD = `map_pin_${pin.slug}`;
@@ -190,6 +194,9 @@ export function AdminMapPinBackfill() {
             ['price', DEFAULT_SALE_PRICE, DEFAULT_SALE_CURRENCY],
             ['t', 'photos'],
             ['category', pin.category],
+            // Self-describe as a PIN photo so /marketplace can tell pins apart
+            // from (excluded) review photos without resolving the source event.
+            ['type', 'pin'],
             ['status', 'active'],
             ['published_at', Math.floor(Date.now() / 1000).toString()],
           ];
