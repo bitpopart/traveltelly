@@ -15,18 +15,30 @@ export const config = { path: '/api/create-payment-intent' };
 
 const STRIPE_API = 'https://api.stripe.com/v1/payment_intents';
 
+// Allow the SPA origin to call this endpoint from a different host/port during
+// local dev. Same-origin calls are unaffected.
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
 function json(status, body) {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
       'Content-Type': 'application/json',
-      // Allow the SPA origin to call this endpoint from a different host/port
-      // during local dev. Same-origin calls are unaffected.
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      ...CORS_HEADERS,
     },
   });
+}
+
+// 204 No Content must NOT carry a body — the standard Response constructor
+// rejects a 204 with any body (and Netlify surfaces it as a 502 to the
+// browser's CORS preflight), which breaks card checkout whenever the endpoint
+// is called cross-origin. Return a body-less 204 for the preflight instead.
+function preflight(/* req */) {
+  return new Response(null, { status: 204, headers: CORS_HEADERS });
 }
 
 function formEncode(obj) {
@@ -38,7 +50,7 @@ function formEncode(obj) {
 }
 
 export default async function handler(req) {
-  if (req.method === 'OPTIONS') return json(204, {});
+  if (req.method === 'OPTIONS') return preflight(req);
 
   if (req.method !== 'POST') {
     return json(405, { error: { message: 'Method not allowed.' } });
