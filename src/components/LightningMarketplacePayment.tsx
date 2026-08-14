@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/useToast';
 import { usePriceConversion } from '@/hooks/usePriceConversion';
-import { Zap, Loader2, CheckCircle, Copy, ExternalLink } from 'lucide-react';
+import { Zap, Loader2, CheckCircle, Copy, Clock } from 'lucide-react';
 import type { MarketplaceProduct } from '@/hooks/useMarketplaceProducts';
 
 interface LightningMarketplacePaymentProps {
@@ -16,69 +16,43 @@ interface LightningMarketplacePaymentProps {
   onSuccess: () => void;
 }
 
-interface LNURLPayResponse {
-  callback: string;
-  maxSendable: number;
-  minSendable: number;
-  metadata: string;
-  tag: string;
+interface OrderResponse {
+  orderId: string;
+  invoice: string;
+  paymentHash: string;
+  amountSats: number;
+  status: string;
 }
 
-interface InvoiceResponse {
-  pr: string;
-  successAction?: { tag: string; message?: string; url?: string };
+interface VerifyResponse {
+  orderId?: string;
+  status?: string;
+  paid?: boolean;
+  reason?: string;
 }
 
-// CORS proxy & Lightning address — prefer admin-configured value
-const CORS_PROXY = 'https://proxy.shakespeare.diy/?url=';
-const LIGHTNING_ADDRESS =
-  localStorage.getItem('traveltelly_lightning_address') || 'bitpopart@rizful.com';
+// API endpoints are same-origin on the Netlify deployment (Netlify Functions
+// proxied under /api/*). CORS is handled server-side for cross-origin dev.
+const API = {
+  orders: '/api/orders',
+  verify: '/api/verify-payment',
+};
 
-async function fetchWithProxy(url: string): Promise<Response> {
-  // Try direct first (works when CORS allows)
-  try {
-    const r = await fetch(url, { mode: 'cors' });
-    if (r.ok) return r;
-  } catch { /* fall through */ }
-  // Use proxy
-  return fetch(`${CORS_PROXY}${encodeURIComponent(url)}`);
-}
-
-async function resolveLNURL(address: string): Promise<LNURLPayResponse> {
-  const [username, domain] = address.split('@');
-  const url = `https://${domain}/.well-known/lnurlp/${username}`;
-  const r = await fetchWithProxy(url);
-  if (!r.ok) throw new Error('Cannot reach Lightning address. Check address or try again.');
-  const data = await r.json();
-  if (data.tag !== 'payRequest') throw new Error('Invalid LNURL response.');
-  return data;
-}
-
-async function createInvoiceFromLNURL(
-  lnurl: LNURLPayResponse,
-  amountMsat: number,
-  comment: string
-): Promise<InvoiceResponse> {
-  const callbackUrl = `${lnurl.callback}?amount=${amountMsat}&comment=${encodeURIComponent(comment)}`;
-  const r = await fetchWithProxy(callbackUrl);
-  if (!r.ok) throw new Error('Could not generate Lightning invoice.');
-  const data = await r.json();
-  if (!data.pr) throw new Error(data.reason || 'No invoice returned.');
-  return data;
-}
-
-function savePurchaseToStorage(purchase: object) {
-  const purchases = JSON.parse(localStorage.getItem('traveltelly_purchases') || '[]');
-  purchases.push(purchase);
-  localStorage.setItem('traveltelly_purchases', JSON.stringify(purchases));
+function postJson(url: string, body: unknown): Promise<Response> {
+  return fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
 }
 
 export function LightningMarketplacePayment({ product, onSuccess }: LightningMarketplacePaymentProps) {
   const [buyerEmail, setBuyerEmail] = useState('');
   const [buyerName, setBuyerName] = useState('');
   const [message, setMessage] = useState('');
-  const [paymentStep, setPaymentStep] = useState<'form' | 'invoice' | 'verifying' | 'success'>('form');
+  const [paymentStep, setPaymentStep] = useState<'form' | 'invoice' | 'verifying' | 'pending' | 'success'>('form');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [orderId, setOrderId] = useState('');
   const [invoice, setInvoice] = useState('');
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -86,11 +60,11 @@ export function LightningMarketplacePayment({ product, onSuccess }: LightningMar
 
   const { toast } = useToast();
   const priceInfo = usePriceConversion(product.price, product.currency);
-  const amountSats = priceInfo.sats ? parseInt(priceInfo.sats.replace(/[^\d]/g, '')) : 0;
+  const amountSats = priceInfo.sats ? parseInt(priceInfo.sats.replace(/[^\d]/g, ''), 10) : 0;
 
-  const isFree = product.event.tags.some(t => t[0] === 'free' && t[1] === 'true');
+  const isFree = product.event.tags.some((t) => t[0] === 'free' && t[1] === 'true');
 
-  // ── Create invoice ──────────────────────────────────────────────────────────
+  // ── Create invoice + server-side order ─────────────────────────────────────
   const handleCreateInvoice = async () => {
     if (!buyerEmail.trim()) {
       toast({ title: 'Email required', description: 'Enter your email so we can send the download link.', variant: 'destructive' });
@@ -105,30 +79,37 @@ export function LightningMarketplacePayment({ product, onSuccess }: LightningMar
     setErrorMsg('');
 
     try {
-      const lnurl = await resolveLNURL(LIGHTNING_ADDRESS);
-      const amountMsat = amountSats * 1000;
-
-      if (amountMsat < lnurl.minSendable || amountMsat > lnurl.maxSendable) {
-        throw new Error(
-          `Amount (${amountSats} sats) out of range for this Lightning address. ` +
-          `Min: ${lnurl.minSendable / 1000}, Max: ${lnurl.maxSendable / 1000} sats.`
-        );
+      const res = await postJson(API.orders, {
+        amountSats,
+        productId: product.id,
+        productTitle: product.title,
+        buyerEmail: buyerEmail.trim(),
+        buyerName: buyerName.trim() || undefined,
+        message: message.trim() || undefined,
+        images: product.images,
+        seller: product.seller,
+        mediaType: product.mediaType,
+        contentCategory: product.contentCategory,
+        description: product.description,
+        category: product.category,
+      });
+      const data = (await res.json().catch(() => ({}))) as OrderResponse;
+      if (!res.ok || !data.orderId) {
+        throw new Error(data && 'error' in data && (data as any).error?.message ? (data as any).error.message : 'Could not create your order. Please try again.');
       }
 
-      const comment = `TravelTelly: ${product.title}${buyerName ? ` | ${buyerName}` : ''} (${buyerEmail})${message ? ` — ${message}` : ''}`;
-      const invoiceData = await createInvoiceFromLNURL(lnurl, amountMsat, comment);
-
-      setInvoice(invoiceData.pr);
-      setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(invoiceData.pr)}`);
+      setOrderId(data.orderId);
+      setInvoice(data.invoice);
+      setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(data.invoice)}`);
       setPaymentStep('invoice');
 
-      // Auto-pay via WebLN if available
+      // Auto-pay via WebLN if available — then provide cryptographic proof.
       if (window.webln) {
         try {
           await window.webln.enable();
-          const result = await window.webln.sendPayment(invoiceData.pr);
+          const result = await window.webln.sendPayment(data.invoice);
           if (result.preimage) {
-            await handlePaymentConfirmed();
+            await submitVerification(data.orderId, result.preimage);
             return;
           }
         } catch (weblnErr) {
@@ -144,47 +125,51 @@ export function LightningMarketplacePayment({ product, onSuccess }: LightningMar
     }
   };
 
-  // ── Record & redirect after payment ────────────────────────────────────────
-  const handlePaymentConfirmed = async () => {
+  // ── Server-side payment verification ───────────────────────────────────────
+  const submitVerification = async (id: string, preimage?: string) => {
     setPaymentStep('verifying');
-    setVerifyMsg('Recording your purchase…');
-    await new Promise(r => setTimeout(r, 500));
+    setVerifyMsg(preimage ? 'Verifying your payment…' : 'Checking payment status…');
 
-    const orderId = `order_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-    const timestamp = Date.now();
+    let res: Response;
+    try {
+      res = await postJson(API.verify, { orderId: id, preimage });
+    } catch {
+      // Network failure — don't grant anything, send them to the order page.
+      finishToDownload(id, true);
+      return;
+    }
+    const data = (await res.json().catch(() => ({}))) as VerifyResponse;
 
-    const purchase = {
-      orderId,
-      productId: product.id,
-      productTitle: product.title,
-      buyerEmail,
-      buyerName,
-      amount: amountSats,
-      currency: 'SATS',
-      timestamp,
-      invoice,
-      paymentMethod: 'lightning' as const,
-      status: 'verified' as const,
-      productData: {
-        images: product.images,
-        description: product.description,
-        category: product.category,
-        mediaType: product.mediaType,
-        contentCategory: product.contentCategory,
-        seller: product.seller,
-      },
-    };
-    savePurchaseToStorage(purchase);
+    if (data.paid || data.status === 'PAID') {
+      setPaymentStep('success');
+      toast({ title: 'Payment confirmed! ⚡', description: 'Redirecting to your download page…' });
+      setTimeout(() => { window.location.href = downloadUrl(id); }, 1200);
+      onSuccess();
+      return;
+    }
 
-    setVerifyMsg('Redirecting to downloads…');
-    setPaymentStep('success');
+    // Not provably paid yet (e.g. paid in an external wallet with no WebLN proof).
+    finishToDownload(id, false);
+  };
 
-    toast({ title: 'Payment confirmed! ⚡', description: 'Redirecting to your download page…' });
+  const finishToDownload = (id: string, confirmSent: boolean) => {
+    setPaymentStep(confirmSent ? 'verifying' : 'pending');
+    setVerifyMsg('We’ll open your download once payment is confirmed.');
+    toast({
+      title: confirmSent ? 'We’ll confirm shortly' : 'Payment not yet verified',
+      description: 'Your order is recorded. We’ll unlock the download once the Lightning payment is confirmed.',
+      variant: confirmSent ? 'default' : 'destructive',
+    });
+    setTimeout(() => { window.location.href = downloadUrl(id); }, 1500);
+  };
 
-    const token = btoa(`${orderId}:${buyerEmail}:${timestamp}`);
-    const downloadUrl = `${window.location.origin}/download/${orderId}?token=${token}&email=${encodeURIComponent(buyerEmail)}`;
-    setTimeout(() => { window.location.href = downloadUrl; }, 1500);
-    onSuccess();
+  const downloadUrl = (id: string) =>
+    `${window.location.origin}/download/${id}?email=${encodeURIComponent(buyerEmail)}`;
+
+  // ── "I've Paid" — ask the server to reconcile (this DOES NOT self-grant) ─
+  const handlePaymentConfirmed = async () => {
+    if (!orderId) return;
+    await submitVerification(orderId);
   };
 
   const copyToClipboard = (text: string) => {
@@ -192,8 +177,8 @@ export function LightningMarketplacePayment({ product, onSuccess }: LightningMar
     toast({ title: 'Copied!', description: 'Lightning invoice copied to clipboard.' });
   };
 
-  // ── Success state ───────────────────────────────────────────────────────────
-  if (paymentStep === 'success' || paymentStep === 'verifying') {
+  // ── Verifying / success state ──────────────────────────────────────────────
+  if (paymentStep === 'verifying' || paymentStep === 'success') {
     return (
       <div className="text-center py-8 space-y-4">
         {paymentStep === 'verifying' ? (
@@ -203,6 +188,20 @@ export function LightningMarketplacePayment({ product, onSuccess }: LightningMar
         )}
         <p className="font-semibold text-lg">{paymentStep === 'verifying' ? 'Processing…' : 'Payment Confirmed! ⚡'}</p>
         <p className="text-sm text-muted-foreground">{verifyMsg || 'Redirecting to your download page…'}</p>
+      </div>
+    );
+  }
+
+  // ── Pending (paid externally, awaiting Rizful confirmation) ────────────────
+  if (paymentStep === 'pending') {
+    return (
+      <div className="text-center py-8 space-y-4">
+        <Clock className="w-16 h-16 mx-auto text-amber-500" />
+        <p className="font-semibold text-lg">Order received — awaiting payment confirmation</p>
+        <p className="text-sm text-muted-foreground max-w-md mx-auto">
+          We’re confirming your Lightning payment. Once Rizful confirms it, your download
+          will unlock automatically. Opening your order page…
+        </p>
       </div>
     );
   }
@@ -232,7 +231,7 @@ export function LightningMarketplacePayment({ product, onSuccess }: LightningMar
                   <Copy className="w-4 h-4" />
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => window.open(`lightning:${invoice}`, '_blank')}>
-                  <ExternalLink className="w-4 h-4" />
+                  <Zap className="w-4 h-4" />
                 </Button>
               </div>
             </div>
@@ -245,7 +244,7 @@ export function LightningMarketplacePayment({ product, onSuccess }: LightningMar
             <strong>How to pay:</strong><br />
             1. Scan the QR code OR copy the invoice into your Lightning wallet<br />
             2. Confirm the payment in your wallet<br />
-            3. Click <strong>"I've Paid"</strong> — your download will open immediately
+            3. Click <strong>"I've Paid"</strong> — your download unlocks once the payment is confirmed
           </AlertDescription>
         </Alert>
 
@@ -285,7 +284,7 @@ export function LightningMarketplacePayment({ product, onSuccess }: LightningMar
             </div>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            Paying to: <strong>{LIGHTNING_ADDRESS}</strong>
+            Paying to: <strong>bitpopart@rizful.com</strong> · Verified server-side before unlock
           </p>
         </CardContent>
       </Card>
@@ -308,7 +307,7 @@ export function LightningMarketplacePayment({ product, onSuccess }: LightningMar
             onChange={(e) => setBuyerEmail(e.target.value)}
             required
           />
-          <p className="text-xs text-muted-foreground">Download link will be sent here</p>
+          <p className="text-xs text-muted-foreground">Download link will be unlocked on your order page</p>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="ln-name">Name <span className="text-muted-foreground text-xs">(optional)</span></Label>
@@ -340,16 +339,16 @@ export function LightningMarketplacePayment({ product, onSuccess }: LightningMar
         size="lg"
       >
         {isProcessing ? (
-          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creating invoice…</>
+          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creating order…</>
         ) : (
           <><Zap className="w-4 h-4 mr-2 fill-current" /> Create Lightning Invoice</>
         )}
       </Button>
 
       <div className="text-xs text-muted-foreground space-y-1">
-        <p>⚡ <strong>WebLN:</strong> If you have Alby or another WebLN extension, payment will be automatic.</p>
+        <p>⚡ <strong>WebLN:</strong> If you have Alby or another WebLN extension, payment is automatic and verified in-browser.</p>
         <p>📱 <strong>Mobile:</strong> Scan the QR with Phoenix, Wallet of Satoshi, Blink, or any Lightning wallet.</p>
-        <p>🔒 <strong>Privacy:</strong> No Nostr account required. Payment goes directly to the creator.</p>
+        <p>🔒 <strong>Verified:</strong> Downloads unlock only after the server confirms payment — no trust-based buttons.</p>
       </div>
     </div>
   );

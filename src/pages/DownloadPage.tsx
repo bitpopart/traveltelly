@@ -9,73 +9,63 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/useToast';
-import { Download, CheckCircle, AlertCircle, FileText, Image as ImageIcon, Video, Music, Clock, Shield, Mail, ExternalLink, ArrowLeft, Zap, CreditCard } from 'lucide-react';;
+import { Download, CheckCircle, AlertCircle, FileText, Image as ImageIcon, Video, Music, Clock, Shield, Mail, ExternalLink, ArrowLeft, Zap, CreditCard } from 'lucide-react';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
+interface OrderInfo {
+  orderId: string;
+  status: 'PENDING' | 'PAID' | string;
+  paymentMethod?: string;
+  productTitle: string;
+  amountSats?: number;
+  currency?: string;
+  createdAt?: number;
+  paidAt?: number | null;
+  verifiedBy?: string | null;
+  buyerEmail?: string;
+  buyerName?: string;
+  images: string[];
+}
+
 interface DownloadItem {
   id: string;
   name: string;
   type: 'image' | 'video' | 'audio' | 'document';
-  size: string;
   url: string;
   format: string;
+  size: string;
 }
 
-interface StoredPurchase {
-  orderId: string;
-  productId: string;
-  productTitle: string;
-  buyerEmail: string;
-  buyerName?: string;
-  amount: number;
-  currency: string;
-  timestamp: number;
-  paymentMethod: 'lightning' | 'stripe';
-  status: 'verified' | 'pending';
-  invoice?: string;
-  productData?: {
-    images: string[];
-    description?: string;
-    category?: string;
-    mediaType?: string;
-    contentCategory?: string;
-    seller?: { pubkey: string; name?: string };
-  };
-}
+const ORDER_API = '/api/order-status';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
-function lookupPurchase(orderId: string, email: string | null): StoredPurchase | null {
-  try {
-    const all: StoredPurchase[] = JSON.parse(localStorage.getItem('traveltelly_purchases') || '[]');
-    return (
-      all.find(p => p.orderId === orderId || p.productId === orderId) ||
-      (email ? all.find(p => p.buyerEmail === email) : null) ||
-      null
-    );
-  } catch {
-    return null;
-  }
+// Downloads are gated by the server: the file URL is the protected /api/download
+// proxy which only serves bytes for orders in the PAID state. No localStorage
+// flag or forgeable token is involved — the order must exist server-side.
+function safeDownloadUrl(orderId: string, fileUrl: string, name: string): string {
+  return `/api/download?orderId=${encodeURIComponent(orderId)}&url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent(name)}`;
 }
 
-function buildDownloadItems(purchase: StoredPurchase): DownloadItem[] {
+function buildDownloadItems(order: OrderInfo): DownloadItem[] {
   const items: DownloadItem[] = [];
-  const images = purchase.productData?.images || [];
-  const safeTitle = purchase.productTitle.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  const images = order.images || [];
+  const safeTitle = (order.productTitle || 'download').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 
   images.forEach((url, idx) => {
     const ext = url.split('.').pop()?.toLowerCase().split('?')[0] || 'jpg';
     const isVideo = ['mp4', 'mov', 'webm', 'avi'].includes(ext);
+    const name = `${safeTitle}-${idx + 1}.${ext}`;
     items.push({
       id: `file_${idx + 1}`,
-      name: `${safeTitle}-${idx + 1}.${ext}`,
+      name,
       type: isVideo ? 'video' : 'image',
       size: idx === 0 ? 'Full resolution' : 'Web size',
-      url,
+      url: safeDownloadUrl(order.orderId, url, name),
       format: ext.toUpperCase(),
     });
   });
 
-  // Always include a license text
+  // Always include a license text (generated from the server-verified order)
   items.push({
     id: 'license',
     name: 'license-agreement.txt',
@@ -88,16 +78,16 @@ function buildDownloadItems(purchase: StoredPurchase): DownloadItem[] {
   return items;
 }
 
-function generateLicenseText(purchase: StoredPurchase): string {
+function generateLicenseText(order: OrderInfo): string {
   return [
     'ROYALTY-FREE LICENSE AGREEMENT',
     '================================',
     '',
-    `Product  : ${purchase.productTitle}`,
-    `Order ID : ${purchase.orderId}`,
-    `Purchaser: ${purchase.buyerName || 'Guest'} <${purchase.buyerEmail}>`,
-    `Date     : ${new Date(purchase.timestamp).toLocaleString()}`,
-    `Payment  : ${purchase.amount.toLocaleString()} ${purchase.currency} via ${purchase.paymentMethod}`,
+    `Product  : ${order.productTitle}`,
+    `Order ID : ${order.orderId}`,
+    `Purchaser: ${order.buyerName || 'Guest'}${order.buyerEmail ? ` <${order.buyerEmail}>` : ''}`,
+    `Date     : ${order.paidAt ? new Date(order.paidAt).toLocaleString() : new Date().toLocaleString()}`,
+    `Payment  : ${order.amountSats ? order.amountSats.toLocaleString() : ''} sats via Lightning (server-verified)`,
     '',
     'PERMISSIONS',
     '-----------',
@@ -136,11 +126,11 @@ const DownloadPage = () => {
   const { toast } = useToast();
 
   const token = searchParams.get('token');
-  const email = searchParams.get('email');
 
-  const [purchase, setPurchase] = useState<StoredPurchase | null>(null);
+  const [order, setOrder] = useState<OrderInfo | null>(null);
   const [downloadItems, setDownloadItems] = useState<DownloadItem[]>([]);
   const [isVerifying, setIsVerifying] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
   const [downloaded, setDownloaded] = useState<Set<string>>(new Set());
 
@@ -151,23 +141,41 @@ const DownloadPage = () => {
   });
 
   useEffect(() => {
-    if (!orderId || !token) { setIsVerifying(false); return; }
+    if (!orderId) { setIsVerifying(false); setLoadError('missing'); return; }
 
-    const found = lookupPurchase(orderId, email);
+    let cancelled = false;
+    let settled = false;
+    const finish = () => { if (!settled) { settled = true; setIsVerifying(false); } };
 
-    if (found) {
-      setPurchase(found);
-      setDownloadItems(buildDownloadItems(found));
-    }
-    // Short delay to show the verifying state
-    const t = setTimeout(() => setIsVerifying(false), 800);
-    return () => clearTimeout(t);
-  }, [orderId, token, email]);
+    (async () => {
+      try {
+        const res = await fetch(`${ORDER_API}?orderId=${encodeURIComponent(orderId)}`);
+        if (!res.ok) throw new Error('order-not-found');
+        const data = (await res.json()) as OrderInfo;
+        if (cancelled) return;
+        if (data && data.orderId) {
+          setOrder(data);
+          setDownloadItems(buildDownloadItems(data));
+        } else {
+          setLoadError('not-found');
+        }
+      } catch {
+        if (!cancelled) setLoadError('not-found');
+      } finally {
+        finish();
+      }
+    })();
+
+    // Safety net: never keep the user on an infinite spinner.
+    const t = setTimeout(finish, 4000);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [orderId]);
+
+  const isPaid = order?.status === 'PAID';
 
   const handleDownload = async (item: DownloadItem) => {
-    if (item.url === '__license__' && purchase) {
-      // Generate license text file
-      const blob = new Blob([generateLicenseText(purchase)], { type: 'text/plain' });
+    if (item.url === '__license__' && order) {
+      const blob = new Blob([generateLicenseText(order)], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url; a.download = item.name;
@@ -188,7 +196,7 @@ const DownloadPage = () => {
       }, 150);
 
       let ok = false;
-      // Method 1: fetch + blob (respects CORS)
+      // Method 1: fetch + blob through the protected /api/download proxy
       try {
         const r = await fetch(item.url, { mode: 'cors' });
         if (r.ok) {
@@ -202,7 +210,6 @@ const DownloadPage = () => {
         }
       } catch { /* try next method */ }
 
-      // Method 2: direct anchor download
       if (!ok) {
         const a = document.createElement('a');
         a.href = item.url; a.download = item.name; a.target = '_blank';
@@ -228,13 +235,13 @@ const DownloadPage = () => {
   };
 
   const emailMyselfLink = () => {
-    if (!purchase) return;
-    const url = `${window.location.origin}/download/${purchase.orderId}?token=${token}&email=${encodeURIComponent(purchase.buyerEmail)}`;
-    const subject = encodeURIComponent(`Your TravelTelly Download — Order #${purchase.orderId}`);
+    if (!order) return;
+    const url = `${window.location.origin}/download/${order.orderId}${token ? `?token=${token}` : ''}`;
+    const subject = encodeURIComponent(`Your TravelTelly Download — Order #${order.orderId}`);
     const body = encodeURIComponent(
-      `Hi ${purchase.buyerName || 'there'},\n\nYour download is ready:\n${url}\n\nOrder: ${purchase.orderId}\nProduct: ${purchase.productTitle}\n\nSupport: support@traveltelly.com`
+      `Hi ${order.buyerName || 'there'},\n\nYour download is ready:\n${url}\n\nOrder: ${order.orderId}\nProduct: ${order.productTitle}\n\nSupport: support@traveltelly.com`
     );
-    window.open(`mailto:${purchase.buyerEmail}?subject=${subject}&body=${body}`);
+    window.open(`mailto:${order.buyerEmail || ''}?subject=${subject}&body=${body}`);
   };
 
   // ── Loading ──────────────────────────────────────────────────────────────────
@@ -250,29 +257,35 @@ const DownloadPage = () => {
     );
   }
 
-  // ── Invalid / not found ──────────────────────────────────────────────────────
-  if (!purchase || !token) {
+  // ── Invalid / not found / not paid ───────────────────────────────────────────
+  const showLocked = !order || loadError === 'not-found' || loadError === 'missing' || !isPaid;
+  if (showLocked) {
+    const isPending = !!order && order.status !== 'PAID';
     return (
       <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
         <Navigation />
         <div className="container mx-auto px-4 py-8 max-w-lg">
-          <Card className="border-red-200 dark:border-red-800">
+          <Card className={isPending ? 'border-amber-200 dark:border-amber-800' : 'border-red-200 dark:border-red-800'}>
             <CardContent className="py-12 text-center">
-              <AlertCircle className="w-14 h-14 mx-auto text-red-500 mb-4" />
-              <h2 className="text-xl font-semibold text-red-600 dark:text-red-400 mb-2">
-                Purchase Not Found
+              {isPending ? <Clock className="w-14 h-14 mx-auto text-amber-500 mb-4" /> : <AlertCircle className="w-14 h-14 mx-auto text-red-500 mb-4" />}
+              <h2 className="text-xl font-semibold text-amber-600 dark:text-amber-400 mb-2">
+                {isPending ? 'Payment Pending' : 'Purchase Not Found'}
               </h2>
               <p className="text-muted-foreground mb-2">
-                We couldn't find a purchase for this download link.
+                {isPending
+                  ? 'Your download is locked until the Lightning payment is verified by the server.'
+                  : "We couldn't find a verified purchase for this download link."}
               </p>
               <p className="text-sm text-muted-foreground mb-6">
-                If you just completed payment, please check that:
+                {isPending
+                  ? 'Payment confirmation is handled automatically. Check back shortly — or contact support with your order ID.'
+                  : 'Downloads are unlocked only after the server confirms payment. No trust-based buttons here.'}
               </p>
-              <ul className="text-sm text-muted-foreground text-left mx-auto max-w-xs mb-6 space-y-1">
-                <li>• You clicked <strong>I've Paid</strong> after sending the Lightning payment</li>
-                <li>• The download link is the one from your confirmation page</li>
-                <li>• Your browser hasn't cleared localStorage</li>
-              </ul>
+              {isPending && order && (
+                <p className="text-xs text-muted-foreground mb-6">
+                  Order ID: <code className="font-mono">{order.orderId}</code>
+                </p>
+              )}
               <div className="flex flex-col gap-3 max-w-xs mx-auto">
                 <Link to="/marketplace">
                   <Button className="w-full">
@@ -292,6 +305,8 @@ const DownloadPage = () => {
     );
   }
 
+  if (!order) return null;
+
   // ── Success page ─────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f4f4f5' }}>
@@ -302,26 +317,12 @@ const DownloadPage = () => {
         <div className="text-center">
           <CheckCircle className="w-16 h-16 mx-auto text-green-500 mb-4" />
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            {purchase.status === 'pending' ? 'Order Received 📋' : 'Payment Confirmed! 🎉'}
+            Payment Confirmed! 🎉
           </h1>
           <p className="text-gray-600 dark:text-gray-300 text-lg">
-            {purchase.status === 'pending'
-              ? 'Your order is recorded. Download will be available once payment is confirmed.'
-              : 'Your digital media is ready to download.'}
+            Your digital media is ready to download.
           </p>
         </div>
-
-        {/* Pending order notice */}
-        {purchase.status === 'pending' && (
-          <Alert className="border-amber-300 bg-amber-50 dark:bg-amber-900/20">
-            <Clock className="h-4 w-4 text-amber-600" />
-            <AlertDescription className="text-amber-800 dark:text-amber-200">
-              <strong>Order pending.</strong> If you paid via card, the admin will confirm and send your download link. Contact{' '}
-              <a href="mailto:support@traveltelly.com" className="underline font-medium">support@traveltelly.com</a>{' '}
-              with your order ID: <code className="font-mono text-xs">{purchase.orderId}</code>
-            </AlertDescription>
-          </Alert>
-        )}
 
         {/* Purchase summary */}
         <Card>
@@ -335,118 +336,108 @@ const DownloadPage = () => {
             <div className="grid md:grid-cols-3 gap-4 text-sm">
               <div>
                 <p className="text-muted-foreground mb-0.5">Product</p>
-                <p className="font-semibold">{purchase.productTitle}</p>
+                <p className="font-semibold">{order.productTitle}</p>
               </div>
               <div>
                 <p className="text-muted-foreground mb-0.5">Order ID</p>
-                <p className="font-mono text-xs break-all">{purchase.orderId}</p>
+                <p className="font-mono text-xs break-all">{order.orderId}</p>
               </div>
               <div>
                 <p className="text-muted-foreground mb-0.5">Paid</p>
                 <div className="flex items-center gap-1.5">
-                  {purchase.paymentMethod === 'lightning'
+                  {order.paymentMethod === 'lightning'
                     ? <Zap className="w-4 h-4 text-yellow-500 fill-current" />
                     : <CreditCard className="w-4 h-4 text-blue-500" />}
                   <span className="font-semibold">
-                    {purchase.currency === 'SATS'
-                      ? `${purchase.amount.toLocaleString()} sats`
-                      : purchase.currency === 'FREE'
-                      ? 'Free'
-                      : `${(purchase.amount / 100).toFixed(2)} ${purchase.currency}`}
+                    {order.amountSats ? `${order.amountSats.toLocaleString()} sats` : ''}
                   </span>
                 </div>
               </div>
               <div>
                 <p className="text-muted-foreground mb-0.5">Email</p>
                 <p className="font-medium flex items-center gap-1">
-                  <Mail className="w-3 h-3" /> {purchase.buyerEmail}
+                  <Mail className="w-3 h-3" /> {order.buyerEmail || '—'}
                 </p>
               </div>
               <div>
                 <p className="text-muted-foreground mb-0.5">Date</p>
-                <p className="font-medium">{new Date(purchase.timestamp).toLocaleString()}</p>
+                <p className="font-medium">{order.paidAt ? new Date(order.paidAt).toLocaleString() : ''}</p>
               </div>
               <div>
                 <p className="text-muted-foreground mb-0.5">Status</p>
-                <Badge
-                  className={purchase.status === 'verified' ? 'bg-green-500 text-white' : 'bg-amber-500 text-white'}
-                >
-                  {purchase.status === 'verified' ? '✓ Verified' : '⏳ Pending'}
-                </Badge>
+                <Badge className="bg-green-500 text-white">✓ Verified</Badge>
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Downloads */}
-        {purchase.status === 'verified' && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Download className="w-5 h-5 text-blue-500" />
-                  Your Files ({downloadItems.length})
-                </CardTitle>
-                <Button onClick={downloadAll} className="bg-blue-600 hover:bg-blue-700" size="sm">
-                  <Download className="w-4 h-4 mr-2" /> Download All
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {downloadItems.map((item, idx) => (
-                <div key={item.id}>
-                  <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                    <div className="flex items-center gap-3 min-w-0">
-                      {getFileIcon(item.type)}
-                      <div className="min-w-0">
-                        <p className="font-medium text-sm truncate">{item.name}</p>
-                        <p className="text-xs text-muted-foreground">{item.format} • {item.size}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 ml-3 flex-shrink-0">
-                      {downloadProgress[item.id] !== undefined && downloadProgress[item.id] < 100 && (
-                        <div className="w-20">
-                          <Progress value={downloadProgress[item.id]} className="h-1.5" />
-                        </div>
-                      )}
-
-                      {downloaded.has(item.id) ? (
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary" className="text-green-600 text-xs">
-                            <CheckCircle className="w-3 h-3 mr-1" /> Done
-                          </Badge>
-                          <Button size="sm" variant="ghost" onClick={() => handleDownload(item)}>
-                            <Download className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            onClick={() => handleDownload(item)}
-                            disabled={downloadProgress[item.id] !== undefined && downloadProgress[item.id] < 100}
-                            className="bg-blue-600 hover:bg-blue-700"
-                          >
-                            <Download className="w-3 h-3 mr-1" /> Download
-                          </Button>
-                          {item.url !== '__license__' && (
-                            <Button size="sm" variant="outline" asChild>
-                              <a href={item.url} target="_blank" rel="noopener noreferrer">
-                                <ExternalLink className="w-3 h-3" />
-                              </a>
-                            </Button>
-                          )}
-                        </div>
-                      )}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Download className="w-5 h-5 text-blue-500" />
+                Your Files ({downloadItems.length})
+              </CardTitle>
+              <Button onClick={downloadAll} className="bg-blue-600 hover:bg-blue-700" size="sm">
+                <Download className="w-4 h-4 mr-2" /> Download All
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {downloadItems.map((item, idx) => (
+              <div key={item.id}>
+                <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  <div className="flex items-center gap-3 min-w-0">
+                    {getFileIcon(item.type)}
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate">{item.name}</p>
+                      <p className="text-xs text-muted-foreground">{item.format} • {item.size}</p>
                     </div>
                   </div>
-                  {idx < downloadItems.length - 1 && <Separator />}
+
+                  <div className="flex items-center gap-2 ml-3 flex-shrink-0">
+                    {downloadProgress[item.id] !== undefined && downloadProgress[item.id] < 100 && (
+                      <div className="w-20">
+                        <Progress value={downloadProgress[item.id]} className="h-1.5" />
+                      </div>
+                    )}
+
+                    {downloaded.has(item.id) ? (
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-green-600 text-xs">
+                          <CheckCircle className="w-3 h-3 mr-1" /> Done
+                        </Badge>
+                        <Button size="sm" variant="ghost" onClick={() => handleDownload(item)}>
+                          <Download className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleDownload(item)}
+                          disabled={downloadProgress[item.id] !== undefined && downloadProgress[item.id] < 100}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          <Download className="w-3 h-3 mr-1" /> Download
+                        </Button>
+                        {item.url !== '__license__' && (
+                          <Button size="sm" variant="outline" asChild>
+                            <a href={item.url} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              ))}
-            </CardContent>
-          </Card>
-        )}
+                {idx < downloadItems.length - 1 && <Separator />}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
 
         {/* License */}
         <Card className="border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
@@ -475,7 +466,7 @@ const DownloadPage = () => {
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Save your files to a secure location. Download access is tied to this browser session.
+              Save your files to a secure location. Download access is tied to this verified order.
               Use <strong>Email Myself</strong> to save this link for later.
             </p>
             <div className="flex flex-wrap gap-3">
@@ -488,7 +479,7 @@ const DownloadPage = () => {
                 <Mail className="w-4 h-4 mr-2" /> Email Myself This Link
               </Button>
               <Button variant="outline" size="sm" asChild>
-                <a href={`mailto:support@traveltelly.com?subject=Order+Support&body=Order+ID%3A+${purchase.orderId}`}>
+                <a href={`mailto:support@traveltelly.com?subject=Order+Support&body=Order+ID%3A+${order.orderId}`}>
                   <Mail className="w-4 h-4 mr-2" /> Contact Support
                 </a>
               </Button>
