@@ -48,7 +48,7 @@ export function PaymentDialog({ isOpen, onClose, product }: PaymentDialogProps) 
   const hasUnlimitedAccess = subscription?.isActive || guestHasAccess;
 
   const stripeEnabled = localStorage.getItem('traveltelly_stripe_enabled') !== 'false';
-  const stripeKey = localStorage.getItem('traveltelly_stripe_publishable_key') || import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
+  const stripeKey = localStorage.getItem('traveltelly_stripe_publishable_key') || import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_live_5Mc1IZ9Jb2fSSOacY9eEFFng';
   const stripeConfigured = stripeKey.startsWith('pk_live_') || stripeKey.startsWith('pk_test_');
 
   // Handle direct subscription download

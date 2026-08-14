@@ -20,7 +20,7 @@ function getStripeKey(): string {
   return (
     localStorage.getItem('traveltelly_stripe_publishable_key') ||
     import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ||
-    ''
+    'pk_live_5Mc1IZ9Jb2fSSOacY9eEFFng'
   );
 }
 
