@@ -33,8 +33,6 @@ export function Navigation({ className }: NavigationProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const isActive = (path: string) => {
-    // /telly-map is also active when on / (the root now renders TellyMap)
-    if (path === '/telly-map' && (location.pathname === '/' || location.pathname === '/telly-map')) return true;
     if (path === location.pathname) return true;
     if (path !== '/' && path !== '/home' && location.pathname.startsWith(path)) return true;
     return false;
@@ -129,15 +127,15 @@ export function Navigation({ className }: NavigationProps) {
           {/* Desktop Right Side */}
           <div className="hidden md:flex items-center gap-3">
 
-            {/* View Mode Toggle — images (/home) ↔ map (/) */}
-            {(location.pathname === '/' || location.pathname === '/telly-map' || location.pathname === '/home') && (
+            {/* View Mode Toggle — images (/) ↔ map (/telly-map) */}
+            {(location.pathname === '/' || location.pathname === '/telly-map') && (
               <div className="inline-flex items-center bg-gray-200 dark:bg-gray-700 rounded-full p-1 gap-1">
-                <Link to="/home">
+                <Link to="/">
                   <Button
                     variant="ghost"
                     size="icon"
                     className={`rounded-full w-9 h-9 transition-all ${
-                      location.pathname === '/home'
+                      location.pathname === '/'
                         ? 'bg-gray-800 hover:bg-gray-900 text-white'
                         : 'hover:bg-gray-300 dark:hover:bg-gray-600'
                     }`}
@@ -146,12 +144,12 @@ export function Navigation({ className }: NavigationProps) {
                     <ImageIcon className="w-4 h-4" />
                   </Button>
                 </Link>
-                <Link to="/">
+                <Link to="/telly-map">
                   <Button
                     variant="ghost"
                     size="icon"
                     className={`rounded-full w-9 h-9 transition-all ${
-                      (location.pathname === '/' || location.pathname === '/telly-map')
+                      location.pathname === '/telly-map'
                         ? 'bg-gray-800 hover:bg-gray-900 text-white'
                         : 'hover:bg-gray-300 dark:hover:bg-gray-600'
                     }`}
@@ -194,15 +192,15 @@ export function Navigation({ className }: NavigationProps) {
 
           {/* Mobile Right Side */}
           <div className="md:hidden flex items-center gap-2">
-            {/* View Mode Toggle — mobile — images (/home) ↔ map (/) */}
-            {(location.pathname === '/' || location.pathname === '/telly-map' || location.pathname === '/home') && (
+            {/* View Mode Toggle — mobile — images (/) ↔ map (/telly-map) */}
+            {(location.pathname === '/' || location.pathname === '/telly-map') && (
               <div className="inline-flex items-center bg-gray-200 dark:bg-gray-700 rounded-full p-1 gap-1">
-                <Link to="/home">
+                <Link to="/">
                   <Button
                     variant="ghost"
                     size="icon"
                     className={`rounded-full w-8 h-8 transition-all ${
-                      location.pathname === '/home'
+                      location.pathname === '/'
                         ? 'bg-gray-800 hover:bg-gray-900 text-white'
                         : 'hover:bg-gray-300 dark:hover:bg-gray-600'
                     }`}
@@ -211,12 +209,12 @@ export function Navigation({ className }: NavigationProps) {
                     <ImageIcon className="w-4 h-4" />
                   </Button>
                 </Link>
-                <Link to="/">
+                <Link to="/telly-map">
                   <Button
                     variant="ghost"
                     size="icon"
                     className={`rounded-full w-8 h-8 transition-all ${
-                      (location.pathname === '/' || location.pathname === '/telly-map')
+                      location.pathname === '/telly-map'
                         ? 'bg-gray-800 hover:bg-gray-900 text-white'
                         : 'hover:bg-gray-300 dark:hover:bg-gray-600'
                     }`}
