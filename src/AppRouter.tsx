@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { BottomNav } from "./components/BottomNav";
 
@@ -74,8 +74,8 @@ export function AppRouter() {
     <BrowserRouter>
       <ScrollToTop />
       <Routes>
-        <Route path="/" element={<TellyMap />} />
-        <Route path="/home" element={<Index />} />
+        <Route path="/" element={<Index />} />
+        <Route path="/home" element={<Navigate to="/" replace />} />
         <Route path="/debug" element={<IndexDebug />} />
         <Route path="/safe" element={<IndexSafe />} />
         <Route path="/minimal" element={<IndexMinimal />} />
