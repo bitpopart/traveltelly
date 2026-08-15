@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Navigation } from '@/components/Navigation';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useReviewPermissions } from '@/hooks/useReviewPermissions';
@@ -19,6 +20,7 @@ export default function TellyMap() {
   const { hasPermission, isAdmin } = useReviewPermissions();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [iframeReady, setIframeReady] = useState(false);
+  const navigate = useNavigate();
 
   const sendAuth = () => {
     const iframe = iframeRef.current;
@@ -34,6 +36,22 @@ export default function TellyMap() {
       );
     } catch { /* cross-origin sandbox — silently ignored */ }
   };
+
+  // Route the iframe's tag chips: clicking a city/country chip posts
+  // tellymap:nav {path:'/bangkok'} — we navigate the SPA (no reload) and ack
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin && e.origin !== window.location.origin && e.origin !== 'null') return;
+      if (!e.data || e.data.type !== 'tellymap:nav' || typeof e.data.path !== 'string') return;
+      const { path } = e.data;
+      try {
+        e.source?.postMessage?.({ type: 'tellymap:nav-ack', path }, { targetOrigin: window.location.origin });
+      } catch { /* ignored */ }
+      navigate(path);
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [navigate]);
 
   // Send once on iframe load
   useEffect(() => {
