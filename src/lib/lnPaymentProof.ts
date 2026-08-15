@@ -27,7 +27,9 @@ function hexToBytes(hex: string): Uint8Array | null {
 }
 
 async function sha256Hex(data: Uint8Array): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', data);
+  // `data` is always a fresh Uint8Array from hexToBytes (never a view into a
+  // shared buffer), so the cast is sound — matches apkCertExtractor.ts.
+  const digest = await crypto.subtle.digest('SHA-256', data as Uint8Array<ArrayBuffer>);
   return Array.from(new Uint8Array(digest))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
