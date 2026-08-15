@@ -1,10 +1,8 @@
-import { useEffect } from 'react';
-import { useParams, Navigate, useNavigate } from 'react-router-dom';
+import { useParams, Navigate, Link } from 'react-router-dom';
 import { useSeoMeta } from '@unhead/react';
 import { Navigation } from "@/components/Navigation";
 import { LocationContentGrid } from "@/components/LocationContentGrid";
 import { MapPin, Globe } from "lucide-react";
-import { Link } from "react-router-dom";
 
 // List of known routes that should NOT be treated as locations
 const RESERVED_ROUTES = [
@@ -21,23 +19,6 @@ const RESERVED_ROUTES = [
 
 export function LocationPage() {
   const { location } = useParams<{ location: string }>();
-  const navigate = useNavigate();
-
-  // Route tag chips that live inside the embedded world map iframe:
-  // clicking "📍 Friesland" posts tellymap:nav {path:'/friesland'}
-  useEffect(() => {
-    const onMessage = (e: MessageEvent) => {
-      if (e.origin && e.origin !== window.location.origin && e.origin !== 'null') return;
-      if (!e.data || e.data.type !== 'tellymap:nav' || typeof e.data.path !== 'string') return;
-      const { path } = e.data;
-      try {
-        e.source?.postMessage?.({ type: 'tellymap:nav-ack', path }, { targetOrigin: window.location.origin });
-      } catch { /* ignored */ }
-      navigate(path);
-    };
-    window.addEventListener('message', onMessage);
-    return () => window.removeEventListener('message', onMessage);
-  }, [navigate]);
 
   // Decode URL-encoded location (e.g., "New%20York" -> "New York")
   const decodedLocation = location ? decodeURIComponent(location) : '';
@@ -77,18 +58,19 @@ export function LocationPage() {
               className="inline-flex items-center gap-2 rounded-full bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-4 py-2 text-sm font-medium hover:opacity-90 transition-opacity"
             >
               <Globe className="w-4 h-4" />
-              Full world map
+              Open on the world map
             </Link>
           </div>
 
-          {/* World map view focused on this city/country */}
-          <div className="rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-md" style={{ height: 'min(62vh, 640px)' }}>
-            <iframe
-              src={`/telly-map.html?focus=${encodeURIComponent(formattedLocation)}`}
-              title={`${formattedLocation} on the TravelTelly world map`}
-              style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
-              allow="geolocation"
-            />
+          {/* One world map — content below lives on /telly-map inside each photo popup,
+              under the GPS coordinates. This page stays content-only (SEO deep link). */}
+          <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm px-4 py-3 flex items-center gap-3 flex-wrap">
+            <Globe className="w-5 h-5 text-orange-500 shrink-0" />
+            <p className="text-sm text-gray-600 dark:text-gray-300 flex-1 min-w-[220px]">
+              {formattedLocation}'s photos, reviews, stories and trips all live on the{' '}
+              <Link to="/telly-map" className="font-semibold text-orange-600 hover:underline">one world map</Link> —
+              open any photo pin and the info is right there, under the GPS coordinates.
+            </p>
           </div>
 
           {/* Content for this location */}
