@@ -114,6 +114,24 @@ body.picking #map{cursor:crosshair;}
 .panel .trash{position:absolute;top:12px;left:12px;z-index:5;border:none;background:rgba(255,255,255,0.92);
  border-radius:50%;width:36px;height:36px;font-size:14px;box-shadow:var(--shadow);opacity:0.75;}
 .panel .trash:hover{opacity:1;}
+/* location tag chips overlaid on the opened photo */
+.panel .ptags{position:absolute;left:10px;right:10px;bottom:10px;z-index:6;display:flex;gap:6px;flex-wrap:wrap;max-height:45%;overflow:hidden;pointer-events:none;}
+.ptag{pointer-events:auto;display:inline-flex;align-items:center;gap:5px;max-width:100%;
+ background:rgba(20,18,16,0.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+ color:#fff;border:1px solid rgba(255,255,255,0.35);border-radius:999px;padding:5px 11px;
+ font-size:12px;font-weight:600;letter-spacing:0.02em;text-decoration:none;cursor:pointer;
+ transition:background .15s,transform .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ptag:hover{background:rgba(102,204,51,0.9);border-color:rgba(102,204,51,0.9);transform:translateY(-1px);}
+.ptag .ptag-ico{font-size:12px;}
+/* focus chip when the map is opened at /<location> (world map view of a city/country) */
+#focuschip{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:1240;display:none;align-items:center;gap:8px;
+ background:rgba(20,18,16,0.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#fff;
+ border:1px solid rgba(255,255,255,0.25);border-radius:999px;padding:6px 8px 6px 14px;
+ font-size:12.5px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,0.35);max-width:80vw;}
+#focuschip .fc-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#focuschip .fc-clear{border:none;background:rgba(255,255,255,0.16);color:#fff;border-radius:999px;width:22px;height:22px;
+ font-size:12px;line-height:1;cursor:pointer;flex:0 0 auto;}
+#focuschip .fc-clear:hover{background:rgba(255,255,255,0.35);}
 .panel .body{padding:20px 22px 28px;}
 .panel .eyebrow{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:11.5px;
  letter-spacing:0.24em;text-transform:uppercase;color:var(--lime-dark);}
@@ -327,6 +345,8 @@ body.picking #map{cursor:crosshair;}
 <div id="map"></div>
 <div class="statusline" id="statusline"></div>
 <div id="osmload">Loading street detail…</div>
+<!-- focus chip: shown when the map is opened at /<location> -->
+<div id="focuschip"><span class="fc-label" id="focuschip-label"></span><button class="fc-clear" id="focuschip-clear" title="Back to the whole world">✕</button></div>
 
 <div class="empty" id="empty">
  <h3>The map's still empty</h3>
@@ -354,6 +374,7 @@ body.picking #map{cursor:crosshair;}
  <div class="media" id="pMedia">
   <button class="closex" onclick="closePanel()">✕</button>
   <button class="trash" id="pTrash" title="Delete pin">🗑</button>
+  <div class="ptags" id="pTags"></div>
  </div>
  <div class="body">
   <div class="eyebrow" id="pPlace"></div>
@@ -1034,6 +1055,7 @@ function openPin(id){
  }
  $('pPlace').textContent = p.place || 'Somewhere on Earth';
  $('pTitle').textContent = p.title || 'Untitled spot';
+ renderPinTags(p);
  const d = new Date(p.ts);
  const catLabel = p.category ? (' · ' + p.category.replace(/-/g,' ')) : '';
  const reviewTag = p._isReview ? ' <span style="background:#4db8ff;color:#fff;border-radius:999px;padding:1px 8px;font-size:10px;font-weight:700;vertical-align:middle;">⭐ Review</span>' : '';
@@ -1374,6 +1396,149 @@ async function placeName(lat, lon){
  }
  return '';
 }
+
+/* ═════════ location tag chips on the opened photo ═════════ */
+/*
+ * When a pin's photo is opened, overlay clickable chips for the pin's
+ * city (📍), region/province (🗺️) and country (🌍). Clicking a chip
+ * navigates to the clean URL /<slug> (e.g. /friesland, /bangkok)
+ * which renders the world map view of that place.
+ */
+const _pinGeoCache = {};
+async function pinGeo(lat, lon){
+ const key = lat.toFixed(3) + ',' + lon.toFixed(3);
+ if(_pinGeoCache[key]) return _pinGeoCache[key];
+ const p = (async () => {
+  try{
+   const r = await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' + lat + '&lon=' + lon + '&zoom=10&accept-language=en');
+   if(!r.ok) return null;
+   const j = await r.json();
+   const a = j.address || {};
+   const city = a.city || a.town || a.village || a.municipality || '';
+   return {
+    city,
+    region: (a.state && a.state !== city && a.state !== (a.country||'')) ? a.state : '',
+    country: a.country || '',
+    county: (!city && a.county && a.county !== (a.state||'')) ? a.county : '',
+   };
+  }catch(e){ return null; }
+ })();
+ _pinGeoCache[key] = p;
+ return p;
+}
+function slugifyPlace(name){
+ return (name||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+  .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60);
+}
+function splitPlaceStr(s){
+ return (s||'').split(/\s*[·,|]\s*/).map(x => x.trim()).filter(Boolean);
+}
+async function renderPinTags(p){
+ const box = $('pTags');
+ box.innerHTML = '';
+ const chips = [];
+ const push = (label, ico) => {
+  const l = (label||'').trim();
+  if(!l || chips.some(c => c.label.toLowerCase() === l.toLowerCase())) return;
+  chips.push({label:l, ico});
+ };
+ const geo = await pinGeo(p.lat, p.lon);
+ // panel may have moved on to another pin while geocoding
+ if(openId !== p.id) return;
+ if(geo && (geo.city || geo.region || geo.country)){
+  if(geo.city) push(geo.city, '📍');
+  if(geo.region) push(geo.region, '🗺️');
+  if(geo.country) push(geo.country, '🌍');
+  if(chips.length === 0 && geo.county) push(geo.county, '📍');
+ }else{
+  // fallback: parse the pin's place string ("Amsterdam · Netherlands")
+  const parts = splitPlaceStr(p.place);
+  parts.forEach((part, i) => push(part, i === parts.length - 1 ? '🌍' : '📍'));
+ }
+ if(chips.length === 0) return;
+ chips.forEach(c => {
+  const a = document.createElement('a');
+  a.className = 'ptag';
+  a.href = '/' + slugifyPlace(c.label);
+  a.setAttribute('data-path', a.getAttribute('href'));
+  a.innerHTML = '<span class="ptag-ico">' + c.ico + '</span>' + esc(c.label);
+  a.onclick = (ev) => { ev.preventDefault(); navToLocationPath(a.getAttribute('data-path')); };
+  box.appendChild(a);
+ });
+}
+function navToLocationPath(path){
+ /* Inside the React shell: postMessage so the SPA routes without a reload.
+    If the shell doesn't ack within 300ms, fall back to a top-level navigation. */
+ if(_isEmbedded){
+  let done = false;
+  const fallback = setTimeout(() => {
+   if(!done){ done = true; try{ window.top.location.href = path; }catch(e){} }
+  }, 300);
+  const onAck = (ev) => {
+   if(ev && ev.data && ev.data.type === 'tellymap:nav-ack' && ev.data.path === path){
+    done = true; clearTimeout(fallback); window.removeEventListener('message', onAck);
+   }
+  };
+  window.addEventListener('message', onAck);
+  try{ window.parent.postMessage({type:'tellymap:nav', path: path}, window.location.origin); }
+  catch(e){ done = true; clearTimeout(fallback); try{ window.top.location.href = path; }catch(e2){} }
+  return;
+ }
+ try{ window.top.location.href = path; }catch(e){ window.location.href = path; }
+}
+
+/* ═════════ focus: open the map at a /<location> view ═════════ */
+/*
+ * The map supports ?focus=<name> (e.g. /telly-map.html?focus=Friesland,
+ * used by the /friesland location pages). Resolves the name to
+ * coordinates (embedded city list first, Nominatim search as fallback),
+ * flies there, and shows a small chip with a ✕ to return to world view.
+ */
+async function resolveFocusName(name){
+ const want = (name||'').toLowerCase().trim().replace(/\s+/g,' ');
+ // 1) cities bundled into the page
+ for(const c of CITIES){
+  if((c[3]||'').toLowerCase().trim().replace(/\s+/g,' ') === want){
+   return {lat: c[1], lon: c[0], zoom: Math.min(13, 9 + Math.max(0, 2 - c[2]))};
+  }
+ }
+ // 2) Nominatim search (countries, provinces, towns)
+ try{
+  const r = await fetch('https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(name) + '&format=json&limit=1&accept-language=en');
+  if(r.ok){
+   const j = await r.json();
+   if(j && j[0]){
+    const bb = j[0].boundingbox;
+    if(bb && bb.length === 4){
+     const s = parseFloat(bb[0]), n = parseFloat(bb[1]), w = parseFloat(bb[2]), e = parseFloat(bb[3]);
+     const big = (n - s) > 1.2 || (e - w) > 1.2;
+     return {bounds:[[s, w],[n, e]], zoom: big ? 5 : 9};
+    }
+    return {lat: parseFloat(j[0].lat), lon: parseFloat(j[0].lon), zoom: 9};
+   }
+  }
+ }catch(e){}
+ return null;
+}
+function clearFocusChip(){
+ $('focuschip').style.display = 'none';
+ worldView();
+}
+function applyFocusFromUrl(){
+ let raw = null;
+ try{ raw = new URLSearchParams(location.search).get('focus'); }catch(e){}
+ if(!raw) return;
+ const name = raw.trim();
+ if(!name) return;
+ $('focuschip-label').textContent = '📍 ' + name;
+ $('focuschip').style.display = 'flex';
+ resolveFocusName(name).then(res => {
+  if(!res){ toast('Could not locate "' + name + '"', 4000); clearFocusChip(); return; }
+  if(res.bounds) map.fitBounds(res.bounds, {padding:[50,50], maxZoom: 12, animate:true});
+  else map.setView([res.lat, res.lon], res.zoom || 9, {animate:true});
+ });
+}
+$('focuschip-clear').onclick = clearFocusChip;
 
 /* ═════════ staging / upload ═════════ */
 let uidSeq = 1;
@@ -2515,6 +2680,8 @@ function _placeholderSVG(title){
   loadStoredEarthly();
   // Fetch published Nostr review pins — visible to all visitors without login
   loadNostrPins();
+  // Focus the world map view on a /<location> when the URL asks for it
+  applyFocusFromUrl();
 })();
 </script>
 </body>
