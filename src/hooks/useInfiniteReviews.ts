@@ -6,7 +6,7 @@ interface ReviewEvent extends NostrEvent {
   kind: 34879;
 }
 
-function validateReviewEvent(event: NostrEvent): event is ReviewEvent {
+export function validateReviewEvent(event: NostrEvent): event is ReviewEvent {
   if (event.kind !== 34879) return false;
 
   const d = event.tags.find(([name]) => name === 'd')?.[1];
@@ -31,14 +31,16 @@ export function useInfiniteReviews() {
     queryFn: async ({ pageParam, signal }) => {
       const abortSignal = AbortSignal.any([signal, AbortSignal.timeout(10000)]);
 
-      // Build filter with pagination
+      // Build filter with pagination. A page of 100 kind-34879 events can be
+      // entirely photo/video pins (type=pin), which are filtered out below, so
+      // a larger limit means fewer round trips to reach the actual reviews.
       const filter: {
         kinds: number[];
         limit: number;
         until?: number;
       } = {
         kinds: [34879],
-        limit: 50, // Load 50 reviews per page
+        limit: 100,
       };
 
       // Add until parameter for pagination (older than this timestamp)
@@ -53,9 +55,13 @@ export function useInfiniteReviews() {
       // Sort by creation time (newest first)
       const sortedReviews = validReviews.sort((a, b) => b.created_at - a.created_at);
 
-      // Get the oldest timestamp for next page
-      const nextPageParam = sortedReviews.length > 0
-        ? sortedReviews[sortedReviews.length - 1].created_at
+      // Advance the cursor on the RAW event stream, not the filtered reviews.
+      // Pins are typically newer than reviews, so a page can contain zero
+      // reviews; if the cursor stopped there the feed would end early and show
+      // "No reviews found" even though older real reviews exist on later pages.
+      // Stop only when a page comes back smaller than the limit (data exhausted).
+      const nextPageParam = events.length >= 100
+        ? Math.min(...events.map((event) => event.created_at))
         : undefined;
 
       return {
