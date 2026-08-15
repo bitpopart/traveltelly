@@ -156,8 +156,21 @@ const DownloadPage = () => {
     const found = lookupPurchase(orderId, email);
 
     if (found) {
-      setPurchase(found);
-      setDownloadItems(buildDownloadItems(found));
+      // Validate the download token — it must match this order's record
+      // (btoa(`orderId:email:timestamp`), the same format every checkout
+      // flow uses to build the download link). A mismatched token means the
+      // link was not issued for this order.
+      let tokenValid = false;
+      try {
+        const expected = btoa(`${found.orderId}:${found.buyerEmail}:${found.timestamp}`);
+        tokenValid = token === expected;
+      } catch {
+        tokenValid = false;
+      }
+      if (tokenValid) {
+        setPurchase(found);
+        setDownloadItems(buildDownloadItems(found));
+      }
     }
     // Short delay to show the verifying state
     const t = setTimeout(() => setIsVerifying(false), 800);
