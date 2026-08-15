@@ -153,6 +153,34 @@ body.picking #map{cursor:crosshair;}
 .coordbox{margin-top:16px;background:var(--bg);border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--ink-soft);}
 .coordbox b{font-family:'Barlow Condensed',sans-serif;font-weight:600;letter-spacing:0.14em;
  text-transform:uppercase;color:var(--ink-muted);font-size:11px;display:block;margin-bottom:3px;}
+/* location info — the /<place> content summary, inside the photo popup under the GPS line.
+   Keeps reviews/stories/trips/photos on the ONE world map, no separate map page. */
+.locinfo{margin-top:12px;background:var(--bg);border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--ink-soft);}
+.locinfo .lchead{display:flex;align-items:baseline;gap:8px;margin-bottom:6px;}
+.locinfo .lcname{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;
+ letter-spacing:0.1em;text-transform:uppercase;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.locinfo .lccounts{font-size:11.5px;color:var(--ink-muted);margin-left:auto;text-align:right;white-space:nowrap;}
+.locinfo .lclist{display:flex;flex-direction:column;gap:3px;max-height:0;overflow:hidden;transition:max-height .28s ease;}
+.locinfo.open .lclist{max-height:42vh;overflow-y:auto;}
+.locinfo .lci{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:8px;
+ text-decoration:none;color:inherit;cursor:pointer;min-width:0;}
+.locinfo .lci:hover{background:var(--bg-card);}
+.locinfo .lci-ico{flex:0 0 auto;width:24px;height:24px;border-radius:7px;display:flex;align-items:center;
+ justify-content:center;font-size:12px;background:var(--bg-card);border:1px solid var(--rule);}
+.locinfo .lci-title{flex:1;min-width:0;font-size:12px;font-weight:600;line-height:1.3;color:var(--ink);
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.locinfo .lci-type{flex:0 0 auto;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+ color:var(--ink-muted);background:var(--bg-card);border:1px solid var(--rule);border-radius:999px;padding:2px 7px;}
+.locinfo .lctoggle{margin-top:2px;background:none;border:none;padding:4px 6px;cursor:pointer;
+ font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11.5px;letter-spacing:0.14em;
+ text-transform:uppercase;color:var(--lime-dark);}
+.locinfo .lctoggle:hover{opacity:0.8;}
+.locinfo .lcfoot{margin-top:8px;padding-top:8px;border-top:1px dashed var(--rule);}
+.locinfo .lcfoot a{display:inline-flex;align-items:center;gap:5px;text-decoration:none;
+ font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11.5px;letter-spacing:0.14em;
+ text-transform:uppercase;color:var(--lime-dark);}
+.locinfo .lcfoot a:hover{opacity:0.8;}
+.locinfo .lcempty{font-size:12px;color:var(--ink-muted);}
 
 /* ── upload drawer (the back-end) ── */
 .drawer{position:fixed;left:0;right:0;bottom:0;z-index:1400;background:var(--bg-card);
@@ -431,6 +459,9 @@ body.picking #map{cursor:crosshair;}
   </div>
   <button class="savebtn" id="pSave"></button>
   <div class="coordbox" id="pCoords"></div>
+  <!-- location info: the /<place> summary (reviews · stories · trips · photos) lives here,
+       directly under the GPS coordinates — everything stays on the one world map -->
+  <div class="locinfo" id="pLocInfo" style="display:none"></div>
  </div>
 </aside>
 
@@ -1062,6 +1093,8 @@ function openPin(id){
  $('pMeta').innerHTML = '<span>' + (p.type === 'clip' ? '🎬 6-sec clip' : '📷 Photo') + catLabel + '</span>' + reviewTag + '<span>' +
   d.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}) + '</span>';
  $('pCoords').innerHTML = '<b>GPS</b>' + fmtCoords(p.lat, p.lon);
+ // Location summary lives in the popup box, right under the GPS line — the map stays the ONE page
+ renderLocInfo(p);
  // Show edit button for admins (canAdd covers admin check)
  closeEditPanel();
  $('pEdit').style.display = _canAddPins ? '' : 'none';
@@ -1401,8 +1434,10 @@ async function placeName(lat, lon){
 /*
  * When a pin's photo is opened, overlay clickable chips for the pin's
  * city (📍), region/province (🗺️) and country (🌍). Clicking a chip
- * navigates to the clean URL /<slug> (e.g. /friesland, /bangkok)
- * which renders the world map view of that place.
+ * acts INLINE on this same world map — it flies the map to the place
+ * (focus chip with ✕ returns to the whole world) and expands the popup's
+ * location info for that place. No navigation to a /<slug> map page: the
+ * world map stays the ONE page.
  */
 const _pinGeoCache = {};
 async function pinGeo(lat, lon){
@@ -1459,16 +1494,16 @@ async function renderPinTags(p){
  chips.forEach(c => {
   const a = document.createElement('a');
   a.className = 'ptag';
-  a.href = '/' + slugifyPlace(c.label);
-  a.setAttribute('data-path', a.getAttribute('href'));
+  a.href = '#';
+  a.title = 'Show ' + c.label + ' info & fly the map';
   a.innerHTML = '<span class="ptag-ico">' + c.ico + '</span>' + esc(c.label);
-  a.onclick = (ev) => { ev.preventDefault(); navToLocationPath(a.getAttribute('data-path')); };
+  a.onclick = (ev) => { ev.preventDefault(); focusPlaceOnMap(c.label); };
   box.appendChild(a);
  });
 }
 function navToLocationPath(path){
- /* Inside the React shell: postMessage so the SPA routes without a reload.
-    If the shell doesn't ack within 300ms, fall back to a top-level navigation. */
+/* Inside the React shell: postMessage so the SPA routes without a reload.
+   If the shell doesn't ack within 300ms, fall back to a top-level navigation. */
  if(_isEmbedded){
   let done = false;
   const fallback = setTimeout(() => {
@@ -1485,6 +1520,268 @@ function navToLocationPath(path){
   return;
  }
  try{ window.top.location.href = path; }catch(e){ window.location.href = path; }
+}
+/* Fly the SAME world map to the place and show its info in the popup.
+   The ✕ focus chip returns to the whole world — no second map page. */
+function focusPlaceOnMap(name){
+ if(!name) return;
+ const pin = pins[openId];
+ if(pin) renderLocInfo(pin, name);
+ $('focuschip-label').textContent = '📍 ' + name;
+ $('focuschip').style.display = 'flex';
+ resolveFocusName(name).then(res => {
+  if(res && res.bounds) map.fitBounds(res.bounds, {padding:[50,50], maxZoom: 12, animate:true});
+  else if(res) map.setView([res.lat, res.lon], res.zoom || 9, {animate:true});
+  // unknown place: map stays put, popup info still loads
+ });
+}
+
+/* ═════════ location info in the popup (one world map, no /<place> map page) ═════════ */
+/*
+ * The /<place> pages used to embed their own world map. To keep ONE world
+ * map, the popup box now shows the place's content summary directly under
+ * the GPS coordinates: "📍 Warsaw — 12 reviews · 3 stories · 1 trip · 4 photos"
+ * plus a compact collapsible list. Photo rows fly the same map to that pin;
+ * reviews/stories/trips/media rows link to their content pages (top window).
+ */
+let _locTick = 0;                 // guard async races when switching pins
+const _locCache = {};             // place(lower) -> {ts, items}
+const _locTTL  = 15 * 60 * 1000;  // 15 min
+
+function locPlacePrimary(p, geo){
+ /* most specific label for the pin: city, else region, else country, else parsed place */
+ if(geo){
+  if(geo.city)   return geo.city;
+  if(geo.region) return geo.region;
+  if(geo.country) return geo.country;
+ }
+ const parts = splitPlaceStr(p.place);
+ return (parts[0] || '').trim();
+}
+function locLabelMatches(label, text){
+ /* substring match on the same tag the /<place> page uses (location / t hashtags) */
+ const s = (label||'').toLowerCase().trim();
+ const t = (text||'').toLowerCase();
+ return !!s && !!t && t.indexOf(s) !== -1;
+}
+function locEvtMatchesPlace(e, label){
+ if(!label) return false;
+ const loc = e.tags.find(t => t[0] === 'location') || e.tags.find(t => t[0] === 'place');
+ if(loc && locLabelMatches(label, loc[1])) return true;
+ return e.tags.filter(t => t[0] === 't').some(t => locLabelMatches(label, t[1]));
+}
+function locTypeInfo(kind){
+ if(kind === 30023) return {type:'story', ico:'📖', label:'Story', page: n => '/story/' + n};
+ if(kind === 30025) return {type:'trip',  ico:'🧭', label:'Trip',  page: n => '/trip/' + n};
+ if(kind === 30402) return {type:'media', ico:'🖼️', label:'Media', page: n => '/media/preview/' + n};
+ return null;
+}
+/* minimal NIP-19 naddr encoder — mirrors nostr-tools' bech32 (bitcoinjs) checksum steps */
+const _B32C = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
+const _B32GEN = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
+function bech32Step(p){
+ const b = p >>> 25;
+ let v = ((p & 0x1ffffff) << 5);
+ for(let j = 0; j < 5; j++){ if(((b >>> j) & 1) === 1) v ^= _B32GEN[j]; }
+ return v;
+}
+function bech32ConvertBits(data, toBits){
+ let acc = 0, bits = 0, ret = [], maxv = (1 << toBits) - 1, maxacc = (1 << 13) - 1;
+ for(let i = 0; i < data.length; i++){
+  const v = data[i];
+  if(v < 0 || (v >>> 8) !== 0) return null;
+  acc = ((acc << 8) | v) & maxacc; bits += 8;
+  while(bits >= toBits){ bits -= toBits; ret.push((acc >>> bits) & maxv); }
+ }
+ if(bits > 0) ret.push((acc << (toBits - bits)) & maxv);
+ return ret;
+}
+function bech32Encode(prefix, data){
+ const words = bech32ConvertBits(Array.from(data), 5);
+ if(!words) return '';
+ /* prefix checksum: all high bits, one step, then all low bits (matches the
+    reference implementation used by nostr-tools — links must decode there) */
+ let chk = 1;
+ for(let i = 0; i < prefix.length; i++){ chk = bech32Step(chk) ^ (prefix.charCodeAt(i) >> 5); }
+ chk = bech32Step(chk);
+ for(let i = 0; i < prefix.length; i++){ chk = bech32Step(chk) ^ (prefix.charCodeAt(i) & 31); }
+ for(let i = 0; i < words.length; i++){ chk = bech32Step(chk) ^ words[i]; }
+ for(let i = 0; i < 6; i++){ chk = bech32Step(chk); }
+ chk ^= 1; // bech32 (BIP-173) constant, not bech32m
+ let s = prefix + '1';
+ for(let i = 0; i < words.length; i++) s += _B32C[words[i]];
+ for(let i = 0; i < 6; i++) s += _B32C[(chk >>> ((5 - i) * 5)) & 31];
+ return s;
+}
+function naddrEncode(kind, pubkeyHex, identifier){
+ /* TLV for naddr: 3=kind(uint32 BE), 2=pubkey(32 bytes), 0=identifier(utf8) */
+ const ident = new TextEncoder().encode(identifier || '');
+ const pk = new Uint8Array(32);
+ for(let i = 0; i < 32; i++) pk[i] = parseInt(pubkeyHex.substr(i * 2, 2), 16) || 0;
+ const kb = new Uint8Array(4);
+ new DataView(kb.buffer).setUint32(0, kind, false);
+ const tlv = [];
+ const push = (t, val) => { tlv.push(t, val.length); for(let i = 0; i < val.length; i++) tlv.push(val[i]); };
+ push(3, kb); push(2, pk); push(0, ident);
+ return bech32Encode('naddr', Uint8Array.from(tlv));
+}
+/* fetch stories/trips/media matching a place from the same relays that feed the pins */
+function locFetchKinds(kinds){
+ return new Promise(res => {
+  const byId = new Map();
+  const left = {n: NOSTR_RELAYS.length || 1};
+  const finish = () => { if(left.n <= 0) return; if(--left.n === 0) res(Array.from(byId.values())); };
+  NOSTR_RELAYS.forEach(url => {
+   try{
+    const ws = new WebSocket(url);
+    const subId = 'ttloc' + Math.random().toString(36).slice(2, 8);
+    const bail = setTimeout(() => { try{ ws.close(); }catch(e){} finish(); }, 7000);
+    ws.onopen = () => { try{ ws.send(JSON.stringify(['REQ', subId, {kinds:kinds, limit:150}])); }catch(e){ finish(); } };
+    ws.onmessage = ev => {
+     try{
+      const msg = JSON.parse(ev.data);
+      if(msg[0] === 'EOSE' || msg[0] === 'NOTICE'){ clearTimeout(bail); try{ ws.close(); }catch(e){} finish(); return; }
+      if(msg[0] === 'EVENT' && msg[2] && !byId.has(msg[2].id)) byId.set(msg[2].id, msg[2]);
+     }catch(e){}
+    };
+    ws.onerror = () => { clearTimeout(bail); finish(); };
+   }catch(e){ finish(); }
+  });
+  if(kinds.length) setTimeout(() => res(Array.from(byId.values())), 12000); // hard stop
+ });
+}
+async function locLoad(place){
+ const key = (place || '').toLowerCase().trim();
+ if(!key) return {ts:0, items:[]};
+ const hit = _locCache[key];
+ if(hit && (Date.now() - hit.ts) < _locTTL) return hit;
+ const items = [];
+ const evts = await locFetchKinds([30023, 30025, 30402]);
+ evts.forEach(ev => {
+  const info = locTypeInfo(ev.kind);
+  if(!info || !locEvtMatchesPlace(ev, key)) return;
+  const d = ev.tags.find(t => t[0] === 'd')?.[1];
+  if(!d || !ev.pubkey) return;
+  const title = ev.tags.find(t => t[0] === 'title')?.[1] || (ev.content || '').slice(0, 60) || 'Untitled';
+  items.push({id: ev.id, type: info.type, ico: info.ico, label: info.label,
+   title, link: info.page(naddrEncode(ev.kind, ev.pubkey, d)), ts: (ev.created_at || 0) * 1000});
+ });
+ items.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+ const out = {ts: Date.now(), items};
+ _locCache[key] = out;
+ return out;
+}
+function locCounts(place, content){
+ const counts = {review:0, story:0, trip:0, media:0, photo:0};
+ const lists = {review:[], story:[], trip:[], media:[], photo:[]};
+ const label = (place || '').toLowerCase().trim();
+ const mapPins = Object.values(pins);
+ for(let i = 0; i < mapPins.length; i++){
+  const pin = mapPins[i];
+  if(!label || pin.id === openId || !locLabelMatches(label, pin.place)) continue;
+  if(pin._isReview){
+   if(lists.review.length < 40 && pin._pubkey && pin._dTag){
+    lists.review.push({id: pin.id, type: 'review', ico:'⭐', label:'Review',
+     title: pin.title || 'Review',
+     link: '/review/' + naddrEncode(34879, pin._pubkey, pin._dTag),
+     ts: pin.ts || 0});
+   }
+  }else if(lists.photo.length < 40){
+   lists.photo.push({id: pin.id, type: 'photo', ico:'📷', label:'Photo', inline:true,
+    title: pin.title || 'Photo', ts: pin.ts || 0});
+  }
+ }
+ content.items.forEach(it => {
+  const L = lists[it.type];
+  if(L && L.length < 40) L.push(it);
+ });
+ Object.keys(counts).forEach(k => counts[k] = lists[k].length);
+ return {counts, lists};
+}
+function locCountsLabel(counts){
+ const parts = [];
+ if(counts.review) parts.push(counts.review + (counts.review === 1 ? ' review' : ' reviews'));
+ if(counts.story)  parts.push(counts.story  + (counts.story  === 1 ? ' story'  : ' stories'));
+ if(counts.trip)   parts.push(counts.trip   + (counts.trip   === 1 ? ' trip'   : ' trips'));
+ if(counts.media)  parts.push(counts.media  + ' media');
+ if(counts.photo)  parts.push(counts.photo  + (counts.photo  === 1 ? ' photo'  : ' photos'));
+ return parts.join(' · ') || 'no content yet';
+}
+function locRow(item){
+ const title = item.title || (item.type === 'photo' ? 'Photo' : 'Untitled');
+ const body = '<span class="lci-ico">' + item.ico + '</span><span class="lci-title">' + esc(title) + '</span>' +
+  '<span class="lci-type">' + item.label + '</span>';
+ if(item.inline){
+  return '<a class="lci" href="#" data-pin="' + esc(item.id) + '" title="Fly the map to this photo">' + body + '</a>';
+ }
+ return '<a class="lci" href="' + esc(item.link) + '" target="_top" title="Open ' + item.label.toLowerCase() + ' page">' + body + '</a>';
+}
+async function renderLocInfo(p, forcedPlace){
+ const box = $('pLocInfo');
+ if(!box) return;
+ const myTick = ++_locTick;
+ box.style.display = 'none';
+ if(!p || p.lat == null || p.lon == null) return;
+ const geo = await pinGeo(p.lat, p.lon);
+ if(openId !== p.id || myTick !== _locTick) return; // user moved on while geocoding
+ const place = (forcedPlace || '').trim() || locPlacePrimary(p, geo);
+ if(!place){ box.style.display = 'none'; return; }
+ box.style.display = '';
+ box.innerHTML =
+  '<div class="lchead"><span class="lcname">📍 ' + esc(place) + '</span>' +
+  '<span class="lccounts">looking…</span></div>' +
+  '<div class="lclist"><div class="lcempty" style="display:none">' +
+  'Nothing tagged here yet — be the first to pin a photo 📷</div></div>' +
+  '<button class="lctoggle" style="display:none">Show list</button>' +
+  '<div class="lcfoot"><a href="#" onclick="return false;">See everything for ' +
+  esc(place) + ' →</a></div>';
+ const content = await locLoad(place);
+ if(openId !== p.id || myTick !== _locTick) return; // switched pins while loading
+ const {counts, lists} = locCounts(place, content);
+ const ordered = [];
+ ['review','story','trip','media','photo'].forEach(t => {
+  for(let i = 0; i < lists[t].length; i++) ordered.push(lists[t][i]);
+ });
+ ordered.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+ const listEl = box.querySelector('.lclist');
+ if(ordered.length === 0){
+  listEl.innerHTML = '<div class="lcempty">Nothing tagged here yet — be the first to pin a photo 📷</div>';
+  box.querySelector('.lctoggle').style.display = 'none';
+  box.classList.remove('open');
+ }else{
+  const showAll = ordered.length <= 6;
+  listEl.innerHTML = ordered.map(locRow).join('');
+  const toggle = box.querySelector('.lctoggle');
+  if(showAll){
+   toggle.style.display = 'none';
+   box.classList.add('open');
+  }else{
+   toggle.style.display = '';
+   toggle.textContent = 'Show all ' + ordered.length;
+   box.classList.remove('open');
+  }
+ }
+ box.querySelector('.lccounts').textContent = locCountsLabel(counts);
+ // footer link → the SEO /<slug> content page (content only — no map there anymore)
+ const foot = box.querySelector('.lcfoot a');
+ const slug = slugifyPlace(place);
+ foot.setAttribute('href', '/' + slug);
+ foot.onclick = (ev) => { ev.preventDefault(); navToLocationPath('/' + slug); };
+ // photo rows: fly the SAME map to the pin instead of leaving the page
+ listEl.querySelectorAll('a[data-pin]').forEach(a => {
+  a.onclick = (ev) => {
+   ev.preventDefault();
+   const pin = pins[a.getAttribute('data-pin')];
+   if(!pin) return;
+   map.setView([pin.lat, pin.lon], Math.max(map.getZoom(), 10), {animate:true});
+   openPin(pin.id);
+  };
+ });
+ // toggle
+ box.querySelector('.lctoggle').onclick = () => {
+  const open = box.classList.toggle('open');
+  box.querySelector('.lctoggle').textContent = open ? 'Show less' : 'Show all ' + ordered.length;
+ };
 }
 
 /* ═════════ focus: open the map at a /<location> view ═════════ */
