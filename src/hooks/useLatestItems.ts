@@ -6,6 +6,7 @@ import { useAuthorizedMediaUploaders } from './useStockMediaPermissions';
 import { nip19 } from 'nostr-tools';
 import { useAdminReviews } from './useAdminReviews';
 import { isValidImageUrl } from '@/lib/imageValidation';
+import { dedupeByImage } from '@/lib/dedupeImages';
 
 // The Traveltelly admin npub
 const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642';
@@ -868,7 +869,9 @@ export function useCommunityMix() {
         round++;
       }
 
-      return mixed;
+      // Dedupe by image URL: pins are auto-listed on /marketplace with the same
+      // photo, so the mix used to show the same thumb twice (review + stock).
+      return dedupeByImage(mixed);
     },
     staleTime: 3 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
