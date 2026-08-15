@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -267,6 +268,18 @@ export function LoadMoreReviewFeed() {
     })
   ) || [];
 
+  // Auto-advance the first pages while they are full of photo/video pins
+  // (type=pin) and contain no real reviews yet, so the feed reaches the actual
+  // reviews without manual clicks. Bounded to a few pages; beyond that the
+  // Load More button takes over.
+  useEffect(() => {
+    if (isLoading || isLoadingAuth || error) return;
+    if ((allReviews?.length ?? 0) !== 0) return;
+    if (!hasNextPage || isFetchingNextPage) return;
+    if ((data?.pages.length ?? 0) >= 6) return;
+    fetchNextPage();
+  }, [allReviews?.length, hasNextPage, isFetchingNextPage, isLoading, isLoadingAuth, error, data?.pages.length, fetchNextPage]);
+
   if (error) {
     return (
       <Card className="border-dashed">
@@ -293,7 +306,13 @@ export function LoadMoreReviewFeed() {
     );
   }
 
-  if (!allReviews || allReviews.length === 0) {
+  // First pages of the raw kind-34879 stream can be entirely photo/video pins
+  // (type=pin) that carry no real reviews, so the feed starts empty but still
+  // has more pages to fetch. Only show the "no reviews" empty state once every
+  // page has been loaded; otherwise keep the Load More button alive.
+  const hasReviews = (allReviews?.length ?? 0) > 0;
+
+  if (!hasReviews && !hasNextPage) {
     return (
       <Card className="border-dashed">
         <CardContent className="py-12 px-8 text-center">
@@ -315,11 +334,19 @@ export function LoadMoreReviewFeed() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {allReviews.map((review) => (
-          <ReviewCard key={review.id} review={review} />
-        ))}
-      </div>
+      {hasReviews && (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {allReviews.map((review) => (
+            <ReviewCard key={review.id} review={review} />
+          ))}
+        </div>
+      )}
+
+      {!hasReviews && hasNextPage && (
+        <p className="text-center text-sm text-muted-foreground">
+          Checking older posts for reviews…
+        </p>
+      )}
 
       {/* Load More Button */}
       {hasNextPage && (
