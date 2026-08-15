@@ -19,6 +19,7 @@ import { VideoThumbnailGrid, VideoItem } from "@/components/VideoThumbnailGrid";
 import { useInfiniteImages } from "@/hooks/useInfiniteImages";
 
 import { useViewMode } from "@/contexts/ViewModeContext";
+import { dedupeByImage } from "@/lib/dedupeImages";
 import { MapPin, Star, Camera, Zap, BookOpen, ArrowRight, Globe, Video } from "lucide-react";;
 import { Link } from "react-router-dom";
 
@@ -123,7 +124,16 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
   } = useInfiniteImages();
 
   // Flatten all pages of images into a single array
-  const allImages = infiniteImagesData?.pages.flatMap(page => page.images) || [];
+  const allImages = dedupeByImage(infiniteImagesData?.pages.flatMap(page => page.images) || []);
+
+  // A map pin is auto-listed on /marketplace with the same photo — a marketplace
+  // thumb whose image is already shown in the grid above is the same photo, so
+  // only show it in the Stock section when the grid doesn't already show it.
+  const gridShownImages = new Set<string>([
+    ...communityMix.map(c => c.image),
+    ...allImages.map(i => i.image),
+  ]);
+  const stockMediaToShow = latestStockMediaItems.filter(m => m.image && !gridShownImages.has(m.image));
 
   // Show first page immediately; auto-load more as user scrolls
   const THUMBNAIL_BATCH = 24;
@@ -463,7 +473,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
 
                 {/* Stock Media Section — lazy */}
                 <div ref={stockSentinel} />
-                {(stockVisible && latestStockMediaItems.length > 0) && (
+                {(stockVisible && stockMediaToShow.length > 0) && (
                   <div className="mb-6 md:mb-12">
                     <div className="flex justify-between items-center mb-3">
                       <h2 className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -480,7 +490,7 @@ const Index = ({ initialLocation }: IndexProps = {}) => {
                       </Link>
                     </div>
                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-0.5 md:gap-1">
-                      {latestStockMediaItems.map((media, index) => (
+                      {stockMediaToShow.map((media, index) => (
                         <Link key={media.naddr} to={`/media/preview/${media.naddr}`}>
                           <div className="relative aspect-square overflow-hidden group cursor-pointer bg-gray-200 dark:bg-gray-700">
                             <FastThumbnail src={media.image!} alt={media.title} priority={index === 0} className="transition-transform duration-300 group-hover:scale-105" />

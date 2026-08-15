@@ -7,6 +7,7 @@ import { useTravelTellyTour } from './useTravelTellyTour';
 import { useAuthorizedReviewers } from './useAuthorizedReviewers';
 import { useAuthorizedMediaUploaders } from './useStockMediaPermissions';
 import { isValidImageUrl } from '@/lib/imageValidation';
+import { dedupeByImage } from '@/lib/dedupeImages';
 
 // Admin pubkey for TravelTelly Tour
 const ADMIN_NPUB = 'npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642';
@@ -229,12 +230,16 @@ export function useInfiniteImages() {
       // Sort newest first
       const sortedImages = images.sort((a, b) => b.created_at - a.created_at);
 
+      // Dedupe by image URL: a map pin is auto-listed on /marketplace with the
+      // same photo, so the grid used to show the same thumb twice (pin + market).
+      const dedupedImages = dedupeByImage(sortedImages);
+
       // Cursor for next page: oldest timestamp minus 1
-      const nextPageParam = sortedImages.length > 0
-        ? sortedImages[sortedImages.length - 1].created_at - 1
+      const nextPageParam = dedupedImages.length > 0
+        ? dedupedImages[dedupedImages.length - 1].created_at - 1
         : undefined;
 
-      return { images: sortedImages, nextPageParam };
+      return { images: dedupedImages, nextPageParam };
     },
     getNextPageParam: (lastPage) => lastPage.nextPageParam,
     initialPageParam: undefined as number | undefined,
