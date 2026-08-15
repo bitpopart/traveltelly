@@ -12,6 +12,7 @@ import { usePriceConversion } from '@/hooks/usePriceConversion';
 import { useToast } from '@/hooks/useToast';
 import { Mail, User, CreditCard, Zap, CheckCircle, Copy, ExternalLink, Loader2, Info } from 'lucide-react';
 import type { MarketplaceProduct } from '@/hooks/useMarketplaceProducts';
+import { getInvoicePaymentHash, verifyPaymentPreimage } from '@/lib/lnPaymentProof';
 
 // Lightning address for TravelTelly — also reads from admin settings
 const LIGHTNING_ADDRESS = localStorage.getItem('traveltelly_lightning_address') || 'bitpopart@rizful.com';
@@ -55,6 +56,9 @@ function LightningGuestFlow({
   const [qrUrl, setQrUrl] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [verifyStep, setVerifyStep] = useState('');
+  const [paymentHash, setPaymentHash] = useState<string | null>(null);
+  const [preimage, setPreimage] = useState('');
+  const [preimageError, setPreimageError] = useState('');
 
   // Parse sats from conversion hook
   const amountSats = priceInfo.sats ? parseInt(priceInfo.sats.replace(/[^\d]/g, '')) : 0;
@@ -99,6 +103,7 @@ function LightningGuestFlow({
       }
       if (!invoiceData.pr) throw new Error('No invoice returned from Lightning provider');
       setInvoice(invoiceData.pr);
+      setPaymentHash(getInvoicePaymentHash(invoiceData.pr));
       setQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(invoiceData.pr)}`);
       setStep('invoice');
       // Try WebLN auto-pay
@@ -106,7 +111,7 @@ function LightningGuestFlow({
         try {
           await window.webln.enable();
           const res = await window.webln.sendPayment(invoiceData.pr);
-          if (res.preimage) { await handlePaid(); return; }
+          if (res.preimage) { const ok = await handlePaid(res.preimage); if (ok) return; }
         } catch { /* user cancelled or no WebLN */ }
       }
     } catch (err) {
@@ -120,7 +125,28 @@ function LightningGuestFlow({
     toast({ title: 'Copied!', description: 'Invoice copied to clipboard.' });
   };
 
-  const handlePaid = async () => {
+  const handlePaid = async (preimageArg?: string): Promise<boolean> => {
+    const paymentProof = (preimageArg ?? preimage).trim();
+
+    if (!paymentHash) {
+      setPreimageError('Payment proof could not be prepared. Go back and create the invoice again.');
+      return false;
+    }
+    if (!paymentProof) {
+      setPreimageError('Paste the payment preimage from your wallet — this proves the invoice was paid.');
+      return false;
+    }
+
+    const isValid = await verifyPaymentPreimage(paymentProof, paymentHash);
+    if (!isValid) {
+      setPreimageError(
+        'Payment not verified — the preimage does not match this invoice. ' +
+        'If you paid, copy the exact preimage from your wallet (payment details → preimage) and try again.'
+      );
+      return false;
+    }
+    setPreimageError('');
+
     setStep('verifying');
     setVerifyStep('Saving purchase record…');
     await new Promise(r => setTimeout(r, 600));
@@ -136,6 +162,9 @@ function LightningGuestFlow({
       amount: amountSats,
       currency: 'SATS',
       timestamp,
+      invoice,
+      paymentHash,
+      preimage: paymentProof,
       paymentMethod: 'lightning' as const,
       status: 'verified' as const,
       productData: {
@@ -157,6 +186,7 @@ function LightningGuestFlow({
     const downloadUrl = buildDownloadUrl(orderId, email, timestamp);
     setTimeout(() => { window.location.href = downloadUrl; }, 1200);
     onSuccess();
+    return true;
   };
 
   if (step === 'done') {
@@ -194,13 +224,32 @@ function LightningGuestFlow({
         <Alert className="border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20">
           <Zap className="h-4 w-4 text-yellow-600" />
           <AlertDescription className="text-yellow-800 dark:text-yellow-200 text-sm">
-            <strong>Steps:</strong> 1) Pay in your wallet &nbsp;2) Click <em>I've Paid</em> below — we will record your access.
+            <strong>Steps:</strong> 1) Pay in your wallet &nbsp;2) Paste the <strong>preimage</strong> (payment proof)
+            from your wallet's payment details &nbsp;3) Click <em>Verify Payment</em> — your download unlocks.
           </AlertDescription>
         </Alert>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Payment preimage (proof of payment)</Label>
+          <Input
+            value={preimage}
+            onChange={(e) => { setPreimage(e.target.value); setPreimageError(''); }}
+            placeholder="Paste the preimage from your wallet's payment details"
+            className="font-mono text-xs"
+          />
+          <p className="text-xs text-muted-foreground">
+            The preimage is shown in your wallet's payment details. It is checked against this invoice's payment hash,
+            so only a real payment unlocks the download.
+          </p>
+          {preimageError && (
+            <Alert variant="destructive" className="py-2">
+              <AlertDescription className="text-xs">{preimageError}</AlertDescription>
+            </Alert>
+          )}
+        </div>
         <div className="flex gap-3">
           <Button variant="outline" onClick={() => setStep('idle')} className="flex-1">Back</Button>
-          <Button onClick={handlePaid} className="flex-1 bg-green-600 hover:bg-green-700">
-            <CheckCircle className="w-4 h-4 mr-2" /> I've Paid
+          <Button onClick={() => handlePaid()} className="flex-1 bg-green-600 hover:bg-green-700">
+            <CheckCircle className="w-4 h-4 mr-2" /> Verify Payment
           </Button>
         </div>
       </div>

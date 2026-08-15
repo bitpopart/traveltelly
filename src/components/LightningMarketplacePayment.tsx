@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/useToast';
 import { usePriceConversion } from '@/hooks/usePriceConversion';
 import { Zap, Loader2, CheckCircle, Copy, ExternalLink } from 'lucide-react';
 import type { MarketplaceProduct } from '@/hooks/useMarketplaceProducts';
+import { getInvoicePaymentHash, verifyPaymentPreimage } from '@/lib/lnPaymentProof';
 
 interface LightningMarketplacePaymentProps {
   product: MarketplaceProduct;
@@ -83,6 +84,9 @@ export function LightningMarketplacePayment({ product, onSuccess }: LightningMar
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [verifyMsg, setVerifyMsg] = useState('');
+  const [paymentHash, setPaymentHash] = useState<string | null>(null);
+  const [preimageInput, setPreimageInput] = useState('');
+  const [preimageError, setPreimageError] = useState('');
 
   const { toast } = useToast();
   const priceInfo = usePriceConversion(product.price, product.currency);
@@ -119,6 +123,7 @@ export function LightningMarketplacePayment({ product, onSuccess }: LightningMar
       const invoiceData = await createInvoiceFromLNURL(lnurl, amountMsat, comment);
 
       setInvoice(invoiceData.pr);
+      setPaymentHash(getInvoicePaymentHash(invoiceData.pr));
       setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(invoiceData.pr)}`);
       setPaymentStep('invoice');
 
@@ -128,8 +133,8 @@ export function LightningMarketplacePayment({ product, onSuccess }: LightningMar
           await window.webln.enable();
           const result = await window.webln.sendPayment(invoiceData.pr);
           if (result.preimage) {
-            await handlePaymentConfirmed();
-            return;
+            const confirmed = await handlePaymentConfirmed(result.preimage);
+            if (confirmed) return;
           }
         } catch (weblnErr) {
           console.log('WebLN not available or user cancelled:', weblnErr);
@@ -144,8 +149,30 @@ export function LightningMarketplacePayment({ product, onSuccess }: LightningMar
     }
   };
 
-  // ── Record & redirect after payment ────────────────────────────────────────
-  const handlePaymentConfirmed = async () => {
+  // ── Verify payment, record & redirect ────────────────────────────────────
+  // The preimage is the proof of payment: sha256(preimage) must equal the
+  // invoice's payment hash. Without a matching preimage we never unlock.
+  const handlePaymentConfirmed = async (preimage?: string): Promise<boolean> => {
+    const paymentProof = (preimage ?? preimageInput).trim();
+
+    if (!paymentHash) {
+      setPreimageError('Payment proof could not be prepared. Go back and create the invoice again.');
+      return false;
+    }
+    if (!paymentProof) {
+      setPreimageError('Paste the payment preimage from your wallet — this proves the invoice was paid.');
+      return false;
+    }
+
+    const isValid = await verifyPaymentPreimage(paymentProof, paymentHash);
+    if (!isValid) {
+      setPreimageError(
+        'Payment not verified — the preimage does not match this invoice. ' +
+        'If you paid, copy the exact preimage from your wallet (payment details → preimage) and try again.'
+      );
+      return false;
+    }
+    setPreimageError('');
     setPaymentStep('verifying');
     setVerifyMsg('Recording your purchase…');
     await new Promise(r => setTimeout(r, 500));
@@ -163,6 +190,8 @@ export function LightningMarketplacePayment({ product, onSuccess }: LightningMar
       currency: 'SATS',
       timestamp,
       invoice,
+      paymentHash,
+      preimage: paymentProof,
       paymentMethod: 'lightning' as const,
       status: 'verified' as const,
       productData: {
@@ -185,6 +214,7 @@ export function LightningMarketplacePayment({ product, onSuccess }: LightningMar
     const downloadUrl = `${window.location.origin}/download/${orderId}?token=${token}&email=${encodeURIComponent(buyerEmail)}`;
     setTimeout(() => { window.location.href = downloadUrl; }, 1500);
     onSuccess();
+    return true;
   };
 
   const copyToClipboard = (text: string) => {
@@ -243,21 +273,40 @@ export function LightningMarketplacePayment({ product, onSuccess }: LightningMar
           <Zap className="h-4 w-4 text-yellow-600" />
           <AlertDescription className="text-sm text-yellow-800 dark:text-yellow-200">
             <strong>How to pay:</strong><br />
-            1. Scan the QR code OR copy the invoice into your Lightning wallet<br />
-            2. Confirm the payment in your wallet<br />
-            3. Click <strong>"I've Paid"</strong> — your download will open immediately
+            1. Send the payment from your Lightning wallet (scan the QR or copy the invoice)<br />
+            2. Find the <strong>preimage</strong> (payment proof) in your wallet's payment details<br />
+            3. Paste it below and click <strong>"Verify Payment"</strong> — your download unlocks
           </AlertDescription>
         </Alert>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs">Payment preimage (proof of payment)</Label>
+          <Input
+            value={preimageInput}
+            onChange={(e) => { setPreimageInput(e.target.value); setPreimageError(''); }}
+            placeholder="Paste the preimage from your wallet's payment details"
+            className="font-mono text-xs"
+          />
+          <p className="text-xs text-muted-foreground">
+            The preimage is shown in your wallet's payment details (e.g. Phoenix → transaction → preimage).
+            It is checked against this invoice's payment hash, so only a real payment unlocks the download.
+          </p>
+          {preimageError && (
+            <Alert variant="destructive" className="py-2">
+              <AlertDescription className="text-xs">{preimageError}</AlertDescription>
+            </Alert>
+          )}
+        </div>
 
         <div className="flex gap-3">
           <Button variant="outline" onClick={() => setPaymentStep('form')} className="flex-1">
             ← Back
           </Button>
           <Button
-            onClick={handlePaymentConfirmed}
+            onClick={() => handlePaymentConfirmed()}
             className="flex-1 bg-green-600 hover:bg-green-700"
           >
-            <CheckCircle className="w-4 h-4 mr-2" /> I've Paid
+            <CheckCircle className="w-4 h-4 mr-2" /> Verify Payment
           </Button>
         </div>
       </div>
