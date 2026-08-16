@@ -43,6 +43,9 @@ input,textarea{font-family:inherit;}
  text-transform:uppercase;color:var(--ink-soft);transition:all .15s;white-space:nowrap;}
 .chip:hover{border-color:var(--lime);}
 .chip.on{background:var(--lime);border-color:var(--lime);color:var(--ink);}
+.medcount{border:1px dashed var(--rule);background:transparent;border-radius:999px;padding:7px 14px;
+ font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:12.5px;letter-spacing:0.14em;
+ text-transform:uppercase;color:var(--ink-soft);white-space:nowrap;cursor:default;}
 .worldbtn{border:1px solid var(--rule);background:var(--bg-card);color:var(--ink-soft);border-radius:999px;
  padding:8px 15px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:12.5px;
  letter-spacing:0.14em;text-transform:uppercase;transition:all .15s;white-space:nowrap;}
@@ -360,6 +363,7 @@ body.picking #map{cursor:crosshair;}
   <button class="chip" data-f="clip">Clips</button>
   <button class="chip" data-f="top">★ 4+</button>
   <button class="chip" data-f="saved">🔖 Want to visit</button>
+  <span class="medcount" id="medcount" title="Photos & clips currently online on the map">0 media items online</span>
  </div>
  <button class="worldbtn" id="worldbtn" title="Zoom out to the whole world">🌍 World view</button>
  <button class="addbtn" id="openDrawer" style="display:none">+ Add pins</button>
@@ -376,6 +380,7 @@ body.picking #map{cursor:crosshair;}
   <button class="chip" data-f="clip">Clips</button>
   <button class="chip" data-f="top">★ 4+</button>
   <button class="chip" data-f="saved">🔖 Want to visit</button>
+  <span class="medcount" id="medcount-embedded" title="Photos & clips currently online on the map">0 media items online</span>
  </div>
  <button class="worldbtn" id="worldbtn-embedded" title="Zoom out to the whole world">🌍 World view</button>
  <button class="addbtn" id="openDrawer-embedded" style="display:none">+ Add pins</button>
@@ -1083,6 +1088,15 @@ function renderMarkers(){
   cluster.addLayer(m);
  });
   if(openId && markersById[openId]) setMarkerHidden(openId, window.innerWidth <= 640);
+ updateMediaCount();
+}
+// Live count of media items (photos/clips) currently online on the world map.
+function updateMediaCount(){
+ const n = Object.values(pins).filter(p => p._nostr && (p.type === 'photo' || p.type === 'clip')).length;
+ const t = n + ' media item' + (n === 1 ? '' : 's') + ' online';
+ const a = $('medcount'), b = $('medcount-embedded');
+ if(a) a.textContent = '📊 ' + t;
+ if(b) b.textContent = '📊 ' + t;
 }
 function setMarkerHidden(id, hidden){
  const m = markersById[id]; if(!m) return;
