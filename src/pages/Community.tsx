@@ -185,7 +185,6 @@ export default function Community() {
 
   const defaultNostrLinks = [
     { title: 'Nostr.com', url: 'https://nostr.com/', description: 'Learn about Nostr protocol' },
-    { title: 'Nostr.band', url: 'https://nostr.band/', description: 'Nostr network explorer' },
     { title: 'Primal', url: 'https://primal.net/', description: 'Nostr web client' },
     { title: 'Damus', url: 'https://damus.io/', description: 'Nostr iOS client' },
     { title: 'Amethyst', url: 'https://github.com/vitorpamplona/amethyst', description: 'Nostr Android client' },
@@ -209,7 +208,7 @@ export default function Community() {
   const forumText = communityData?.forumText || 'TravelTelly is built on the Nostr protocol, which means discussions happen across the decentralized Nostr network. Connect with travelers, photographers, and creators using these hashtags:';
   const forumHashtags = communityData?.forumHashtags || ['#traveltelly', '#travel', '#photography', '#mobilephotography', '#travelnostr'];
   const travelLinks = communityData?.usefulLinks?.filter(l => l.category === 'travel') || defaultTravelLinks;
-  const nostrLinks = communityData?.usefulLinks?.filter(l => l.category === 'nostr') || defaultNostrLinks;
+  const nostrLinks = (communityData?.usefulLinks?.filter(l => l.category === 'nostr') || defaultNostrLinks).filter(l => l.url !== 'https://nostr.band/');
   const phoneographyLinks = communityData?.usefulLinks?.filter(l => l.category === 'phoneography') || defaultPhoneographyLinks;
   
   const ctaTitle = communityData?.ctaTitle || 'Join the TravelTelly Community';
@@ -360,21 +359,6 @@ export default function Community() {
                   </div>
                   <p className="text-sm text-gray-600 dark:text-gray-300">
                     Explore trending content and discussions on Nostr
-                  </p>
-                </a>
-
-                <a 
-                  href="https://nostr.band/" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="block p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold text-gray-900 dark:text-white">Nostr.band</h4>
-                    <ExternalLink className="w-4 h-4 text-gray-400" />
-                  </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
-                    Search and explore the Nostr network
                   </p>
                 </a>
               </div>

@@ -134,7 +134,6 @@ export function AdminCommunityManager() {
 
   const defaultNostrLinks: UsefulLink[] = [
     { title: 'Nostr.com', url: 'https://nostr.com/', description: 'Learn about Nostr protocol', category: 'nostr' },
-    { title: 'Nostr.band', url: 'https://nostr.band/', description: 'Nostr network explorer', category: 'nostr' },
     { title: 'Primal', url: 'https://primal.net/', description: 'Nostr web client', category: 'nostr' },
     { title: 'Damus', url: 'https://damus.io/', description: 'Nostr iOS client', category: 'nostr' },
     { title: 'Amethyst', url: 'https://github.com/vitorpamplona/amethyst', description: 'Nostr Android client', category: 'nostr' },
