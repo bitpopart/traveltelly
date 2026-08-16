@@ -1793,11 +1793,19 @@ async function renderLocInfo(p, forcedPlace){
  */
 async function resolveFocusName(name){
  const want = (name||'').toLowerCase().trim().replace(/\s+/g,' ');
- // 1) cities bundled into the page
+ // 1) cities bundled into the page. Several cities can share one name
+ //    (Barcelona ES vs Barcelona VE, Santiago CL vs Santiago DO, ...):
+ //    rank 0 = globally important city, 7 = smallest tier — always pick
+ //    the most important match so the famous city wins (e.g. Barcelona,
+ //    Spain flies there, not Barcelona, Venezuela).
+ let best = null;
  for(const c of CITIES){
   if((c[3]||'').toLowerCase().trim().replace(/\s+/g,' ') === want){
-   return {lat: c[1], lon: c[0], zoom: Math.min(13, 9 + Math.max(0, 2 - c[2]))};
+   if(!best || c[2] < best[2]) best = c;
   }
+ }
+ if(best){
+  return {lat: best[1], lon: best[0], zoom: Math.min(13, 9 + Math.max(0, 2 - best[2]))};
  }
  // 2) Nominatim search (countries, provinces, towns)
  try{
