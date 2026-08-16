@@ -153,6 +153,17 @@ body.picking #map{cursor:crosshair;}
 .coordbox{margin-top:16px;background:var(--bg);border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--ink-soft);}
 .coordbox b{font-family:'Barlow Condensed',sans-serif;font-weight:600;letter-spacing:0.14em;
  text-transform:uppercase;color:var(--ink-muted);font-size:11px;display:block;margin-bottom:3px;}
+/* Adobe Stock row — find similar / order the photo on the contributor's Adobe page */
+.adbrow{margin-top:12px;display:flex;align-items:center;gap:10px;background:var(--bg);
+ border:1px solid var(--rule);border-radius:10px;padding:10px 12px;text-decoration:none;
+ transition:border-color .15s, background .15s;}
+.adbrow:hover{border-color:var(--lime-dark);background:var(--bg-card);}
+.adbi{flex:0 0 auto;font-size:18px;line-height:1;}
+.adbt{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;}
+.adbl{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;
+ letter-spacing:0.05em;color:var(--ink);}
+.adbs{font-size:11px;color:var(--ink-muted);}
+.adbgo{flex:0 0 auto;font-size:13px;color:var(--lime-dark);font-weight:700;}
 /* location info — the /<place> content summary, inside the photo popup under the GPS line.
    Keeps reviews/stories/trips/photos on the ONE world map, no separate map page. */
 .locinfo{margin-top:12px;background:var(--bg);border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--ink-soft);}
@@ -462,6 +473,17 @@ body.picking #map{cursor:crosshair;}
   <!-- location info: the /<place> summary (reviews · stories · trips · photos) lives here,
        directly under the GPS coordinates — everything stays on the one world map -->
   <div class="locinfo" id="pLocInfo" style="display:none"></div>
+
+  <!-- Adobe Stock: find similar / order the photo on the contributor's Adobe page -->
+  <a class="adbrow" href="https://stock.adobe.com/nl/contributor/203727529/TravelTelly"
+     target="_blank" rel="noopener noreferrer" title="Open TravelTelly on Adobe Stock">
+   <span class="adbi">🛍️</span>
+   <span class="adbt">
+    <span class="adbl">Find similar &amp; order on Adobe Stock</span>
+    <span class="adbs">Browse all TravelTelly photos on Adobe Stock</span>
+   </span>
+   <span class="adbgo">→</span>
+  </a>
  </div>
 </aside>
 
