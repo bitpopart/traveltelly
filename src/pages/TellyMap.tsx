@@ -5,11 +5,13 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useReviewPermissions } from '@/hooks/useReviewPermissions';
 
 /**
- * TellyMap — full-screen personal travel photo-pin map.
+ * TellyMap — the ONE world map, shown always beneath the standard Traveltelly
+ * navigation so the site menu is never lost.
  *
- * The telly-map.html has its own branded header (TellyMap · by traveltelly)
- * with a home link, so no React nav is shown here. The page takes the full
- * viewport.
+ * The standalone map markup lives in /telly-map-frame.html and is embedded here
+ * in an <iframe> below the nav. (Renamed from telly-map.html on 2026-08-16 so
+ * that the /telly-map route resolves through the React SPA instead of GitHub
+ * Pages extensionless-serving the raw full-frame file — which hid the menu.)
  *
  * Permissions: after the iframe loads, we postMessage the user's pubkey and
  * canAddPins flag so the map gates the "+ Add pins" button behind the same
@@ -76,7 +78,7 @@ export default function TellyMap() {
       <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
         <iframe
           ref={iframeRef}
-          src="/telly-map.html"
+          src="/telly-map-frame.html"
           title="TellyMap – your personal travel photo map"
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }}
           allow="geolocation; camera"

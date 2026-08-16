@@ -14,7 +14,7 @@ const RESERVED_ROUTES = [
   'marketplace', 'media', 'download', 'category-test', 'stock-media-permissions',
   'media-management', 'map-marker-editor', 'events', 'search-test',
   'simple-map-demo', 'what-is-nostr', 'category-migration',
-  'home', 'telly-map', 'world-map', 'telly-map.html'
+  'home', 'telly-map', 'world-map', 'telly-map.html', 'telly-map-frame', 'telly-map-frame.html'
 ];
 
 export function LocationPage() {
