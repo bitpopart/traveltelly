@@ -4,8 +4,8 @@
   functions = "netlify/functions"
 
 [[redirects]]
-  from = "/telly-map.html"
-  to = "/telly-map.html"
+  from = "/telly-map-frame.html"
+  to = "/telly-map-frame.html"
   status = 200
 
 [[redirects]]

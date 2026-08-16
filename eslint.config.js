@@ -73,12 +73,13 @@ export default tseslint.config(
     },
   },
   {
-    files: ["public/telly-map.html"],
-    // telly-map.html is a standalone 3 MB static page that is NOT built by Vite.
-    // Its inline scripts are integral to the page (embedded geometry data + the
-    // map runtime). Extracting them to external files risks breaking the deployed
-    // map for zero functional benefit, so the inline-script rule is scoped out
-    // for this one file only. All other HTML lint rules still apply.
+    files: ["public/telly-map-frame.html"],
+    // telly-map-frame.html (formerly telly-map.html) is a standalone 3 MB static
+    // map page that is NOT built by Vite. Its inline scripts are integral to the
+    // page (embedded geometry data + the map runtime). Extracting them to
+    // external files risks breaking the deployed map for zero functional benefit,
+    // so the inline-script rule is scoped out for this one file only. All other
+    // HTML lint rules still apply.
     rules: {
       "custom/no-inline-script": "off",
     },
