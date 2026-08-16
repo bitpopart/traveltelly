@@ -17,11 +17,14 @@ import { useSocialScheduledPosts, type SocialPlatform, type SocialScheduledPost 
 import { useNostr } from '@nostrify/react';
 import { nip19 } from 'nostr-tools';
 ;
-import { Calendar, Clock, Plus, Trash2, ArrowLeft, Shield, CheckCircle2, AlertCircle, Image as ImageIcon, Link2, Hash, Star, BookOpen, MapPin, Camera, Edit, Loader2, Wand2, Twitter, Instagram, Facebook, Zap, Info, ExternalLink } from 'lucide-react';;
+import { Calendar, Clock, Plus, Trash2, ArrowLeft, Shield, CheckCircle2, AlertCircle, Image as ImageIcon, Link2, Hash, Star, BookOpen, MapPin, Camera, Edit, Loader2, Wand2, Twitter, Instagram, Facebook, Zap, Info, ExternalLink, Copy, Send, PlugZap, WifiOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useToast } from '@/hooks/useToast';
 import { formatDistanceToNow, format } from 'date-fns';
 import { TwitterSync } from '@/components/TwitterSync';
+import { PlannerMediaPicker } from '@/components/PlannerMediaPicker';
+import type { PlannerMediaItem } from '@/hooks/usePlannerMedia';
+import { useSocialBackendStatus, useSocialPublish, type SocialPublishPlatform } from '@/hooks/useSocialPublish';
 
 interface ScheduledPost {
   id: string;
@@ -50,6 +53,13 @@ const POST_TYPE_LABELS = {
   trip: 'Trip',
   'stock-media': 'Stock Media',
   custom: 'Custom Post',
+};
+
+const TYPE_BY_PLANNER_CATEGORY: Record<string, ScheduledPost['type']> = {
+  reviews: 'review',
+  stories: 'story',
+  trips: 'trip',
+  stock: 'stock-media',
 };
 
 export default function ShareScheduler() {
@@ -198,6 +208,23 @@ export default function ShareScheduler() {
     } finally {
       setIsFetchingContent(false);
     }
+  };
+
+  const handlePlannerPick = (item: PlannerMediaItem) => {
+    setFormData({
+      ...formData,
+      type: TYPE_BY_PLANNER_CATEGORY[item.category] || 'custom',
+      url: item.url,
+      title: item.title,
+      description: '',
+      imageUrl: item.image,
+      hashtags: item.hashtags.join(', '),
+    });
+    toast({
+      title: 'Media added',
+      description: `"${item.title}" - review the post, then schedule or publish it.`,
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -379,6 +406,9 @@ export default function ShareScheduler() {
             {/* Nostr Tab */}
             <TabsContent value="nostr">
               <div className="grid lg:grid-cols-2 gap-6">
+            <div className="lg:col-span-2">
+              <PlannerMediaPicker onPick={handlePlannerPick} />
+            </div>
             {/* Schedule Form */}
             <div>
               <Card>
@@ -916,6 +946,115 @@ function SocialMediaScheduler({ platform }: SocialMediaSchedulerProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isFetchingContent, setIsFetchingContent] = useState(false);
   
+  const apiPlatform: SocialPublishPlatform = platform === 'twitter' ? 'x' : platform;
+  const connectedKey = apiPlatform === 'x' ? 'x' : apiPlatform;
+  const { data: backendStatus } = useSocialBackendStatus();
+  const publishMutation = useSocialPublish();
+  const [isPosting, setIsPosting] = useState(false);
+
+  const SETUP_STEPS: Record<SocialPublishPlatform, string[]> = {
+    x: [
+      'Create an X developer project (developer.x.com) with Read & Write permissions (free tier allows posting).',
+      'Copy the OAuth 1.0a keys: API Key, API Secret, Access Token, Access Token Secret.',
+      'Add them as Netlify env vars: X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_TOKEN_SECRET.',
+    ],
+    facebook: [
+      'Create a Meta app at developers.facebook.com → add the "Pages" product.',
+      'Get a long-lived Page Access Token with pages_manage_posts (Graph API Explorer → your Page).',
+      'Add env vars: FB_PAGE_ID, FB_PAGE_ACCESS_TOKEN.',
+    ],
+    instagram: [
+      'Make sure the Instagram account is a Business/Professional account linked to your Facebook Page.',
+      'Get the Page Access Token with instagram_basic + instagram_content_publish permissions.',
+      'Add env vars: IG_BUSINESS_ID (your Instagram Business account ID) and FB_PAGE_ACCESS_TOKEN.',
+    ],
+  };
+
+  const composeText = () => {
+    const text = [formData.title, formData.description]
+      .filter(Boolean)
+      .join('\n\n');
+    const hashtagText = formData.hashtags
+      .split(/[,\s]+/)
+      .map((h) => h.trim())
+      .filter(Boolean)
+      .map((h) => (h.startsWith('#') ? h : `#${h}`))
+      .join(' ');
+    const body = [text, hashtagText].filter(Boolean).join('\n\n');
+    return formData.url ? `${body}\n\n${formData.url}` : body;
+  };
+
+  const handlePostNow = async () => {
+    if (!formData.url || !formData.title) {
+      toast({
+        title: 'Missing content',
+        description: 'Pick media or fill in URL and title first',
+        variant: 'destructive',
+      });
+      return;
+    }
+    const text = composeText();
+    if (text.length > platformCharLimits[platform]) {
+      toast({
+        title: 'Too long for ' + platformName,
+        description: `${text.length} / ${platformCharLimits[platform]} characters - shorten the text first`,
+        variant: 'destructive',
+      });
+      return;
+    }
+    setIsPosting(true);
+    try {
+      const result = await publishMutation.mutateAsync({
+        platform: apiPlatform,
+        text,
+        imageUrl: formData.imageUrl || undefined,
+        url: formData.url,
+      });
+      toast({
+        title: `Posted to ${platformName}!`,
+        description: result.url || 'Your post is live.',
+      });
+      setFormData((prev) => ({ ...prev, description: '' }));
+    } catch (err) {
+      toast({
+        title: `Post to ${platformName} failed`,
+        description: err instanceof Error ? err.message : 'Unknown error',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsPosting(false);
+    }
+  };
+
+  const handleCopyText = async () => {
+    if (!formData.title) {
+      toast({ title: 'Nothing to copy yet', variant: 'destructive' });
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(composeText());
+      toast({ title: 'Copied!', description: 'Post text is on your clipboard.' });
+    } catch {
+      toast({ title: 'Clipboard unavailable', variant: 'destructive' });
+    }
+  };
+
+  const handlePlannerPick = (item: PlannerMediaItem) => {
+    setFormData({
+      ...formData,
+      type: TYPE_BY_PLANNER_CATEGORY[item.category] || 'custom',
+      url: item.url,
+      title: item.title,
+      description: '',
+      imageUrl: item.image,
+      hashtags: item.hashtags.join(', '),
+    });
+    toast({
+      title: 'Media added',
+      description: `"${item.title}" - ready to post to ${platformName}.`,
+    });
+  };
+
   // xNostr-style sync state
   const [syncConfig, setSyncConfig] = useState({
     autoSync: false,
@@ -1146,8 +1285,125 @@ function SocialMediaScheduler({ platform }: SocialMediaSchedulerProps) {
 
   const currentCharCount = formData.title.length + formData.description.length + formData.hashtags.length + formData.url.length + 10;
 
+  const backendUp = Boolean(backendStatus?.backendOnline);
+  const backendConfigured = Boolean(backendUp && backendStatus?.[connectedKey]);
+
+  const intentUrl =
+    platform === 'twitter'
+      ? `https://twitter.com/intent/tweet?text=${encodeURIComponent(formData.title + (formData.description ? `\n\n${formData.description}` : ''))}&url=${encodeURIComponent(formData.url || '')}&hashtags=${encodeURIComponent((formData.hashtags || '').split(/[,\s]+/).filter(Boolean).map(h => h.replace(/^#/, '')).join(','))}`
+      : platform === 'facebook'
+        ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(formData.url || '')}`
+        : 'https://www.instagram.com/';
+
   return (
     <div className="space-y-6">
+      <PlannerMediaPicker onPick={handlePlannerPick} />
+
+      {/* ── Publish to {platformName} ── */}
+      <Card className="border-2" style={{ borderColor: color }} id={`publish-${platform}`}>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="h-12 w-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${color}20` }}>
+              <Icon className="w-6 h-6" style={{ color }} />
+            </div>
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                Publish to {platformName}
+                {backendConfigured ? (
+                  <Badge className="bg-green-100 text-green-700">Ready to post</Badge>
+                ) : (
+                  <Badge variant="secondary">Needs setup</Badge>
+                )}
+              </CardTitle>
+              <CardDescription>
+                Send this media straight to {platformName}. Your API keys stay in the
+                server environment - this browser never sees them.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {backendUp ? (
+            backendConfigured ? (
+              <Alert className="bg-green-50 border-green-200">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <AlertTitle className="text-green-900">Connected</AlertTitle>
+                <AlertDescription className="text-green-800 text-sm">
+                  Posting backend is live and {platformName} credentials are configured. Hit "{'Post now'}" to publish instantly.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <Alert className="bg-amber-50 border-amber-200">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
+                <AlertTitle className="text-amber-900">Setup needed</AlertTitle>
+                <AlertDescription className="text-amber-800 text-sm">
+                  <div className="space-y-1.5 mt-1">
+                    {SETUP_STEPS[apiPlatform].map((step, i) => (
+                      <div key={i}>• {step}</div>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-xs">After adding the env vars in Netlify, redeploy once - the badge here flips to green.</p>
+                </AlertDescription>
+              </Alert>
+            )
+          ) : (
+            <Alert className="bg-amber-50 border-amber-200">
+              <WifiOff className="h-4 w-4 text-amber-600" />
+              <AlertTitle className="text-amber-900">Posting backend is offline right now</AlertTitle>
+              <AlertDescription className="text-amber-800 text-sm">
+                The live site runs on GitHub Pages, so the /api/social-publish Netlify function is not reachable until the
+                Netlify site for this repo is deployed again (built-in function runtime). Everything below still works -
+                or use the shortcut buttons to open {platformName}'s own composer with this text pre-filled and post in one tap.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              onClick={handlePostNow}
+              disabled={
+                isPosting ||
+                !backendConfigured ||
+                !formData.url ||
+                !formData.title ||
+                (platform === 'instagram' && !formData.imageUrl)
+              }
+              style={{ backgroundColor: color }}
+              className="hover:opacity-90"
+            >
+              {isPosting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+              {isPosting ? 'Posting…' : `Post now to ${platformName}`}
+            </Button>
+            <Button type="button" variant="outline" onClick={handleCopyText} disabled={!formData.title}>
+              <Copy className="w-4 h-4 mr-2" />
+              Copy text
+            </Button>
+            <a
+              href={formData.url ? intentUrl : undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-disabled={!formData.url}
+              className={`inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition ${
+                formData.url
+                  ? 'border-input bg-background hover:bg-accent hover:text-accent-foreground'
+                  : 'pointer-events-none opacity-50'
+              }`}
+            >
+              <ExternalLink className="w-4 h-4" />
+              Open {platformName} composer
+            </a>
+          </div>
+
+          {!backendConfigured && (
+            <div className="text-xs text-muted-foreground pt-1 border-t">
+              💡 Manual flow: <b>Copy text</b> → <b>Open {platformName} composer</b> → paste + attach the image → Post.
+              No app setup needed for that path.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* xNostr-style Sync Card (Full Width) */}
       {(platform === 'twitter' || platform === 'instagram') && (
         <Card className="border-2" style={{ borderColor: color }}>
@@ -1235,14 +1491,11 @@ function SocialMediaScheduler({ platform }: SocialMediaSchedulerProps) {
                 <Button 
                   className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
                   onClick={() => {
-                    toast({
-                      title: 'Coming Soon!',
-                      description: `${platformName} sync integration is under development. Subscribe to our newsletter for updates!`,
-                    });
+                    document.getElementById(`publish-${platform}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   }}
                 >
-                  <Icon className="w-4 h-4 mr-2" />
-                  Connect {platformName}
+                  <PlugZap className="w-4 h-4 mr-2" />
+                  Go to Publish
                 </Button>
               </div>
 
