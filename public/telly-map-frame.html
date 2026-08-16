@@ -2922,72 +2922,102 @@ const NOSTR_RELAYS = [
 const REVIEW_KIND = 34879;
 
 function loadNostrPins(){
+ /*
+  * Page backward through kind-34879 with `until`, not just the latest page,
+  * so older review pins (which carry no `type` and show the blue ring + ⭐)
+  * are loaded even when recent plain photo pins have pushed them past the
+  * newest-200 window (regression reported 2026-08-16).
+  */
+ const PAGE = 200;
+ const MAX_PAGES = 8;
  const seen = new Set();
- let settled = 0;
- const finish = () => {
-  settled++;
-  if(settled === NOSTR_RELAYS.length) renderMarkers();
- };
- NOSTR_RELAYS.forEach(url => {
-  try{
-   const ws = new WebSocket(url);
+
+ function ingest(e){
+  if(seen.has(e.id)) return;
+  seen.add(e.id);
+  const gTag  = e.tags.find(t => t[0] === 'g')?.[1];
+  const title = e.tags.find(t => t[0] === 'title')?.[1];
+  if(!gTag || !title) return;
+  const coords = geohashDecode(gTag);
+  if(!isFinite(coords.lat) || !isFinite(coords.lon)) return;
+  if(coords.lat === 0 && coords.lon === 0) return;
+  const image    = e.tags.find(t => t[0] === 'image')?.[1] || null;
+  const rating   = parseInt(e.tags.find(t => t[0] === 'rating')?.[1] || '0') || 0;
+  const place    = e.tags.find(t => t[0] === 'location')?.[1] ||
+                   e.tags.find(t => t[0] === 'place')?.[1] || '';
+  const category = e.tags.find(t => t[0] === 'category')?.[1] || '';
+  const pinType  = e.tags.find(t => t[0] === 'type')?.[1] || '';
+  // 'pin' tag = plain map photo; anything else (or no type) = a real review
+  const isReview = pinType !== 'pin';
+  const dTag     = e.tags.find(t => t[0] === 'd')?.[1] || '';
+  const pubkey   = e.pubkey || '';
+  const pinId = 'nostr-' + e.id.slice(0, 16);
+  if(pins[pinId]) return; // already loaded from another relay
+  pins[pinId] = {
+   id: pinId,
+   type: 'photo',
+   dataURL: image || _placeholderSVG(title),
+   thumbURL: image || _placeholderSVG(title),
+   title,
+   place,
+   category,
+   lat: coords.lat,
+   lon: coords.lon,
+   ts: e.created_at * 1000,
+   stars: {sum: rating, count: rating > 0 ? 1 : 0},
+   _nostr: true,   // mark as remote/read-only
+   _isReview: isReview,
+   _dTag: dTag,
+   _pubkey: pubkey,
+  };
+ }
+
+ // Fetch one page of kind-34879 from a relay. Resolves {events, full, oldest}.
+ function requestPage(url, until){
+  return new Promise(resolve => {
+   let ws;
    const subId = 'tmap' + Math.random().toString(36).slice(2, 8);
-   const bail = setTimeout(() => { try{ ws.close(); }catch(e){} finish(); }, 8000);
-   ws.onopen = () => {
-    ws.send(JSON.stringify(['REQ', subId, {kinds:[REVIEW_KIND], limit:200}]));
-   };
+   const events = [];
+   let oldest = null;
+   let stoppedByBail = false;
+   const bail = setTimeout(() => { stoppedByBail = true; try{ ws.close(); }catch(e){} resolve({events, full:false, oldest}); }, 8000);
+   const finish = full => { clearTimeout(bail); try{ ws.close(); }catch(e){} resolve({events, full, oldest}); };
+   try{
+    ws = new WebSocket(url);
+   }catch(e){ clearTimeout(bail); resolve({events, full:false, oldest}); return; }
+   ws.onopen = () => { try{ ws.send(JSON.stringify(['REQ', subId, {kinds:[REVIEW_KIND], limit: PAGE, ...(until != null ? {until} : {})}])); }catch(e){ finish(false); } };
    ws.onmessage = ev => {
-    try{
-     const msg = JSON.parse(ev.data);
-     if(msg[0] === 'EOSE' || msg[0] === 'NOTICE'){
-      clearTimeout(bail); try{ ws.close(); }catch(e){} finish(); return;
-     }
-     if(msg[0] !== 'EVENT' || !msg[2] || msg[2].kind !== REVIEW_KIND) return;
-     const e = msg[2];
-     if(seen.has(e.id)) return;
-     seen.add(e.id);
-     // Extract fields from tags
-     const gTag  = e.tags.find(t => t[0] === 'g')?.[1];
-     const title = e.tags.find(t => t[0] === 'title')?.[1];
-     if(!gTag || !title) return;
-     const coords = geohashDecode(gTag);
-     if(!isFinite(coords.lat) || !isFinite(coords.lon)) return;
-     if(coords.lat === 0 && coords.lon === 0) return;
-      const image    = e.tags.find(t => t[0] === 'image')?.[1] || null;
-      const rating   = parseInt(e.tags.find(t => t[0] === 'rating')?.[1] || '0') || 0;
-      const place    = e.tags.find(t => t[0] === 'location')?.[1] ||
-                       e.tags.find(t => t[0] === 'place')?.[1] || '';
-      const category = e.tags.find(t => t[0] === 'category')?.[1] || '';
-      const pinType  = e.tags.find(t => t[0] === 'type')?.[1] || '';
-      // 'pin' tag = plain map photo; anything else (or no type) = a real review
-      const isReview = pinType !== 'pin';
-      const dTag     = e.tags.find(t => t[0] === 'd')?.[1] || '';
-      const pubkey   = e.pubkey || '';
-      const pinId = 'nostr-' + e.id.slice(0, 16);
-      if(pins[pinId]) return; // already loaded from another relay
-      pins[pinId] = {
-       id: pinId,
-       type: 'photo',
-       dataURL: image || _placeholderSVG(title),
-       thumbURL: image || _placeholderSVG(title),
-       title,
-       place,
-       category,
-       lat: coords.lat,
-       lon: coords.lon,
-       ts: e.created_at * 1000,
-       stars: {sum: rating, count: rating > 0 ? 1 : 0},
-       _nostr: true,   // mark as remote/read-only
-       _isReview: isReview,
-       _dTag: dTag,
-       _pubkey: pubkey,
-      };
-     renderMarkers(); // update map as each pin arrives
-    }catch(err){}
+    if(stoppedByBail) return;
+    let msg; try{ msg = JSON.parse(ev.data); }catch(e){ return; }
+    if(msg[0] === 'NOTICE'){ if(!stoppedByBail) finish(false); return; }
+    if(msg[0] !== 'EVENT' || !msg[2] || msg[2].kind !== REVIEW_KIND){
+     if(msg[0] === 'EOSE') finish(events.length >= PAGE);
+     return;
+    }
+    const e = msg[2];
+    events.push(e);
+    if(oldest == null || e.created_at < oldest) oldest = e.created_at;
    };
-   ws.onerror = () => { clearTimeout(bail); finish(); };
-  }catch(e){ finish(); }
- });
+   ws.onerror = () => { if(!stoppedByBail) finish(false); };
+  });
+ }
+
+ async function loadRelay(url){
+  try{
+   let until;
+   for(let page = 0; page < MAX_PAGES; page++){
+    const {events, full, oldest} = await requestPage(url, until);
+    events.forEach(ingest);
+    if(!full) break;
+    until = oldest != null ? oldest - 1 : until;
+   }
+  }catch(e){ /* relay failed — others still load */ }
+ }
+
+ (async () => {
+  await Promise.all(NOSTR_RELAYS.map(loadRelay));
+  renderMarkers();
+ })();
 }
 
 function _placeholderSVG(title){
