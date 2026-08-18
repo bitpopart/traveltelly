@@ -12,6 +12,7 @@ import { useMarketplaceSubscription } from "@/hooks/useMarketplaceSubscription";
 import { useMarketplaceBins } from "@/hooks/useMarketplaceBins";
 import { CreateProductDialog } from "@/components/CreateProductDialog";
 import { MarketplaceSubscriptionDialog } from "@/components/MarketplaceSubscriptionDialog";
+import { UnlimitedDownloadsDialog } from "@/components/UnlimitedDownloadsDialog";
 import { MarketplaceBinSection } from "@/components/MarketplaceBinSection";
 import { AdminSelectionProvider, useAdminSelection } from "@/contexts/AdminSelectionContext";
 import { adminBulkDownload } from "@/lib/adminBulkDownload";
@@ -312,6 +313,15 @@ function MarketplaceInner() {
                     </button>
                   ))}
                 </div>
+
+                {/* Client-facing Unlimited Downloads subscription — visible to
+                    everyone (incl. guests). Creates a client account + subscribes. */}
+                <UnlimitedDownloadsDialog>
+                  <button className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-colors bg-gradient-to-r from-[#ec1a58] to-orange-500 text-white shadow-sm hover:opacity-90">
+                    <Crown className="w-3 h-3" />
+                    Unlimited Downloads
+                  </button>
+                </UnlimitedDownloadsDialog>
 
                 {/* Nav pills */}
                 {user && (
