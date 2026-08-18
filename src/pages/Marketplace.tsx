@@ -17,7 +17,8 @@ import { AdminSelectionProvider, useAdminSelection } from "@/contexts/AdminSelec
 import { adminBulkDownload } from "@/lib/adminBulkDownload";
 import type { BulkDownloadProgress } from "@/lib/adminBulkDownload";
 import { PaymentDialog } from "@/components/PaymentDialog";
-import { ShoppingCart, Plus, Store, Crown, Download, CheckSquare, X, Loader2, Camera, Video, Zap, LayoutGrid, Search, Settings2, Clock } from "lucide-react";
+import { LlmTrainingDialog } from "@/components/LlmTrainingDialog";
+import { ShoppingCart, Plus, Store, Crown, Download, CheckSquare, X, Loader2, Camera, Video, Zap, LayoutGrid, Search, Settings2, Clock, Brain } from "lucide-react";
 import { Link } from "react-router-dom";;
 import type { MarketplaceProduct } from "@/hooks/useMarketplaceProducts";
 import { ADMIN_HEX } from "@/hooks/useBlossomMedia";
@@ -343,6 +344,14 @@ function MarketplaceInner() {
                         {subscription?.isActive ? '✓ Unlimited' : 'Subscribe'}
                       </button>
                     </MarketplaceSubscriptionDialog>
+                    {subscription?.isActive && (
+                      <LlmTrainingDialog>
+                        <button className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-white dark:bg-gray-800 text-[#ec1a58] border border-[#ec1a58]/40 hover:bg-pink-50 transition-colors">
+                          <Brain className="w-3 h-3" />
+                          LLM Training
+                        </button>
+                      </LlmTrainingDialog>
+                    )}
                   </>
                 )}
 

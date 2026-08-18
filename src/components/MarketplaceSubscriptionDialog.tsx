@@ -34,6 +34,7 @@ export function MarketplaceSubscriptionDialog({
     'Unlimited downloads from marketplace',
     'Access to all stock photos and videos',
     'High-resolution files',
+    'LLM training dataset access (full-res images + metadata)',
     'Commercial usage rights',
     'Cancel anytime',
   ];
