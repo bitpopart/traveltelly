@@ -1090,6 +1090,18 @@ function renderMarkers(){
   if(openId && markersById[openId]) setMarkerHidden(openId, window.innerWidth <= 640);
  updateMediaCount();
 }
+/* Add a single pin's marker to the map without rebuilding the whole cluster,
+ * so freshly-fetched Nostr pins appear the moment they arrive instead of
+ * waiting for every relay/page to finish loading. No-op if already shown or
+ * filtered out (renderMarkers still rebuilds everything on filter change). */
+function addMarkerNow(p){
+ if(!p) return;
+ if(markersById[p.id] || !passFilter(p)) return;
+ const m = L.marker([p.lat, p.lon], {icon: pinIcon(p)});
+ m.on('click', () => openPin(p.id));
+ markersById[p.id] = m;
+ cluster.addLayer(m);
+}
 // Live count of media items (photos/clips) currently online on the world map.
 function updateMediaCount(){
  const n = Object.values(pins).filter(p => p._nostr && (p.type === 'photo' || p.type === 'clip')).length;
@@ -3008,6 +3020,10 @@ function loadNostrPins(){
    for(let page = 0; page < MAX_PAGES; page++){
     const {events, full, oldest} = await requestPage(url, until);
     events.forEach(ingest);
+    // Paint whatever pins arrived on this page straight away — the map fills
+    // up as pins load instead of staying empty until every relay finishes.
+    Object.values(pins).forEach(addMarkerNow);
+    updateMediaCount();
     if(!full) break;
     until = oldest != null ? oldest - 1 : until;
    }
