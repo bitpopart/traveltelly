@@ -31,16 +31,19 @@ export function useInfiniteReviews() {
     queryFn: async ({ pageParam, signal }) => {
       const abortSignal = AbortSignal.any([signal, AbortSignal.timeout(10000)]);
 
-      // Build filter with pagination. A page of 100 kind-34879 events can be
+      // Build filter with pagination. A page of kind-34879 events can be
       // entirely photo/video pins (type=pin), which are filtered out below, so
       // a larger limit means fewer round trips to reach the actual reviews.
+      // 200 per page keeps requests small enough for relays while roughly
+      // halving the number of pages needed to page past a big pin flood.
+      const PAGE = 200;
       const filter: {
         kinds: number[];
         limit: number;
         until?: number;
       } = {
         kinds: [34879],
-        limit: 100,
+        limit: PAGE,
       };
 
       // Add until parameter for pagination (older than this timestamp)
@@ -60,7 +63,7 @@ export function useInfiniteReviews() {
       // reviews; if the cursor stopped there the feed would end early and show
       // "No reviews found" even though older real reviews exist on later pages.
       // Stop only when a page comes back smaller than the limit (data exhausted).
-      const nextPageParam = events.length >= 100
+      const nextPageParam = events.length >= PAGE
         ? Math.min(...events.map((event) => event.created_at))
         : undefined;
 

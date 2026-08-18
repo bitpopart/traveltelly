@@ -128,6 +128,28 @@ async function networkFirst(request) {
       const cache = await caches.open(RUNTIME_CACHE);
       cache.put(request, response.clone());
       trimCache(RUNTIME_CACHE, MAX_RUNTIME_CACHE_SIZE);
+      return response;
+    }
+    // GitHub Pages has no SPA rewrite: deep links like /reviews are served as
+    // the app shell (404.html copy of index.html) but with an HTTP 404 status,
+    // which browsers flag as a failed load. For navigations, treat a 404 as an
+    // SPA route hit and return the app shell with 200 so the page loads cleanly.
+    if (request.mode === 'navigate' && response && response.status === 404) {
+      const shell = await caches.match('/index.html');
+      if (shell) {
+        return new Response(shell.body, {
+          status: 200,
+          statusText: 'OK',
+          headers: { 'Content-Type': 'text/html; charset=utf-8' },
+        });
+      }
+      // Shell not cached yet (very first visit) – still return the 404 body
+      // (which is the app shell) but with a 200 status.
+      return new Response(response.body, {
+        status: 200,
+        statusText: 'OK',
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      });
     }
     return response;
   } catch {
