@@ -256,6 +256,12 @@ export function LoadMoreReviewFeed() {
     error,
   } = useInfiniteReviews();
 
+  // Keep auto-advancing while the recent kind-34879 pages are full of photo/
+  // video pins (type=pin, filtered out below) and contain no real reviews yet,
+  // so the feed reaches the actual reviews without manual clicks. Bounded to
+  // guard against relays that return endless full pages of junk.
+  const MAX_AUTO_ADVANCE_PAGES = 20;
+
   // Filter reviews by authorized reviewers and blocked users
   const allReviews = data?.pages.flatMap(page =>
     page.reviews.filter(review => {
@@ -268,6 +274,10 @@ export function LoadMoreReviewFeed() {
     })
   ) || [];
 
+  // Dedupe by event id: the 'until' pagination boundary can re-deliver the
+  // same event on two consecutive pages, which would otherwise show a card twice.
+  const uniqueReviews = [...new Map(allReviews.map((r) => [r.id, r])).values()];
+
   // Auto-advance the first pages while they are full of photo/video pins
   // (type=pin) and contain no real reviews yet, so the feed reaches the actual
   // reviews without manual clicks. Bounded to a few pages; beyond that the
@@ -276,7 +286,7 @@ export function LoadMoreReviewFeed() {
     if (isLoading || isLoadingAuth || error) return;
     if ((allReviews?.length ?? 0) !== 0) return;
     if (!hasNextPage || isFetchingNextPage) return;
-    if ((data?.pages.length ?? 0) >= 6) return;
+    if ((data?.pages.length ?? 0) >= MAX_AUTO_ADVANCE_PAGES) return;
     fetchNextPage();
   }, [allReviews?.length, hasNextPage, isFetchingNextPage, isLoading, isLoadingAuth, error, data?.pages.length, fetchNextPage]);
 
@@ -310,7 +320,7 @@ export function LoadMoreReviewFeed() {
   // (type=pin) that carry no real reviews, so the feed starts empty but still
   // has more pages to fetch. Only show the "no reviews" empty state once every
   // page has been loaded; otherwise keep the Load More button alive.
-  const hasReviews = (allReviews?.length ?? 0) > 0;
+  const hasReviews = (uniqueReviews?.length ?? 0) > 0;
 
   if (!hasReviews && !hasNextPage) {
     return (
@@ -336,7 +346,7 @@ export function LoadMoreReviewFeed() {
     <div className="space-y-6">
       {hasReviews && (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {allReviews.map((review) => (
+          {uniqueReviews.map((review) => (
             <ReviewCard key={review.id} review={review} />
           ))}
         </div>
@@ -373,9 +383,9 @@ export function LoadMoreReviewFeed() {
         </div>
       )}
 
-      {!hasNextPage && allReviews.length > 0 && (
+      {!hasNextPage && uniqueReviews.length > 0 && (
         <div className="text-center text-sm text-gray-500 py-4">
-          All reviews loaded ({allReviews.length} total)
+          All reviews loaded ({uniqueReviews.length} total)
         </div>
       )}
     </div>
