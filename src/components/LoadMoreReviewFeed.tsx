@@ -278,17 +278,20 @@ export function LoadMoreReviewFeed() {
   // same event on two consecutive pages, which would otherwise show a card twice.
   const uniqueReviews = [...new Map(allReviews.map((r) => [r.id, r])).values()];
 
-  // Auto-advance the first pages while they are full of photo/video pins
-  // (type=pin) and contain no real reviews yet, so the feed reaches the actual
-  // reviews without manual clicks. Bounded to a few pages; beyond that the
-  // Load More button takes over.
+  // Auto-advance while recent kind-34879 pages are full of photo/video pins
+  // (type=pin, filtered out below) and contain no real reviews yet. Do NOT
+  // stop at the first page that happens to contain a review: the 'until'
+  // cursor pages over the raw event stream, so a batch of pins interleaved
+  // with reviews can split the reviews across two consecutive pages, and an
+  // early exit would strand the reviews on the next page. Keep paging until
+  // data is exhausted or the bounded cap is hit; beyond that the Load More
+  // button takes over.
   useEffect(() => {
     if (isLoading || isLoadingAuth || error) return;
-    if ((allReviews?.length ?? 0) !== 0) return;
     if (!hasNextPage || isFetchingNextPage) return;
     if ((data?.pages.length ?? 0) >= MAX_AUTO_ADVANCE_PAGES) return;
     fetchNextPage();
-  }, [allReviews?.length, hasNextPage, isFetchingNextPage, isLoading, isLoadingAuth, error, data?.pages.length, fetchNextPage]);
+  }, [hasNextPage, isFetchingNextPage, isLoading, isLoadingAuth, error, data?.pages.length, fetchNextPage]);
 
   if (error) {
     return (
