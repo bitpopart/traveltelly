@@ -307,6 +307,27 @@ body.picking #map{cursor:crosshair;}
 #confirmyes{border:none;background:#b05a3e;color:#fff;}
 #confirmyes:hover{background:#96482f;}
 
+.previewwrap{position:fixed;inset:0;z-index:2100;background:rgba(26,24,22,0.55);display:none;
+ align-items:center;justify-content:center;padding:20px;}
+.previewwrap.show{display:flex;}
+.previewbox{background:var(--bg-card);border-radius:16px;padding:22px 24px;max-width:720px;width:100%;
+ box-shadow:var(--shadow-big);}
+.previewhead{font-family:'Playfair Display',serif;font-weight:700;font-size:18px;margin-bottom:14px;}
+.previewgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.previewgrid .pcol label{display:block;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:11px;
+ letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-muted);margin-bottom:6px;}
+.previewgrid .pcol video{width:100%;border-radius:10px;background:#000;max-height:280px;}
+.previewgrid .pcol-empty{display:flex;align-items:center;justify-content:center;min-height:90px;color:var(--ink-muted);
+ font-size:12.5px;border:1px dashed var(--rule);border-radius:10px;}
+.previewnote{font-size:12.5px;color:var(--ink-soft);line-height:1.5;margin:14px 0 4px;}
+.previewbtns{display:flex;justify-content:flex-end;margin-top:6px;}
+.previewbtns button{border-radius:10px;padding:10px 18px;font-family:'Barlow Condensed',sans-serif;
+ font-weight:700;font-size:13px;letter-spacing:0.14em;text-transform:uppercase;cursor:pointer;
+ border:1px solid var(--rule);background:var(--bg-card);color:var(--ink-soft);}
+.previewbtn{border:1px solid var(--rule);background:var(--bg-card);border-radius:999px;
+ padding:4px 10px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:11px;
+ letter-spacing:0.1em;text-transform:uppercase;margin-top:4px;color:var(--ink-soft);}
+
 /* ── contributor banner ── */
 #contrib-banner{position:fixed;bottom:0;left:0;right:0;z-index:1250;
  background:rgba(26,24,22,0.82);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
@@ -410,6 +431,15 @@ body.picking #map{cursor:crosshair;}
    <button id="confirmno">Cancel</button>
    <button id="confirmyes">Delete</button>
   </div>
+ </div>
+</div>
+
+<div class="previewwrap" id="previewwrap">
+ <div class="previewbox">
+  <div class="previewhead">Clip preview</div>
+  <div class="previewgrid" id="previewgrid"></div>
+  <p class="previewnote" id="previewnote"></p>
+  <div class="previewbtns"><button id="previewclose">Close</button></div>
  </div>
 </div>
 
@@ -697,6 +727,26 @@ function askConfirm(msg){
   $('confirmno').onclick = () => done(false);
   wrap.onclick = e => { if(e.target === wrap) done(false); };
  });
+}
+/* preview a converted clip side-by-side: what the owner uploaded vs what will upload */
+function showClipPreview(s){
+ if(!s || !s.dataURL) return;
+ const wrap = $('previewwrap');
+ $('previewgrid').innerHTML =
+  '<div class="pcol"><label>Original · your upload</label>' +
+   (s.origURL
+    ? '<video src="' + s.origURL + '" controls playsinline></video>'
+    : '<div class="pcol-empty">(uploaded as-is)</div>') +
+  '</div>' +
+  '<div class="pcol"><label>Will upload · converted</label>' +
+   '<video src="' + s.dataURL + '" controls playsinline></video>' +
+  '</div>';
+ $('previewnote').textContent = s.convNote
+  ? 'Edited in-browser: ' + s.convNote + '. Converted size ≈ ' + Math.round(s.dataURL.length / 1024) + ' KB.'
+  : 'This clip is used as-is.';
+ wrap.classList.add('show');
+ $('previewclose').onclick = () => wrap.classList.remove('show');
+ wrap.onclick = e => { if(e.target === wrap) wrap.classList.remove('show'); };
 }
 
 /* ═════════ map ═════════ */
@@ -2023,6 +2073,8 @@ async function addFiles(files){
    }else if(kind === 'video'){
     const tooBig = f.size > 2.8 * 1024 * 1024;
     let dataURL = null;
+    let origURL = null;   // original pre-conversion clip, kept so the owner can preview the edit
+    let convNote = null;  // short note describing what the in-browser conversion did
     if(tooBig){
      // Too big to store raw: convert in-browser to a small ≤6s webm.
      const raw = await fileToDataURL(f);
@@ -2031,7 +2083,8 @@ async function addFiles(files){
       toast('⚠️ ' + f.name + ' is over ~3 MB and this browser cannot convert it. Export the clip smaller (720p works great).', 5500);
       continue;
      }
-     dataURL = conv.dataURL;
+     origURL = raw; dataURL = conv.dataURL;
+     convNote = 'compressed to a small ≤6s clip';
      toast(f.name + ' compressed to ' + Math.round(dataURL.length / 1024) + ' KB');
     }else{
      dataURL = await fileToDataURL(f);
@@ -2039,7 +2092,8 @@ async function addFiles(files){
      if(dur && dur > 6.0){
       const conv = await convertClip6s(dataURL);
       if(conv){
-       dataURL = conv.dataURL;
+       origURL = dataURL; dataURL = conv.dataURL;
+       convNote = 'trimmed to 6 sec';
        toast(f.name + ' trimmed to 6 sec');
       }else{
        toast('⚠️ ' + f.name + ' is ' + Math.round(dur) + 's but this browser cannot trim it, keep clips around 6 sec', 5500);
@@ -2048,7 +2102,8 @@ async function addFiles(files){
      }
     }
     staged.push({uid:uidSeq++, type:'clip', dataURL, thumbURL:null,
-     title:'', place:'', lat:null, lon:null, ts:null, name:f.name});
+     title:'', place:'', lat:null, lon:null, ts:null, name:f.name,
+     origURL, convNote});
    }else{
     toast('⚠️ ' + f.name + ': not a supported photo or clip format');
    }
@@ -2064,7 +2119,7 @@ function renderStaged(){
  staged.forEach(s => {
   const el = document.createElement('div'); el.className = 'sitem';
   const thumb = s.type === 'clip'
-   ? '<div class="thumb"><video src="' + s.dataURL + '" muted></video><span class="tag">CLIP</span></div>'
+   ? '<div class="thumb"><video src="' + s.dataURL + '" muted></video><span class="tag">' + (s.convNote ? 'EDITED' : 'CLIP') + '</span></div>'
    : '<div class="thumb"><img src="' + s.thumbURL + '"></div>';
   const hasGps = s.lat != null && s.lon != null;
   const gpsTxt = hasGps
@@ -2079,6 +2134,7 @@ function renderStaged(){
      '<input type="text" class="f-lon" inputmode="decimal" placeholder="lon" value="' + (s.lon != null ? s.lon : '') + '">' +
      '<button data-a="pick">📍 Pick on map</button>' +
     '</div>' +
+    (s.convNote ? '<button class="previewbtn" data-a="preview" title="See what will actually be uploaded vs the original">▶ Preview edited clip</button>' : '') +
    '</div>' +
    '<button class="rm" title="Remove">✕</button>';
   el.querySelector('.f-title').oninput = e => { s.title = e.target.value; updatePub(); };
@@ -2101,6 +2157,8 @@ function renderStaged(){
    toast('Tap the map where this ' + (s.type === 'clip' ? 'clip' : 'photo') + ' belongs', 5000);
   };
   el.querySelector('.rm').onclick = () => { staged = staged.filter(x => x.uid !== s.uid); renderStaged(); };
+  const pv = el.querySelector('[data-a=preview]');
+  if(pv) pv.onclick = () => showClipPreview(s);
   wrap.appendChild(el);
  });
  $('stageCount').textContent = staged.length ? staged.length + ' staged' : '';
