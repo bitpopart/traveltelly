@@ -1460,6 +1460,78 @@ function fileToDataURL(file){
   r.readAsDataURL(file);
  });
 }
+/*
+ * In-browser clip converter for the "Add pins" flow.
+ * Plays the clip on a hidden <canvas> and re-records the first 6s with
+ * MediaRecorder at ~640px / low bitrate, so a big or long upload becomes a
+ * small ≤6s webm instead of being rejected. Returns {duration, dataURL,
+ * mime} on success, or null if the browser cannot transcode.
+ */
+function convertClip6s(dataURL){
+ return new Promise(resolve => {
+  const v = document.createElement('video');
+  v.muted = true; v.playsInline = true; v.preload = 'auto';
+  v.onloadedmetadata = () => {
+   try{
+    if(typeof MediaRecorder === 'undefined'){ resolve(null); return; }
+    const maxW = 640;
+    const scale = Math.min(1, maxW / (v.videoWidth || maxW));
+    const w = Math.max(2, Math.round((v.videoWidth || maxW) * scale));
+    const h = Math.max(2, Math.round((v.videoHeight || 480) * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if(!ctx || typeof canvas.captureStream !== 'function'){ resolve(null); return; }
+    const stream = canvas.captureStream(30);
+    // carry the original audio along if available (first 6s only)
+    if(typeof v.captureStream === 'function'){
+     try{
+      const vt = v.captureStream().getAudioTracks();
+      vt.forEach(t => stream.addTrack(t));
+     }catch(e){}
+    }
+    const mime = ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm']
+     .find(m => MediaRecorder.isTypeSupported(m)) || '';
+    let rec;
+    try{
+     rec = new MediaRecorder(stream, mime
+      ? {mimeType: mime, videoBitsPerSecond: 400 * 1024}
+      : {videoBitsPerSecond: 400 * 1024});
+    }catch(e){ resolve(null); return; }
+    const chunks = [];
+    rec.ondataavailable = e => { if(e.data && e.data.size) chunks.push(e.data); };
+    rec.onstop = () => {
+     const blob = new Blob(chunks, {type: mime || 'video/webm'});
+     const fr = new FileReader();
+     fr.onload = () => resolve({duration: capDur, dataURL: fr.result, mime: mime || 'video/webm'});
+     fr.onerror = () => resolve(null);
+     fr.readAsDataURL(blob);
+    };
+    const capDur = Math.min(v.duration || 6, 6);
+    v.currentTime = 0;
+    v.play().catch(() => {});
+    const startT = performance.now();
+    const draw = () => {
+     if(performance.now() - startT < capDur * 1000){
+      try{ ctx.drawImage(v, 0, 0, w, h); }catch(e){}
+      requestAnimationFrame(draw);
+     }
+    };
+    draw();
+    rec.start(250);
+    setTimeout(() => {
+     try{ v.pause(); }catch(e){}
+     rec.stop();
+    }, capDur * 1000);
+   }catch(e){
+    console.error('convertClip6s', e);
+    resolve(null);
+   }
+  };
+  v.onerror = () => resolve(null);
+  v.src = dataURL;
+ });
+}
 
 /* reverse geocode, two-zoom fallback, fail silent */
 async function placeName(lat, lon){
@@ -1949,10 +2021,32 @@ async function addFiles(files){
      });
     }
    }else if(kind === 'video'){
-    if(f.size > 2.8 * 1024 * 1024){ toast('⚠️ ' + f.name + ' is over ~3 MB, storage cannot hold it. Export the clip smaller (720p works great).', 5500); continue; }
-    const dataURL = await fileToDataURL(f);
-    const dur = await videoDuration(dataURL);
-    if(dur && dur > 7.5){ toast('⚠️ ' + f.name + ' is ' + Math.round(dur) + 's, keep clips around 6 sec'); continue; }
+    const tooBig = f.size > 2.8 * 1024 * 1024;
+    let dataURL = null;
+    if(tooBig){
+     // Too big to store raw: convert in-browser to a small ≤6s webm.
+     const raw = await fileToDataURL(f);
+     const conv = await convertClip6s(raw);
+     if(!conv){
+      toast('⚠️ ' + f.name + ' is over ~3 MB and this browser cannot convert it. Export the clip smaller (720p works great).', 5500);
+      continue;
+     }
+     dataURL = conv.dataURL;
+     toast(f.name + ' compressed to ' + Math.round(dataURL.length / 1024) + ' KB');
+    }else{
+     dataURL = await fileToDataURL(f);
+     const dur = await videoDuration(dataURL);
+     if(dur && dur > 6.0){
+      const conv = await convertClip6s(dataURL);
+      if(conv){
+       dataURL = conv.dataURL;
+       toast(f.name + ' trimmed to 6 sec');
+      }else{
+       toast('⚠️ ' + f.name + ' is ' + Math.round(dur) + 's but this browser cannot trim it, keep clips around 6 sec', 5500);
+       continue;
+      }
+     }
+    }
     staged.push({uid:uidSeq++, type:'clip', dataURL, thumbURL:null,
      title:'', place:'', lat:null, lon:null, ts:null, name:f.name});
    }else{
