@@ -159,10 +159,11 @@ Option 2 - Guest Checkout (no Nostr needed):
     question: 'What is the unlimited downloads subscription?',
     answer: `Unlimited Downloads Subscription:
 
-• $99/month
+• $21/month (same as Marketplace Subscription)
 • Unlimited access to ALL stock media
 • Commercial usage rights included
-• No per-item charges
+• Convenient Lightning/sat payment — sat price stays equal to the dollar
+  price, updated regularly from the live BTC rate
 • Cancel anytime
 
 Perfect for content creators, publishers, and agencies!

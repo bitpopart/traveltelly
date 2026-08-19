@@ -5,8 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { useMarketplaceSubscription, getSubscriptionPrice, formatExpiryDate } from '@/hooks/useMarketplaceSubscription';
+import { useMarketplaceSubscription, formatExpiryDate } from '@/hooks/useMarketplaceSubscription';
 import { LightningZapDialog } from '@/components/LightningZapDialog';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
+import { MONTHLY_USD, YEARLY_USD, usdToSats, FALLBACK_SATS_PER_USD } from '@/lib/subscriptionPricing';
 import { Check, Zap, Crown, Calendar, Download, Info } from 'lucide-react';
 
 interface MarketplaceSubscriptionDialogProps {
@@ -23,12 +25,17 @@ export function MarketplaceSubscriptionDialog({
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const { user } = useCurrentUser();
   const { data: subscription } = useMarketplaceSubscription(user?.pubkey);
+  const { data: rates } = useExchangeRates();
 
   const isOpen = controlledOpen !== undefined ? controlledOpen : uncontrolledOpen;
   const setIsOpen = controlledOnOpenChange || setUncontrolledOpen;
 
-  const monthlyPrice = getSubscriptionPrice('monthly');
-  const yearlyPrice = getSubscriptionPrice('yearly');
+  // Sat price always equals the USD price in value, derived from the live
+  // BTC/USD rate (updates regularly). Falls back to a stable estimate until
+  // the rate loads so a buyer is never blocked.
+  const btcUsd = rates?.USD;
+  const monthlyPrice = usdToSats(MONTHLY_USD, btcUsd) ?? MONTHLY_USD * FALLBACK_SATS_PER_USD;
+  const yearlyPrice = usdToSats(YEARLY_USD, btcUsd) ?? YEARLY_USD * FALLBACK_SATS_PER_USD;
 
   const features = [
     'Unlimited downloads from marketplace',
@@ -108,9 +115,9 @@ export function MarketplaceSubscriptionDialog({
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <div className="text-3xl font-bold">$21</div>
+                  <div className="text-3xl font-bold">{'$'}{MONTHLY_USD}</div>
                   <div className="text-sm text-muted-foreground">
-                    ≈ {monthlyPrice.toLocaleString()} sats/month
+                    ≈ {monthlyPrice.toLocaleString()} sats (live rate)
                   </div>
                 </div>
 
@@ -158,9 +165,9 @@ export function MarketplaceSubscriptionDialog({
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <div className="text-3xl font-bold">$210</div>
+                  <div className="text-3xl font-bold">{'$'}{YEARLY_USD}</div>
                   <div className="text-sm text-muted-foreground">
-                    ≈ {yearlyPrice.toLocaleString()} sats/year
+                    ≈ {yearlyPrice.toLocaleString()} sats (live rate)
                   </div>
                   <div className="text-xs text-green-600 font-medium mt-1">
                     Save $42/year vs monthly
