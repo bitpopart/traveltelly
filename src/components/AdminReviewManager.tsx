@@ -14,6 +14,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { EditReviewForm } from '@/components/EditReviewForm';
 import { RelaySelector } from '@/components/RelaySelector';
 import { CategoryManager } from '@/components/CategoryManager';
+import { AdminDuplicatePins } from '@/components/AdminDuplicatePins';
+import { useDuplicatePins } from '@/hooks/useDuplicatePins';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
@@ -217,6 +219,9 @@ export function AdminReviewManager() {
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'rating'>('newest');
   const [editingReview, setEditingReview] = useState<NostrEvent | null>(null);
 
+  // Shared react-query cache with AdminDuplicatePins — powers the tab badge
+  const { data: duplicateGroups = [] } = useDuplicatePins();
+
   // Filter and sort reviews
   const filteredReviews = reviews?.filter(review => {
     // Search filter
@@ -397,6 +402,12 @@ export function AdminReviewManager() {
     <Tabs defaultValue="manage-reviews" className="w-full">
       <TabsList>
         <TabsTrigger value="manage-reviews">Manage Reviews</TabsTrigger>
+        <TabsTrigger value="duplicate-pins" className="flex items-center gap-1.5">
+          Duplicate Pins
+          {duplicateGroups.length > 0 && (
+            <Badge variant="destructive" className="ml-0.5">{duplicateGroups.length}</Badge>
+          )}
+        </TabsTrigger>
         <TabsTrigger value="review-categories">Review Categories</TabsTrigger>
       </TabsList>
 
@@ -556,6 +567,10 @@ export function AdminReviewManager() {
         </div>
       )}
         </div>
+      </TabsContent>
+
+      <TabsContent value="duplicate-pins" className="mt-6">
+        <AdminDuplicatePins />
       </TabsContent>
 
       <TabsContent value="review-categories" className="mt-6">
