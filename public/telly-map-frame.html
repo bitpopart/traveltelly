@@ -328,6 +328,25 @@ body.picking #map{cursor:crosshair;}
  padding:4px 10px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:11px;
  letter-spacing:0.1em;text-transform:uppercase;margin-top:4px;color:var(--ink-soft);}
 
+/* 6-sec window segment picker for staged clips */
+.trimrow{display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap;}
+.trimrow .trimlab{font-size:11px;color:var(--ink-muted);font-weight:600;white-space:nowrap;}
+.trimrow .trimslider{flex:1;min-width:120px;accent-color:var(--lime-dark);}
+.trimrow .trimval{font-size:11.5px;color:var(--lime-dark);font-weight:700;font-variant-numeric:tabular-nums;min-width:34px;text-align:right;}
+
+/* upload progress view shown while a pin's media goes to Blossom */
+.uploadwrap{position:fixed;inset:0;z-index:2200;background:rgba(26,24,22,0.5);display:none;
+ align-items:center;justify-content:center;padding:20px;}
+.uploadwrap.show{display:flex;}
+.uploadbox{background:var(--bg-card);border-radius:16px;padding:24px 26px;max-width:320px;width:100%;
+ text-align:center;box-shadow:var(--shadow-big);}
+.uploadspin{width:36px;height:36px;border:4px solid rgba(0,0,0,0.12);border-top-color:var(--lime-dark);
+ border-radius:50%;margin:0 auto;animation:uzspin 0.9s linear infinite;}
+@keyframes uzspin{to{transform:rotate(360deg);}}
+.uploadtxt{font-weight:600;font-size:14px;color:var(--ink);margin:12px 0 14px;word-break:break-word;line-height:1.4;}
+.uploadbar{height:8px;border-radius:6px;background:rgba(0,0,0,0.12);overflow:hidden;}
+.uploadfill{height:100%;width:0;background:var(--lime-dark);transition:width .25s ease;}
+
 /* ── contributor banner ── */
 #contrib-banner{position:fixed;bottom:0;left:0;right:0;z-index:1250;
  background:rgba(26,24,22,0.82);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
@@ -440,6 +459,14 @@ body.picking #map{cursor:crosshair;}
   <div class="previewgrid" id="previewgrid"></div>
   <p class="previewnote" id="previewnote"></p>
   <div class="previewbtns"><button id="previewclose">Close</button></div>
+ </div>
+</div>
+
+<div class="uploadwrap" id="uploadwrap">
+ <div class="uploadbox">
+  <div class="uploadspin"></div>
+  <div class="uploadtxt" id="uploadtxt">Uploading…</div>
+  <div class="uploadbar"><div class="uploadfill" id="uploadfill"></div></div>
  </div>
 </div>
 
@@ -1510,15 +1537,23 @@ function fileToDataURL(file){
   r.readAsDataURL(file);
  });
 }
+/* format seconds as m:ss for the 6-sec window picker */
+function fmtTime(t){
+ t = Math.max(0, +t || 0);
+ return Math.floor(t / 60) + ':' + ('0' + Math.floor(t % 60)).slice(-2);
+}
 /*
  * In-browser clip converter for the "Add pins" flow.
- * Plays the clip on a hidden <canvas> and re-records the first 6s with
- * MediaRecorder at ~640px / low bitrate, so a big or long upload becomes a
- * small ≤6s webm instead of being rejected. Returns {duration, dataURL,
+ * Plays the chosen 6-second window of the clip on a hidden <canvas> and
+ * re-records it with MediaRecorder at ~640px / low bitrate, so a big or long
+ * upload becomes a small ≤6s webm instead of being rejected. `startSec` picks
+ * which 6-second segment to keep (default 0 = the start of the clip) and is
+ * clamped so the window fits inside the clip. Returns {duration, dataURL,
  * mime} on success, or null if the browser cannot transcode.
  */
-function convertClip6s(dataURL){
+function convertClip6s(dataURL, startSec){
  return new Promise(resolve => {
+  startSec = Math.max(0, +startSec || 0);
   const v = document.createElement('video');
   v.muted = true; v.playsInline = true; v.preload = 'auto';
   v.onloadedmetadata = () => {
@@ -1558,7 +1593,8 @@ function convertClip6s(dataURL){
      fr.readAsDataURL(blob);
     };
     const capDur = Math.min(v.duration || 6, 6);
-    v.currentTime = 0;
+    const start = Math.min(startSec, Math.max(0, (v.duration || 6) - capDur));
+    v.currentTime = start;
     v.play().catch(() => {});
     const startT = performance.now();
     const draw = () => {
@@ -2075,24 +2111,28 @@ async function addFiles(files){
     let dataURL = null;
     let origURL = null;   // original pre-conversion clip, kept so the owner can preview the edit
     let convNote = null;  // short note describing what the in-browser conversion did
+    let src = null;       // full source clip (set when converted) so the owner can pick another 6-sec window
+    let dur = 0;          // source clip duration in seconds
+    let segStart = 0;     // start of the 6-sec window kept (used by the segment picker)
     if(tooBig){
      // Too big to store raw: convert in-browser to a small ≤6s webm.
      const raw = await fileToDataURL(f);
-     const conv = await convertClip6s(raw);
+     dur = (await videoDuration(raw)) || 6;
+     const conv = await convertClip6s(raw, 0);
      if(!conv){
       toast('⚠️ ' + f.name + ' is over ~3 MB and this browser cannot convert it. Export the clip smaller (720p works great).', 5500);
       continue;
      }
-     origURL = raw; dataURL = conv.dataURL;
+     origURL = raw; src = raw; dataURL = conv.dataURL;
      convNote = 'compressed to a small ≤6s clip';
      toast(f.name + ' compressed to ' + Math.round(dataURL.length / 1024) + ' KB');
     }else{
      dataURL = await fileToDataURL(f);
-     const dur = await videoDuration(dataURL);
-     if(dur && dur > 6.0){
-      const conv = await convertClip6s(dataURL);
+     dur = (await videoDuration(dataURL)) || 0;
+     if(dur > 6.0){
+      const conv = await convertClip6s(dataURL, 0);
       if(conv){
-       origURL = dataURL; dataURL = conv.dataURL;
+       origURL = dataURL; src = dataURL; dataURL = conv.dataURL;
        convNote = 'trimmed to 6 sec';
        toast(f.name + ' trimmed to 6 sec');
       }else{
@@ -2103,7 +2143,7 @@ async function addFiles(files){
     }
     staged.push({uid:uidSeq++, type:'clip', dataURL, thumbURL:null,
      title:'', place:'', lat:null, lon:null, ts:null, name:f.name,
-     origURL, convNote});
+     origURL, convNote, src, dur, segStart});
    }else{
     toast('⚠️ ' + f.name + ': not a supported photo or clip format');
    }
@@ -2135,6 +2175,9 @@ function renderStaged(){
      '<button data-a="pick">📍 Pick on map</button>' +
     '</div>' +
     (s.convNote ? '<button class="previewbtn" data-a="preview" title="See what will actually be uploaded vs the original">▶ Preview edited clip</button>' : '') +
+    (s.src ? '<div class="trimrow"><span class="trimlab">✂️ 6-sec window</span>' +
+      '<input type="range" class="trimslider" data-a="trim" min="0" max="' + Math.floor(Math.max(0, (s.dur||6) - 6)) + '" step="0.5" value="' + (s.segStart||0) + '" title="Choose which 6 seconds of the clip to keep">' +
+      '<span class="trimval" data-trimval="' + s.uid + '">' + fmtTime(s.segStart||0) + '</span></div>' : '') +
    '</div>' +
    '<button class="rm" title="Remove">✕</button>';
   el.querySelector('.f-title').oninput = e => { s.title = e.target.value; updatePub(); };
@@ -2159,6 +2202,27 @@ function renderStaged(){
   el.querySelector('.rm').onclick = () => { staged = staged.filter(x => x.uid !== s.uid); renderStaged(); };
   const pv = el.querySelector('[data-a=preview]');
   if(pv) pv.onclick = () => showClipPreview(s);
+  const trim = el.querySelector('[data-a=trim]');
+  if(trim){
+   const tvl = el.querySelector('[data-trimval="' + s.uid + '"]');
+   if(tvl){
+    trim.oninput = () => { tvl.textContent = fmtTime(+trim.value); };
+    trim.onchange = async () => {
+     const start = +trim.value;
+     tvl.textContent = '…';
+     const conv = await convertClip6s(s.src, start);
+     if(conv){
+      s.segStart = start;
+      s.dataURL = conv.dataURL;
+      s.convNote = '6-sec window starting at ' + fmtTime(start) + (s.dur > 6 ? ' (clip was ' + fmtTime(s.dur) + ')' : '');
+      toast(s.name + ': 6-sec window set to ' + fmtTime(start));
+      renderStaged();
+     }else{
+      toast('⚠️ Could not re-trim in this browser', 4000);
+     }
+    };
+   }
+  }
   wrap.appendChild(el);
  });
  $('stageCount').textContent = staged.length ? staged.length + ' staged' : '';
@@ -2174,6 +2238,33 @@ function updatePub(){
    : 'Save ' + staged.length + ' pin' + (staged.length > 1 ? 's' : '') + ' locally')
   : 'Set a location on every item first';
 }
+/* upload progress view — shown while a pin's media is going to Blossom.
+ * pct=null shows an indeterminate bar (no progress is exposed over PUT);
+ * a number sets a determinate width. */
+let upTimer = null;
+function showUploadProgress(txt, pct){
+ const fill = $('uploadfill');
+ clearInterval(upTimer);
+ $('uploadtxt').textContent = txt || 'Uploading…';
+ if(pct == null){
+  fill.style.width = '0';
+  let w = 12, dir = 1;
+  upTimer = setInterval(() => {
+   w += dir * 9;
+   if(w >= 90){ w = 90; dir = -1; }
+   if(w <= 12){ w = 12; dir = 1; }
+   fill.style.width = w + '%';
+  }, 70);
+ }else{
+  fill.style.width = Math.min(100, Math.max(0, pct)) + '%';
+ }
+ $('uploadwrap').classList.add('show');
+}
+function hideUploadProgress(){
+ clearInterval(upTimer);
+ $('uploadwrap').classList.remove('show');
+}
+
 /* ═════════ Blossom upload (NIP-98 auth) ═════════ */
 const BLOSSOM_SERVERS = [
  'https://blossom.primal.net',
@@ -2271,15 +2362,18 @@ $('pubbtn').onclick = async () => {
    const title   = s.title.trim() || 'Untitled spot';
    const slug    = makeSlug(title);
 
-   /* 1 ── upload photo to Blossom (only if logged in with Nostr) */
+   /* 1 ── upload photo / clip to Blossom (only if logged in with Nostr) */
    let imageUrl = null;
-   if(hasNostr && s.type === 'photo' && s.dataURL && s.dataURL.startsWith('data:')){
+   if(hasNostr && s.dataURL && s.dataURL.startsWith('data:')){
     try{
-     toast('⬆️ Uploading photo…', 8000);
-     const mime = s.dataURL.split(';')[0].split(':')[1] || 'image/jpeg';
+     const isClip = s.type === 'clip';
+     const mime = s.dataURL.split(';')[0].split(':')[1] || (isClip ? 'video/webm' : 'image/jpeg');
+     showUploadProgress('⬆️ Uploading ' + (isClip ? 'video' : 'photo') + '…', null);
      imageUrl = await blossomUpload(s.dataURL, mime);
     }catch(e){
-     toast('⚠️ Photo upload failed, pin saved locally: ' + (e.message||e), 5000);
+     toast('⚠️ ' + (s.type === 'clip' ? 'Video' : 'Photo') + ' upload failed, pin saved locally: ' + (e.message||e), 5000);
+    }finally{
+     hideUploadProgress();
     }
    }
 
@@ -2313,8 +2407,8 @@ $('pubbtn').onclick = async () => {
      if(acks > 0) toast('✅ Published to ' + acks + ' relay' + (acks>1?'s':'') + '!', 4000);
      else         toast('⚠️ Signed but no relay accepted it — pin saved locally.', 5000);
 
-     /* 2b ── auto-list the pin photo on /marketplace (kind 30402, $0.99) so every pin is also for sale */
-     if(imageUrl){
+     /* 2b ── auto-list the pin photo on /marketplace (kind 30402, $0.99) so every pin is also for sale (photos only — clips aren't marketplace products) */
+     if(imageUrl && s.type === 'photo'){
       try{
        const mktTags = [
         ['d',        'product_' + Date.now().toString(36) + Math.random().toString(36).slice(2,9)],
