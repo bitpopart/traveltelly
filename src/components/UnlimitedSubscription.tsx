@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useCustomerSession, useCustomer } from '@/hooks/useCustomers';
 import { useToast } from '@/hooks/useToast';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
+import { MONTHLY_USD, usdToSats, FALLBACK_SATS_PER_USD } from '@/lib/subscriptionPricing';
 import { CheckCircle, Mail, User, Zap, CreditCard, Crown, Download, Shield } from 'lucide-react';
 import { hasActiveSubscription } from '@/lib/customerSchema';
 
@@ -15,12 +17,15 @@ interface UnlimitedSubscriptionProps {
   onCancel?: () => void;
 }
 
-const SUBSCRIPTION_PRICE = 99; // USD or equivalent in sats
-
 export function UnlimitedSubscription({ onSubscriptionComplete, onCancel }: UnlimitedSubscriptionProps) {
   const { session, setSession } = useCustomerSession();
   const { toast } = useToast();
   const { data: existingCustomer } = useCustomer(session?.email || null);
+  const { data: rates } = useExchangeRates();
+
+  // Single unified price with the Marketplace Subscription; sat price always
+  // equals the USD price in value and tracks the live exchange rate.
+  const satsPrice = usdToSats(MONTHLY_USD, rates?.USD) ?? MONTHLY_USD * FALLBACK_SATS_PER_USD;
   
   const [email, setEmail] = useState(session?.email || '');
   const [name, setName] = useState(session?.name || '');
@@ -144,7 +149,7 @@ export function UnlimitedSubscription({ onSubscriptionComplete, onCancel }: Unli
           <CardTitle>Unlimited Downloads Subscription</CardTitle>
         </div>
         <CardDescription>
-          Get unlimited access to all stock media for ${SUBSCRIPTION_PRICE}/month
+          Get unlimited access to all stock media for ${MONTHLY_USD}/month
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -155,10 +160,11 @@ export function UnlimitedSubscription({ onSubscriptionComplete, onCancel }: Unli
               <Crown className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="font-bold text-yellow-900 dark:text-yellow-100">
-                  ${SUBSCRIPTION_PRICE}/month
+                  ${MONTHLY_USD}/month
                 </p>
                 <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                  Unlimited downloads, commercial rights
+                  ≈ {satsPrice.toLocaleString()} sats (live rate) — Unlimited
+                  downloads, commercial rights
                 </p>
               </div>
             </div>
@@ -275,7 +281,7 @@ export function UnlimitedSubscription({ onSubscriptionComplete, onCancel }: Unli
               ) : (
                 <>
                   <Crown className="w-4 h-4 mr-2" />
-                  Subscribe ${SUBSCRIPTION_PRICE}/mo
+                  Subscribe ${MONTHLY_USD}/mo
                 </>
               )}
             </Button>

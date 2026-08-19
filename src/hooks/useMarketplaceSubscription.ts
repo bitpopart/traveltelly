@@ -165,23 +165,6 @@ export function useAllSubscriptions() {
 }
 
 /**
- * Calculate subscription pricing in satoshis
- */
-export function getSubscriptionPrice(type: 'monthly' | 'yearly'): number {
-  // Prices in USD
-  const MONTHLY_USD = 21;
-  const YEARLY_USD = 210; // 10 months price
-
-  // Approximate BTC/USD rate (this should ideally come from an exchange rate API)
-  // For now, using a rough estimate of 100k USD/BTC = 1 sat = 0.001 USD
-  const SAT_PER_USD = 1000;
-
-  return type === 'monthly' 
-    ? MONTHLY_USD * SAT_PER_USD 
-    : YEARLY_USD * SAT_PER_USD;
-}
-
-/**
  * Format subscription expiry date
  */
 export function formatExpiryDate(timestamp: number): string {
