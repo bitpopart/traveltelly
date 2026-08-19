@@ -333,6 +333,10 @@ body.picking #map{cursor:crosshair;}
 .trimrow .trimlab{font-size:11px;color:var(--ink-muted);font-weight:600;white-space:nowrap;}
 .trimrow .trimslider{flex:1;min-width:120px;accent-color:var(--lime-dark);}
 .trimrow .trimval{font-size:11.5px;color:var(--lime-dark);font-weight:700;font-variant-numeric:tabular-nums;min-width:34px;text-align:right;}
+.trimrow .trimsave{margin-left:auto;border:none;background:var(--lime-dark);color:#fff;border-radius:999px;
+ padding:6px 16px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;
+ letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;}
+.trimrow .trimsave:disabled{opacity:.5;cursor:default;}
 
 /* upload progress view shown while a pin's media goes to Blossom */
 .uploadwrap{position:fixed;inset:0;z-index:2200;background:rgba(26,24,22,0.5);display:none;
@@ -458,6 +462,12 @@ body.picking #map{cursor:crosshair;}
   <div class="previewhead">Clip preview</div>
   <div class="previewgrid" id="previewgrid"></div>
   <p class="previewnote" id="previewnote"></p>
+  <div class="trimrow" id="previewtrim" style="display:none;">
+   <span class="trimlab">✂️ 6-sec window</span>
+   <input type="range" class="trimslider" id="previewtrimslider" min="0" max="0" step="0.5" value="0" title="Choose which 6 seconds of the clip to keep">
+   <span class="trimval" id="previewtrimval">0:00</span>
+   <button class="trimsave" id="previewsave">Save edit</button>
+  </div>
   <div class="previewbtns"><button id="previewclose">Close</button></div>
  </div>
 </div>
@@ -755,7 +765,14 @@ function askConfirm(msg){
   wrap.onclick = e => { if(e.target === wrap) done(false); };
  });
 }
-/* preview a converted clip side-by-side: what the owner uploaded vs what will upload */
+/* preview a converted clip side-by-side: what the owner uploaded vs what will upload.
+ * Segment selection lives here: pick the 6-sec window and Save to re-run the
+ * conversion on that window. */
+function setPreviewNote(s){
+ $('previewnote').textContent = s.convNote
+  ? 'Edited in-browser: ' + s.convNote + '. Converted size ≈ ' + Math.round(s.dataURL.length / 1024) + ' KB.'
+  : 'This clip is used as-is.';
+}
 function showClipPreview(s){
  if(!s || !s.dataURL) return;
  const wrap = $('previewwrap');
@@ -768,9 +785,41 @@ function showClipPreview(s){
   '<div class="pcol"><label>Will upload · converted</label>' +
    '<video src="' + s.dataURL + '" controls playsinline></video>' +
   '</div>';
- $('previewnote').textContent = s.convNote
-  ? 'Edited in-browser: ' + s.convNote + '. Converted size ≈ ' + Math.round(s.dataURL.length / 1024) + ' KB.'
-  : 'This clip is used as-is.';
+ setPreviewNote(s);
+ // 6-sec window edit — only available when there's a source clip to re-cut
+ const trim = $('previewtrim');
+ if(s.src && s.dur > 0){
+  const slider = $('previewtrimslider');
+  const tvl = $('previewtrimval');
+  const save = $('previewsave');
+  slider.min = 0;
+  slider.max = Math.floor(Math.max(0, (s.dur||6) - 6));
+  slider.step = 0.5;
+  slider.value = s.segStart || 0;
+  tvl.textContent = fmtTime(s.segStart || 0);
+  trim.style.display = 'flex';
+  slider.oninput = () => { tvl.textContent = fmtTime(+slider.value); };
+  save.onclick = async () => {
+   const start = +slider.value;
+   tvl.textContent = '…'; save.disabled = true;
+   const conv = await convertClip6s(s.src, start);
+   if(conv){
+    s.segStart = start;
+    s.dataURL = conv.dataURL;
+    s.convNote = '6-sec window starting at ' + fmtTime(start) + (s.dur > 6 ? ' (clip was ' + fmtTime(s.dur) + ')' : '');
+    toast(s.name + ': 6-sec window saved at ' + fmtTime(start));
+    const convVideo = document.querySelector('#previewgrid .pcol:nth-child(2) video');
+    if(convVideo){ convVideo.src = s.dataURL; convVideo.load(); }
+    setPreviewNote(s);
+    renderStaged();          // refresh the staged item + its thumb
+   }else{
+    toast('⚠️ Could not re-trim in this browser', 4000);
+   }
+   save.disabled = false;
+  };
+ }else{
+  trim.style.display = 'none';
+ }
  wrap.classList.add('show');
  $('previewclose').onclick = () => wrap.classList.remove('show');
  wrap.onclick = e => { if(e.target === wrap) wrap.classList.remove('show'); };
@@ -2175,9 +2224,6 @@ function renderStaged(){
      '<button data-a="pick">📍 Pick on map</button>' +
     '</div>' +
     (s.convNote ? '<button class="previewbtn" data-a="preview" title="See what will actually be uploaded vs the original">▶ Preview edited clip</button>' : '') +
-    (s.src ? '<div class="trimrow"><span class="trimlab">✂️ 6-sec window</span>' +
-      '<input type="range" class="trimslider" data-a="trim" min="0" max="' + Math.floor(Math.max(0, (s.dur||6) - 6)) + '" step="0.5" value="' + (s.segStart||0) + '" title="Choose which 6 seconds of the clip to keep">' +
-      '<span class="trimval" data-trimval="' + s.uid + '">' + fmtTime(s.segStart||0) + '</span></div>' : '') +
    '</div>' +
    '<button class="rm" title="Remove">✕</button>';
   el.querySelector('.f-title').oninput = e => { s.title = e.target.value; updatePub(); };
@@ -2202,27 +2248,6 @@ function renderStaged(){
   el.querySelector('.rm').onclick = () => { staged = staged.filter(x => x.uid !== s.uid); renderStaged(); };
   const pv = el.querySelector('[data-a=preview]');
   if(pv) pv.onclick = () => showClipPreview(s);
-  const trim = el.querySelector('[data-a=trim]');
-  if(trim){
-   const tvl = el.querySelector('[data-trimval="' + s.uid + '"]');
-   if(tvl){
-    trim.oninput = () => { tvl.textContent = fmtTime(+trim.value); };
-    trim.onchange = async () => {
-     const start = +trim.value;
-     tvl.textContent = '…';
-     const conv = await convertClip6s(s.src, start);
-     if(conv){
-      s.segStart = start;
-      s.dataURL = conv.dataURL;
-      s.convNote = '6-sec window starting at ' + fmtTime(start) + (s.dur > 6 ? ' (clip was ' + fmtTime(s.dur) + ')' : '');
-      toast(s.name + ': 6-sec window set to ' + fmtTime(start));
-      renderStaged();
-     }else{
-      toast('⚠️ Could not re-trim in this browser', 4000);
-     }
-    };
-   }
-  }
   wrap.appendChild(el);
  });
  $('stageCount').textContent = staged.length ? staged.length + ' staged' : '';
