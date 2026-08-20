@@ -24,6 +24,7 @@ import { Link } from "react-router-dom";;
 import type { MarketplaceProduct } from "@/hooks/useMarketplaceProducts";
 import { ADMIN_HEX } from "@/hooks/useBlossomMedia";
 import { getGridThumbUrl } from "@/lib/imageUtils";
+import { usePriceConversion } from "@/hooks/usePriceConversion";
 
 // ─── Compact thumbnail card ───────────────────────────────────────────────────
 function MediaThumb({ product }: { product: MarketplaceProduct }) {
@@ -35,6 +36,11 @@ function MediaThumb({ product }: { product: MarketplaceProduct }) {
   const isSelected = selectedIds.has(product.id);
   const isFree = !product.price || product.price === '0' || parseFloat(product.price) === 0;
   const isVideo = product.mediaType === 'video' || product.images[0]?.match(/\.(mp4|webm|mov)/i);
+
+  // Sats equivalent of that day's rate, shown under the price the same way the
+  // photo/product cards render it (live daily BTC/USD via useExchangeRates).
+  const priceInfo = usePriceConversion(isFree ? '0' : product.price, product.currency);
+  const satsUnder = priceInfo.sats;
 
 
   const thumb = product.images[0];
@@ -101,9 +107,16 @@ function MediaThumb({ product }: { product: MarketplaceProduct }) {
 
         {/* Lightning badge — always visible, bottom right */}
         {!isFree && !hover && (
-          <div className="absolute bottom-1.5 right-1.5 bg-black/70 text-white text-[10px] px-1 py-0.5 rounded flex items-center gap-0.5">
-            <Zap className="w-2.5 h-2.5 text-yellow-400 fill-yellow-400" />
-            <span>${product.price}</span>
+          <div className="absolute bottom-1.5 right-1.5 bg-black/70 text-white text-[10px] px-1 py-0.5 rounded">
+            <div className="flex items-center gap-1">
+              <Zap className="w-2.5 h-2.5 text-yellow-400 fill-yellow-400" />
+              <span>${product.price}</span>
+            </div>
+            {satsUnder && (
+              <div className="text-[9px] leading-none mt-0.5 text-yellow-200/90">
+                {satsUnder}
+              </div>
+            )}
           </div>
         )}
       </div>

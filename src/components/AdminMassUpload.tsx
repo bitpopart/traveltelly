@@ -175,8 +175,10 @@ export function AdminMassUpload() {
         previewUrl,
         title: '',
         description: '',
-        price: '0.99',
+        price: file.type.startsWith('video/') ? '9.99' : '0.99',
         currency: 'USD',
+        // Video uploads list at $9.99 (default); photos keep the $0.99 default.
+        // The admin can still override any item's price before publishing.
         mediaType: file.type.startsWith('video/') ? 'videos' : 'photos',
         category: 'building-architecture',
         location: '',
