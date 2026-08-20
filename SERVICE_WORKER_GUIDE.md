@@ -38,12 +38,12 @@ TravelTelly includes a sophisticated Service Worker that provides **offline func
 
 ## Service Worker Version
 
-**Current Version:** `3.0.1`
+**Current Version:** `3.0.2`
 
 Cache names:
-- `traveltelly-v3.0.1` - App shell and static assets
-- `traveltelly-runtime-v3.0.1` - Dynamic pages (max 100 items)
-- `traveltelly-images-v3.0.1` - Images (max 50 items)
+- `traveltelly-v3.0.2` - App shell and static assets
+- `traveltelly-runtime-v3.0.2` - Dynamic pages (max 100 items)
+- `traveltelly-images-v3.0.2` - Images (max 50 items)
 
 ---
 
