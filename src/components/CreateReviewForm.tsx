@@ -18,8 +18,9 @@ import { useReviewCategories } from '@/hooks/useReviewCategories';
 import { useRecentVideos } from '@/hooks/useRecentVideos';
 import { createClawstrPost } from '@/lib/clawstr';
 import { PermissionGate } from '@/components/PermissionGate';
-import { Camera, MapPin, Star, Upload, Loader2, Zap, Video } from 'lucide-react';
+import { Camera, MapPin, Star, Upload, Loader2, Zap, Video, Crosshair } from 'lucide-react';
 import { LocationMap } from '@/components/LocationMap';
+import { LocationAdjuster, LOCATION_ADJUST_RADIUS_METERS } from '@/components/LocationAdjuster';
 import { extractGPSFromImage, canContainEXIF } from '@/lib/exifUtils';
 import { compressImage, COMPRESSION_PRESETS } from '@/lib/imageCompression';
 import { useNavigate } from 'react-router-dom';
@@ -71,6 +72,8 @@ function CreateReviewFormContent() {
   const [additionalPhotos, setAdditionalPhotos] = useState<string[]>([]);
   const [location, setLocation] = useState<LocationData | null>(null);
   const [showMap, setShowMap] = useState(false);
+  const [showAdjustMap, setShowAdjustMap] = useState(false);
+  const [locationFromPhoto, setLocationFromPhoto] = useState(false);
   const [extractingLocation, setExtractingLocation] = useState(false);
   const [showVideoSelector, setShowVideoSelector] = useState(false);
 
@@ -147,6 +150,7 @@ function CreateReviewFormContent() {
         }
 
         setLocation(locationData);
+        setLocationFromPhoto(true);
         setShowMap(true); // Show map with extracted location
         toast({
           title: 'Location extracted!',
@@ -491,6 +495,23 @@ ${data.content || data.description || ''}
               </div>
             )}
 
+            {/* Small map under the image for fine-tuning the auto-GPS pin */}
+            {selectedFile && locationFromPhoto && location && (
+              <div>
+                <p className="text-sm font-medium mb-1 flex items-center gap-2 text-green-700 dark:text-green-300">
+                  <MapPin className="w-4 h-4" />
+                  Fine-tune the pin location
+                </p>
+                <p className="text-xs text-muted-foreground mb-2">
+                  This pin came from the photo's GPS. Drag or click just inside the marked area to correct a
+                  small error (e.g. a wrong street) — movement is clamped to ~{LOCATION_ADJUST_RADIUS_METERS}m.
+                </p>
+                <div className="h-56 rounded-lg overflow-hidden border">
+                  <LocationAdjuster initialLocation={location} onLocationSelect={handleLocationSelect} />
+                </div>
+              </div>
+            )}
+
             {selectedFile && !extractingLocation && !location && (
               <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                 <p className="text-sm text-blue-700 dark:text-blue-300">
@@ -575,6 +596,7 @@ ${data.content || data.description || ''}
                     const lat = parseFloat(e.target.value);
                     if (!isNaN(lat) && lat >= -90 && lat <= 90) {
                       setLocation(prev => prev ? { ...prev, lat } : { lat, lng: 0 });
+                      setLocationFromPhoto(false);
                       trackCoordinates('MANUAL_INPUT', lat, location?.lng || 0, 'Manual latitude input');
                     }
                   }}
@@ -593,6 +615,7 @@ ${data.content || data.description || ''}
                     const lng = parseFloat(e.target.value);
                     if (!isNaN(lng) && lng >= -180 && lng <= 180) {
                       setLocation(prev => prev ? { ...prev, lng } : { lat: 0, lng });
+                      setLocationFromPhoto(false);
                       trackCoordinates('MANUAL_INPUT', location?.lat || 0, lng, 'Manual longitude input');
                     }
                   }}
@@ -615,6 +638,16 @@ ${data.content || data.description || ''}
               <MapPin className="w-4 h-4 mr-2" />
               {showMap ? 'Hide Map' : (location ? 'View/Change Location on Map' : 'Select Location on Map')}
             </Button>
+            {location && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowAdjustMap(!showAdjustMap)}
+              >
+                <Crosshair className="w-4 h-4 mr-2" />
+                {showAdjustMap ? 'Done Adjusting' : 'Adjust Location'}
+              </Button>
+            )}
           </div>
 
           {showMap && (
@@ -623,6 +656,18 @@ ${data.content || data.description || ''}
                 onLocationSelect={handleLocationSelect}
                 initialLocation={location}
               />
+            </div>
+          )}
+
+          {showAdjustMap && location && (
+            <div className="mt-2">
+              <p className="text-xs text-muted-foreground mb-1">
+                Small-radius fix for a short correction (wrong street, etc.). Movement is kept within
+                ~{LOCATION_ADJUST_RADIUS_METERS}m of the current pin.
+              </p>
+              <div className="h-56 rounded-lg overflow-hidden border">
+                <LocationAdjuster initialLocation={location} onLocationSelect={handleLocationSelect} />
+              </div>
             </div>
           )}
         </CardContent>
