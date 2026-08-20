@@ -1,7 +1,7 @@
 // TravelTelly Service Worker
 // Provides offline functionality, smart caching, push notifications, and background sync
 
-const CACHE_VERSION = '3.0.2';
+const CACHE_VERSION = '3.0.3';
 const CACHE_NAME = `traveltelly-v${CACHE_VERSION}`;
 const RUNTIME_CACHE = `traveltelly-runtime-v${CACHE_VERSION}`;
 const IMAGE_CACHE = `traveltelly-images-v${CACHE_VERSION}`;

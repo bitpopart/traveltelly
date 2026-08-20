@@ -272,7 +272,7 @@ body.picking #map{cursor:crosshair;}
 .dz p{font-size:12.5px;color:var(--ink-muted);line-height:1.5;}
 .dz p b{color:var(--lime-dark);}
 .staged{margin-top:14px;display:flex;flex-direction:column;gap:10px;}
-.sitem{display:flex;gap:12px;background:var(--bg);border-radius:12px;padding:10px;align-items:flex-start;}
+.sitem{display:flex;gap:12px;background:var(--bg);border-radius:12px;padding:10px;align-items:flex-start;flex-wrap:wrap;}
 .sitem .thumb{width:74px;height:74px;border-radius:10px;overflow:hidden;flex:0 0 auto;background:#e6e4df;position:relative;}
 .sitem .thumb img,.sitem .thumb video{width:100%;height:100%;object-fit:cover;display:block;}
 .sitem .thumb .tag{position:absolute;bottom:4px;left:4px;background:var(--ink);color:#fff;border-radius:6px;
@@ -288,6 +288,10 @@ body.picking #map{cursor:crosshair;}
  padding:4px 10px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:11px;
  letter-spacing:0.1em;text-transform:uppercase;}
 .sitem .rm{border:none;background:none;color:var(--ink-muted);font-size:15px;padding:4px;}
+/* small "adjust location" map shown under a staged GPS photo — draggable pin clamped ~300m */
+.sitem .adjmap{width:100%;height:150px;border-radius:12px;background:#dce9ee;overflow:hidden;margin-top:6px;}
+.sitem .adjmap .leaflet-container{font:inherit;}
+.adjbtn.on{background:var(--lime);color:var(--ink);border-color:var(--lime);}
 .pubbtn{margin-top:16px;width:100%;border:none;background:var(--lime);color:var(--ink);border-radius:12px;
  padding:14px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;
  letter-spacing:0.18em;text-transform:uppercase;transition:all .15s;}
@@ -2141,6 +2145,8 @@ async function addFiles(files){
      title: meta.title || meta.desc.slice(0, 60) || '',
      place: xmpPlace,
      lat: meta.gps ? meta.gps.lat : null, lon: meta.gps ? meta.gps.lon : null,
+     anchorLat: meta.gps ? meta.gps.lat : null, anchorLon: meta.gps ? meta.gps.lon : null,
+     adjOpen: !!(meta.gps && meta.gps.lat != null && meta.gps.lon != null),
      ts: meta.ts || null, name:f.name};
     staged.push(item);
     // GPS but no place from XMP: look it up in the background, fill only if still untouched
@@ -2211,6 +2217,7 @@ function renderStaged(){
    ? '<div class="thumb"><video src="' + s.dataURL + '" muted></video><span class="tag">' + (s.convNote ? 'EDITED' : 'CLIP') + '</span></div>'
    : '<div class="thumb"><img src="' + s.thumbURL + '"></div>';
   const hasGps = s.lat != null && s.lon != null;
+  const showAdj = s.adjOpen && hasGps;
   const gpsTxt = hasGps
    ? '<span class="gpsok">📍 from ' + (s.gpsManual ? 'you' : 'photo') + '</span>'
    : '<span class="gpsno">⚠️ no GPS, add it before pinning</span>';
@@ -2222,9 +2229,11 @@ function renderStaged(){
      '<input type="text" class="f-lat" inputmode="decimal" placeholder="lat" value="' + (s.lat != null ? s.lat : '') + '">' +
      '<input type="text" class="f-lon" inputmode="decimal" placeholder="lon" value="' + (s.lon != null ? s.lon : '') + '">' +
      '<button data-a="pick">📍 Pick on map</button>' +
+     (hasGps ? '<button class="adjbtn' + (showAdj ? ' on' : '') + '" data-a="adj" title="Fine-tune the pin on a small map">' + (showAdj ? '✓ Adjust done' : '🎯 Adjust location') + '</button>' : '') +
     '</div>' +
     (s.convNote ? '<button class="previewbtn" data-a="preview" title="See what will actually be uploaded vs the original">▶ Preview edited clip</button>' : '') +
    '</div>' +
+   (showAdj ? '<div class="adjmap" data-adjuid="' + s.uid + '"></div>' : '') +
    '<button class="rm" title="Remove">✕</button>';
   el.querySelector('.f-title').oninput = e => { s.title = e.target.value; updatePub(); };
   el.querySelector('.f-place').oninput = e => { s.place = e.target.value; };
@@ -2245,13 +2254,76 @@ function renderStaged(){
    closeDrawer();
    toast('Tap the map where this ' + (s.type === 'clip' ? 'clip' : 'photo') + ' belongs', 5000);
   };
-  el.querySelector('.rm').onclick = () => { staged = staged.filter(x => x.uid !== s.uid); renderStaged(); };
+  const adjBtn = el.querySelector('[data-a=adj]');
+  if(adjBtn) adjBtn.onclick = () => { s.adjOpen = !s.adjOpen; renderStaged(); };
+  el.querySelector('.rm').onclick = () => { staged = staged.filter(x => x.uid !== s.uid); if(adjMapCtl[s.uid]){ try{ adjMapCtl[s.uid].map.remove(); }catch(e){} delete adjMapCtl[s.uid]; } renderStaged(); };
   const pv = el.querySelector('[data-a=preview]');
   if(pv) pv.onclick = () => showClipPreview(s);
   wrap.appendChild(el);
+  if(showAdj){ adjMap(el, s); }
  });
  $('stageCount').textContent = staged.length ? staged.length + ' staged' : '';
  updatePub();
+}
+/* Build the small "adjust location" map for one staged photo, once per uid.
+ * A draggable marker sits on the photo's original GPS point; dragging (or
+ * clicking) moves the pin but stays clamped within ~300m of that anchor so
+ * it only fine-tunes, never jumps somewhere unrelated. */
+const ADJ_RADIUS = 300; // meters
+const adjMapCtl = {};   // uid -> {map, mk}
+function adjMapClamp(lat, lon, aLat, aLon){
+ const R = 6371000;
+ const toRad = d => d * Math.PI / 180;
+ const dLat = toRad(lat - aLat), dLon = toRad(lon - aLon);
+ const h = Math.sin(dLat/2)**2 + Math.cos(toRad(aLat)) * Math.cos(toRad(lat)) * Math.sin(dLon/2)**2;
+ const dist = R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1-h));
+ if(dist <= ADJ_RADIUS) return [lat, lon];
+ const f = ADJ_RADIUS / dist;
+ return [aLat + (lat - aLat) * f, aLon + (lon - aLon) * f];
+}
+function adjMap(el, s){
+ const uid = s.uid;
+ if(adjMapCtl[uid]){
+  try{ adjMapCtl[uid].map.remove(); }catch(e){}
+  delete adjMapCtl[uid];
+ }
+ if(!el) return;
+ const box = el.querySelector('.adjmap');
+ if(!box) return;
+ const aLat = s.anchorLat != null ? s.anchorLat : s.lat;
+ const aLon = s.anchorLon != null ? s.anchorLon : s.lon;
+ const [cl, cn] = adjMapClamp(s.lat, s.lon, aLat, aLon);
+ const mm = L.map(box, {zoomControl:false, attributionControl:false, worldCopyJump:false})
+  .setView([cl, cn], 15);
+ L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  attribution:'© OpenStreetMap © CARTO', maxZoom:17
+ }).addTo(mm);
+ const mk = L.marker([cl, cn], {draggable:true, color:'#b8d153',
+  icon:L.divIcon({className:'', iconSize:[22,36], iconAnchor:[11,34],
+   html:'<div style="width:22px;height:22px;border-radius:50%;background:#b8d153;border:3px solid #fff;position:relative;">'
+      + '<div style="position:absolute;left:50%;bottom:-12px;transform:translateX(-45%);width:0;height:0;'
+      + 'border-left:6px solid transparent;border-right:6px solid transparent;border-top:9px solid #fff;"></div></div>'})
+ }).addTo(mm);
+ mk.setLatLng && mk.setLatLng([cl, cn]);
+ L.circle([aLat, aLon], ADJ_RADIUS, {interactive:false, color:'#e8933a', fillColor:'#f5b060', fillOpacity:0.12}).addTo(mm);
+ const syncInputs = () => {
+  const fl = el.querySelector('.f-lat'), fo = el.querySelector('.f-lon');
+  if(fl) fl.value = s.lat;
+  if(fo) fo.value = s.lon;
+ };
+ const apply = (lat, lon) => {
+  const [pl, pn] = adjMapClamp(lat, lon, aLat, aLon);
+  s.lat = +pl.toFixed(5); s.lon = +pn.toFixed(5); s.gpsManual = true;
+  if(mk.setLatLng) mk.setLatLng([s.lat, s.lon]);
+  syncInputs();
+  const gok = el.querySelector('.gpsok');
+  if(gok) gok.textContent = '📍 from you';
+  updatePub();
+ };
+ mk.on('dragend', e => apply(e.latlng.lat, e.latlng.lng));
+ mm.on('click', e => apply(e.latlng.lat, e.latlng.lng));
+ adjMapCtl[uid] = {map:mm, mk};
+ syncInputs();
 }
 function updatePub(){
  const ready = staged.length > 0 && staged.every(s => s.lat != null && s.lon != null);
