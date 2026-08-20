@@ -97,7 +97,16 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
   const { toast } = useToast();
 
   const handleInputChange = (field: keyof ProductFormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      // Video uploads list at a default $9.99; photos have no default price so the
+      // seller sets one. Pre-filled here (and on video file drop) so a video upload
+      // just works, while the seller can still edit it before publishing.
+      const prefillPrice =
+        field === 'mediaType' && value === 'videos' && !prev.price
+          ? '9.99'
+          : prev.price;
+      return { ...prev, [field]: value, price: prefillPrice };
+    });
   };
 
   const handlePhotosChange = (photos: UploadedPhoto[]) => {
@@ -113,6 +122,9 @@ export function CreateProductDialog({ children }: CreateProductDialogProps) {
       setFormData(prev => ({
         ...prev,
         mediaType: prev.mediaType || (isVideo ? 'videos' : 'photos'),
+        // Video uploads default to $9.99 (sats show under the price from the
+        // live daily rate); leave blank photos for the seller to price.
+        price: isVideo && !prev.price ? '9.99' : prev.price,
       }));
     }
   };
