@@ -826,7 +826,7 @@ function showClipPreview(s){
 }
 
 /* ═════════ map ═════════ */
-const map = L.map('map', {zoomControl:false, worldCopyJump:true, minZoom:2, maxZoom:17, preferCanvas:true}).setView([30, 8], 2.6);
+const map = L.map('map', {zoomControl:false, worldCopyJump:false, noWrap:true, minZoom:2, maxZoom:17, preferCanvas:true}).setView([30, 8], 2.6);
 L.control.zoom({position:'bottomright'}).addTo(map);
 L.control.scale({position:'bottomleft', imperial:false, maxWidth:140}).addTo(map);
 streetsStatic = L.layerGroup();
