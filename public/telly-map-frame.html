@@ -1659,7 +1659,7 @@ function videoClipThumb(dataURL, max, q){
     setTimeout(snap, 900);      // fallback if seek/play never yields a frame
     try{ v.onseeked = snap; }catch(e){}
     setTimeout(() => finish(v), 2500);   // hard stop so publish never hangs
-   };
+   }catch(e){ finish(v); }
   };
   v.onerror = () => finish(v);
   v.src = dataURL;
