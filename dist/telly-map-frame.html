@@ -272,7 +272,7 @@ body.picking #map{cursor:crosshair;}
 .dz p{font-size:12.5px;color:var(--ink-muted);line-height:1.5;}
 .dz p b{color:var(--lime-dark);}
 .staged{margin-top:14px;display:flex;flex-direction:column;gap:10px;}
-.sitem{display:flex;gap:12px;background:var(--bg);border-radius:12px;padding:10px;align-items:flex-start;}
+.sitem{display:flex;gap:12px;background:var(--bg);border-radius:12px;padding:10px;align-items:flex-start;flex-wrap:wrap;}
 .sitem .thumb{width:74px;height:74px;border-radius:10px;overflow:hidden;flex:0 0 auto;background:#e6e4df;position:relative;}
 .sitem .thumb img,.sitem .thumb video{width:100%;height:100%;object-fit:cover;display:block;}
 .sitem .thumb .tag{position:absolute;bottom:4px;left:4px;background:var(--ink);color:#fff;border-radius:6px;
@@ -288,6 +288,10 @@ body.picking #map{cursor:crosshair;}
  padding:4px 10px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:11px;
  letter-spacing:0.1em;text-transform:uppercase;}
 .sitem .rm{border:none;background:none;color:var(--ink-muted);font-size:15px;padding:4px;}
+/* small "adjust location" map shown under a staged GPS photo — draggable pin clamped ~300m */
+.sitem .adjmap{width:100%;height:150px;border-radius:12px;background:#dce9ee;overflow:hidden;margin-top:6px;}
+.sitem .adjmap .leaflet-container{font:inherit;}
+.adjbtn.on{background:var(--lime);color:var(--ink);border-color:var(--lime);}
 .pubbtn{margin-top:16px;width:100%;border:none;background:var(--lime);color:var(--ink);border-radius:12px;
  padding:14px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;
  letter-spacing:0.18em;text-transform:uppercase;transition:all .15s;}
@@ -826,7 +830,7 @@ function showClipPreview(s){
 }
 
 /* ═════════ map ═════════ */
-const map = L.map('map', {zoomControl:false, worldCopyJump:true, minZoom:2, maxZoom:17, preferCanvas:true}).setView([30, 8], 2.6);
+const map = L.map('map', {zoomControl:false, worldCopyJump:false, noWrap:true, minZoom:2, maxZoom:17, preferCanvas:true}).setView([30, 8], 2.6);
 L.control.zoom({position:'bottomright'}).addTo(map);
 L.control.scale({position:'bottomleft', imperial:false, maxWidth:140}).addTo(map);
 streetsStatic = L.layerGroup();
@@ -1189,7 +1193,8 @@ function passFilter(p){
  return true;
 }
 function pinIcon(p){
- const thumb = p.type === 'clip'
+ const hasImgThumb = p.thumbURL && !String(p.thumbURL).startsWith('data:video');
+ const thumb = !hasImgThumb
   ? '<div class="ph" style="display:flex;align-items:center;justify-content:center;background:#1a1816;color:#fff;font-size:16px;">▶</div>'
   : '<div class="ph"><img src="' + p.thumbURL + '"></div>';
  const clip = p.type === 'clip' ? '<span class="clipmark">▶</span>' : '';
@@ -1344,7 +1349,8 @@ $('pe-save').onclick = async () => {
    ];
    if(newPlace)    tags.push(['location', newPlace]);
    if(p.dataURL && !p.dataURL.startsWith('data:')) tags.push(['image', p.dataURL]);
-   if(!p._isReview) tags.push(['type', 'pin']);
+   if(p.thumbURL && !p.thumbURL.startsWith('data:') && p.type === 'clip') tags.push(['thumb', p.thumbURL]);
+   if(!p._isReview) tags.push(['type', p.type]);
    const ev = {
     kind: 34879,
     created_at: Math.floor(Date.now()/1000),
@@ -1537,6 +1543,52 @@ function parseTiff(v, base, meta){
  meta.gps = {lat: +lat.toFixed(5), lon: +lon.toFixed(5)};
 }
 
+/* ═════════ Video GPS metadata parser (MP4 / MOV / QuickTime) ═════════
+ * Phones embed footage location as an ISO 6709 signed-degree string inside
+ * the QuickTime 'moov' metadata box, e.g. "+52.367005+004.1256/".
+ * We locate the tiny (KBs) moov atom and pull the signed decimal pair out
+ * of its bytes, so a clip pins itself on the world map just like a GPS
+ * photo. Strict range checks reject anything that is not a real coordinate. */
+function videoIsoToGps(s){
+ let m = s.match(/([+-]\d{1,2}\.\d{2,7})([+-]\d{1,3}\.\d{2,7})/); // "+52.367005+004.1256/"
+ if(!m) m = s.match(/(-?\d{1,2}\.\d{2,7})\s*[,;\s]\s*(-?\d{1,3}\.\d{2,7})/); // "52.367005,4.1256"
+ if(!m) return null;
+ const lat = +m[1], lon = +m[2];
+ if(!isFinite(lat) || !isFinite(lon) || (lat === 0 && lon === 0)) return null;
+ if(lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+ return {lat: +lat.toFixed(5), lon: +lon.toFixed(5)};
+}
+function readVideoMeta(buffer){
+ const meta = {gps:null};
+ try{
+  const v = new DataView(buffer);
+  // Top-level boxes: find the small 'moov' metadata box and scan only its bytes.
+  let moovStart = -1, moovEnd = -1, o = 0;
+  while(o + 8 <= v.byteLength){
+   let sz = v.getUint32(o), hdr = o + 8;
+   let type = String.fromCharCode(v.getUint8(o + 4), v.getUint8(o + 5), v.getUint8(o + 6), v.getUint8(o + 7));
+   if(sz === 1){ // 64-bit extended size
+    if(o + 16 > v.byteLength) break;
+    const hi = v.getUint32(o + 8), lo = v.getUint32(o + 12);
+    const es = hi * 0x100000000 + lo;
+    if(es < 16) break;
+    sz = es; hdr = o + 16;
+   }else if(sz === 0){ sz = v.byteLength - o; }
+   if(sz < 8 || o + sz > v.byteLength) break;
+   if(type === 'moov'){ moovStart = hdr; moovEnd = o + sz; break; }
+   o += sz;
+  }
+  const scanStart = moovStart >= 0 ? moovStart : 0;
+  const scanEnd   = moovStart >= 0 ? moovEnd : v.byteLength;
+  const len = Math.min(scanEnd - scanStart, v.byteLength - scanStart, 1.5 * 1024 * 1024);
+  let str = '';
+  for(let i = 0; i < len; i++) str += String.fromCharCode(v.getUint8(scanStart + i));
+  const gps = videoIsoToGps(str);
+  if(gps) meta.gps = gps;
+ }catch(e){}
+ return meta;
+}
+
 /* ═════════ media processing ═════════ */
 function decodeImage(dataURL){
  return new Promise(res => {
@@ -1575,6 +1627,41 @@ function videoDuration(dataURL){
   v.preload = 'metadata';
   v.onloadedmetadata = () => res(v.duration);
   v.onerror = () => res(null);
+  v.src = dataURL;
+ });
+}
+/* Grab one actual frame from a clip as a small JPEG poster thumb, so a clip
+ * pin shows a real thumbnail on the map instead of a flat black ▶ box.
+ * Mirrors the photo downscale() flow: seek ~0.1s in, draw to a canvas, encode. */
+function videoClipThumb(dataURL, max, q){
+ return new Promise(res => {
+  let settled = false;
+  const finish = v => { if(settled) return; settled = true; try{ v.pause(); }catch(e){} res(v._thumb || null); };
+  const v = document.createElement('video');
+  v.muted = true; v.playsInline = true; v.preload = 'auto';
+  v.onended = () => finish(v);
+  v.onloadedmetadata = () => {
+   try{
+    const maxW = max || 220;
+    const scale = Math.min(1, maxW / Math.max(v.videoWidth || maxW, v.videoHeight || maxW));
+    const w = Math.max(2, Math.round((v.videoWidth  || maxW) * scale));
+    const h = Math.max(2, Math.round((v.videoHeight || 480) * scale));
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const ctx = c.getContext('2d');
+    if(!ctx){ finish(v); return; }
+    const snap = () => {
+     if(settled) return; settled = true;
+     try{ v.pause(); }catch(e){}
+     try{ ctx.drawImage(v, 0, 0, w, h); res(c.toDataURL('image/jpeg', q || 0.7)); }
+     catch(e){ res(null); }
+    };
+    try{ v.currentTime = 0.1; v.play(); }catch(e){ snap(); }
+    setTimeout(snap, 900);      // fallback if seek/play never yields a frame
+    try{ v.onseeked = snap; }catch(e){}
+    setTimeout(() => finish(v), 2500);   // hard stop so publish never hangs
+   };
+  };
+  v.onerror = () => finish(v);
   v.src = dataURL;
  });
 }
@@ -2141,6 +2228,8 @@ async function addFiles(files){
      title: meta.title || meta.desc.slice(0, 60) || '',
      place: xmpPlace,
      lat: meta.gps ? meta.gps.lat : null, lon: meta.gps ? meta.gps.lon : null,
+     anchorLat: meta.gps ? meta.gps.lat : null, anchorLon: meta.gps ? meta.gps.lon : null,
+     adjOpen: !!(meta.gps && meta.gps.lat != null && meta.gps.lon != null),
      ts: meta.ts || null, name:f.name};
     staged.push(item);
     // GPS but no place from XMP: look it up in the background, fill only if still untouched
@@ -2156,6 +2245,8 @@ async function addFiles(files){
      });
     }
    }else if(kind === 'video'){
+    const vmeta = readVideoMeta(await f.arrayBuffer());
+    const vg = vmeta.gps || null;
     const tooBig = f.size > 2.8 * 1024 * 1024;
     let dataURL = null;
     let origURL = null;   // original pre-conversion clip, kept so the owner can preview the edit
@@ -2190,9 +2281,25 @@ async function addFiles(files){
       }
      }
     }
-    staged.push({uid:uidSeq++, type:'clip', dataURL, thumbURL:null,
-     title:'', place:'', lat:null, lon:null, ts:null, name:f.name,
-     origURL, convNote, src, dur, segStart});
+    const clipThumb = await videoClipThumb(dataURL, 220, 0.7);
+    const clipItem = {uid:uidSeq++, type:'clip', dataURL, thumbURL:clipThumb,
+     title:'', place:'', lat: vg ? vg.lat : null, lon: vg ? vg.lon : null,
+     anchorLat: vg ? vg.lat : null, anchorLon: vg ? vg.lon : null,
+     adjOpen: !!(vg && vg.lat != null && vg.lon != null),
+     ts:null, name:f.name, origURL, convNote, src, dur, segStart};
+    staged.push(clipItem);
+    // GPS clip without a place: reverse-geocode in the background, fill only if untouched
+    if(clipItem.lat != null && !clipItem.place){
+     placeName(clipItem.lat, clipItem.lon).then(pn => {
+      if(!pn) return;
+      const still = staged.find(x => x.uid === clipItem.uid);
+      if(still && !still.place){
+       still.place = pn;
+       const inp = document.querySelector('[data-place="' + clipItem.uid + '"]');
+       if(inp && !inp.value) inp.value = pn;
+      }
+     });
+    }
    }else{
     toast('⚠️ ' + f.name + ': not a supported photo or clip format');
    }
@@ -2208,11 +2315,14 @@ function renderStaged(){
  staged.forEach(s => {
   const el = document.createElement('div'); el.className = 'sitem';
   const thumb = s.type === 'clip'
-   ? '<div class="thumb"><video src="' + s.dataURL + '" muted></video><span class="tag">' + (s.convNote ? 'EDITED' : 'CLIP') + '</span></div>'
+   ? (s.thumbURL
+      ? '<div class="thumb"><img src="' + s.thumbURL + '"><span class="tag">' + (s.convNote ? 'EDITED' : 'CLIP') + '</span></div>'
+      : '<div class="thumb"><video src="' + s.dataURL + '" muted></video><span class="tag">' + (s.convNote ? 'EDITED' : 'CLIP') + '</span></div>')
    : '<div class="thumb"><img src="' + s.thumbURL + '"></div>';
   const hasGps = s.lat != null && s.lon != null;
+  const showAdj = s.adjOpen && hasGps;
   const gpsTxt = hasGps
-   ? '<span class="gpsok">📍 from ' + (s.gpsManual ? 'you' : 'photo') + '</span>'
+   ? '<span class="gpsok">📍 from ' + (s.gpsManual ? 'you' : (s.type === 'clip' ? 'clip' : 'photo')) + '</span>'
    : '<span class="gpsno">⚠️ no GPS, add it before pinning</span>';
   el.innerHTML = thumb +
    '<div class="fields">' +
@@ -2222,9 +2332,11 @@ function renderStaged(){
      '<input type="text" class="f-lat" inputmode="decimal" placeholder="lat" value="' + (s.lat != null ? s.lat : '') + '">' +
      '<input type="text" class="f-lon" inputmode="decimal" placeholder="lon" value="' + (s.lon != null ? s.lon : '') + '">' +
      '<button data-a="pick">📍 Pick on map</button>' +
+     (hasGps ? '<button class="adjbtn' + (showAdj ? ' on' : '') + '" data-a="adj" title="Fine-tune the pin on a small map">' + (showAdj ? '✓ Adjust done' : '🎯 Adjust location') + '</button>' : '') +
     '</div>' +
     (s.convNote ? '<button class="previewbtn" data-a="preview" title="See what will actually be uploaded vs the original">▶ Preview edited clip</button>' : '') +
    '</div>' +
+   (showAdj ? '<div class="adjmap" data-adjuid="' + s.uid + '"></div>' : '') +
    '<button class="rm" title="Remove">✕</button>';
   el.querySelector('.f-title').oninput = e => { s.title = e.target.value; updatePub(); };
   el.querySelector('.f-place').oninput = e => { s.place = e.target.value; };
@@ -2245,13 +2357,94 @@ function renderStaged(){
    closeDrawer();
    toast('Tap the map where this ' + (s.type === 'clip' ? 'clip' : 'photo') + ' belongs', 5000);
   };
-  el.querySelector('.rm').onclick = () => { staged = staged.filter(x => x.uid !== s.uid); renderStaged(); };
+  const adjBtn = el.querySelector('[data-a=adj]');
+  if(adjBtn) adjBtn.onclick = () => { s.adjOpen = !s.adjOpen; renderStaged(); };
+  el.querySelector('.rm').onclick = () => { staged = staged.filter(x => x.uid !== s.uid); if(adjMapCtl[s.uid]){ try{ adjMapCtl[s.uid].map.remove(); }catch(e){} delete adjMapCtl[s.uid]; } renderStaged(); };
   const pv = el.querySelector('[data-a=preview]');
   if(pv) pv.onclick = () => showClipPreview(s);
   wrap.appendChild(el);
+  if(showAdj){ adjMap(el, s); }
  });
  $('stageCount').textContent = staged.length ? staged.length + ' staged' : '';
  updatePub();
+}
+/* Build the small "adjust location" map for one staged photo, once per uid.
+ * A draggable marker sits on the photo's original GPS point; dragging (or
+ * clicking) moves the pin but stays clamped within ~300m of that anchor so
+ * it only fine-tunes, never jumps somewhere unrelated. */
+const ADJ_RADIUS = 300; // meters
+const adjMapCtl = {};   // uid -> {map, mk}
+function adjMapClamp(lat, lon, aLat, aLon){
+ const R = 6371000;
+ const toRad = d => d * Math.PI / 180;
+ const dLat = toRad(lat - aLat), dLon = toRad(lon - aLon);
+ const h = Math.sin(dLat/2)**2 + Math.cos(toRad(aLat)) * Math.cos(toRad(lat)) * Math.sin(dLon/2)**2;
+ const dist = R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1-h));
+ if(dist <= ADJ_RADIUS) return [lat, lon];
+ const f = ADJ_RADIUS / dist;
+ return [aLat + (lat - aLat) * f, aLon + (lon - aLon) * f];
+}
+function adjMap(el, s){
+ const uid = s.uid;
+ if(adjMapCtl[uid]){
+  try{ adjMapCtl[uid].map.remove(); }catch(e){}
+  delete adjMapCtl[uid];
+ }
+ if(!el) return;
+ const box = el.querySelector('.adjmap');
+ if(!box) return;
+ const aLat = s.anchorLat != null ? s.anchorLat : s.lat;
+ const aLon = s.anchorLon != null ? s.anchorLon : s.lon;
+ const [cl, cn] = adjMapClamp(s.lat, s.lon, aLat, aLon);
+ const mm = L.map(box, {zoomControl:false, attributionControl:false, worldCopyJump:false})
+  .setView([cl, cn], 15);
+ L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  attribution:'© OpenStreetMap © CARTO', maxZoom:17
+ }).addTo(mm);
+ const mk = L.marker([cl, cn], {draggable:true, color:'#b8d153',
+  icon:L.divIcon({className:'', iconSize:[22,36], iconAnchor:[11,34],
+   html:'<div style="width:22px;height:22px;border-radius:50%;background:#b8d153;border:3px solid #fff;position:relative;">'
+      + '<div style="position:absolute;left:50%;bottom:-12px;transform:translateX(-45%);width:0;height:0;'
+      + 'border-left:6px solid transparent;border-right:6px solid transparent;border-top:9px solid #fff;"></div></div>'})
+ }).addTo(mm);
+ mk.setLatLng && mk.setLatLng([cl, cn]);
+ L.circle([aLat, aLon], ADJ_RADIUS, {interactive:false, color:'#e8933a', fillColor:'#f5b060', fillOpacity:0.12}).addTo(mm);
+ const syncInputs = () => {
+  const fl = el.querySelector('.f-lat'), fo = el.querySelector('.f-lon');
+  if(fl) fl.value = s.lat;
+  if(fo) fo.value = s.lon;
+ };
+ const apply = (lat, lon) => {
+  const la = +lat, lo = +lon;
+  if(!isFinite(la) || !isFinite(lo)) return;
+  const [pl, pn] = adjMapClamp(la, lo, aLat, aLon);
+  s.lat = +pl.toFixed(5); s.lon = +pn.toFixed(5); s.gpsManual = true;
+  if(mk.setLatLng) mk.setLatLng([s.lat, s.lon]);
+  syncInputs();
+  const gok = el.querySelector('.gpsok');
+  if(gok) gok.textContent = '📍 from you';
+  updatePub();
+ };
+ /* Commit the marker's REAL final position. Leaflet reports `e.latlng` on
+   dragend, but some runtimes shape it differently (params shadow the React
+   LocationMap fix elsewhere). Read the authoritative post-drag position from
+   the marker itself and fall back to the event, so a moved pin ALWAYS lands
+   on the coordinates the user sees — the published pin then shows correctly
+   on the world map. */
+ const currentMarkerPos = () => {
+  try{ const g = mk && mk.getLatLng && mk.getLatLng(); if(g && isFinite(g.lat) && isFinite(g.lon)) return {lat:g.lat, lon:g.lon}; }catch(e){}
+  return (mk && mk._latlng && isFinite(mk._latlng.lat)) ? {lat:mk._latlng.lat, lon:mk._latlng.lon} : null;
+ };
+ const commitFromEvent = e => {
+  try{
+   const pos = currentMarkerPos() || (e && e.latlng && {lat:e.latlng.lat, lon:e.latlng.lng});
+   if(pos) apply(pos.lat, pos.lon);
+  }catch(err){ console.warn('adjMap commit', err); }
+ };
+ mk.on('dragend', commitFromEvent);
+ mm.on('click', commitFromEvent);
+ adjMapCtl[uid] = {map:mm, mk};
+ syncInputs();
 }
 function updatePub(){
  const ready = staged.length > 0 && staged.every(s => s.lat != null && s.lon != null);
@@ -2389,12 +2582,17 @@ $('pubbtn').onclick = async () => {
 
    /* 1 ── upload photo / clip to Blossom (only if logged in with Nostr) */
    let imageUrl = null;
+   let thumbUrl = null;
    if(hasNostr && s.dataURL && s.dataURL.startsWith('data:')){
     try{
      const isClip = s.type === 'clip';
      const mime = s.dataURL.split(';')[0].split(':')[1] || (isClip ? 'video/webm' : 'image/jpeg');
      showUploadProgress('⬆️ Uploading ' + (isClip ? 'video' : 'photo') + '…', null);
      imageUrl = await blossomUpload(s.dataURL, mime);
+     if(isClip && s.thumbURL && s.thumbURL.startsWith('data:')){
+      try{ thumbUrl = await blossomUpload(s.thumbURL, 'image/jpeg'); }
+      catch(thumbErr){ thumbUrl = null; }
+     }
     }catch(e){
      toast('⚠️ ' + (s.type === 'clip' ? 'Video' : 'Photo') + ' upload failed, pin saved locally: ' + (e.message||e), 5000);
     }finally{
@@ -2412,7 +2610,7 @@ $('pubbtn').onclick = async () => {
        ['title',    title],
        ['rating',   '5'],
        ['category', 'landmarks'],
-       ['type',     'pin'],
+       ['type',     s.type === 'clip' ? 'clip' : 'pin'],
        ['g',        gh],
        ['alt',      'Travel pin: ' + title],
        ['t',        'travel'], ['t', 'traveltelly'],
@@ -2420,6 +2618,7 @@ $('pubbtn').onclick = async () => {
       ];
      if(place)    tags.push(['location', place]);
      if(imageUrl) tags.push(['image', imageUrl]);
+     if(thumbUrl) tags.push(['thumb', thumbUrl]);
      const ev = {
       kind: 34879,
       created_at: Math.floor(Date.now()/1000),
@@ -2472,7 +2671,7 @@ $('pubbtn').onclick = async () => {
      id: localId,
      type: s.type,
      dataURL:  imageUrl || s.dataURL,
-     thumbURL: imageUrl || s.thumbURL,
+     thumbURL: s.type === 'clip' ? (thumbUrl || s.thumbURL || imageUrl) : (imageUrl || s.thumbURL),
      title, place, category: 'landmarks',
      lat: s.lat, lon: s.lon,
      ts: s.ts || Date.now(),
@@ -3225,22 +3424,23 @@ function loadNostrPins(){
   if(!isFinite(coords.lat) || !isFinite(coords.lon)) return;
   if(coords.lat === 0 && coords.lon === 0) return;
   const image    = e.tags.find(t => t[0] === 'image')?.[1] || null;
+  const thumb    = e.tags.find(t => t[0] === 'thumb')?.[1] || '';
   const rating   = parseInt(e.tags.find(t => t[0] === 'rating')?.[1] || '0') || 0;
   const place    = e.tags.find(t => t[0] === 'location')?.[1] ||
                    e.tags.find(t => t[0] === 'place')?.[1] || '';
   const category = e.tags.find(t => t[0] === 'category')?.[1] || '';
   const pinType  = e.tags.find(t => t[0] === 'type')?.[1] || '';
   // 'pin' tag = plain map photo; anything else (or no type) = a real review
-  const isReview = pinType !== 'pin';
+  const isReview = pinType !== 'pin' && pinType !== 'clip';
   const dTag     = e.tags.find(t => t[0] === 'd')?.[1] || '';
   const pubkey   = e.pubkey || '';
   const pinId = 'nostr-' + e.id.slice(0, 16);
   if(pins[pinId]) return; // already loaded from another relay
   pins[pinId] = {
    id: pinId,
-   type: 'photo',
+   type: pinType === 'clip' ? 'clip' : 'photo',
    dataURL: image || _placeholderSVG(title),
-   thumbURL: image || _placeholderSVG(title),
+   thumbURL: thumb || (pinType !== 'clip' ? (image || _placeholderSVG(title)) : ''),
    title,
    place,
    category,

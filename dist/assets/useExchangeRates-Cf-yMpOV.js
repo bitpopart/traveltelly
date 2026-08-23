@@ -1,0 +1,1 @@
+import{k as e,Q as a}from"./index-DGpPtIjz.js";function t(){return e({queryKey:["exchange-rates"],queryFn:a,staleTime:12*60*60*1e3,gcTime:24*60*60*1e3,refetchOnWindowFocus:!1,refetchOnMount:!1})}export{t as u};
