@@ -1193,7 +1193,8 @@ function passFilter(p){
  return true;
 }
 function pinIcon(p){
- const thumb = p.type === 'clip'
+ const hasImgThumb = p.thumbURL && !String(p.thumbURL).startsWith('data:video');
+ const thumb = !hasImgThumb
   ? '<div class="ph" style="display:flex;align-items:center;justify-content:center;background:#1a1816;color:#fff;font-size:16px;">▶</div>'
   : '<div class="ph"><img src="' + p.thumbURL + '"></div>';
  const clip = p.type === 'clip' ? '<span class="clipmark">▶</span>' : '';
@@ -1348,7 +1349,8 @@ $('pe-save').onclick = async () => {
    ];
    if(newPlace)    tags.push(['location', newPlace]);
    if(p.dataURL && !p.dataURL.startsWith('data:')) tags.push(['image', p.dataURL]);
-   if(!p._isReview) tags.push(['type', 'pin']);
+   if(p.thumbURL && !p.thumbURL.startsWith('data:') && p.type === 'clip') tags.push(['thumb', p.thumbURL]);
+   if(!p._isReview) tags.push(['type', p.type]);
    const ev = {
     kind: 34879,
     created_at: Math.floor(Date.now()/1000),
@@ -1625,6 +1627,41 @@ function videoDuration(dataURL){
   v.preload = 'metadata';
   v.onloadedmetadata = () => res(v.duration);
   v.onerror = () => res(null);
+  v.src = dataURL;
+ });
+}
+/* Grab one actual frame from a clip as a small JPEG poster thumb, so a clip
+ * pin shows a real thumbnail on the map instead of a flat black ▶ box.
+ * Mirrors the photo downscale() flow: seek ~0.1s in, draw to a canvas, encode. */
+function videoClipThumb(dataURL, max, q){
+ return new Promise(res => {
+  let settled = false;
+  const finish = v => { if(settled) return; settled = true; try{ v.pause(); }catch(e){} res(v._thumb || null); };
+  const v = document.createElement('video');
+  v.muted = true; v.playsInline = true; v.preload = 'auto';
+  v.onended = () => finish(v);
+  v.onloadedmetadata = () => {
+   try{
+    const maxW = max || 220;
+    const scale = Math.min(1, maxW / Math.max(v.videoWidth || maxW, v.videoHeight || maxW));
+    const w = Math.max(2, Math.round((v.videoWidth  || maxW) * scale));
+    const h = Math.max(2, Math.round((v.videoHeight || 480) * scale));
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const ctx = c.getContext('2d');
+    if(!ctx){ finish(v); return; }
+    const snap = () => {
+     if(settled) return; settled = true;
+     try{ v.pause(); }catch(e){}
+     try{ ctx.drawImage(v, 0, 0, w, h); res(c.toDataURL('image/jpeg', q || 0.7)); }
+     catch(e){ res(null); }
+    };
+    try{ v.currentTime = 0.1; v.play(); }catch(e){ snap(); }
+    setTimeout(snap, 900);      // fallback if seek/play never yields a frame
+    try{ v.onseeked = snap; }catch(e){}
+    setTimeout(() => finish(v), 2500);   // hard stop so publish never hangs
+   };
+  };
+  v.onerror = () => finish(v);
   v.src = dataURL;
  });
 }
@@ -2244,7 +2281,8 @@ async function addFiles(files){
       }
      }
     }
-    const clipItem = {uid:uidSeq++, type:'clip', dataURL, thumbURL:null,
+    const clipThumb = await videoClipThumb(dataURL, 220, 0.7);
+    const clipItem = {uid:uidSeq++, type:'clip', dataURL, thumbURL:clipThumb,
      title:'', place:'', lat: vg ? vg.lat : null, lon: vg ? vg.lon : null,
      anchorLat: vg ? vg.lat : null, anchorLon: vg ? vg.lon : null,
      adjOpen: !!(vg && vg.lat != null && vg.lon != null),
@@ -2277,7 +2315,9 @@ function renderStaged(){
  staged.forEach(s => {
   const el = document.createElement('div'); el.className = 'sitem';
   const thumb = s.type === 'clip'
-   ? '<div class="thumb"><video src="' + s.dataURL + '" muted></video><span class="tag">' + (s.convNote ? 'EDITED' : 'CLIP') + '</span></div>'
+   ? (s.thumbURL
+      ? '<div class="thumb"><img src="' + s.thumbURL + '"><span class="tag">' + (s.convNote ? 'EDITED' : 'CLIP') + '</span></div>'
+      : '<div class="thumb"><video src="' + s.dataURL + '" muted></video><span class="tag">' + (s.convNote ? 'EDITED' : 'CLIP') + '</span></div>')
    : '<div class="thumb"><img src="' + s.thumbURL + '"></div>';
   const hasGps = s.lat != null && s.lon != null;
   const showAdj = s.adjOpen && hasGps;
@@ -2542,12 +2582,17 @@ $('pubbtn').onclick = async () => {
 
    /* 1 ── upload photo / clip to Blossom (only if logged in with Nostr) */
    let imageUrl = null;
+   let thumbUrl = null;
    if(hasNostr && s.dataURL && s.dataURL.startsWith('data:')){
     try{
      const isClip = s.type === 'clip';
      const mime = s.dataURL.split(';')[0].split(':')[1] || (isClip ? 'video/webm' : 'image/jpeg');
      showUploadProgress('⬆️ Uploading ' + (isClip ? 'video' : 'photo') + '…', null);
      imageUrl = await blossomUpload(s.dataURL, mime);
+     if(isClip && s.thumbURL && s.thumbURL.startsWith('data:')){
+      try{ thumbUrl = await blossomUpload(s.thumbURL, 'image/jpeg'); }
+      catch(thumbErr){ thumbUrl = null; }
+     }
     }catch(e){
      toast('⚠️ ' + (s.type === 'clip' ? 'Video' : 'Photo') + ' upload failed, pin saved locally: ' + (e.message||e), 5000);
     }finally{
@@ -2565,7 +2610,7 @@ $('pubbtn').onclick = async () => {
        ['title',    title],
        ['rating',   '5'],
        ['category', 'landmarks'],
-       ['type',     'pin'],
+       ['type',     s.type === 'clip' ? 'clip' : 'pin'],
        ['g',        gh],
        ['alt',      'Travel pin: ' + title],
        ['t',        'travel'], ['t', 'traveltelly'],
@@ -2573,6 +2618,7 @@ $('pubbtn').onclick = async () => {
       ];
      if(place)    tags.push(['location', place]);
      if(imageUrl) tags.push(['image', imageUrl]);
+     if(thumbUrl) tags.push(['thumb', thumbUrl]);
      const ev = {
       kind: 34879,
       created_at: Math.floor(Date.now()/1000),
@@ -2625,7 +2671,7 @@ $('pubbtn').onclick = async () => {
      id: localId,
      type: s.type,
      dataURL:  imageUrl || s.dataURL,
-     thumbURL: imageUrl || s.thumbURL,
+     thumbURL: s.type === 'clip' ? (thumbUrl || s.thumbURL || imageUrl) : (imageUrl || s.thumbURL),
      title, place, category: 'landmarks',
      lat: s.lat, lon: s.lon,
      ts: s.ts || Date.now(),
@@ -3378,22 +3424,23 @@ function loadNostrPins(){
   if(!isFinite(coords.lat) || !isFinite(coords.lon)) return;
   if(coords.lat === 0 && coords.lon === 0) return;
   const image    = e.tags.find(t => t[0] === 'image')?.[1] || null;
+  const thumb    = e.tags.find(t => t[0] === 'thumb')?.[1] || '';
   const rating   = parseInt(e.tags.find(t => t[0] === 'rating')?.[1] || '0') || 0;
   const place    = e.tags.find(t => t[0] === 'location')?.[1] ||
                    e.tags.find(t => t[0] === 'place')?.[1] || '';
   const category = e.tags.find(t => t[0] === 'category')?.[1] || '';
   const pinType  = e.tags.find(t => t[0] === 'type')?.[1] || '';
   // 'pin' tag = plain map photo; anything else (or no type) = a real review
-  const isReview = pinType !== 'pin';
+  const isReview = pinType !== 'pin' && pinType !== 'clip';
   const dTag     = e.tags.find(t => t[0] === 'd')?.[1] || '';
   const pubkey   = e.pubkey || '';
   const pinId = 'nostr-' + e.id.slice(0, 16);
   if(pins[pinId]) return; // already loaded from another relay
   pins[pinId] = {
    id: pinId,
-   type: 'photo',
+   type: pinType === 'clip' ? 'clip' : 'photo',
    dataURL: image || _placeholderSVG(title),
-   thumbURL: image || _placeholderSVG(title),
+   thumbURL: thumb || (pinType !== 'clip' ? (image || _placeholderSVG(title)) : ''),
    title,
    place,
    category,
