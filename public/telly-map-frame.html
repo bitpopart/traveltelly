@@ -2312,7 +2312,9 @@ function adjMap(el, s){
   if(fo) fo.value = s.lon;
  };
  const apply = (lat, lon) => {
-  const [pl, pn] = adjMapClamp(lat, lon, aLat, aLon);
+  const la = +lat, lo = +lon;
+  if(!isFinite(la) || !isFinite(lo)) return;
+  const [pl, pn] = adjMapClamp(la, lo, aLat, aLon);
   s.lat = +pl.toFixed(5); s.lon = +pn.toFixed(5); s.gpsManual = true;
   if(mk.setLatLng) mk.setLatLng([s.lat, s.lon]);
   syncInputs();
@@ -2320,8 +2322,24 @@ function adjMap(el, s){
   if(gok) gok.textContent = '📍 from you';
   updatePub();
  };
- mk.on('dragend', e => apply(e.latlng.lat, e.latlng.lng));
- mm.on('click', e => apply(e.latlng.lat, e.latlng.lng));
+ /* Commit the marker's REAL final position. Leaflet reports `e.latlng` on
+   dragend, but some runtimes shape it differently (params shadow the React
+   LocationMap fix elsewhere). Read the authoritative post-drag position from
+   the marker itself and fall back to the event, so a moved pin ALWAYS lands
+   on the coordinates the user sees — the published pin then shows correctly
+   on the world map. */
+ const currentMarkerPos = () => {
+  try{ const g = mk && mk.getLatLng && mk.getLatLng(); if(g && isFinite(g.lat) && isFinite(g.lon)) return {lat:g.lat, lon:g.lon}; }catch(e){}
+  return (mk && mk._latlng && isFinite(mk._latlng.lat)) ? {lat:mk._latlng.lat, lon:mk._latlng.lon} : null;
+ };
+ const commitFromEvent = e => {
+  try{
+   const pos = currentMarkerPos() || (e && e.latlng && {lat:e.latlng.lat, lon:e.latlng.lng});
+   if(pos) apply(pos.lat, pos.lon);
+  }catch(err){ console.warn('adjMap commit', err); }
+ };
+ mk.on('dragend', commitFromEvent);
+ mm.on('click', commitFromEvent);
  adjMapCtl[uid] = {map:mm, mk};
  syncInputs();
 }
