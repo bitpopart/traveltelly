@@ -1541,6 +1541,52 @@ function parseTiff(v, base, meta){
  meta.gps = {lat: +lat.toFixed(5), lon: +lon.toFixed(5)};
 }
 
+/* ═════════ Video GPS metadata parser (MP4 / MOV / QuickTime) ═════════
+ * Phones embed footage location as an ISO 6709 signed-degree string inside
+ * the QuickTime 'moov' metadata box, e.g. "+52.367005+004.1256/".
+ * We locate the tiny (KBs) moov atom and pull the signed decimal pair out
+ * of its bytes, so a clip pins itself on the world map just like a GPS
+ * photo. Strict range checks reject anything that is not a real coordinate. */
+function videoIsoToGps(s){
+ let m = s.match(/([+-]\d{1,2}\.\d{2,7})([+-]\d{1,3}\.\d{2,7})/); // "+52.367005+004.1256/"
+ if(!m) m = s.match(/(-?\d{1,2}\.\d{2,7})\s*[,;\s]\s*(-?\d{1,3}\.\d{2,7})/); // "52.367005,4.1256"
+ if(!m) return null;
+ const lat = +m[1], lon = +m[2];
+ if(!isFinite(lat) || !isFinite(lon) || (lat === 0 && lon === 0)) return null;
+ if(lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+ return {lat: +lat.toFixed(5), lon: +lon.toFixed(5)};
+}
+function readVideoMeta(buffer){
+ const meta = {gps:null};
+ try{
+  const v = new DataView(buffer);
+  // Top-level boxes: find the small 'moov' metadata box and scan only its bytes.
+  let moovStart = -1, moovEnd = -1, o = 0;
+  while(o + 8 <= v.byteLength){
+   let sz = v.getUint32(o), hdr = o + 8;
+   let type = String.fromCharCode(v.getUint8(o + 4), v.getUint8(o + 5), v.getUint8(o + 6), v.getUint8(o + 7));
+   if(sz === 1){ // 64-bit extended size
+    if(o + 16 > v.byteLength) break;
+    const hi = v.getUint32(o + 8), lo = v.getUint32(o + 12);
+    const es = hi * 0x100000000 + lo;
+    if(es < 16) break;
+    sz = es; hdr = o + 16;
+   }else if(sz === 0){ sz = v.byteLength - o; }
+   if(sz < 8 || o + sz > v.byteLength) break;
+   if(type === 'moov'){ moovStart = hdr; moovEnd = o + sz; break; }
+   o += sz;
+  }
+  const scanStart = moovStart >= 0 ? moovStart : 0;
+  const scanEnd   = moovStart >= 0 ? moovEnd : v.byteLength;
+  const len = Math.min(scanEnd - scanStart, v.byteLength - scanStart, 1.5 * 1024 * 1024);
+  let str = '';
+  for(let i = 0; i < len; i++) str += String.fromCharCode(v.getUint8(scanStart + i));
+  const gps = videoIsoToGps(str);
+  if(gps) meta.gps = gps;
+ }catch(e){}
+ return meta;
+}
+
 /* ═════════ media processing ═════════ */
 function decodeImage(dataURL){
  return new Promise(res => {
@@ -2162,6 +2208,8 @@ async function addFiles(files){
      });
     }
    }else if(kind === 'video'){
+    const vmeta = readVideoMeta(await f.arrayBuffer());
+    const vg = vmeta.gps || null;
     const tooBig = f.size > 2.8 * 1024 * 1024;
     let dataURL = null;
     let origURL = null;   // original pre-conversion clip, kept so the owner can preview the edit
@@ -2196,9 +2244,24 @@ async function addFiles(files){
       }
      }
     }
-    staged.push({uid:uidSeq++, type:'clip', dataURL, thumbURL:null,
-     title:'', place:'', lat:null, lon:null, ts:null, name:f.name,
-     origURL, convNote, src, dur, segStart});
+    const clipItem = {uid:uidSeq++, type:'clip', dataURL, thumbURL:null,
+     title:'', place:'', lat: vg ? vg.lat : null, lon: vg ? vg.lon : null,
+     anchorLat: vg ? vg.lat : null, anchorLon: vg ? vg.lon : null,
+     adjOpen: !!(vg && vg.lat != null && vg.lon != null),
+     ts:null, name:f.name, origURL, convNote, src, dur, segStart};
+    staged.push(clipItem);
+    // GPS clip without a place: reverse-geocode in the background, fill only if untouched
+    if(clipItem.lat != null && !clipItem.place){
+     placeName(clipItem.lat, clipItem.lon).then(pn => {
+      if(!pn) return;
+      const still = staged.find(x => x.uid === clipItem.uid);
+      if(still && !still.place){
+       still.place = pn;
+       const inp = document.querySelector('[data-place="' + clipItem.uid + '"]');
+       if(inp && !inp.value) inp.value = pn;
+      }
+     });
+    }
    }else{
     toast('⚠️ ' + f.name + ': not a supported photo or clip format');
    }
@@ -2219,7 +2282,7 @@ function renderStaged(){
   const hasGps = s.lat != null && s.lon != null;
   const showAdj = s.adjOpen && hasGps;
   const gpsTxt = hasGps
-   ? '<span class="gpsok">📍 from ' + (s.gpsManual ? 'you' : 'photo') + '</span>'
+   ? '<span class="gpsok">📍 from ' + (s.gpsManual ? 'you' : (s.type === 'clip' ? 'clip' : 'photo')) + '</span>'
    : '<span class="gpsno">⚠️ no GPS, add it before pinning</span>';
   el.innerHTML = thumb +
    '<div class="fields">' +
