@@ -35,7 +35,7 @@ function MediaThumb({ product }: { product: MarketplaceProduct }) {
   const isAdmin = user?.pubkey === ADMIN_HEX;
   const isSelected = selectedIds.has(product.id);
   const isFree = !product.price || product.price === '0' || parseFloat(product.price) === 0;
-  const isVideo = product.mediaType === 'video' || product.images[0]?.match(/\.(mp4|webm|mov)/i);
+  const isVideo = (product.mediaType === 'video' || product.mediaType === 'videos') || product.images[0]?.match(/\.(mp4|webm|mov)/i);
 
   // Sats equivalent of that day's rate, shown under the price the same way the
   // photo/product cards render it (live daily BTC/USD via useExchangeRates).
@@ -242,8 +242,8 @@ function MarketplaceInner() {
   const filteredProducts = useMemo(() => {
     return allProducts.filter(p => {
       if (p.images.length === 0) return false;
-      if (activeType === 'photos' && (p.mediaType === 'video' || p.images[0]?.match(/\.(mp4|webm|mov)/i))) return false;
-      if (activeType === 'videos' && !(p.mediaType === 'video' || p.images[0]?.match(/\.(mp4|webm|mov)/i))) return false;
+      if (activeType === 'photos' && ((p.mediaType === 'video' || p.mediaType === 'videos') || p.images[0]?.match(/\.(mp4|webm|mov)/i))) return false;
+      if (activeType === 'videos' && !((p.mediaType === 'video' || p.mediaType === 'videos') || p.images[0]?.match(/\.(mp4|webm|mov)/i))) return false;
       if (activeTag) {
         const matches =
           p.continent === activeTag ||
