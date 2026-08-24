@@ -2631,21 +2631,33 @@ $('pubbtn').onclick = async () => {
      if(acks > 0) toast('✅ Published to ' + acks + ' relay' + (acks>1?'s':'') + '!', 4000);
      else         toast('⚠️ Signed but no relay accepted it — pin saved locally.', 5000);
 
-     /* 2b ── auto-list the pin photo on /marketplace (kind 30402, $0.99) so every pin is also for sale (photos only — clips aren't marketplace products) */
-     if(imageUrl && s.type === 'photo'){
+     /* 2b ── auto-list the pin (photo OR video clip) on /marketplace (kind 30402).
+              Photos list at $0.99; video clips list at $9.99. A clip's listing uses
+              its real frame as the marketplace card image (image[0]) and carries the
+              clip file (a second 'image' tag + a 'video' tag) so buyers download the
+              actual video, not the frame. Clips with no uploaded frame skip the
+              listing (can't render a card) but the pin is still saved. */
+     if(imageUrl && (s.type === 'photo' || (s.type === 'clip' && thumbUrl))){
       try{
+       const isClip = s.type === 'clip';
        const mktTags = [
         ['d',        'product_' + Date.now().toString(36) + Math.random().toString(36).slice(2,9)],
         ['title',    title],
         ['summary',  (place || title).slice(0,200)],
-        ['price',    '0.99', 'USD'],
-        ['t',        'photos'],
+        ['price',    isClip ? '9.99' : '0.99', 'USD'],
+        ['t',        isClip ? 'videos' : 'photos'],
         ['category', 'landmarks'],
-        ['type',     'pin'],
+        ['type',     isClip ? 'clip' : 'pin'],
         ['status',   'active'],
         ['published_at', String(Math.floor(Date.now()/1000))],
-        ['image',    imageUrl],
        ];
+       if(isClip){
+        mktTags.push(['image', thumbUrl]);
+        mktTags.push(['image', imageUrl]);
+        mktTags.push(['video', imageUrl]);
+       } else {
+        mktTags.push(['image', imageUrl]);
+       }
        if(place) mktTags.push(['location', place]);
        mktTags.push(['g', gh]);
        const mktEv = {

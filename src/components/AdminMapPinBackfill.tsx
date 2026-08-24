@@ -47,6 +47,7 @@ import { History, Store, Loader2, RefreshCw, CheckCircle2, AlertTriangle, MapPin
 const REVIEW_KIND = 34879;
 const PRODUCT_KIND = 30402;
 const DEFAULT_SALE_PRICE = '0.99';
+const DEFAULT_CLIP_PRICE = '9.99';
 const DEFAULT_SALE_CURRENCY = 'USD';
 
 interface PinReview {
@@ -58,6 +59,10 @@ interface PinReview {
   location?: string;
   images: string[];
   geohash?: string;
+  /** 'photos' for photo pins ($0.99), 'videos' for video clip pins ($9.99) */
+  mediaType: 'photos' | 'videos';
+  /** The clip's actual video file URL (clip pins only). */
+  video?: string;
 }
 
 function isAuthNostrEvent(e: NostrEvent): e is NostrEvent {
@@ -80,13 +85,41 @@ function collectListingImages(event: NostrEvent): string[] {
   return urls;
 }
 
+/**
+ * Turn a world-map pin (kind 34879) into a candidate marketplace listing.
+ * Photo pins (`type=pin`) must have an `image`; video clip pins (`type=clip`)
+ * must have a `thumb` frame (their preview) and carry the clip file in an
+ * `image` tag. Clips without a frame can't render a marketplace card, so they
+ * are skipped (pin-only).
+ */
 function reviewToPin(event: NostrEvent): PinReview | null {
+  const type = event.tags.find(([n]) => n === 'type')?.[1];
   const slug = event.tags.find(([n]) => n === 'd')?.[1];
   const title = event.tags.find(([n]) => n === 'title')?.[1];
   const category = event.tags.find(([n]) => n === 'category')?.[1];
   const images = collectReviewImages(event);
   const geohash = event.tags.find(([n]) => n === 'g')?.[1];
-  if (!slug || !title || images.length === 0 || !geohash) return null;
+  if (!slug || !title || !geohash) return null;
+
+  const isClip = type === 'clip';
+  if (isClip) {
+    const thumb = event.tags.find(([n]) => n === 'thumb')?.[1];
+    if (!thumb) return null;
+    return {
+      event,
+      slug,
+      title,
+      description: event.tags.find(([n]) => n === 'description')?.[1] ?? event.content ?? '',
+      category: category ?? 'Travel',
+      location: event.tags.find(([n]) => n === 'location')?.[1] ?? undefined,
+      images: [thumb],
+      geohash,
+      mediaType: 'videos',
+      video: images[0] || undefined,
+    };
+  }
+
+  if (images.length === 0) return null;
   return {
     event,
     slug,
@@ -96,6 +129,7 @@ function reviewToPin(event: NostrEvent): PinReview | null {
     location: event.tags.find(([n]) => n === 'location')?.[1] ?? undefined,
     images,
     geohash,
+    mediaType: 'photos',
   };
 }
 
@@ -144,10 +178,12 @@ export function AdminMapPinBackfill() {
       const pins: PinReview[] = [];
       let skipCount = 0;
       for (const ev of validReviews) {
-        // Only backfill actual world-map PIN photos. Travel REVIEWS (kind 34879
-        // without `type=pin`) belong to /reviews and are not for sale, so they
-        // must never be listed on /marketplace.
-        if (ev.tags.find(([n]) => n === 'type')?.[1] !== 'pin') continue;
+        // Only backfill real world-map pins: photo PINs (`type=pin`) and video
+        // CLIPs (`type=clip`). Travel REVIEWS (kind 34879 without those type
+        // tags) belong to /reviews and are not for sale, so they must never be
+        // listed on /marketplace.
+        const pinType = ev.tags.find(([n]) => n === 'type')?.[1];
+        if (pinType !== 'pin' && pinType !== 'clip') continue;
         const pin = reviewToPin(ev);
         if (!pin) continue;
         const expectedD = `map_pin_${pin.slug}`;
@@ -187,23 +223,32 @@ export function AdminMapPinBackfill() {
         const pin = candidates[i];
         try {
           const productId = `map_pin_${pin.slug}`;
+          const isClip = pin.mediaType === 'videos';
           const tags: string[][] = [
             ['d', productId],
             ['title', pin.title],
             ['summary', (pin.description || pin.title).slice(0, 200)],
-            ['price', DEFAULT_SALE_PRICE, DEFAULT_SALE_CURRENCY],
-            ['t', 'photos'],
+            // Video clips list at $9.99; photo pins keep the $0.99 default.
+            ['price', isClip ? DEFAULT_CLIP_PRICE : DEFAULT_SALE_PRICE, DEFAULT_SALE_CURRENCY],
+            ['t', pin.mediaType],
             ['category', pin.category],
-            // Self-describe as a PIN photo so /marketplace can tell pins apart
-            // from (excluded) review photos without resolving the source event.
-            ['type', 'pin'],
+            // Self-describe via the type so /marketplace can tell pin/clip
+            // listings apart from (excluded) review photos without resolving
+            // the source event.
+            ['type', isClip ? 'clip' : 'pin'],
             ['status', 'active'],
             ['published_at', Math.floor(Date.now() / 1000).toString()],
           ];
           // Reference the source review for provenance + dedup
           tags.push(['review', pin.slug]);
           tags.push(['e', pin.event.id]);
+          // Preview first (so the marketplace card renders), then the actual
+          // clip file with a 'video' tag so buyers download the real video.
           for (const u of pin.images) tags.push(['image', u]);
+          if (isClip && pin.video) {
+            if (!pin.images.includes(pin.video)) tags.push(['image', pin.video]);
+            tags.push(['video', pin.video]);
+          }
           if (pin.location) tags.push(['location', pin.location]);
           if (pin.geohash) tags.push(['g', pin.geohash]);
 
@@ -233,7 +278,7 @@ export function AdminMapPinBackfill() {
       // will skip them via dedup; failures (if any) will reappear as candidates.
       setCandidates([]);
       if (failed === 0) {
-        toast({ title: 'Backfill complete', description: `${published} map-pin photos listed on the marketplace at $${DEFAULT_SALE_PRICE}.` });
+        toast({ title: 'Backfill complete', description: `${published} map-pin photo${published === 1 ? '' : 's'} / clip${published === 1 ? '' : 's'} listed on the marketplace (photos $0.99, video clips $9.99).` });
       } else {
         toast({ title: 'Backfill finished with errors', description: `${published} published, ${failed} failed. Re-scan to retry the failures.`, variant: 'destructive' });
       }
