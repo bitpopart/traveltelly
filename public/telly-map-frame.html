@@ -1138,8 +1138,8 @@ map.on('zoomend moveend', renderDetail);
 renderDetail();
 /* real tiles on top when the environment allows them; drop them silently if blocked */
 let tileFails = 0;
-const tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
- attribution:'© OpenStreetMap © CARTO', maxZoom:17, opacity:0
+const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+ attribution:'© OpenStreetMap contributors', maxZoom:17, opacity:0
 });
 function activateTiles(){
  if(tilesActive) return;
@@ -2398,8 +2398,8 @@ function adjMap(el, s){
  const [cl, cn] = adjMapClamp(s.lat, s.lon, aLat, aLon);
  const mm = L.map(box, {zoomControl:false, attributionControl:false, worldCopyJump:false})
   .setView([cl, cn], 15);
- L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-  attribution:'© OpenStreetMap © CARTO', maxZoom:17
+ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution:'© OpenStreetMap contributors', maxZoom:17
  }).addTo(mm);
  const mk = L.marker([cl, cn], {draggable:true, color:'#b8d153',
   icon:L.divIcon({className:'', iconSize:[22,36], iconAnchor:[11,34],
