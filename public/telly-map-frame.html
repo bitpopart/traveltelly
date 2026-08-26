@@ -367,6 +367,9 @@ body.picking #map{cursor:crosshair;}
  color:#fff;font-size:18px;line-height:1;cursor:pointer;padding:0 4px;opacity:0.7;}
 #contrib-banner .cb-close:hover{opacity:1;}
 @media(max-width:480px){#contrib-banner{font-size:12px;gap:6px;}}
+/* When the contributor banner is visible, raise the bottom-right zoom control
+   clear of it so the zoom in/out buttons stay fully reachable. */
+body.has-banner .leaflet-bottom.leaflet-right .leaflet-control-zoom{margin-bottom:64px;}
 
 /* empty state — hidden, never shown */
 .empty{display:none !important;}
@@ -3328,6 +3331,12 @@ const APPROVED_PUBKEYS = new Set([
  '7d33ba57d8a6e8869a1f1d5215254597594ac0dbfeb01b690def8c461b82db35', // npub105em547c5m5gdxslr4fp2f29jav54sxml6cpk6gda7xyvxuzmv6s84a642
 ]);
 
+function setContribBanner(visible){
+ const b = $('contrib-banner');
+ if(b) b.style.display = visible ? '' : 'none';
+ document.body.classList.toggle('has-banner', !!visible);
+}
+
 function applyAuth(canAdd, pubkey){
  /* Always grant if pubkey is in the hard-coded approved set */
  if(pubkey && APPROVED_PUBKEYS.has(pubkey)) canAdd = true;
@@ -3340,11 +3349,12 @@ function applyAuth(canAdd, pubkey){
   if(canAdd){
    addBtn.style.display = '';
    if(addBtnE) addBtnE.style.display = '';
-   if(banner) banner.style.display = 'none';
+   if(banner) setContribBanner(false);
   }else{
    addBtn.style.display = 'none';
    if(addBtnE) addBtnE.style.display = 'none';
-   if(banner && sessionStorage.getItem('ttmap:banner-dismissed') !== '1') banner.style.display = '';
+   if(banner && sessionStorage.getItem('ttmap:banner-dismissed') !== '1') setContribBanner(true);
+   else setContribBanner(false);
   }
 }
 
@@ -3352,14 +3362,12 @@ function applyAuth(canAdd, pubkey){
 (function(){
  const btn = $('bannerClose');
  if(btn) btn.onclick = () => {
-  const b = $('contrib-banner');
-  if(b) b.style.display = 'none';
+  setContribBanner(false);
   try{ sessionStorage.setItem('ttmap:banner-dismissed', '1'); }catch(e){}
  };
  /* Also hide immediately if already dismissed this session */
  if(sessionStorage.getItem('ttmap:banner-dismissed') === '1'){
-  const b = $('contrib-banner');
-  if(b) b.style.display = 'none';
+  setContribBanner(false);
  }
 })();
 
