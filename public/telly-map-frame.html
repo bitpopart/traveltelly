@@ -3440,6 +3440,12 @@ function loadNostrPins(){
   const gTag  = e.tags.find(t => t[0] === 'g')?.[1];
   const title = e.tags.find(t => t[0] === 'title')?.[1];
   if(!gTag || !title) return;
+  // Strict geohash validation: real review pins carry a proper geohash from
+  // ngeohash (base32 alphabet, 6-12 chars; TravelTelly writes 8-9). Random
+  // events from other apps on the open relay put fake 'g' values here
+  // (e.g. "seraph-s", "ball-pit") that their partial decode turns into a
+  // plausible-looking pin — filter those out instead of painting them.
+  if(!/^[0123456789bcdefghjkmnpqrstuvwxyz]{4,}$/.test(gTag)) return;
   const coords = geohashDecode(gTag);
   if(!isFinite(coords.lat) || !isFinite(coords.lon)) return;
   if(coords.lat === 0 && coords.lon === 0) return;
