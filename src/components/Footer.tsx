@@ -11,7 +11,6 @@ export function Footer({ showStockMediaPartners = false }: FooterProps) {
   const portfolioLinks = [
     { name: 'Shutterstock', url: 'https://www.shutterstock.com/g/TravelTelly' },
     { name: 'Pond5', url: 'https://www.pond5.com/artist/traveltelly' },
-    { name: 'Adobe Stock', url: 'https://stock.adobe.com/nl/contributor/203727529/TravelTelly' },
   ];
 
   return (
